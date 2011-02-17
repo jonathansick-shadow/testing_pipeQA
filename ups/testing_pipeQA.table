@@ -1,0 +1,7 @@
+setupRequired(pipette)
+
+setupOptional(obs_lsst)
+setupOptional(obs_cfht)
+setupOptional(obs_suprime)
+
+envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
