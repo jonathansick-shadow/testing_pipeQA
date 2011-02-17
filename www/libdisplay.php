@@ -184,9 +184,6 @@ function summarizeTest($testDir) {
     global $dbFile;
     #$mtime = date("Y-m_d H:i:s", filemtime("$testDir/$dbFile"));
 
-    if (!file_exists($dbFile)){
-	return "";
-    }
     $db = connect($testDir);
     $testCmd = "select count(*) from summary";
     $nTest = $db->query($testCmd)->fetchColumn();
