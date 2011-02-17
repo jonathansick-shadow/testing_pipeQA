@@ -183,7 +183,10 @@ function summarizeTest($testDir) {
 
     global $dbFile;
     #$mtime = date("Y-m_d H:i:s", filemtime("$testDir/$dbFile"));
-    
+
+    if (!file_exists($dbFile)){
+	return "";
+    }
     $db = connect($testDir);
     $testCmd = "select count(*) from summary";
     $nTest = $db->query($testCmd)->fetchColumn();
@@ -217,7 +220,7 @@ function writeTable_SummarizeAllTests() {
     $table = new Table("width=\"90%\"");
     $table->addHeader(array("Test", "mtime", "No. Tests", "No. Passed"));
     while(false !== ($testDir = $d->read())) { 
-	if ($testDir == '.' or $testDir == '..' or ! is_dir("$testDir")) {
+	if ( ereg("^\.", $testDir) or ! is_dir("$testDir")) {
 	    continue;
 	}
 	$summ = summarizeTest($testDir);
