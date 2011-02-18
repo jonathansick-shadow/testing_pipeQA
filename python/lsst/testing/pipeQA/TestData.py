@@ -4,6 +4,7 @@ import traceback
 import sqlite3
 
 import eups
+import lsst.pex.policy            as pexPolicy
 import lsst.pex.logging           as pexLog
 import lsst.daf.persistence       as dafPersist
 from lsst.testing.pipeQA.Checksum import Checksum
@@ -13,11 +14,16 @@ from lsst.testing.pipeQA.LogConverter import LogFileConverter
 import lsst.obs.lsstSim           as obsLsst
 import lsst.obs.cfht              as obsCfht
 
+import lsst.pipette as pipette
+
+import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
+
 
 try:
     import lsstSim
     haveLsstSim = True
-except:
+except Exception, e:
+    print e
     haveLsstSim = False
 
 try:    
@@ -218,7 +224,7 @@ class TestData(object):
         """Run pipette on the data we know about."""
         
         force             = kwargs.get('force', False)
-        overrideConfig    = kwargs.get('overrideConfig', None)
+        overrideConfigs   = kwargs.get('overrideConfig', None)  # array of paf filenames
 
         # setup a specific astromentry.net data package, if one is provided
         if not (self.astrometryNetData is None):
@@ -237,11 +243,19 @@ class TestData(object):
 
         
         # merge in override config
-        if overrideConfig is not None:
-            config = pipette.config.configuration(self.defaultConfig, overrideConfig)
-        else:
-            config = self.defaultConfig
-                    
+        config = self.defaultConfig
+        if overrideConfigs is not None:
+            for overrideConfig in overrideConfigs:
+                config = pipette.config.configuration(config, overrideConfig)
+
+
+        srcConf = config['measure']['source']
+        srcConf['shape'] = "HSM_BJ"
+
+        shapeConf = config['measure']['shape']
+        shapeConf['HSM_BJ'] = pexPolicy.Policy()
+        shapeConf['HSM_BJ']['enabled'] = True
+        
         #do = config['do']
         #do['phot'] = True
         #do['ast']  = True

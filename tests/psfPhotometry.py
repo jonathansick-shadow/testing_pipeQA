@@ -25,7 +25,7 @@
 """
 Test to verify quality of PSF photometry on test frames
 """
-
+import os
 import unittest
 import lsst.testing.pipeQA as pipeQA
 import numpy
@@ -35,6 +35,8 @@ import lsst.afw.detection as afwDet
 import matplotlib
 import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
+
+import lsst.meas.extensions.shapeHSM as shapeHSM
 
 
 def testPsfPhotometry():
@@ -54,8 +56,10 @@ def testPsfPhotometry():
         td2 = pipeQA.makeTestData("imsimTestData001", visit='85502008', snap='0', raft='1,1', sensor='1,1',
                                     verifyChecksum=False, outDir='local', astrometryNetData=anData)
         pr.addTestData(td2)
-        
-        pr.run(force=False)
+
+        hsmConfig = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "policy", "hsmShape.paf")
+        qaConfig = os.path.join(os.getenv('TESTING_PIPEQA_DIR'), "policy", "lsstSim.paf")
+        pr.run(force=False, overrideConfig=[hsmConfig, qaConfig])
 
 
     ##########################
@@ -85,6 +89,9 @@ def testPsfPhotometry():
     for match in matchList:
 
         s0, s1 = match.first, match.second
+
+        print "ixx: ", s0.getIxx()
+        print "e1: ", s0.getE1(), "   shear1: ", s0.getShear1()
         
         m0 = -2.5*numpy.log10(s0.getApFlux())
         m1 = -2.5*numpy.log10(s1.getApFlux())

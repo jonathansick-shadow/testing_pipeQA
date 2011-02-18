@@ -1,10 +1,10 @@
 #<?cfg paf policy>
 
-roots: {
-    data: /path/to/data
-    calib: /path/to/calib
-    output: /path/for/output
-}
+#roots: {
+#    data: /path/to/data
+#    calib: /path/to/calib
+#    output: /path/for/output
+#}
 
 do: {
 
