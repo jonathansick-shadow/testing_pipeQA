@@ -10,8 +10,8 @@ class LsstSimDbInterface(DatabaseInterface):
     # Mapping from filter names to database names
     filterMap = { "u" : 0, "g" : 1, "r" : 2, "i" : 3, "z" : 4 }
     mySqlHost   = 'lsst10.ncsa.uiuc.edu'
-    mySqlUser   = 'abecker'
-    mySqlPasswd = 'Timp@ne80x'
+    mySqlUser   = ''
+    mySqlPasswd = ''
 
     def __init__(self, mySqlDb):
         DatabaseInterface.__init__(self)
