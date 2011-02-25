@@ -1,4 +1,4 @@
-from .DatabaseQuery import LsstSimDbInterface
+from .DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
@@ -171,7 +171,8 @@ class FpaFigure(QaFigure):
 class ZeropointFigure(FpaFigure):
     def __init__(self, cameraGeomPaf, database):
         FpaFigure.__init__(self, cameraGeomPaf)
-        self.dbInterface = LsstSimDbInterface(database)
+        dbId = DatabaseIdentity(database)
+        self.dbInterface = LsstSimDbInterface(dbId)
 
 
     def fillValues(self, visitId, filter):
