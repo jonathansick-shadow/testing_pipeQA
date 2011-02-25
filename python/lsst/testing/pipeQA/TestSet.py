@@ -3,7 +3,7 @@ import traceback
 import os
 import re
 import inspect
-import sqlite3
+import sqlite
 import stat
 import eups
 
@@ -42,7 +42,7 @@ class TestSet(object):
                 
         # connect to the db and create the tables
         self.dbFile = os.path.join(self.wwwDir, "db.sqlite3")
-        self.conn = sqlite3.connect(self.dbFile)
+        self.conn = sqlite.connect(self.dbFile)
         self.curs = self.conn.cursor()
         self.summTable, self.figTable, self.eupsTable = "summary", "figure", "eups"
         self.tables = {

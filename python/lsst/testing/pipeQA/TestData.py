@@ -1,7 +1,7 @@
 import sys, os, glob, re, stat
 import traceback
 
-import sqlite3
+import sqlite
 
 import eups
 import lsst.pex.policy            as pexPolicy

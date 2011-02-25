@@ -1,4 +1,4 @@
-import os, re, sqlite3
+import os, re, sqlite
 
 class LogFileConverter (object):
     """Convert a pex_logging ascii log file to another format."""
@@ -43,7 +43,7 @@ class LogFileConverter (object):
 
         table = re.sub("-", "_", table)
         
-        conn = sqlite3.connect(dbFile)
+        conn = sqlite.connect(dbFile)
 
         # add the table
         keys = ["id integer primary key autoincrement", "module text", "message text",
