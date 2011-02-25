@@ -34,6 +34,6 @@ foo = pipeQA.ZeropointFigure(cameraGeomPaf, "rplante_DC3b_u_weeklytest_2011_0218
 visitId = 85661762
 filter  = "r"
 foo.fillValues(visitId, filter)
-foo.makeFigure("%d %s" % (visitId, filter))
+foo.makeFigure("%d %s" % (visitId, filter), doLabel = True)
 foo.saveFigure("foo.png")
                

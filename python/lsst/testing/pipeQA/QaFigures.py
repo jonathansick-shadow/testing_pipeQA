@@ -91,7 +91,7 @@ class FpaFigure(QaFigure):
                 bbox  = r.get_bbox()
                 xplot = 0.5 * (bbox.x0 + bbox.x1)
                 yplot = bbox.y1 - size[1]//2
-                sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 9, weight = 'bold')
+                sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
 
         sp.set_title("Zeropoint %s" % (title), fontsize = 30, weight = 'bold')
         sp.set_xlabel("Focal Plane X", fontsize = 20, weight = 'bold')
