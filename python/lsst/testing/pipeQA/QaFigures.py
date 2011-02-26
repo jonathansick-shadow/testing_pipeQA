@@ -2,6 +2,7 @@ from .DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
+from lsst.pex.logging import Trace
 
 import numpy as num
 import pylab
@@ -19,6 +20,12 @@ class HtmlFormatter:
 #
 ###
 #
+
+def IQR(data):
+    data  = num.sort(data)
+    d25 = data[int(0.25 * len(data))]
+    d75 = data[int(0.75 * len(data))]
+    return 0.741 * (d75 - d25)
 
 class QaFigure():
     def __init__(self):
@@ -46,12 +53,7 @@ class QaFigure():
             by.append(ymed)
 
             # find width about mean y using IQR
-            yi  = y[idx]
-            yi  = num.sort(yi)
-            d25 = yi[int(0.25 * len(yi))]
-            d75 = yi[int(0.75 * len(yi))]
-            sigmean = 0.741 * (d75 - d25)
-            bs.append(sigmean)
+            bs.append(IQR(y[idx]))
 
             # find median dy-values in this bin
             dymed = num.median(dy[idx])
@@ -99,6 +101,7 @@ class QaFigure():
         pass
 
     def saveFigure(self, outfile, clear = True):
+        Trace("lsst.testing.pipeQA.QaFigure", 1, "Saving %s" % (outfile))
         self.fig.savefig(outfile)
         if clear:
             self.fig.clf()
@@ -142,6 +145,8 @@ class FpaFigure(QaFigure):
                 clabel = ccd.getId().getName()
                 values.append(self.values[rlabel][clabel][0])
 
+        sigZpt = IQR(values)
+        
         p = PatchCollection(self.rectangles)
         p.set_array(num.array(values))
         cb = pylab.colorbar(p)
@@ -158,7 +163,7 @@ class FpaFigure(QaFigure):
                 yplot = bbox.y1 - size[1]//2
                 sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
 
-        sp.set_title("Zeropoint %s" % (title), fontsize = 30, weight = 'bold')
+        sp.set_title(r"Zeropoint %s: $\sigma = %.3f$ mag" % (title, sigZpt), fontsize = 30, weight = 'bold')
         sp.set_xlabel("Focal Plane X", fontsize = 20, weight = 'bold')
         sp.set_ylabel("Focal Plane Y", fontsize = 20, weight = 'bold')
 
@@ -330,18 +335,8 @@ class PhotometricRmsFigure(QaFigure):
         # Get RMS around bright end
         idx = num.where( (allcatMags >= (minmag+sigmaOffset)) &
                          (allcatMags <= (minmag+sigmaOffset+sigmaRange)) )
-        
-        aps = alldApMags[idx]
-        aps = num.sort(aps)
-        d25 = aps[int(0.25 * len(aps))]
-        d75 = aps[int(0.75 * len(aps))]
-        sigmeanAp = 0.741 * (d75 - d25)
-
-        psfs = alldPsfMags[idx]
-        psfs = num.sort(psfs)
-        d25 = psfs[int(0.25 * len(psfs))]
-        d75 = psfs[int(0.75 * len(psfs))]
-        sigmeanPsf = 0.741 * (d75 - d25)
+        sigmeanAp  = IQR(alldApMags[idx])
+        sigmeanPsf = IQR(alldPsfMags[idx])
         
         binnedAp       = self.binDistrib(allcatMags, alldApMags, alldApMagErrs)
         binnedPsf      = self.binDistrib(allcatMags, alldPsfMags, alldPsfMagErrs)

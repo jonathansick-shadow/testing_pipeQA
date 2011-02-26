@@ -1,6 +1,7 @@
 import os
 import MySQLdb
 import lsst.pex.policy as pexPolicy
+from lsst.pex.logging import Trace
 
 class DatabaseIdentity:
     """
@@ -48,8 +49,7 @@ class LsstSimDbInterface(DatabaseInterface):
         self.cursor = self.db.cursor()
 
     def execute(self, sql, verbose = False):
-        if verbose:
-            print sql
+        Trace("lsst.testing.pipeQA.LsstSimDbInterface", 3, "Executing: %s" % (sql))
         self.cursor.execute(sql)
         return self.cursor.fetchall()
 

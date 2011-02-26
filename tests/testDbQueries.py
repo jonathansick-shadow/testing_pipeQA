@@ -24,18 +24,18 @@
 import os
 import eups
 import lsst.testing.pipeQA as pipeQA
+import lsst.pex.logging as pexLog
+pexLog.Trace_setVerbosity("lsst.testing.pipeQA", 1)
 
 simdir = eups.productDir("obs_lsstSim")
 cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
-print cameraGeomPaf
 
- 
-#foo = pipeQA.ZeropointFigure(cameraGeomPaf, "rplante_DC3b_u_weeklytest_2011_0218_science")
-#visitId = 85661762
-#filter  = "r"
-#foo.fillValues(visitId, filter)
-#foo.makeFigure("%d %s" % (visitId, filter), doLabel = True)
-#foo.saveFigure("foo.png")
+foo = pipeQA.ZeropointFigure(cameraGeomPaf, "rplante_DC3b_u_weeklytest_2011_0218_science")
+visitId = 85661762
+filter  = "r"
+foo.fillValues(visitId, filter)
+foo.makeFigure("%d %s" % (visitId, filter), doLabel = True)
+foo.saveFigure("foo.png")
 
 caw = pipeQA.PhotometricRmsFigure("rplante_DC3b_u_weeklytest_2011_0218_science", "r")
 caw.saveFigure("caw.png")
