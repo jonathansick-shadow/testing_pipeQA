@@ -54,9 +54,33 @@ def sigIQR(data):
 
 class QaFigure():
     def __init__(self):
-        self.butler = None
-        self.fig = pylab.figure()
+        self.fig      = pylab.figure()
+        self.data     = {}
+        self.dataType = {}
 
+    def reset(self):
+        self.data       = {}
+
+    def validate(self):
+        dkeys = self.data.keys()
+        rkeys = self.dataType.keys()
+        for key1 in rkeys:
+            if not key1 in dkeys:
+                return 0
+
+            if type(self.dataType[key1]) == type({}):
+                for key2 in self.dataType[key1].keys():
+                    if not key2 in self.data[key1].keys():
+                        return 0
+                    if not type(self.data[key1][key2]) == self.dataType[key1][key2]:
+                        return 0
+            else:
+                if not type(self.data[key1]) == self.dataType[key1]:
+                    return 0
+                
+        return 1
+
+        
     def binDistrib(self, x, y, dy, binSizeX = 0.5, minPts = 2):
         bx  = []
         bs  = []
@@ -438,32 +462,50 @@ class PhotometricRmsFigure(QaFigure):
         return allPhot
 
 class ZeropointFitFigure(QaFigure):
-    def __init__(self, database, visitId, filterName, raftName, ccdName):
+    def __init__(self):
         QaFigure.__init__(self)
-        dbId = DatabaseIdentity(database)
-        self.dbInterface = LsstSimDbInterface(dbId)
+        self.data     = {}
+        self.dataType = {
+            "Zeropoint"         : num.float64,
+            "MatchedGalaxies"   : {"Refmag": num.ndarray,
+                                   "Imgmag": num.ndarray,
+                                   "Imgerr": num.ndarray},
+            "MatchedStars"      : {"Refmag": num.ndarray,
+                                   "Imgmag": num.ndarray,
+                                   "Imgerr": num.ndarray},
+            "UnmatchedReference": num.ndarray,
+            "UnmatchedImage"    : num.ndarray
+            }
 
+        # set on retrieve; reset on reset()
+        self.database   = None
+        self.visitId    = None
+        self.filterName = None
+        self.raftName   = None
+        self.ccdName    = None
+        
+    def retrieveData(self, database, visitId, filterName, raftName, ccdName):
+        self.reset()
         self.database   = database
         self.visitId    = visitId
+        self.filterName = filterName
         self.raftName   = raftName
         self.ccdName    = ccdName
-        self.filterName = filterName
 
-        self.getData()
-    
-    def getData(self):
-        axis = self.fig.gca()
         
-        # select all reference stars within this field
-        # first, get field limits
+        dbId        = DatabaseIdentity(database)
+        dbInterface = LsstSimDbInterface(dbId)
+
+        # Select all reference stars within this field
+        # First, get field limits and zeropoint
         scesql  = 'select scienceCcdExposureId,fluxMag0,llcRa,ulcRa,llcDecl,ulcDecl,'
         scesql += ' lrcRa,urcRa,lrcDecl,urcDecl'
         scesql += ' from Science_Ccd_Exposure'
-        scesql += ' where visit = %d' % (self.visitId)
-        scesql += ' and raftName = "%s"' % (self.raftName)
-        scesql += ' and ccdName = "%s"' % (self.ccdName)
-        scesql += ' and filterName = "%s"' % (self.filterName)
-        sceresults  = self.dbInterface.execute(scesql)
+        scesql += ' where visit = %d' % (visitId)
+        scesql += ' and raftName = "%s"' % (raftName)
+        scesql += ' and ccdName = "%s"' % (ccdName)
+        scesql += ' and filterName = "%s"' % (filterName)
+        sceresults  = dbInterface.execute(scesql)
         if len(sceresults) != 1:
             # throw exception or something
             return
@@ -474,16 +516,17 @@ class ZeropointFitFigure(QaFigure):
                     (lrcRa,lrcDecl),
                     (llcRa,llcDecl) )
         zpt = -2.5 * num.log10(fmag0)
-        
-        # select all simRefObjects in this field
-        # really need a stored procedure to do this; will fail near poles and around ra=0
-        # do some basic filtering
+        self.data["Zeropoint"] = zpt
+
+        # Select all simRefObjects in this field
+        # Really need a stored procedure to do this; will fail near poles and around ra=0
+        # Do some basic filtering for now
         srosql  = 'select refObjectId,isStar,ra,decl from SimRefObject'
         srosql += ' where (ra >= %f)' % (min( min(llcRa, ulcRa), max(urcRa, lrcRa) ))
         srosql += ' and (ra <= %f)'   % (max( min(llcRa, ulcRa), max(urcRa, lrcRa) ))
         srosql += ' and (decl >= %f)' % (min( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
         srosql += ' and (decl <= %f)' % (max( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
-        sroresults  = self.dbInterface.execute(srosql)
+        sroresults  = dbInterface.execute(srosql)
         refAll = {'s': [], 'g': []}
         for result in sroresults:
             oid, isStar, ra, decl = result
@@ -491,116 +534,156 @@ class ZeropointFitFigure(QaFigure):
                 if isStar: refAll['s'].append(oid)
                 else: refAll['g'].append(oid)
 
-        # select all matched galaxies
-        mrefGsql  = 'select sro.%sMag,' % (self.filterName)
+        # Select all matched galaxies
+        mrefGsql  = 'select sro.%sMag,' % (filterName)
         mrefGsql += ' s.psfFlux, s.psfFluxErr'
         mrefGsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
         mrefGsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
         mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
         mrefGsql += ' and (s.objectID is not NULL)'
         mrefGsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'])))
-        mrefGresults  = self.dbInterface.execute(mrefGsql)
+        mrefGresults  = dbInterface.execute(mrefGsql)
         mrefGmag  = num.array([x[0] for x in mrefGresults])
         mimgGflu  = num.array([x[1] for x in mrefGresults])
         mimgGferr = num.array([x[2] for x in mrefGresults])
         mimgGmag  = -2.5 * num.log10(mimgGflu)
         mimgGmerr =  2.5 / num.log(10.0) * mimgGferr / mimgGflu
-        axis.plot(mimgGmag, mrefGmag, '.', color='g', mfc='g', mec='g',
-                  alpha=0.5, zorder=10, label = 'Matched Galaxies')
-        for i in range(len(mrefGmag)):
-            a = Ellipse(xy=num.array([mimgGmag[i], mrefGmag[i]]),
-                        width=mimgGmerr[i]/2., height=mimgGmerr[i]/2.,
-                        alpha=0.5, fill=True, ec='g', fc='g', zorder=10)
-            axis.add_artist(a)            
+        self.data["MatchedGalaxies"] = {"Refmag": mrefGmag,
+                                        "Imgmag": mimgGmag,
+                                        "Imgerr": mimgGmerr}
         
-        # select all matched stars
-        mrefSsql  = 'select sro.%sMag,' % (self.filterName)
+        # Select all matched stars
+        mrefSsql  = 'select sro.%sMag,' % (filterName)
         mrefSsql += ' s.psfFlux, s.psfFluxErr'
         mrefSsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
         mrefSsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
         mrefSsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
         mrefSsql += ' and (s.objectID is not NULL)'
         mrefSsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['s'])))
-        mrefSresults  = self.dbInterface.execute(mrefSsql)
+        mrefSresults  = dbInterface.execute(mrefSsql)
         mrefSmag  = num.array([x[0] for x in mrefSresults])
         mimgSflu  = num.array([x[1] for x in mrefSresults])
         mimgSferr = num.array([x[2] for x in mrefSresults])
         mimgSmag  = -2.5 * num.log10(mimgSflu)
         mimgSmerr =  2.5 / num.log(10.0) * mimgSferr / mimgSflu
-        axis.plot(mimgSmag, mrefSmag, '.', color='b', mfc='b', mec='b',
-                  alpha=0.5, zorder=12, label = 'Matched Stars')
-        for i in range(len(mrefSmag)):
-            a = Ellipse(xy=num.array([mimgSmag[i], mrefSmag[i]]),
-                        width=mimgSmerr[i]/2., height=mimgSmerr[i]/2.,
-                        alpha=0.5, fill=True, ec='b', fc='b', zorder=12)
-            axis.add_artist(a)            
+        self.data["MatchedStars"] = {"Refmag": mrefSmag,
+                                     "Imgmag": mimgSmag,
+                                     "Imgerr": mimgSmerr}
 
         ####
 
         # Umatched reference catalog objects
-        urefsql  = 'select sro.%sMag from SimRefObject as sro, RefObjMatch as rom' % (self.filterName)
+        urefsql  = 'select sro.%sMag from SimRefObject as sro, RefObjMatch as rom' % (filterName)
         urefsql += ' where (sro.refObjectId = rom.refObjectId)'
         urefsql += ' and (rom.objectId is NULL)'
         urefsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'] + refAll['s'])))
-        urefresults = self.dbInterface.execute(urefsql)
+        urefresults = dbInterface.execute(urefsql)
         urefmag     = num.array([x[0] for x in urefresults])
+        self.data["UnmatchedReference"] = urefmag
+            
 
         # Unmatched detections
         uimgsql  = 'select psfFlux from Source '
         uimgsql += ' where (scienceCcdExposureId = %d)' % (sceId)
         uimgsql += ' and (objectId is NULL)'
-        uimgresults  = self.dbInterface.execute(uimgsql)
+        uimgresults  = dbInterface.execute(uimgsql)
         uimgmag      = -2.5 * num.log10( num.array([x[0] for x in uimgresults]) )
+        self.data["UnmatchedImage"] = uimgmag
+
+
+    def reset(self):
+        self.data       = {}
+        self.database   = None
+        self.visitId    = None
+        self.filterName = None
+        self.raftName   = None
+        self.ccdName    = None
+
+    def makeFigure(self):
+        if not self.validate():
+            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "Invalid Data")
+            return None
+
+        legLines  = []
+        legLabels = []
+        
+        axis = self.fig.add_axes([0.225, 0.225, 0.675, 0.675])
+        
+        # Plot all matched galaxies
+        mrefGmag  = self.data["MatchedGalaxies"]["Refmag"]
+        mimgGmag  = self.data["MatchedGalaxies"]["Imgmag"]
+        mimgGmerr = self.data["MatchedGalaxies"]["Imgerr"]
+        mimgGplot = axis.plot(mimgGmag, mrefGmag, '.', color='g', mfc='g', mec='g',
+                              alpha=0.5, zorder=10, label = 'Matched Galaxies')
+        for i in range(len(mrefGmag)):
+            a = Ellipse(xy=num.array([mimgGmag[i], mrefGmag[i]]),
+                        width=mimgGmerr[i]/2., height=mimgGmerr[i]/2.,
+                        alpha=0.5, fill=True, ec='g', fc='g', zorder=10)
+            axis.add_artist(a)            
+        legLines.append(mimgGplot[0])
+        legLabels.append("Matched Galaxies")
+        
+        # Plot all matched stars
+        mrefSmag  = self.data["MatchedStars"]["Refmag"]
+        mimgSmag  = self.data["MatchedStars"]["Imgmag"]
+        mimgSmerr = self.data["MatchedStars"]["Imgerr"]
+        mimgSplot = axis.plot(mimgSmag, mrefSmag, '.', color='b', mfc='b', mec='b',
+                              alpha=0.5, zorder=12, label = 'Matched Stars')
+        for i in range(len(mrefSmag)):
+            a = Ellipse(xy=num.array([mimgSmag[i], mrefSmag[i]]),
+                        width=mimgSmerr[i]/2., height=mimgSmerr[i]/2.,
+                        alpha=0.5, fill=True, ec='b', fc='b', zorder=12)
+            axis.add_artist(a)            
+        legLines.append(mimgSplot[0])
+        legLabels.append("Matched Stars")
 
         # Plot zpt
         xmin, xmax, ymin, ymax = axis.axis()
         xzpt = num.array((xmin, xmax))
-        pzpt = axis.plot(xzpt, xzpt - zpt, 'b--', label = 'Zeropoint')
+        pzpt = axis.plot(xzpt, xzpt - self.data["Zeropoint"], 'b--', label = 'Zeropoint')
+        legLines.append(pzpt)
+        legLabels.append("Zeropoint")
 
-        # Plot ticks
+        # Unmatched objects
+        urefmag     = self.data["UnmatchedReference"]
+        uimgmag     = self.data["UnmatchedImage"]
 
-        # Red tick marks show unmatched img sources
-        dy       = (ymax - ymin) * 0.05
-        y1       = num.ones_like(uimgmag) * ymax
-        print 'A', len(y1)
-        uimgplot = axis.plot(num.vstack((uimgmag, uimgmag)), num.vstack((y1, y1-dy)), 'r-',
-                             alpha=0.5)
-        uimgplot[0].set_label('Unmatched Sources')
-        
-        # Blue tick marks show matched img sources
-        yG      = num.ones_like(mimgGmag) * ymax
-        print 'B', len(yG)
-        miGplot = axis.plot(num.vstack((mimgGmag, mimgGmag)), num.vstack((yG-(0.25*dy), yG-(1.25*dy))),
-                         'b-', alpha=0.5)
-        yS      = num.ones_like(mimgSmag) * ymax
-        print 'C', len(yS)
-        miSplot = axis.plot(num.vstack((mimgSmag, mimgSmag)), num.vstack((yS-(0.25*dy), yS-(1.25*dy))),
-                         'b-', alpha=0.5)
-        miSplot[0].set_label('Matched Sources')
+        # Unmatched & matched reference objects
+        ax2 = self.fig.add_axes([0.1, 0.225, 0.125, 0.675], sharey=axis)
+        nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
+                              orientation='horizontal', log = True, color = 'r', alpha = 0.5, zorder = 1)
+        ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
+                              orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
+        ax2.set_xlabel('N', fontsize = 10)
+        ax2.set_ylabel('Reference catalog: %s band (mag)' % (self.filterName), fontsize = 10)
+        legLines.append(pu[0])
+        legLabels.append("Unmatched Sources")
 
-        # Red ticks for unmatched ref sources
-        dx = (xmax - xmin) * 0.05
-        x1 = num.ones_like(urefmag) * xmax
-        print 'D', len(x1)
-        #axis.plot(num.vstack((x1, x1-dx)), num.vstack((urefmag, urefmag)), 'r-',
-        #          alpha=0.5, label = '_nolegend_')
+        # Unmatched & matched stellar objects
+        ax3 = self.fig.add_axes([0.225, 0.1, 0.675, 0.125], sharex=axis)
+        ax3.get_yaxis().set_ticks_position('right')
+        ax3.get_yaxis().set_label_position('right')
+        nm, bm, pm = ax3.hist(num.concatenate((mimgGmag,mimgSmag)), bins=num.arange(xmin, xmax, 0.25),
+                              log = True, color = 'b', alpha = 0.5, zorder = 2)
+        ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
+                 log = True, color = 'r', alpha = 0.5, zorder = 1)
+        ax3.set_xlabel('Image instrumental mag', fontsize = 10)
+        ax3.set_ylabel('N', rotation = 180, fontsize = 10)
+        legLines.append(pm[0])
+        legLabels.append("Matched Sources")
 
-        # Blue ticks for matched ref sources
-        xG      = num.ones_like(mrefGmag) * xmax
-        print 'E', len(xG)
-        #mrGplot = axis.plot(num.vstack((x1-(0.25*dx), x1-(1.25*dx))), num.vstack((mrefGmag, mrefGmag)),
-        #                    'b-', alpha=0.5)
-        xS      = num.ones_like(mrefSmag) * xmax
-        print 'F', len(xS)
-        #mrSplot = axis.plot(num.vstack((x1-(0.25*dx), x1-(1.25*dx))), num.vstack((mrefSmag, mrefSmag)),
-        #                    'b-', alpha=0.5)
+        # Cleaning up figure
+        pylab.setp(axis.get_xticklabels()+axis.get_yticklabels(), visible=False)
+        pylab.setp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize = 8)
+        pylab.setp(ax3.get_xticklabels()+ax3.get_yticklabels(), fontsize = 8)
 
-        # Switch min<->max
+        ax2.set_xlim(1, 999)
+        ax3.set_ylim(1, 999)
         axis.axis((xmax, xmin, ymax, ymin))
 
-        axis.legend(loc = 9, numpoints=1, prop=FontProperties(size='small'))
-        axis.set_xlabel('Image instrumental mag')
-        axis.set_ylabel('Reference catalog: %s band (mag)' % (self.filterName))
+        self.fig.legend(legLines, legLabels,
+                        numpoints=1, prop=FontProperties(size='small'), loc = 'center right')
         axis.set_title('%s v%s r%s s%s' %
                        (self.database, self.visitId, self.raftName, self.ccdName),
                        fontsize = 12)
+        return
