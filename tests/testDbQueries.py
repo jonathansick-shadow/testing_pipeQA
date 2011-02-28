@@ -22,28 +22,86 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 import os
-import eups
+from optparse import OptionParser
+
 import lsst.testing.pipeQA as pipeQA
+
 import lsst.pex.logging as pexLog
+from lsst.pex.logging import Trace
 pexLog.Trace_setVerbosity("lsst.testing.pipeQA", 1)
 
-simdir = eups.productDir("obs_lsstSim")
+import eups
+simdir        = eups.productDir("obs_lsstSim")
 cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
 
-#foo = pipeQA.ZeropointFpaFigure(cameraGeomPaf, "rplante_DC3b_u_weeklytest_2011_0218_science")
-#visitId = 85661762
-#filter  = "r"
-#foo.fillValues(visitId, filter)
-#foo.makeFigure("%d %s" % (visitId, filter), doLabel = True)
-#foo.saveFigure("foo.png")
+if __name__ == '__main__':
+    parser = OptionParser()
+    parser.add_option('-D', '--database', dest='database',
+                      default='rplante_DC3b_u_weeklytest_2011_0218_science',
+                      help='Name of database for queries')
+    parser.add_option('-o', '--output', dest='outRoot', default='pipeQA', help='Output directory')
+    parser.add_option('--photrms', dest='dophotrms', action='store_true', default=False,
+                      help='Make photometric RMS plot?')
+    parser.add_option('--zptfpa', dest='dozptfpa', action='store_true', default=False,
+                      help='Make FPA plot of zeropoint')
+    parser.add_option('--zptfit', dest='dozptfit', action='store_true', default=False,
+                      help='Make photometric zeropoint fit plot?')
+    
+    (opt, args) = parser.parse_args()
+    database    = opt.database
+    outRoot     = opt.outRoot
+    if not os.path.isdir(outRoot):
+        Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outRoot))
+        os.makedirs(outRoot)
 
-#caw = pipeQA.PhotometricRmsFigure("rplante_DC3b_u_weeklytest_2011_0218_science", "r")
-#caw.saveFigure("caw.png")
 
-#bah = pipeQA.ZeropointFitFigure("rplante_DC3b_u_weeklytest_2011_0218_science", 85661762, "r",
-#                                "2,2", "0,0")
-donk = pipeQA.ZeropointFitFigure()
-donk.retrieveData("rplante_DC3b_u_weeklytest_2011_0218_science", 85661762, "r",
-              "2,2", "1,1")
-donk.makeFigure()
-donk.saveFigure("donk.png")
+    # Moderates database interface
+    dbId        = pipeQA.DatabaseIdentity(database)
+    dbInterface = pipeQA.LsstSimDbInterface(dbId)
+
+    if opt.dophotrms:
+        sql = 'select distinct(filterName) from Science_Ccd_Exposure'
+        results     = dbInterface.execute(sql)
+        if len(results) == 0:
+            print 'No filter data, skipping...'
+        else:
+            prmsfig = pipeQA.PhotometricRmsFigure()
+            for filter in results:
+                prmsfig.retrieveData(database, filter[0])
+                prmsfig.makeFigure()
+                prmsfig.saveFigure(os.path.join(outRoot, "photRms_%s.png" % (filter)))
+            
+    if opt.dozptfpa:
+        sql     = 'select distinct(visit) from Science_Ccd_Exposure'
+        results = dbInterface.execute(sql)
+        if len(results) == 0:
+            print 'No visit data, skipping...'
+        else:
+            zptfpafig = pipeQA.ZeropointFpaFigure(cameraGeomPaf)
+            for visitId in results:
+                zptfpafig.retrieveData(database, visitId[0])
+                zptfpafig.makeFigure(doLabel = True)
+                zptfpafig.saveFigure(os.path.join(outRoot, "zptFPA_%d.png" % (visitId[0])))
+
+    if opt.dozptfit:
+
+        htmlf = pipeQA.HtmlFormatter()
+        htmlf.generateHtml()
+        sys.exit(1)
+        
+        sql1     = 'select distinct(visit) from Science_Ccd_Exposure'
+        results1 = dbInterface.execute(sql1)
+        if len(results1) == 0:
+            print 'No visit data, skipping...'
+        else:
+            for visitId in results1:
+                sql2 = 'select distinct(filterName) from Science_Ccd_Exposure where visit = %d' % (visitId)
+                results2 = dbInterface.execute(sql2)
+                
+  
+        
+#donk = pipeQA.ZeropointFitFigure()
+#donk.retrieveData("rplante_DC3b_u_weeklytest_2011_0218_science", 85661762, "r",
+#                  "2,2", "1,1")
+#donk.makeFigure()
+#donk.saveFigure("donk.png")

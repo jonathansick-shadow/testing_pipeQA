@@ -13,12 +13,42 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
 
 class HtmlFormatter:
-    def __init__(self, butler, cameraGeom):
-        self.figureButler = butler
-        self.cameraGeom   = cameraGeom
-
-    def generateHtml():
+    def __init__(self):
         pass
+
+    def generateHtml(self, buff, width = 75, height = 75):
+        buff.write('<html><body><table>\n')
+
+        for rr in [['',    '4,1', '4,2', '4,3',  '',],
+                   ['3,0', '3,1', '3,2', '3,3', '3,4',],
+                   ['2,0', '2,1', '2,2', '2,3', '2,4',],
+                   ['1,0', '1,1', '1,2', '1,3', '1,4',],
+                   ['',    '0,1', '0,2', '0,3', '',]]:
+            buff.write('  <tr>\n')
+            for r in rr:
+                if len(r):
+                    buff.write('    <th>raft %s</th>\n' % (r))
+                else:
+                    buff.write('    <th />\n')
+
+            buff.write('  </tr>\n')
+            buff.write('  <tr>\n')
+            for r in rr:
+                if not len(r):
+                    buff.write('    <td />\n')
+                    continue
+
+                buff.write('    <td><table>\n')
+                for cc in [['2,0', '2,1', '2,2'], 
+                           ['1,0', '1,1', '1,2'], 
+                           ['0,0', '0,1', '0,2']]:
+                    for c in cc:
+                        imgname = 'photRms_r.png'
+                        buff.write('        <td><a href="%s"><img width="%i" height="%i" border="0" src="%s"></a></td>\n' % (imgname, width, height, imgname))
+                    buff.write('      </tr>\n')
+                buff.write('    </table></td>\n')
+            buff.write('  </tr>\n')
+        buff.write('</table>\n')
 
 #
 ###
@@ -42,8 +72,12 @@ def pointInsidePolygon(x,y,poly):
     return inside
     
 
-def sigIQR(data):
+def sigIQR(data, min = None, max = None):
     data  = num.sort(data)
+    if (min != None) and (max != None):
+        idx   = num.where( (data > min) & (data < max) )
+        data  = data[idx]
+    
     d25 = data[int(0.25 * len(data))]
     d75 = data[int(0.75 * len(data))]
     return 0.741 * (d75 - d25)
@@ -60,6 +94,7 @@ class QaFigure():
 
     def reset(self):
         self.data       = {}
+        self.fig.clf()
 
     def validate(self):
         dkeys = self.data.keys()
@@ -80,6 +115,23 @@ class QaFigure():
                 
         return 1
 
+    def retrieveData(self):
+        # override
+        pass
+    
+    def makeFigure(self):
+        # override
+        pass
+
+    def saveFigure(self, outfile, clear = True):
+        Trace("lsst.testing.pipeQA.QaFigure", 1, "Saving %s" % (outfile))
+        self.fig.savefig(outfile)
+        if clear:
+            self.fig.clf()
+
+    #
+    ################# Helper plotting functions
+    #
         
     def binDistrib(self, x, y, dy, binSizeX = 0.5, minPts = 2):
         bx  = []
@@ -144,17 +196,8 @@ class QaFigure():
                 xp.append(x[i])
                 yp.append(y[i])
         sp.plot(xp, yp, 'r.', ms = 1)
-    
-    def makeFigure(self):
-        # override
-        pass
 
-    def saveFigure(self, outfile, clear = True):
-        Trace("lsst.testing.pipeQA.QaFigure", 1, "Saving %s" % (outfile))
-        self.fig.savefig(outfile)
-        if clear:
-            self.fig.clf()
-
+            
 class FpaFigure(QaFigure):
     def __init__(self, cameraGeomPaf):
         QaFigure.__init__(self)
@@ -164,24 +207,50 @@ class FpaFigure(QaFigure):
         self.rectangles, self.boundaries = self.cameraToRectangles(self.camera)
 
         # To be filled in by child class
-        self.values = {}
+        self.data = {}
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
-            self.values[rlabel] = {}
+            self.data[rlabel] = {}
             for c in raft:
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
-                self.values[rlabel][clabel] = 0.0
+                self.data[rlabel][clabel] = 0.0
 
+    def reset(self):
+        for r in self.camera:
+            raft   = cameraGeom.cast_Raft(r)
+            rlabel = raft.getId().getName()
+            self.data[rlabel] = {}
+            for c in raft:
+                ccd    = cameraGeom.cast_Ccd(c)
+                clabel = ccd.getId().getName()
+                self.data[rlabel][clabel] = 0.0
+        
+    def validate(self):
+        # Since we establish the structure of data in __init__, it
+        # should always be valid.  Unless someone mucks with self.data
+        # directly...
+        for r in self.camera:
+            raft   = cameraGeom.cast_Raft(r)
+            rlabel = raft.getId().getName()
+            if not self.data.has_key(rlabel):
+                return 0
+            for c in raft:
+                ccd    = cameraGeom.cast_Ccd(c)
+                clabel = ccd.getId().getName()
+                if not self.data[rlabel].has_key(clabel):
+                    return 0
+        return 1
 
-    def fillValues(self):
-        # override
-        pass
-
-    def makeFigure(self, title,
+    def makeFigure(self, 
                    DPI = 100., size = (2000, 2000), borderPix = 100,
                    boundaryColors = 'r', doLabel = False):
+
+        if not self.validate():
+            Trace("lsst.testing.pipeQA.FpaFigure", 1, "Invalid Data")
+            return None
+
         self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
         
         sp     = self.fig.gca()
@@ -192,9 +261,9 @@ class FpaFigure(QaFigure):
             for c in raft:
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
-                values.append(self.values[rlabel][clabel][0])
+                values.append(self.data[rlabel][clabel])
 
-        sigZpt = sigIQR(values)
+        sigZpt = sigIQR(values, min = 0, max = 99.99)
         
         p = PatchCollection(self.rectangles)
         p.set_array(num.array(values))
@@ -212,7 +281,8 @@ class FpaFigure(QaFigure):
                 yplot = bbox.y1 - size[1]//2
                 sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
 
-        sp.set_title(r"Zeropoint %s: $\sigma = %.3f$ mag" % (title, sigZpt), fontsize = 30, weight = 'bold')
+        sp.set_title(r"Zeropoint %d %s: $\sigma = %.3f$ mag" % (self.visitId, self.filter, sigZpt),
+                     fontsize = 30, weight = 'bold')
         sp.set_xlabel("Focal Plane X", fontsize = 20, weight = 'bold')
         sp.set_ylabel("Focal Plane Y", fontsize = 20, weight = 'bold')
 
@@ -288,29 +358,44 @@ class FpaFigure(QaFigure):
 #
 
 class ZeropointFpaFigure(FpaFigure):
-    def __init__(self, cameraGeomPaf, database):
+    def __init__(self, cameraGeomPaf):
         FpaFigure.__init__(self, cameraGeomPaf)
-        dbId = DatabaseIdentity(database)
-        self.dbInterface = LsstSimDbInterface(dbId)
-
-
-    def fillValues(self, visitId, filter):
-        filterId = self.dbInterface.filterMap[filter]
         
-        self.sql  = 'select rm.raftName, cm.ccdName, sce.fluxMag0'
-        self.sql += ' from Science_Ccd_Exposure as sce,'
-        self.sql += ' RaftMap as rm,'
-        self.sql += ' CcdMap as cm'
-        self.sql += ' where sce.raft = rm.raftNum '
-        self.sql += ' and sce.ccd = cm.ccdNum'
-        self.sql += ' and sce.filterId = %d' % (filterId)
-        self.sql += ' and sce.visit = %s' % (visitId)
+        # set on retrieve; reset on reset()
+        self.database = None
+        self.visitId  = None
+        self.filter   = None
+
+    def reset(self):
+        FpaFigure.reset(self)
+        self.database = None
+        self.visitId  = None
+        self.filter   = None
+
+    def retrieveData(self, database, visitId, defZpt = 29.5):
+        self.reset()
+        self.database = database
+        self.visitId  = visitId
         
-        results  = self.dbInterface.execute(self.sql)
+        dbId        = DatabaseIdentity(database)
+        dbInterface = LsstSimDbInterface(dbId)
+        
+        sql  = 'select rm.raftName, cm.ccdName, sce.fluxMag0, sce.filterName'
+        sql += ' from Science_Ccd_Exposure as sce,'
+        sql += ' RaftMap as rm,'
+        sql += ' CcdMap as cm'
+        sql += ' where sce.raft = rm.raftNum '
+        sql += ' and sce.ccd = cm.ccdNum'
+        sql += ' and sce.visit = %s' % (visitId)
+        results  = dbInterface.execute(sql)
+        if len(results) == 0:
+            return None
+
         rafts    = num.array([x[0] for x in results])
         ccds     = num.array([x[1] for x in results])
         fluxMag0 = num.array([x[2] for x in results])
         magMag0  = 2.5 * num.log10(fluxMag0)
+        self.filter = results[0][-1]
 
         for r in self.camera:
             raft     = cameraGeom.cast_Raft(r)
@@ -327,22 +412,40 @@ class ZeropointFpaFigure(FpaFigure):
                 ccdId2 = '%s,%s' % (ccdId[0], ccdId[1])
 
                 idx = num.where((rafts == raftId2) & (ccds == ccdId2))
-                assert len(idx[0]) == 1
-                self.values[rlabel][clabel] = magMag0[idx[0]]
+                if len(idx[0]) == 0:
+                    self.data[rlabel][clabel] = defZpt
+                elif len(idx[0]) == 1:
+                    self.data[rlabel][clabel] = magMag0[idx[0]][0]
+                else:
+                    print "ERROR; TRACK ME DOWN"
+                
 
 class PhotometricRmsFigure(QaFigure):
-    def __init__(self, database, filter):
+    def __init__(self):
         QaFigure.__init__(self)
-        self.database = database
-        self.filter = filter
-        
-        dbId = DatabaseIdentity(self.database)
-        self.dbInterface = LsstSimDbInterface(dbId)
-        self.makeFigure(self.filter)
+        self.data     = {}
+        self.dataType = {
+            "PhotByObject" : {}
+            }
 
-    def makeFigure(self, filter):
-        filterId = self.dbInterface.filterMap[filter]
+        # set on retrieve; reset on reset()
+        self.database = None
+        self.filter   = None
+
+    def reset(self):
+        self.data     = {}
+        self.database = None
+        self.filter   = None
         
+    def retrieveData(self, database, filter, minPts = 2):
+        self.reset()
+        self.database = database
+        self.filter   = filter
+
+        dbId        = DatabaseIdentity(database)
+        dbInterface = LsstSimDbInterface(dbId)
+
+        filterId = dbInterface.filterMap[filter]
         sql  = 'select s.objectId, '                                                         # 0: objectId
         sql += ' sro.%sMag,' % (filter)                                                      # 1: catMag
         sql += ' dnToAbMag(s.apFlux, sce.fluxMag0),'                                         # 2: apMag
@@ -357,20 +460,66 @@ class PhotometricRmsFigure(QaFigure):
         sql += ' and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += ' and s.objectID is not NULL'        
         sql += ' order by s.objectID'
-        
-        results = self.dbInterface.execute(sql)
-        allPhot = self.parsePhot(results)
-        self.plotPhot(allPhot)
-        
-    def plotPhot(self, allPhot, minmag = 16, maxmag = 23.5, yrange = 1.0,
-                 sigmaOffset = 0.5, sigmaRange = 2):
-        keys = allPhot.keys()
+        results = dbInterface.execute(sql)
 
-        allcatMags     = [allPhot[k]['catMag'] for k in keys]
-        alldApMags     = [allPhot[k]['apMag'] for k in keys]
-        alldApMagErrs  = [allPhot[k]['apMagErr'] for k in keys]
-        alldPsfMags    = [allPhot[k]['psfMag'] for k in keys]
-        alldPsfMagErrs = [allPhot[k]['psfMagErr'] for k in keys]
+        photByObject    = {}
+        for row in results:
+            objectId   = row[0]
+            if objectId == None:
+                # un-associated orphan
+                continue
+    
+            catMag    = row[1]
+            apMag     = row[2]
+            apMagErr  = row[3]
+            psfMag    = row[4]
+            psfMagErr = row[5]
+            
+            if not photByObject.has_key(objectId):
+                photByObject[objectId] = {}
+                photByObject[objectId]['catMag']    = []
+                photByObject[objectId]['psfMag']    = []
+                photByObject[objectId]['psfMagErr'] = []
+                photByObject[objectId]['apMag']     = []
+                photByObject[objectId]['apMagErr']  = []
+
+            if (apMag == None) or (apMagErr == None) or (psfMag == None) or (psfMagErr == None):
+                continue
+            
+            photByObject[objectId]['catMag'].append(catMag)
+            photByObject[objectId]['apMag'].append(apMag)
+            photByObject[objectId]['apMagErr'].append(apMagErr)
+            photByObject[objectId]['psfMag'].append(psfMag)
+            photByObject[objectId]['psfMagErr'].append(psfMagErr)
+    
+        for key in photByObject.keys():
+            if len(photByObject[key]) < minPts:
+                del photByObject[key]
+                
+            photByObject[key]['catMag']    = num.array(photByObject[key]['catMag'])
+            photByObject[key]['apMag']     = num.array(photByObject[key]['apMag'])
+            photByObject[key]['apMagErr']  = num.array(photByObject[key]['apMagErr'])
+            photByObject[key]['psfMag']    = num.array(photByObject[key]['psfMag'])
+            photByObject[key]['psfMagErr'] = num.array(photByObject[key]['psfMagErr'])
+    
+        self.data["PhotByObject"] = photByObject
+
+        
+    def makeFigure(self, minmag = 16, maxmag = 23.5, yrange = 1.0,
+                   sigmaOffset = 0.5, sigmaRange = 2):
+        
+        if not self.validate():
+            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "Invalid Data")
+            return None
+
+        photByObject = self.data["PhotByObject"]
+        keys = photByObject.keys()
+
+        allcatMags     = [photByObject[k]['catMag'] for k in keys]
+        alldApMags     = [photByObject[k]['apMag'] for k in keys]
+        alldApMagErrs  = [photByObject[k]['apMagErr'] for k in keys]
+        alldPsfMags    = [photByObject[k]['psfMag'] for k in keys]
+        alldPsfMagErrs = [photByObject[k]['psfMagErr'] for k in keys]
 
         allcatMags     = num.array([item for sublist in allcatMags for item in sublist])
         alldApMags     = num.array([item for sublist in alldApMags for item in sublist])
@@ -420,47 +569,8 @@ class PhotometricRmsFigure(QaFigure):
 
         sp1.set_ylim(num.median(binnedAp[1]) - yrange/2, num.median(binnedAp[1]) + yrange/2)
         sp2.set_ylim(num.median(binnedPsf[1]) - yrange/2, num.median(binnedPsf[1]) + yrange/2)
-        
-    def parsePhot(self, results, minPts = 2):
-        allPhot    = {}
-        for row in results:
-            objectId   = row[0]
-            if objectId == None:
-                # un-associated orphan
-                continue
-    
-            catMag    = row[1]
-            apMag     = row[2]
-            apMagErr  = row[3]
-            psfMag    = row[4]
-            psfMagErr = row[5]
-            
-            if not allPhot.has_key(objectId):
-                allPhot[objectId] = {}
-                allPhot[objectId]['catMag']    = []
-                allPhot[objectId]['psfMag']    = []
-                allPhot[objectId]['psfMagErr'] = []
-                allPhot[objectId]['apMag']     = []
-                allPhot[objectId]['apMagErr']  = []
-            
-            allPhot[objectId]['catMag'].append(catMag)
-            allPhot[objectId]['apMag'].append(apMag)
-            allPhot[objectId]['apMagErr'].append(apMagErr)
-            allPhot[objectId]['psfMag'].append(psfMag)
-            allPhot[objectId]['psfMagErr'].append(psfMagErr)
-    
-        for key in allPhot.keys():
-            if len(allPhot[key]) < minPts:
-                del allPhot[key]
-                
-            allPhot[key]['catMag']    = num.array(allPhot[key]['catMag'])
-            allPhot[key]['apMag']     = num.array(allPhot[key]['apMag'])
-            allPhot[key]['apMagErr']  = num.array(allPhot[key]['apMagErr'])
-            allPhot[key]['psfMag']    = num.array(allPhot[key]['psfMag'])
-            allPhot[key]['psfMagErr'] = num.array(allPhot[key]['psfMagErr'])
-    
-        return allPhot
 
+        
 class ZeropointFitFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
@@ -484,6 +594,14 @@ class ZeropointFitFigure(QaFigure):
         self.raftName   = None
         self.ccdName    = None
         
+    def reset(self):
+        self.data       = {}
+        self.database   = None
+        self.visitId    = None
+        self.filterName = None
+        self.raftName   = None
+        self.ccdName    = None
+
     def retrieveData(self, database, visitId, filterName, raftName, ccdName):
         self.reset()
         self.database   = database
@@ -590,14 +708,6 @@ class ZeropointFitFigure(QaFigure):
         uimgmag      = -2.5 * num.log10( num.array([x[0] for x in uimgresults]) )
         self.data["UnmatchedImage"] = uimgmag
 
-
-    def reset(self):
-        self.data       = {}
-        self.database   = None
-        self.visitId    = None
-        self.filterName = None
-        self.raftName   = None
-        self.ccdName    = None
 
     def makeFigure(self):
         if not self.validate():
