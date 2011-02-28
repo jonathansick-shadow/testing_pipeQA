@@ -16,7 +16,10 @@ class HtmlFormatter:
     def __init__(self):
         pass
 
-    def generateHtml(self, buff, width = 75, height = 75):
+    def generateFileName(self, prefix, raft, ccd):
+        return '%s_%s_%s.png' % (prefix, raft, ccd)
+    
+    def generateHtml(self, buff, prefix, width = 75, height = 75):
         buff.write('<html><body><table>\n')
 
         for rr in [['',    '4,1', '4,2', '4,3',  '',],
@@ -43,7 +46,7 @@ class HtmlFormatter:
                            ['1,0', '1,1', '1,2'], 
                            ['0,0', '0,1', '0,2']]:
                     for c in cc:
-                        imgname = 'photRms_r.png'
+                        imgname = self.generateFileName(prefix, r, c)
                         buff.write('        <td><a href="%s"><img width="%i" height="%i" border="0" src="%s"></a></td>\n' % (imgname, width, height, imgname))
                     buff.write('      </tr>\n')
                 buff.write('    </table></td>\n')
@@ -718,7 +721,7 @@ class ZeropointFitFigure(QaFigure):
         legLabels = []
         
         axis = self.fig.add_axes([0.225, 0.225, 0.675, 0.675])
-        
+
         # Plot all matched galaxies
         mrefGmag  = self.data["MatchedGalaxies"]["Refmag"]
         mimgGmag  = self.data["MatchedGalaxies"]["Imgmag"]
@@ -747,8 +750,12 @@ class ZeropointFitFigure(QaFigure):
         legLines.append(mimgSplot[0])
         legLabels.append("Matched Stars")
 
+        if len(mrefGmag) == 0 and len(mrefSmag) == 0:
+            xmin, xmax, ymin, ymax = -15, -8, 16, 28
+        else:
+            xmin, xmax, ymin, ymax = axis.axis()
+
         # Plot zpt
-        xmin, xmax, ymin, ymax = axis.axis()
         xzpt = num.array((xmin, xmax))
         pzpt = axis.plot(xzpt, xzpt - self.data["Zeropoint"], 'b--', label = 'Zeropoint')
         legLines.append(pzpt)
@@ -762,8 +769,9 @@ class ZeropointFitFigure(QaFigure):
         ax2 = self.fig.add_axes([0.1, 0.225, 0.125, 0.675], sharey=axis)
         nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
                               orientation='horizontal', log = True, color = 'r', alpha = 0.5, zorder = 1)
-        ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
-                              orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
+        if len(mrefGmag) > 0 and len(mrefSmag) > 0:
+            ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
+                     orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
         ax2.set_xlabel('N', fontsize = 10)
         ax2.set_ylabel('Reference catalog: %s band (mag)' % (self.filterName), fontsize = 10)
         legLines.append(pu[0])
@@ -773,14 +781,15 @@ class ZeropointFitFigure(QaFigure):
         ax3 = self.fig.add_axes([0.225, 0.1, 0.675, 0.125], sharex=axis)
         ax3.get_yaxis().set_ticks_position('right')
         ax3.get_yaxis().set_label_position('right')
-        nm, bm, pm = ax3.hist(num.concatenate((mimgGmag,mimgSmag)), bins=num.arange(xmin, xmax, 0.25),
-                              log = True, color = 'b', alpha = 0.5, zorder = 2)
+        if len(mimgGmag) > 0 and len(mimgSmag) > 0:
+            nm, bm, pm = ax3.hist(num.concatenate((mimgGmag,mimgSmag)), bins=num.arange(xmin, xmax, 0.25),
+                                  log = True, color = 'b', alpha = 0.5, zorder = 2)
+            legLines.append(pm[0])
+            legLabels.append("Matched Sources")
         ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
                  log = True, color = 'r', alpha = 0.5, zorder = 1)
         ax3.set_xlabel('Image instrumental mag', fontsize = 10)
         ax3.set_ylabel('N', rotation = 180, fontsize = 10)
-        legLines.append(pm[0])
-        legLabels.append("Matched Sources")
 
         # Cleaning up figure
         pylab.setp(axis.get_xticklabels()+axis.get_yticklabels(), visible=False)

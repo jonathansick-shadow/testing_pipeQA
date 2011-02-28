@@ -35,6 +35,16 @@ simdir        = eups.productDir("obs_lsstSim")
 cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
 
 if __name__ == '__main__':
+
+
+    #donk = pipeQA.ZeropointFitFigure()
+    #donk.retrieveData("rplante_DC3b_u_weeklytest_2011_0218_science", 85661762, "r",
+    #                  "2,2", "1,1")
+    #donk.makeFigure()
+    #donk.saveFigure("donk.png")
+    #sys.exit(1)
+
+    
     parser = OptionParser()
     parser.add_option('-D', '--database', dest='database',
                       default='rplante_DC3b_u_weeklytest_2011_0218_science',
@@ -84,24 +94,40 @@ if __name__ == '__main__':
                 zptfpafig.saveFigure(os.path.join(outRoot, "zptFPA_%d.png" % (visitId[0])))
 
     if opt.dozptfit:
+        htmlf     = pipeQA.HtmlFormatter()
+        fptfitfig = pipeQA.ZeropointFitFigure()
 
-        htmlf = pipeQA.HtmlFormatter()
-        htmlf.generateHtml()
-        sys.exit(1)
-        
         sql1     = 'select distinct(visit) from Science_Ccd_Exposure'
         results1 = dbInterface.execute(sql1)
         if len(results1) == 0:
             print 'No visit data, skipping...'
         else:
             for visitId in results1:
+                visitId = visitId[0]
+                if visitId != 85661762:
+                    continue
+                
                 sql2 = 'select distinct(filterName) from Science_Ccd_Exposure where visit = %d' % (visitId)
-                results2 = dbInterface.execute(sql2)
+                results2 = dbInterface.execute(sql2) # need mag for reference catalog query
+                filterName = results2[0][0]
+
+                prefix = 'zptFit_%d' % (visitId)
+                outdir = os.path.join(outRoot, prefix)
+                if not os.path.isdir(outdir):
+                    Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outdir))
+                    os.makedirs(outdir)
+                outhtml = open(outdir+'.html', 'w')
+                htmlf.generateHtml(outhtml, os.path.join(prefix, prefix))
+                outhtml.close()
+
+                sql3     = 'select raftName, ccdName from Science_Ccd_Exposure where visit = %s' % (visitId)
+                results3 = dbInterface.execute(sql3)
+                for raftccd in results3:
+                    raft, ccd = raftccd
+
+                    fptfitfig.retrieveData(database, visitId, filterName, raft, ccd)
+                    fptfitfig.makeFigure()
+                    fptfitfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
                 
   
         
-#donk = pipeQA.ZeropointFitFigure()
-#donk.retrieveData("rplante_DC3b_u_weeklytest_2011_0218_science", 85661762, "r",
-#                  "2,2", "1,1")
-#donk.makeFigure()
-#donk.saveFigure("donk.png")
