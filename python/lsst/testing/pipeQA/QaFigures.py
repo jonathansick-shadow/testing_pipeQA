@@ -706,7 +706,6 @@ class ZeropointFitFigure(QaFigure):
         uimgsql  = 'select psfFlux from Source '
         uimgsql += ' where (scienceCcdExposureId = %d)' % (sceId)
         uimgsql += ' and (objectId is NULL)'
-        print uimgsql
         uimgresults  = dbInterface.execute(uimgsql)
         uimgmag      = -2.5 * num.log10( num.array([x[0] for x in uimgresults]) )
         self.data["UnmatchedImage"] = uimgmag
