@@ -37,18 +37,13 @@ cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
 if __name__ == '__main__':
 
 
-    #donk = pipeQA.ZeropointFitFigure()
-    #donk.retrieveData("rplante_DC3b_u_weeklytest_2011_0218_science", 85661762, "r",
-    #                  "2,2", "1,1")
-    #donk.makeFigure()
-    #donk.saveFigure("donk.png")
-    #sys.exit(1)
-
-    
     parser = OptionParser()
     parser.add_option('-D', '--database', dest='database',
                       default='rplante_DC3b_u_weeklytest_2011_0218_science',
                       help='Name of database for queries')
+    parser.add_option('-v', '--visit', type='int', dest='visit', action='append', type='int', default=[])
+    parser.add_option('-r', '--raft', dest='raft', action='append', default=[])
+    parser.add_option('-s', '--sensor', dest='sensor', action='append', default=[])
     parser.add_option('-o', '--output', dest='outRoot', default='pipeQA', help='Output directory')
     parser.add_option('--photrms', dest='dophotrms', action='store_true', default=False,
                       help='Make photometric RMS plot?')
@@ -63,7 +58,6 @@ if __name__ == '__main__':
     if not os.path.isdir(outRoot):
         Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outRoot))
         os.makedirs(outRoot)
-
 
     # Moderates database interface
     dbId        = pipeQA.DatabaseIdentity(database)
@@ -82,31 +76,50 @@ if __name__ == '__main__':
                 prmsfig.saveFigure(os.path.join(outRoot, "photRms_%s.png" % (filter)))
             
     if opt.dozptfpa:
-        sql     = 'select distinct(visit) from Science_Ccd_Exposure'
-        results = dbInterface.execute(sql)
-        if len(results) == 0:
-            print 'No visit data, skipping...'
+        if len(opt.visit) == 0:
+            sql      = 'select distinct(visit) from Science_Ccd_Exposure'
+            results  = dbInterface.execute(sql)
+            visitIds = [x[0] for x in results]
         else:
-            zptfpafig = pipeQA.ZeropointFpaFigure(cameraGeomPaf)
-            for visitId in results:
-                zptfpafig.retrieveData(database, visitId[0])
-                zptfpafig.makeFigure(doLabel = True)
-                zptfpafig.saveFigure(os.path.join(outRoot, "zptFPA_%d.png" % (visitId[0])))
+            visitIds = opt.visit
+
+        zptfpafig = pipeQA.ZeropointFpaFigure(cameraGeomPaf)
+        for visitId in visitIds:
+            zptfpafig.retrieveData(database, visitId)
+            zptfpafig.makeFigure(doLabel = True)
+            zptfpafig.saveFigure(os.path.join(outRoot, "zptFPA_%d.png" % (visitId)))
 
     if opt.dozptfit:
         htmlf     = pipeQA.HtmlFormatter()
         fptfitfig = pipeQA.ZeropointFitFigure()
 
-        sql1     = 'select distinct(visit) from Science_Ccd_Exposure'
-        results1 = dbInterface.execute(sql1)
-        if len(results1) == 0:
-            print 'No visit data, skipping...'
+        # Do 1 sensor only
+        if len(opt.visit) == 1 and len(opt.raft) == 1 and len(opt.sensor) == 1:
+            visitId = opt.visit[0]
+            raft    = opt.raft[0]
+            ccd     = opt.sensor[0]
+            
+            sql        = 'select distinct(filterName) from Science_Ccd_Exposure where visit = %d' % (visitId)
+            results    = dbInterface.execute(sql) # need mag for reference catalog query
+            filterName = results[0][0]
+
+            fptfitfig.retrieveData(database, visitId, filterName, raft, ccd)
+            fptfitfig.makeFigure()
+            
+            prefix = 'zptFit_%d' % (visitId)
+            outdir = os.path.join(outRoot, prefix)
+            fptfitfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
+            
         else:
-            for visitId in results1:
-                visitId = visitId[0]
-                if visitId != 85661762:
-                    continue
-                
+            # Do an entire focal plane, HTML and all
+            if len(opt.visit) == 0:
+                sql      = 'select distinct(visit) from Science_Ccd_Exposure'
+                results  = dbInterface.execute(sql)
+                visitIds = [x[0] for x in results]
+            else:
+                visitIds = opt.visit
+
+            for visitId in visitIds:
                 sql2 = 'select distinct(filterName) from Science_Ccd_Exposure where visit = %d' % (visitId)
                 results2 = dbInterface.execute(sql2) # need mag for reference catalog query
                 filterName = results2[0][0]
