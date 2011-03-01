@@ -4,6 +4,7 @@ import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
 from lsst.pex.logging import Trace
 
+import os
 import numpy as num
 
 import pylab
@@ -18,6 +19,24 @@ class HtmlFormatter:
 
     def generateFileName(self, prefix, raft, ccd):
         return '%s_%s_%s.png' % (prefix, raft, ccd)
+
+    def generateIndex(self, rootdir, width = 75, height = 75):
+        files = os.listdir(rootdir)
+        print '<h1>Photometric RMS</h1>'
+        for file in files:
+            if file.startswith('photRms'):
+                print '<a href="%s"><img width="%i" height="%i" border="0" src="%s"></a>' % (file, width,
+                                                                                             height, file)
+        print '<h1>Zeropoint Across Focal Plane</h1>\n'
+        for file in files:
+            if file.startswith('zptFPA'):
+                print '<a href="%s"><img width="%i" height="%i" border="0" src="%s"></a>' % (file, width,
+                                                                                             height, file)
+        print '<h1>Zeropoint Fit by Chip</h1>'
+        for file in files:
+            if file.startswith('zptFit') and file.endswith('.html'):
+                print '<a href="%s">%s</a>' % (file, file)
+            
     
     def generateHtml(self, buff, prefix, width = 75, height = 75):
         buff.write('<html><body><table>\n')

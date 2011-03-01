@@ -36,7 +36,6 @@ cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
 
 if __name__ == '__main__':
 
-
     parser = OptionParser()
     parser.add_option('-D', '--database', dest='database',
                       default='rplante_DC3b_u_weeklytest_2011_0218_science',
