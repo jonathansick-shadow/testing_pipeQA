@@ -285,15 +285,15 @@ class FpaFigure(QaFigure):
                 clabel = ccd.getId().getName()
                 values.append(self.data[rlabel][clabel])
 
-        sigZpt = sigIQR(values, min = 0, max = 99.99)
+        sigVal = sigIQR(values, min = 0, max = 99.99)
         
         p = PatchCollection(self.rectangles)
         p.set_array(num.array(values))
-        cb = pylab.colorbar(p)
+        cb = self.fig.colorbar(p)
         sp.add_collection(p)
 
         for b in self.boundaries:
-            pylab.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
+            sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
 
         if doLabel:
             for r in self.rectangles:
@@ -303,8 +303,6 @@ class FpaFigure(QaFigure):
                 yplot = bbox.y1 - size[1]//2
                 sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
 
-        sp.set_title(r"Zeropoint %d %s: $\sigma = %.3f$ mag" % (self.visitId, self.filter, sigZpt),
-                     fontsize = 30, weight = 'bold')
         sp.set_xlabel("Focal Plane X", fontsize = 20, weight = 'bold')
         sp.set_ylabel("Focal Plane Y", fontsize = 20, weight = 'bold')
 
@@ -440,8 +438,13 @@ class ZeropointFpaFigure(FpaFigure):
                     self.data[rlabel][clabel] = magMag0[idx[0]][0]
                 else:
                     print "ERROR; TRACK ME DOWN"
-                
 
+    def makeFigure(self):
+        FpaFigure.makeFigure(self)
+        sp     = self.fig.gca()
+        sp.set_title(r"Zeropoint %d %s" % (self.visitId, self.filter),
+                     fontsize = 30, weight = 'bold')
+        
 class PhotometricRmsFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
@@ -561,7 +564,7 @@ class PhotometricRmsFigure(QaFigure):
         binnedAp       = self.binDistrib(allcatMags, alldApMags, alldApMagErrs)
         binnedPsf      = self.binDistrib(allcatMags, alldPsfMags, alldPsfMagErrs)
 
-        pylab.subplots_adjust(hspace=0.0)
+        self.fig.subplots_adjust(hspace=0.0)
         sp1 = self.fig.add_subplot(211)
         sp2 = self.fig.add_subplot(212, sharex = sp1)
 
