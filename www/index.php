@@ -8,6 +8,7 @@ include("$relDir/Menu.php");
 include("$relDir/Page.php");
 include("$relDir/libdisplay.php");
 
+# echo phpinfo();
 $menu = new Menu();
 $page = new Page("LSST Pipetest", "LSST Pipe Test Summary", $menu);
 $page->appendContent(writeTable_SummarizeAllTests());

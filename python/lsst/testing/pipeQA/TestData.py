@@ -4,41 +4,63 @@ import traceback
 import sqlite
 
 import eups
-import lsst.pex.policy            as pexPolicy
-import lsst.pex.logging           as pexLog
-import lsst.daf.persistence       as dafPersist
-from lsst.testing.pipeQA.Checksum import Checksum
-from lsst.testing.pipeQA.Manifest import Manifest
-from lsst.testing.pipeQA.LogConverter import LogFileConverter
+import lsst.pex.policy                  as pexPolicy
+import lsst.pex.logging                 as pexLog
+import lsst.daf.persistence             as dafPersist
+from lsst.testing.pipeQA.Checksum       import Checksum
+from lsst.testing.pipeQA.Manifest       import Manifest
+from lsst.testing.pipeQA.LogConverter   import LogFileConverter
 
-import lsst.obs.lsstSim           as obsLsst
-import lsst.obs.cfht              as obsCfht
 
 import lsst.pipette as pipette
 
 import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
 
+# When these try/except loads fail, it's easy to miss the error message
+# ... let's be a bit louder.
+def printFailMessage(msg):
+    s = """
+        #
+	# ERROR: *************
+	#
+	# Unable to load package: %s
+	#
+	#
+	""" % (msg)
+    sys.stderr.write(s)
+    
 
 try:
     import lsstSim
+    import lsst.obs.lsstSim           as obsLsst
     haveLsstSim = True
 except Exception, e:
-    print e
+    printFailMessage(e)
     haveLsstSim = False
 
 try:    
     import megacam
+    import lsst.obs.cfht              as obsCfht
     haveMegacam = True
-except:
+except Exception, e:
+    printFailMessage(e)
     haveMegacam = False
 
 try:
     import suprimecam
+    import lsst.obs.suprimecam        as obsSuprimecam
     haveSuprimecam = True
-except:
+except Exception, e:
+    printFailMessage(e)
     haveSuprimecam = False
 
-
+try:
+    import runHsc
+    import lsst.obs.hscSim            as obsHsc
+    haveHsc = True
+except Exception, e:
+    printFailMessage(e)
+    haveHsc = False
 
     
 def findDataInTestbed(label):
@@ -195,7 +217,7 @@ class TestData(object):
         registry = os.path.join(self.testdataDir, 'registry.sqlite3')
         self.inMapper  = mapperClass(root=self.testdataDir, calibRoot=self.calibDir)
         self.inButler  = dafPersist.ButlerFactory(mapper=self.inMapper).create()
-        self.outMapper = mapperClass(root=self.outDir, registry=registry)
+        self.outMapper = mapperClass(root=self.outDir, calibRoot=self.calibDir, registry=registry)
         self.outButler = dafPersist.ButlerFactory(mapper=self.outMapper).create()
 
         
@@ -246,22 +268,28 @@ class TestData(object):
         config = self.defaultConfig
         if overrideConfigs is not None:
             for overrideConfig in overrideConfigs:
-                config = pipette.config.configuration(config, overrideConfig)
+		config.merge(pipette.config.Config(overrideConfig))
+                #config = pipette.config.configuration(config, overrideConfig)
 
+        #srcConf = config['measure']['source']
+        #srcConf['shape'] = "HSM_BJ"
 
-        srcConf = config['measure']['source']
-        srcConf['shape'] = "HSM_BJ"
-
-        shapeConf = config['measure']['shape']
-        shapeConf['HSM_BJ'] = pexPolicy.Policy()
-        shapeConf['HSM_BJ']['enabled'] = True
+        #shapeConf = config['measure']['shape']
+        #shapeConf['HSM_BJ'] = pexPolicy.Policy()
+        #shapeConf['HSM_BJ']['enabled'] = True
         
         #do = config['do']
         #do['phot'] = True
         #do['ast']  = True
         #do['cal']  = True
 
-        
+	if len(self.dataTuples) == 0:
+	    sys.stderr.write(
+		"WARNING: Requested data not found in registry.  Available frames:\n" +
+		str(self.availableDataTuples)
+		)
+	    
+
         for dataTuple in self.dataTuples:
 
             # put these values in a Dict with the appropriate keys
@@ -369,7 +397,7 @@ class TestData(object):
     def getBoostSourceSet(self, kwargs):
         """Get sources for requested data as one sourceSet."""
         dataTuplesToFetch = self._regexMatchDataIds(kwargs, self.dataTuples)
-                
+
         # get the datasets corresponding to the request
         sourceSet = []
         for dataTuple in dataTuplesToFetch:
@@ -381,8 +409,8 @@ class TestData(object):
                 persistableSourceVector = self.outButler.get('src', dataId)
                 sourceSetTmp = persistableSourceVector.getSources()
 
-                if True:
-                    postIsrCcd = self.outButler.get('postISRCCD', dataId)
+                if self.outButler.datasetExists('calexp', dataId):
+                    postIsrCcd = self.outButler.get('calexp', dataId)
                     calib = postIsrCcd.getCalib()
                     
                     fmag0, fmag0err = calib.getFluxMag0()
@@ -486,6 +514,10 @@ class ImSimTestData(TestData):
     ####################################################################### 
     def __init__(self, label, **kwargs):
         """ """
+
+	if not haveLsstSim:
+	    raise RuntimeError("obs_lsstSim isn't available.  Can't process imsim data.")
+	
         mapper         = obsLsst.LsstSimMapper
         dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
         
@@ -510,7 +542,98 @@ class ImSimTestData(TestData):
                     config, log=log)
 
 
+#######################################################################
+#
+#
+#
+#######################################################################
+class HscSimTestData(TestData):
+    """ """
+
     
+    #######################################################################
+    #
+    #######################################################################
+    def __init__(self, label, **kwargs):
+        """ """
+        
+	if not haveHsc:
+	    raise RuntimeError("obs_subaru isn't available.  Can't process hscSim data.")
+
+        mapper         = obsHsc.HscSimMapper
+        dataInfo       = [['visit',1], ['ccd', 0]]
+        
+        # find the label in the testbed path
+        testbedDir, testdataDir = findDataInTestbed(label)
+
+        argv = []
+	argv.extend(["--instrument=hsc", "--frame=0", "--ccd=0", "--rerun=test"])
+        defaultConfig, opts, args   = runHsc.getConfig(argv=argv)
+
+        roots           = defaultConfig['roots']
+        roots['data']   = os.path.join(testdataDir, "HSC")
+        roots['calib']  = os.path.join(testdataDir, "CALIB")
+        roots['output'] = os.path.join(testdataDir, "HSC")
+
+        TestData.__init__(self, label, mapper, dataInfo, defaultConfig, kwargs)
+
+
+    #######################################################################
+    #
+    #######################################################################
+    def runPipette(self, rerun, dataId, config, log):
+        """ """
+        runHsc.doRun(rerun=rerun, frameId=dataId['visit'], ccdId=dataId['ccd'],
+		     doMerge=True, doBreak=False,
+		     instrument="hsc",
+		     output =config['roots']['output'],
+		     calib  =config["roots"]['calib'],
+		     data   =config["roots"]['data'],
+		     )
+
+    
+
+#######################################################################
+#
+#
+#
+#######################################################################
+class SuprimeTestData(TestData):
+    """ """
+
+    
+    #######################################################################
+    #
+    #######################################################################
+    def __init__(self, label, **kwargs):
+        """ """
+        
+	if not haveSuprimecam:
+	    raise RuntimeError("obs_subaru isn't available.  Can't process suprimecam data.")
+
+        mapper         = obsSuprimecam.SuprimecamMapper
+        dataInfo       = [['visit',1], ['ccd', 0]]
+        
+        # find the label in the testbed path
+        testbedDir, testdataDir = findDataInTestbed(label)
+
+        defaultConfig   = suprimecam.getConfig()
+        roots           = defaultConfig['roots']
+        roots['data']   = os.path.join(testdataDir, "SUPA")
+        roots['calib']  = os.path.join(testdataDir, "SUPA", "CALIB")
+        roots['output'] = os.path.join(testdataDir, "SUPA")
+
+        TestData.__init__(self, label, mapper, dataInfo, defaultConfig, kwargs)
+
+
+    #######################################################################
+    #
+    #######################################################################
+    def runPipette(self, rerun, dataId, config, log):
+        """ """
+        suprimecam.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
+
+
 
         
 #######################################################################
@@ -527,6 +650,9 @@ class CfhtTestData(TestData):
     def __init__(self, label, **kwargs):
         """ """
         
+	if not haveMegacam:
+	    raise RuntimeError("obs_cfht isn't available.  Can't process megacam data.")
+	
         mapper         = obsCfht.CfhtMapper
         dataInfo       = [['visit',1], ['ccd', 0]]
         
@@ -551,42 +677,6 @@ class CfhtTestData(TestData):
 
 
         
-#######################################################################
-#
-#
-#
-#######################################################################
-class SuprimeTestData(TestData):
-    """ """
-
-    
-    #######################################################################
-    #
-    #######################################################################
-    def __init__(self, label, **kwargs):
-        """ """
-        
-        mapper         = obsSuprime.SuprimeMapper
-        dataInfo       = [['frame',1], ['ccd', 0]]
-        
-        # find the label in the testbed path
-        testbedDir, testdataDir = findDataInTestbed(label)
-        
-        defaultConfig   = suprimecam.getConfig()
-        roots           = defaultConfig['roots']
-        roots['data']   = testdataDir
-        roots['calib']  = testdataDir
-        roots['output'] = testdataDir
-        
-        TestData.__init__(self, label, mapper, dataInfo, defaultConfig, kwargs)
-
-
-    #######################################################################
-    #
-    #######################################################################
-    def runPipette(self, rerun, dataId, config, log):
-        """ """
-        suprimecam.run(rerun, dataId['frame'], dataId['ccd'], config, log=log)
 
 
 
@@ -604,12 +694,18 @@ def makeTestData(label, **kwargs):
     regFile = 'registry.sqlite3'
     registry = os.path.join(testdataDir, regFile)
     cfhtCalibRegistry = os.path.join(testdataDir, "calib", "calibRegistry.sqlite3")
+    hscSimCalibRegistry = os.path.join(testdataDir, "CALIB", "calibRegistry.sqlite3")
 
+    testCfht       = os.path.exists(cfhtCalibRegistry)
+    testHscSim     = os.path.exists(hscSimCalibRegistry)
+    testSuprimecam = os.path.exists(os.path.join(testdataDir, "SUPA"))
+    
     # define some tests to distinguish which type of data we have
     lookup = {
-        "lsstSim" : [ImSimTestData, not os.path.exists(cfhtCalibRegistry)],
-        "cfht" :    [CfhtTestData,  os.path.exists(cfhtCalibRegistry)],
-        #"suprime":  [SuprimeTestData, registry, registry],
+        "lsstSim" : [ImSimTestData,  not testCfht and not testHscSim and not testSuprimecam],
+        "cfht" :    [CfhtTestData, testCfht],
+	"hscSim"  : [HscSimTestData, testHscSim], 
+        "suprime":  [SuprimeTestData, testSuprimecam],
         }
 
 

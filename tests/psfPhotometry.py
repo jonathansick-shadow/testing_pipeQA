@@ -36,7 +36,7 @@ import matplotlib
 import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 
-import lsst.meas.extensions.shapeHSM as shapeHSM
+#import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
 
 
 def testPsfPhotometry():
@@ -90,8 +90,8 @@ def testPsfPhotometry():
 
         s0, s1 = match.first, match.second
 
-        print "ixx: ", s0.getIxx()
-        print "e1: ", s0.getE1(), "   shear1: ", s0.getShear1()
+        #print "ixx: ", s0.getIxx()
+        #print "e1: ", s0.getE1(), "   shear1: ", s0.getShear1()
         
         m0 = -2.5*numpy.log10(s0.getApFlux())
         m1 = -2.5*numpy.log10(s1.getApFlux())
