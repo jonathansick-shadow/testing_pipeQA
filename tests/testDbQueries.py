@@ -22,6 +22,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 import os
+import sys
 from optparse import OptionParser
 
 import lsst.testing.pipeQA as pipeQA
@@ -38,12 +39,12 @@ if __name__ == '__main__':
 
     parser = OptionParser()
     parser.add_option('-D', '--database', dest='database',
-                      default='rplante_DC3b_u_weeklytest_2011_0218_science',
-                      help='Name of database for queries')
+                      default=None,
+                      help='Name of database for queries (e.g. rplante_DC3b_u_weeklytest_2011_0218_science')
     parser.add_option('-v', '--visit', type='int', dest='visit', action='append', type='int', default=[])
     parser.add_option('-r', '--raft', dest='raft', action='append', default=[])
     parser.add_option('-s', '--sensor', dest='sensor', action='append', default=[])
-    parser.add_option('-o', '--output', dest='outRoot', default='pipeQA', help='Output directory')
+    parser.add_option('-o', '--output', dest='outRoot', default='pipeQA', help='Output directory prefix')
     parser.add_option('--photrms', dest='dophotrms', action='store_true', default=False,
                       help='Make photometric RMS plot?')
     parser.add_option('--zptfpa', dest='dozptfpa', action='store_true', default=False,
@@ -53,7 +54,11 @@ if __name__ == '__main__':
     
     (opt, args) = parser.parse_args()
     database    = opt.database
-    outRoot     = opt.outRoot
+    if database == None:
+        Trace("lsst.testing.pipeQA.testDbQueries", 1, "Error: database (-D, --database=) required")
+        sys.exit(1)
+        
+    outRoot     = os.path.join(opt.outRoot, opt.database)
     if not os.path.isdir(outRoot):
         Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outRoot))
         os.makedirs(outRoot)

@@ -99,6 +99,9 @@ def sigIQR(data, min = None, max = None):
     if (min != None) and (max != None):
         idx   = num.where( (data > min) & (data < max) )
         data  = data[idx]
+
+    if len(data) == 0:
+        return 0.0
     
     d25 = data[int(0.25 * len(data))]
     d75 = data[int(0.75 * len(data))]
@@ -439,8 +442,8 @@ class ZeropointFpaFigure(FpaFigure):
                 else:
                     print "ERROR; TRACK ME DOWN"
 
-    def makeFigure(self):
-        FpaFigure.makeFigure(self)
+    def makeFigure(self, doLabel = False):
+        FpaFigure.makeFigure(self, doLabel)
         sp     = self.fig.gca()
         sp.set_title(r"Zeropoint %d %s" % (self.visitId, self.filter),
                      fontsize = 30, weight = 'bold')
@@ -474,9 +477,9 @@ class PhotometricRmsFigure(QaFigure):
         sql  = 'select s.objectId, '                                                         # 0: objectId
         sql += ' sro.%sMag,' % (filter)                                                      # 1: catMag
         sql += ' dnToAbMag(s.apFlux, sce.fluxMag0),'                                         # 2: apMag
-        sql += ' dnToAbMagSigma(s.apFlux, s.apFluxErr, sce.fluxMag0, sce.fluxMag0Sigma),'    # 3: apMagErr
+        sql += ' dnToAbMagSigma(s.apFlux, s.apFluxSigma, sce.fluxMag0, sce.fluxMag0Sigma),'  # 3: apMagSigma
         sql += ' dnToAbMag(s.psfFlux, sce.fluxMag0),'                                        # 4: psfMag
-        sql += ' dnToAbMagSigma(s.psfFlux, s.psfFluxErr, sce.fluxMag0, sce.fluxMag0Sigma)'   # 5: psfMagErr
+        sql += ' dnToAbMagSigma(s.psfFlux, s.psfFluxSigma, sce.fluxMag0, sce.fluxMag0Sigma)' # 5: psfMagSigma
         sql += ' from Source as s, Science_Ccd_Exposure as sce,'
         sql += ' RefObjMatch as rom, SimRefObject as sro'
         sql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
@@ -485,6 +488,7 @@ class PhotometricRmsFigure(QaFigure):
         sql += ' and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += ' and s.objectID is not NULL'        
         sql += ' order by s.objectID'
+        print sql
         results = dbInterface.execute(sql)
 
         photByObject    = {}
@@ -496,26 +500,26 @@ class PhotometricRmsFigure(QaFigure):
     
             catMag    = row[1]
             apMag     = row[2]
-            apMagErr  = row[3]
+            apMagSig  = row[3]
             psfMag    = row[4]
-            psfMagErr = row[5]
+            psfMagSig = row[5]
             
             if not photByObject.has_key(objectId):
                 photByObject[objectId] = {}
                 photByObject[objectId]['catMag']    = []
                 photByObject[objectId]['psfMag']    = []
-                photByObject[objectId]['psfMagErr'] = []
+                photByObject[objectId]['psfMagSig'] = []
                 photByObject[objectId]['apMag']     = []
-                photByObject[objectId]['apMagErr']  = []
+                photByObject[objectId]['apMagSig']  = []
 
-            if (apMag == None) or (apMagErr == None) or (psfMag == None) or (psfMagErr == None):
+            if (apMag == None) or (apMagSig == None) or (psfMag == None) or (psfMagSig == None):
                 continue
             
             photByObject[objectId]['catMag'].append(catMag)
             photByObject[objectId]['apMag'].append(apMag)
-            photByObject[objectId]['apMagErr'].append(apMagErr)
+            photByObject[objectId]['apMagSig'].append(apMagSig)
             photByObject[objectId]['psfMag'].append(psfMag)
-            photByObject[objectId]['psfMagErr'].append(psfMagErr)
+            photByObject[objectId]['psfMagSig'].append(psfMagSig)
     
         for key in photByObject.keys():
             if len(photByObject[key]) < minPts:
@@ -523,9 +527,9 @@ class PhotometricRmsFigure(QaFigure):
                 
             photByObject[key]['catMag']    = num.array(photByObject[key]['catMag'])
             photByObject[key]['apMag']     = num.array(photByObject[key]['apMag'])
-            photByObject[key]['apMagErr']  = num.array(photByObject[key]['apMagErr'])
+            photByObject[key]['apMagSig']  = num.array(photByObject[key]['apMagSig'])
             photByObject[key]['psfMag']    = num.array(photByObject[key]['psfMag'])
-            photByObject[key]['psfMagErr'] = num.array(photByObject[key]['psfMagErr'])
+            photByObject[key]['psfMagSig'] = num.array(photByObject[key]['psfMagSig'])
     
         self.data["PhotByObject"] = photByObject
 
@@ -540,17 +544,22 @@ class PhotometricRmsFigure(QaFigure):
         photByObject = self.data["PhotByObject"]
         keys = photByObject.keys()
 
+        if len(keys) == 0:
+            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "No data for figure")
+            return None
+            
+
         allcatMags     = [photByObject[k]['catMag'] for k in keys]
         alldApMags     = [photByObject[k]['apMag'] for k in keys]
-        alldApMagErrs  = [photByObject[k]['apMagErr'] for k in keys]
+        alldApMagSigs  = [photByObject[k]['apMagSig'] for k in keys]
         alldPsfMags    = [photByObject[k]['psfMag'] for k in keys]
-        alldPsfMagErrs = [photByObject[k]['psfMagErr'] for k in keys]
+        alldPsfMagSigs = [photByObject[k]['psfMagSig'] for k in keys]
 
         allcatMags     = num.array([item for sublist in allcatMags for item in sublist])
         alldApMags     = num.array([item for sublist in alldApMags for item in sublist])
-        alldApMagErrs  = num.array([item for sublist in alldApMagErrs for item in sublist])
+        alldApMagSigs  = num.array([item for sublist in alldApMagSigs for item in sublist])
         alldPsfMags    = num.array([item for sublist in alldPsfMags for item in sublist])
-        alldPsfMagErrs = num.array([item for sublist in alldPsfMagErrs for item in sublist])
+        alldPsfMagSigs = num.array([item for sublist in alldPsfMagSigs for item in sublist])
 
         alldApMags     = allcatMags - alldApMags
         alldPsfMags    = allcatMags - alldPsfMags
@@ -561,8 +570,8 @@ class PhotometricRmsFigure(QaFigure):
         sigmeanAp  = sigIQR(alldApMags[idx])
         sigmeanPsf = sigIQR(alldPsfMags[idx])
         
-        binnedAp       = self.binDistrib(allcatMags, alldApMags, alldApMagErrs)
-        binnedPsf      = self.binDistrib(allcatMags, alldPsfMags, alldPsfMagErrs)
+        binnedAp       = self.binDistrib(allcatMags, alldApMags, alldApMagSigs)
+        binnedPsf      = self.binDistrib(allcatMags, alldPsfMags, alldPsfMagSigs)
 
         self.fig.subplots_adjust(hspace=0.0)
         sp1 = self.fig.add_subplot(211)
@@ -678,7 +687,7 @@ class ZeropointFitFigure(QaFigure):
 
         # Select all matched galaxies
         mrefGsql  = 'select sro.%sMag,' % (filterName)
-        mrefGsql += ' s.psfFlux, s.psfFluxErr'
+        mrefGsql += ' s.psfFlux, s.psfFluxSigma'
         mrefGsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
         mrefGsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
         mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
@@ -696,7 +705,7 @@ class ZeropointFitFigure(QaFigure):
         
         # Select all matched stars
         mrefSsql  = 'select sro.%sMag,' % (filterName)
-        mrefSsql += ' s.psfFlux, s.psfFluxErr'
+        mrefSsql += ' s.psfFlux, s.psfFluxSigma'
         mrefSsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
         mrefSsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
         mrefSsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
@@ -741,7 +750,7 @@ class ZeropointFitFigure(QaFigure):
         legLines  = []
         legLabels = []
         
-        axis = self.fig.add_axes([0.225, 0.225, 0.675, 0.675])
+        axis = self.fig.add_axes([0.225, 0.225, 0.675, 0.550])
 
         # Plot all matched galaxies
         mrefGmag  = self.data["MatchedGalaxies"]["Refmag"]
@@ -787,7 +796,7 @@ class ZeropointFitFigure(QaFigure):
         uimgmag     = self.data["UnmatchedImage"]
 
         # Unmatched & matched reference objects
-        ax2 = self.fig.add_axes([0.1, 0.225, 0.125, 0.675], sharey=axis)
+        ax2  = self.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
         nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
                               orientation='horizontal', log = True, color = 'r', alpha = 0.5, zorder = 1)
         if len(mrefGmag) > 0 and len(mrefSmag) > 0:
@@ -799,7 +808,7 @@ class ZeropointFitFigure(QaFigure):
         legLabels.append("Unmatched Sources")
 
         # Unmatched & matched stellar objects
-        ax3 = self.fig.add_axes([0.225, 0.1, 0.675, 0.125], sharex=axis)
+        ax3  = self.fig.add_axes([0.225, 0.1,   0.675, 0.125], sharex=axis)
         ax3.get_yaxis().set_ticks_position('right')
         ax3.get_yaxis().set_label_position('right')
         if len(mimgGmag) > 0 and len(mimgSmag) > 0:
@@ -812,18 +821,32 @@ class ZeropointFitFigure(QaFigure):
         ax3.set_xlabel('Image instrumental mag', fontsize = 10)
         ax3.set_ylabel('N', rotation = 180, fontsize = 10)
 
+        # Mag - Zpt
+        ax4  = self.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
+        ax4.errorbar(mimgSmag, (mimgSmag - self.data["Zeropoint"]) - mrefSmag, yerr = mimgSmerr, fmt = 'bo',
+                     ms = 2, alpha = 0.5, capsize = 0, elinewidth = 0.5)
+        ax4.errorbar(mimgGmag, (mimgGmag - self.data["Zeropoint"]) - mrefGmag, yerr = mimgGmerr, fmt = 'go',
+                     ms = 2, alpha = 0.5, capsize = 0, elinewidth = 0.5)
+        ax4.get_yaxis().set_ticks_position('right')
+        ax4.get_yaxis().set_label_position('right')
+        ax4.set_ylabel('Cal-Ref', fontsize = 10, rotation = 270)
+        ax4.axhline(y = 0, c='k', linestyle='--', alpha = 0.25)
+
         # Cleaning up figure
         pylab.setp(axis.get_xticklabels()+axis.get_yticklabels(), visible=False)
         pylab.setp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize = 8)
         pylab.setp(ax3.get_xticklabels()+ax3.get_yticklabels(), fontsize = 8)
+        pylab.setp(ax4.get_xticklabels(), visible=False)
+        pylab.setp(ax4.get_yticklabels(), fontsize = 8)
 
         ax2.set_xlim(1, 999)
         ax3.set_ylim(1, 999)
+        ax4.set_ylim(-0.99, 0.99)
         axis.axis((xmax, xmin, ymax, ymin))
 
         self.fig.legend(legLines, legLabels,
                         numpoints=1, prop=FontProperties(size='small'), loc = 'center right')
-        axis.set_title('%s v%s r%s s%s' %
-                       (self.database, self.visitId, self.raftName, self.ccdName),
-                       fontsize = 12)
+        self.fig.suptitle('%s v%s r%s s%s' %
+                          (self.database, self.visitId, self.raftName, self.ccdName),
+                          fontsize = 12)
         return
