@@ -51,6 +51,10 @@ if __name__ == '__main__':
                       help='Make FPA plot of zeropoint')
     parser.add_option('--zptfit', dest='dozptfit', action='store_true', default=False,
                       help='Make photometric zeropoint fit plot?')
+    parser.add_option('--plotlc', dest='refObjectId', default=None,
+                      help='Lightcurve for given reference object')
+    parser.add_option('--period', dest='period', default=None,
+                      help='Fold at a given period')
     
     (opt, args) = parser.parse_args()
     database    = opt.database
@@ -148,3 +152,11 @@ if __name__ == '__main__':
                 
   
         
+    if opt.refObjectId != None:
+        lcfig = pipeQA.LightcurveFigure()
+        lcfig.retrieveData(database, int(opt.refObjectId))
+        if opt.period != None:
+            lcfig.makeFigure(float(opt.period))
+        else:
+            lcfig.makeFigure()
+        lcfig.saveFigure(os.path.join(outRoot, "lc_sro%s.png" % (opt.refObjectId)))

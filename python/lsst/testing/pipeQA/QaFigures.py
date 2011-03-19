@@ -447,6 +447,113 @@ class ZeropointFpaFigure(FpaFigure):
         sp     = self.fig.gca()
         sp.set_title(r"Zeropoint %d %s" % (self.visitId, self.filter),
                      fontsize = 30, weight = 'bold')
+
+class LightcurveFigure(QaFigure):
+    def __init__(self):
+        QaFigure.__init__(self)
+        self.data     = {}
+        self.dataType = {
+            "taiMjd" : num.ndarray,
+            "apMag" : num.ndarray,
+            "apMagSigma" : num.ndarray,
+            "psfMag" : num.ndarray,
+            "psfMagSigma" : num.ndarray
+            }
+
+        # set on retrieve; reset on reset()
+        self.roid     = None
+        self.database = None
+        self.filter   = None
+
+    def reset(self):
+        self.data     = {}
+        self.roid     = None
+        self.database = None
+        self.filter   = None
+        
+    def retrieveData(self, database, refObjectId, filter = 'r'):
+        self.reset()
+        self.roid     = refObjectId
+        self.database = database
+        self.filter   = filter
+
+        dbId        = DatabaseIdentity(self.database)
+        dbInterface = LsstSimDbInterface(dbId)
+
+        filterId = dbInterface.filterMap[self.filter]
+        sql  = 'select sce.taiMjd, '                                                         # 0: taiMjd
+        sql += ' dnToAbMag(s.apFlux, sce.fluxMag0),'                                         # 1: apMag
+        sql += ' dnToAbMagSigma(s.apFlux, s.apFluxSigma, sce.fluxMag0, sce.fluxMag0Sigma),'  # 2: apMagSigma
+        sql += ' dnToAbMag(s.psfFlux, sce.fluxMag0),'                                        # 3: psfMag
+        sql += ' dnToAbMagSigma(s.psfFlux, s.psfFluxSigma, sce.fluxMag0, sce.fluxMag0Sigma)' # 4: psfMagSigma
+        sql += ' from Source as s, Science_Ccd_Exposure as sce,'
+        sql += ' RefObjMatch as rom, SimRefObject as sro'
+        sql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+        sql += ' and (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
+        sql += ' and (sro.refObjectId = %d)' % (self.roid)
+        sql += ' and (s.filterId = %d)' % (filterId)
+        #sql += ' and ((s.flagForDetection & 0xa01) = 0)'
+        
+        print sql
+        results = dbInterface.execute(sql)
+
+        self.data["taiMjd"]      = num.array([x[0] for x in results])
+        self.data["apMag"]       = num.array([x[1] for x in results])
+        self.data["apMagSigma"]  = num.array([x[2] for x in results])
+        self.data["psfMag"]      = num.array([x[3] for x in results])
+        self.data["psfMagSigma"] = num.array([x[4] for x in results])
+
+    def makeFigure(self, foldPeriod = None):
+        if not self.validate():
+            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "Invalid Data")
+            return None
+
+        if foldPeriod:
+            sp1 = self.fig.add_subplot(211)
+            sp2 = self.fig.add_subplot(212)
+        else:
+            sp1 = self.fig.add_subplot(111)
+
+        legLines  = []
+        legLabels = []
+        
+        apPlot = sp1.errorbar(self.data["taiMjd"], self.data["apMag"], yerr = self.data["apMagSigma"],
+                              fmt = 'bo', ms = 3, alpha = 0.5, capsize = 0, elinewidth = 1)
+        psfPlot = sp1.errorbar(self.data["taiMjd"], self.data["psfMag"], yerr = self.data["psfMagSigma"],
+                               fmt = 'go', ms = 3, alpha = 0.5, capsize = 0, elinewidth = 1)
+        legLines.append(apPlot[0])
+        legLabels.append("Aperture")
+        legLines.append(psfPlot[0])
+        legLabels.append("Psf")
+
+        pylab.setp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 10)
+        sp1.set_xlabel("mjdTai", fontsize = 12, weight = 'bold')
+        sp1.set_ylabel("Magnitude", fontsize = 12, weight = 'bold')
+        ymin, ymax = sp1.get_ylim()
+        sp1.set_ylim(ymax, ymin)
+
+        if foldPeriod:
+            phase = self.data["taiMjd"] / foldPeriod - self.data["taiMjd"] // foldPeriod 
+            sp2.errorbar(phase, self.data["apMag"], yerr = self.data["apMagSigma"],
+                         fmt = 'bo', ms = 3, alpha = 0.9, capsize = 0)
+            sp2.errorbar(phase, self.data["psfMag"], yerr = self.data["psfMagSigma"],
+                         fmt = 'go', ms = 3, alpha = 0.1, capsize = 0)
+            sp2.errorbar(phase+1, self.data["apMag"], yerr = self.data["apMagSigma"],
+                         fmt = 'bo', ms = 3, alpha = 0.9, capsize = 0)
+            sp2.errorbar(phase+1, self.data["psfMag"], yerr = self.data["psfMagSigma"],
+                         fmt = 'go', ms = 3, alpha = 0.1, capsize = 0)
+
+            pylab.setp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize = 10)
+            sp2.set_xlabel("Phase (Period = %f days)" % (foldPeriod), fontsize = 12, weight = 'bold')
+            sp2.set_ylabel("Magnitude", fontsize = 12, weight = 'bold')
+            ymin, ymax = sp2.get_ylim()
+            sp2.set_ylim(ymax, ymin)
+
+        self.fig.legend(legLines, legLabels,
+                        numpoints=1, prop=FontProperties(size='small'), loc = 'center right')
+        self.fig.suptitle('%s roid=%s %s-band' %
+                          (self.database, self.roid, self.filter),
+                          fontsize = 12)
         
 class PhotometricRmsFigure(QaFigure):
     def __init__(self):
@@ -479,7 +586,8 @@ class PhotometricRmsFigure(QaFigure):
         sql += ' dnToAbMag(s.apFlux, sce.fluxMag0),'                                         # 2: apMag
         sql += ' dnToAbMagSigma(s.apFlux, s.apFluxSigma, sce.fluxMag0, sce.fluxMag0Sigma),'  # 3: apMagSigma
         sql += ' dnToAbMag(s.psfFlux, sce.fluxMag0),'                                        # 4: psfMag
-        sql += ' dnToAbMagSigma(s.psfFlux, s.psfFluxSigma, sce.fluxMag0, sce.fluxMag0Sigma)' # 5: psfMagSigma
+        sql += ' dnToAbMagSigma(s.psfFlux, s.psfFluxSigma, sce.fluxMag0, sce.fluxMag0Sigma),'# 5: psfMagSigma
+        sql += ' sce.taiMjd'                                                                 # 6: taiMjd
         sql += ' from Source as s, Science_Ccd_Exposure as sce,'
         sql += ' RefObjMatch as rom, SimRefObject as sro'
         sql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
@@ -503,6 +611,7 @@ class PhotometricRmsFigure(QaFigure):
             apMagSig  = row[3]
             psfMag    = row[4]
             psfMagSig = row[5]
+            taiMjd    = row[6]
             
             if not photByObject.has_key(objectId):
                 photByObject[objectId] = {}
@@ -511,6 +620,7 @@ class PhotometricRmsFigure(QaFigure):
                 photByObject[objectId]['psfMagSig'] = []
                 photByObject[objectId]['apMag']     = []
                 photByObject[objectId]['apMagSig']  = []
+                photByObject[objectId]['taiMjd']    = []
 
             if (apMag == None) or (apMagSig == None) or (psfMag == None) or (psfMagSig == None):
                 continue
@@ -520,16 +630,18 @@ class PhotometricRmsFigure(QaFigure):
             photByObject[objectId]['apMagSig'].append(apMagSig)
             photByObject[objectId]['psfMag'].append(psfMag)
             photByObject[objectId]['psfMagSig'].append(psfMagSig)
+            photByObject[objectId]['taiMjd'].append(taiMjd)
     
         for key in photByObject.keys():
             if len(photByObject[key]) < minPts:
                 del photByObject[key]
-                
+
             photByObject[key]['catMag']    = num.array(photByObject[key]['catMag'])
             photByObject[key]['apMag']     = num.array(photByObject[key]['apMag'])
             photByObject[key]['apMagSig']  = num.array(photByObject[key]['apMagSig'])
             photByObject[key]['psfMag']    = num.array(photByObject[key]['psfMag'])
             photByObject[key]['psfMagSig'] = num.array(photByObject[key]['psfMagSig'])
+            photByObject[key]['taiMjd']    = num.array(photByObject[key]['taiMjd'])
     
         self.data["PhotByObject"] = photByObject
 
