@@ -25,7 +25,7 @@
 """
 Test to verify quality of PSF photometry on test frames
 """
-import os
+import os, sys
 import unittest
 import lsst.testing.pipeQA as pipeQA
 import numpy
@@ -48,28 +48,45 @@ def testPipetteAllMappers():
     doSuprimecam = 1#True
     doHscSim     = 1#True
 
+    causeFail = 0 #True
     
     pr = pipeQA.PipeRunner()
 
     
     #########################
     # create the testdata objects
+
     
+
     ## LsstSim
     if doLsstSim:
 	tdLsstSim = pipeQA.makeTestData("imsimTestData001",
 					visit='85501867', snap='0', raft='1,1', sensor='1,1',
 					verifyChecksum=False, outDir='local',
 					astrometryNetData="imsim_20100625")
-	pr.addTestData(tdLsstSim)
+	#pr.addTestData(tdLsstSim)
     
 
+
+
+
+    ## HscSim
+    if doHscSim:
+	tdHscSim = pipeQA.makeTestData("hscsimTestData001", visit='200', ccd='50', 
+				       verifyChecksum=False, outDir='local',
+				       astrometryNetData="hsc-dc2-2011-01-22-starsonly")
+				       #astrometryNetData="hsc-dc2-2011-02-27plus")
+	#pr.addTestData(tdHscSim)
+	
+
+				     
     ## megacam
     if doCfht:
 	tdCfht = pipeQA.makeTestData("cfhtTestData001", visit="788033", ccd='17',
 				      verifyChecksum=False, outDir='local',
-				      astrometryNetData="hsc-dc2-2011-02-27plus")
-	pr.addTestData(tdCfht)
+				      astrometryNetData="hsc-dc2-2011-01-22-starsonly")
+        #astrometryNetData="hsc-dc2-2011-02-27plus")
+	#pr.addTestData(tdCfht)
 
 
     ## Suprimecam
@@ -79,26 +96,29 @@ def testPipetteAllMappers():
 	tdScSim = pipeQA.makeTestData("suprimeTestData001", visit=visit, ccd='2', 
 				      verifyChecksum=False, outDir='local',
 				      astrometryNetData="hsc-dc1-2010-08-04.1-starsonly")
-	pr.addTestData(tdScSim)
+	#pr.addTestData(tdScSim)
 
-    ## HscSim
-    if doHscSim:
-	tdHscSim = pipeQA.makeTestData("hscsimTestData001", visit='200', ccd='50', 
-				       verifyChecksum=False, outDir='local',
-				       astrometryNetData="hsc-dc2-2011-02-27plus")
-	pr.addTestData(tdHscSim)
-	
+        
+    if causeFail:
+        if doLsstSim:    pr.addTestData(tdLsstSim)
+        if doHscSim:     pr.addTestData(tdHscSim)
+        if doSuprimecam: pr.addTestData(tdScSim)
+        if doCfht:       pr.addTestData(tdCfht)
+    else:
+        if doLsstSim:    pr.addTestData(tdLsstSim)
+        if doHscSim:     pr.addTestData(tdHscSim)
+        if doCfht:       pr.addTestData(tdCfht)
+        if doSuprimecam: pr.addTestData(tdScSim)
 
 
-				     
 
     ##########################
     # run the pipe
-    hsmConfig = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "policy", "hsmShape.paf")
+    #hsmConfig = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "policy", "hsmShape.paf")
     pr.run(force=False, overrideConfig=[])
 
-
-
+    #sys.exit()
+    
     ##########################
     # Test the outputs exist ... mostly sane
     # - note that this is not intended to verify quality per se, just to
@@ -110,22 +130,29 @@ def testPipetteAllMappers():
     ts.importEupsSetups(pr.getEupsSetupFiles())
     ts.importExceptionDict(pr.getUncaughtExceptionDict())
 
-
     ##########################
     # get the data we want from the piperunner and perform a test
-    sourceSets = {
-	"lsstSim"    : pr.getSourceSet(visit='85501867', raft='1,1'),
-	"hscSim"     : pr.getSourceSet(visit='200', ccd='50'),
-	"suprimecam" : pr.getSourceSet(visit=visit, ccd='2'),
-	"cfht"       : pr.getSourceSet(visit='788033', ccd='17'),
-	}
+    sourceSets = {}
 
-    minDetections = 100
-    for label, ss in sourceSets.items():
+    if doLsstSim:    sourceSets["lsstSim"]    = {'visit' : '85501867', 'raft': '1,1'}
+    if doHscSim:     sourceSets["hscSim"]     = {'visit' : '200',      'ccd' : '50'}
+    if doSuprimecam: sourceSets["suprimecam"] = {'visit' : visit,      'ccd' : '2'}
+    if doCfht:       sourceSets["cfht"]       = {'visit' : '788033',   'ccd' : '17'}
+
+    limits = {
+	"lsstSim"    : [1083, 1083],
+	"hscSim"     : [1810, 1810],
+	"suprimecam" : [1390, 1440],
+	"cfht"       : [1023, 1023],
+        }
+    
+
+    for label, ssKwargs in sourceSets.items():
+        ss = pr.getSourceSet(**ssKwargs)
 	n       = len(ss)
-	limits  = [minDetections, None]
-	comment = "verify no. detections > %d"%(minDetections)
-	ts.addTest(label, n, limits, comment)
+	lim  = limits[label]
+	comment = "verify no. detections equals known value"
+	ts.addTest(label, n, lim, comment)
 
 
 

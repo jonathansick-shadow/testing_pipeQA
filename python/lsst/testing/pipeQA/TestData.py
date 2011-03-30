@@ -14,7 +14,7 @@ from lsst.testing.pipeQA.LogConverter   import LogFileConverter
 
 import lsst.pipette as pipette
 
-import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
+#import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
 
 # When these try/except loads fail, it's easy to miss the error message
 # ... let's be a bit louder.
@@ -35,7 +35,7 @@ try:
     import lsst.obs.lsstSim           as obsLsst
     haveLsstSim = True
 except Exception, e:
-    printFailMessage(e)
+    printFailMessage("lsstSim: " + str(e))
     haveLsstSim = False
 
 try:    
@@ -43,7 +43,7 @@ try:
     import lsst.obs.cfht              as obsCfht
     haveMegacam = True
 except Exception, e:
-    printFailMessage(e)
+    printFailMessage("megecam: " + str(e))
     haveMegacam = False
 
 try:
@@ -51,15 +51,16 @@ try:
     import lsst.obs.suprimecam        as obsSuprimecam
     haveSuprimecam = True
 except Exception, e:
-    printFailMessage(e)
+    printFailMessage("suprimecam: " + str(e))
     haveSuprimecam = False
 
+import runHsc
 try:
     import runHsc
     import lsst.obs.hscSim            as obsHsc
     haveHsc = True
 except Exception, e:
-    printFailMessage(e)
+    printFailMessage("hscSim: " + str(e))
     haveHsc = False
 
     
@@ -109,7 +110,7 @@ class TestData(object):
     #######################################################################
     #
     #######################################################################
-    def __init__(self, label, mapperClass, dataInfo, defaultConfig, kwargs):
+    def __init__(self, label, rerun, mapperClass, dataInfo, defaultConfig, kwargs):
         """
         keyword args:
         haveManifest = boolean, verify files in dataDir are present according to manifest
@@ -131,6 +132,7 @@ class TestData(object):
         self.verifyChecksum = self.kwargs.get('verifyChecksum', False)
         self.astrometryNetData = self.kwargs.get('astrometryNetData', None)
 
+        self.rerun = rerun
         
         ##################
         # output directory
@@ -215,9 +217,15 @@ class TestData(object):
         #######################################
         # get i/o butlers
         registry = os.path.join(self.testdataDir, 'registry.sqlite3')
-        self.inMapper  = mapperClass(root=self.testdataDir, calibRoot=self.calibDir)
+        # note: only suprime/hsc mappers accept rerun arg
+        if self.rerun is None:
+            self.inMapper  = mapperClass(root=self.testdataDir, calibRoot=self.calibDir)
+            self.outMapper = mapperClass(root=self.outDir, calibRoot=self.calibDir, registry=registry)
+        else:
+            self.inMapper  = mapperClass(rerun=self.rerun, root=self.testdataDir, calibRoot=self.calibDir)
+            self.outMapper = mapperClass(rerun=self.rerun,
+                                         root=self.outDir, calibRoot=self.calibDir, registry=registry)
         self.inButler  = dafPersist.ButlerFactory(mapper=self.inMapper).create()
-        self.outMapper = mapperClass(root=self.outDir, calibRoot=self.calibDir, registry=registry)
         self.outButler = dafPersist.ButlerFactory(mapper=self.outMapper).create()
 
         
@@ -236,8 +244,17 @@ class TestData(object):
         # if/when we run, we'll store tracebacks for any failed runs
         # we don't want to stop outright, but we should report failures
         self.uncaughtExceptionDict = {}
+
+
         
-                
+    #######################################################################
+    # setup our own astrometryNetData package, if we have one
+    #######################################################################
+    def setupAstrometryNetData(self):
+        
+        if not (self.astrometryNetData is None):
+            ok, version, reason = eups.Eups().setup('astrometry_net_data', self.astrometryNetData)
+        
         
     #######################################################################
     # Run our data through pipette
@@ -249,9 +266,8 @@ class TestData(object):
         overrideConfigs   = kwargs.get('overrideConfig', None)  # array of paf filenames
 
         # setup a specific astromentry.net data package, if one is provided
-        if not (self.astrometryNetData is None):
-            ok, version, reason = eups.Eups().setup('astrometry_net_data', self.astrometryNetData)
-
+        self.setupAstrometryNetData()
+        
             
         # keep a record of the eups setups for the data we're running
         eupsSetupFile = os.path.join(self.localOutDir, self.label+".eups")
@@ -296,6 +312,7 @@ class TestData(object):
             dataId = self._tupleToDataId(dataTuple)
             
             # see if we already have the outputs
+            print dataId
             isWritten = self.outButler.datasetExists('src', dataId)
 
             # set isWritten if we're a testBot ... assume we shouldn't try to run
@@ -306,7 +323,6 @@ class TestData(object):
             thisFrame = "%s=%s" % (",".join(self.dataIdNames), str(dataTuple))
 
             if force or (not isWritten):
-                rerun  = "pipetest"
                 
                 # create a log that prints to a file
                 idString = self.dataTupleToString(dataTuple)
@@ -326,7 +342,7 @@ class TestData(object):
                 
                 print "Running:  %s" % (thisFrame)
                 try:
-                    self.runPipette(rerun, dataId, config, log)
+                    self.runPipette(self.rerun, dataId, config, log)
                 except Exception, e:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     s = traceback.format_exception(exc_type, exc_value,
@@ -398,6 +414,9 @@ class TestData(object):
         """Get sources for requested data as one sourceSet."""
         dataTuplesToFetch = self._regexMatchDataIds(kwargs, self.dataTuples)
 
+        #self.setupAstrometryNetData()
+        print self.outDir, kwargs, dataTuplesToFetch
+        
         # get the datasets corresponding to the request
         sourceSet = []
         for dataTuple in dataTuplesToFetch:
@@ -529,8 +548,9 @@ class ImSimTestData(TestData):
         roots['data']   = testdataDir
         roots['calib']  = testdataDir
         roots['output'] = testdataDir
-        
-        TestData.__init__(self, label, mapper, dataInfo, defaultConfig, kwargs)
+
+        rerun = None
+        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
         
     #######################################################################
@@ -566,16 +586,18 @@ class HscSimTestData(TestData):
         # find the label in the testbed path
         testbedDir, testdataDir = findDataInTestbed(label)
 
+        #defaultConfig = runHsc.getConfigQa()
         argv = []
 	argv.extend(["--instrument=hsc", "--frame=0", "--ccd=0", "--rerun=test"])
-        defaultConfig, opts, args   = runHsc.getConfig(argv=argv)
+        defaultConfig, opts, args = runHsc.getConfig(argv=argv)
 
         roots           = defaultConfig['roots']
         roots['data']   = os.path.join(testdataDir, "HSC")
         roots['calib']  = os.path.join(testdataDir, "CALIB")
         roots['output'] = os.path.join(testdataDir, "HSC")
 
-        TestData.__init__(self, label, mapper, dataInfo, defaultConfig, kwargs)
+        rerun = "pipeQA"
+        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
 
     #######################################################################
@@ -583,13 +605,15 @@ class HscSimTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
+        #runHsc.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
         runHsc.doRun(rerun=rerun, frameId=dataId['visit'], ccdId=dataId['ccd'],
-		     doMerge=True, doBreak=False,
-		     instrument="hsc",
-		     output =config['roots']['output'],
-		     calib  =config["roots"]['calib'],
-		     data   =config["roots"]['data'],
-		     )
+                   doMerge=True, doBreak=False,
+                   instrument="hsc",
+                   output =config['roots']['output'],
+                   calib  =config["roots"]['calib'],
+                   data   =config["roots"]['data'],
+                   log    = log
+        )
 
     
 
@@ -623,7 +647,9 @@ class SuprimeTestData(TestData):
         roots['calib']  = os.path.join(testdataDir, "SUPA", "CALIB")
         roots['output'] = os.path.join(testdataDir, "SUPA")
 
-        TestData.__init__(self, label, mapper, dataInfo, defaultConfig, kwargs)
+        rerun = "pipeQA"
+        
+        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
 
     #######################################################################
@@ -664,8 +690,10 @@ class CfhtTestData(TestData):
         roots['data']   = testdataDir
         roots['calib']  = os.path.join(testdataDir, "calib")
         roots['output'] = testdataDir
+
+        rerun = None
         
-        TestData.__init__(self, label, mapper, dataInfo, defaultConfig, kwargs)
+        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
 
     #######################################################################
