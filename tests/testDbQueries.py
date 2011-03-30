@@ -29,7 +29,7 @@ import lsst.testing.pipeQA as pipeQA
 
 import lsst.pex.logging as pexLog
 from lsst.pex.logging import Trace
-pexLog.Trace_setVerbosity("lsst.testing.pipeQA", 1)
+pexLog.Trace_setVerbosity("lsst.testing.pipeQA", 2)
 
 import eups
 simdir        = eups.productDir("obs_lsstSim")

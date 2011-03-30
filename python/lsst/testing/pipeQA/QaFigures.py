@@ -13,6 +13,24 @@ from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
 
+class SdqaMetric:
+    MAX = lambda self, val, maxVal: val <= maxVal
+    MIN = lambda self, val, minVal: val >= minVal
+    def __init__(self, label, value = 0.0, limits = {}, comment = None):
+        self.label   = label
+        self.value   = value
+        self.limits  = limits
+        self.comment = comment
+
+    def setValue(self, value):
+        self.value = value
+        
+    def evaluate(self):
+        for lim in self.limits.keys():
+            if not lim(self, self.value, self.limits[lim]):
+                return False
+        return True
+
 class HtmlFormatter:
     def __init__(self):
         pass
@@ -113,9 +131,10 @@ def sigIQR(data, min = None, max = None):
 
 class QaFigure():
     def __init__(self):
-        self.fig      = pylab.figure()
-        self.data     = {}
-        self.dataType = {}
+        self.fig         = pylab.figure()
+        self.data        = {}
+        self.dataType    = {}
+        self.sdqaMetrics = [SdqaMetric('QaFigure'),]
 
     def reset(self):
         self.data       = {}
@@ -154,6 +173,15 @@ class QaFigure():
         if clear:
             self.fig.clf()
 
+        for sdqaMetric in self.sdqaMetrics:
+            Trace("lsst.testing.pipeQA.%s" % (sdqaMetric.label), 2, "Sdqa type: %s" %
+                  (sdqaMetric.comment))
+            Trace("lsst.testing.pipeQA.%s" % (sdqaMetric.label), 2, "Sdqa value: %.3f" %
+                  (sdqaMetric.value))
+            Trace("lsst.testing.pipeQA.%s" % (sdqaMetric.label), 2, "Sdqa rating: %s" %
+                  (sdqaMetric.evaluate()))
+            
+
     #
     ################# Helper plotting functions
     #
@@ -188,7 +216,7 @@ class QaFigure():
         return num.array(bx), num.array(by), num.array(bs), num.array(bdy)
 
 
-    def plotSparseContour(self, sp, x, y, binSizeX, binSizeY, minCont = 50, nCont = 7):
+    def plotSparseContour(self, sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
         idx   = num.isfinite(x)
         x     = x[idx]
         y     = y[idx]
@@ -206,8 +234,8 @@ class QaFigure():
             yidx = (y[i] - ymin) // binSizeY
             cdata[yidx][xidx] += 1
     
-        if cdata.max() < minCont:
-            minCont = 1
+        #if cdata.max() < minCont:
+        #    minCont = 1
             
         cs    = num.arange(minCont, cdata.max(), (cdata.max() - minCont) // nCont).astype(num.int)
         c     = sp.contour(cdata, cs, origin='lower', linewidths=1, extent=(xmin,xmax,ymin,ymax))
@@ -226,6 +254,7 @@ class QaFigure():
 class FpaFigure(QaFigure):
     def __init__(self, cameraGeomPaf):
         QaFigure.__init__(self)
+        self.sdqaMetrics = [SdqaMetric('FpaFigure'),]
 
         self.cameraGeomPolicy            = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         self.camera                      = cameraGeomUtils.makeCamera(self.cameraGeomPolicy)
@@ -288,8 +317,6 @@ class FpaFigure(QaFigure):
                 clabel = ccd.getId().getName()
                 values.append(self.data[rlabel][clabel])
 
-        sigVal = sigIQR(values, min = 0, max = 99.99)
-        
         p = PatchCollection(self.rectangles)
         p.set_array(num.array(values))
         cb = self.fig.colorbar(p)
@@ -383,7 +410,12 @@ class FpaFigure(QaFigure):
 class ZeropointFpaFigure(FpaFigure):
     def __init__(self, cameraGeomPaf):
         FpaFigure.__init__(self, cameraGeomPaf)
-        
+        self.sdqaMetrics = [SdqaMetric('ZeropointFpaFigure',
+                                       limits = {SdqaMetric.MIN: 0.0,
+                                                 SdqaMetric.MAX: 0.10},
+                                       comment = 'RMS of zeropoint across the focal plane'),]
+                                               
+
         # set on retrieve; reset on reset()
         self.database = None
         self.visitId  = None
@@ -410,6 +442,7 @@ class ZeropointFpaFigure(FpaFigure):
         sql += ' where sce.raft = rm.raftNum '
         sql += ' and sce.ccd = cm.ccdNum'
         sql += ' and sce.visit = %s' % (visitId)
+        Trace("lsst.testing.pipeQA.ZeropointFpaFigure", 4, sql)
         results  = dbInterface.execute(sql)
         if len(results) == 0:
             return None
@@ -443,14 +476,31 @@ class ZeropointFpaFigure(FpaFigure):
                     print "ERROR; TRACK ME DOWN"
 
     def makeFigure(self, doLabel = False):
-        FpaFigure.makeFigure(self, doLabel)
+        FpaFigure.makeFigure(self, doLabel = doLabel)
         sp     = self.fig.gca()
         sp.set_title(r"Zeropoint %d %s" % (self.visitId, self.filter),
                      fontsize = 30, weight = 'bold')
 
+        # Calculate and set the Sdqa metric for this particular figure
+        values = [] 
+        for r in self.camera:
+            raft   = cameraGeom.cast_Raft(r)
+            rlabel = raft.getId().getName()
+            for c in raft:
+                ccd    = cameraGeom.cast_Ccd(c)
+                clabel = ccd.getId().getName()
+                values.append(self.data[rlabel][clabel])
+        sigVal = sigIQR(values, min = 0, max = 99.99)
+        self.sdqaMetrics[0].setValue(sigVal)
+        
 class LightcurveFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
+        self.sdqaMetrics = [SdqaMetric('LightcurveFigure',
+                                       limits = {SdqaMetric.MIN: 0.00,
+                                                 SdqaMetric.MAX: 0.05},
+                                       comment = 'RMS of photometry; False = is variable'),]
+                            
         self.data     = {}
         self.dataType = {
             "taiMjd" : num.ndarray,
@@ -493,8 +543,7 @@ class LightcurveFigure(QaFigure):
         sql += ' and (sro.refObjectId = %d)' % (self.roid)
         sql += ' and (s.filterId = %d)' % (filterId)
         #sql += ' and ((s.flagForDetection & 0xa01) = 0)'
-        
-        print sql
+        Trace("lsst.testing.pipeQA.LightcurveFigure", 4, sql)
         results = dbInterface.execute(sql)
 
         self.data["taiMjd"]      = num.array([x[0] for x in results])
@@ -548,16 +597,29 @@ class LightcurveFigure(QaFigure):
             sp2.set_ylabel("Magnitude", fontsize = 12, weight = 'bold')
             ymin, ymax = sp2.get_ylim()
             sp2.set_ylim(ymax, ymin)
+            sp2.set_xlim(0, 2)
 
         self.fig.legend(legLines, legLabels,
                         numpoints=1, prop=FontProperties(size='small'), loc = 'center right')
         self.fig.suptitle('%s roid=%s %s-band' %
                           (self.database, self.roid, self.filter),
                           fontsize = 12)
+
+        sigPhot = sigIQR(self.data["psfMag"], min = 0, max = 99.99)
+        self.sdqaMetrics[0].setValue(sigPhot)
         
 class PhotometricRmsFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
+        self.sdqaMetrics = [SdqaMetric('PhotometricRmsFigure',
+                                       limits = {SdqaMetric.MIN: 0.00,
+                                                 SdqaMetric.MAX: 0.02},
+                                       comment = 'Repeatability of Aperture photometry for bright stars'),
+                            SdqaMetric('PhotometricRmsFigure',
+                                       limits = {SdqaMetric.MIN: 0.00,
+                                                 SdqaMetric.MAX: 0.02},
+                                       comment = 'Repeatability of Psf photometry for bright stars')]
+                           
         self.data     = {}
         self.dataType = {
             "PhotByObject" : {}
@@ -596,7 +658,7 @@ class PhotometricRmsFigure(QaFigure):
         sql += ' and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += ' and s.objectID is not NULL'        
         sql += ' order by s.objectID'
-        print sql
+        Trace("lsst.testing.pipeQA.PhotometricRmsFigure", 4, sql)
         results = dbInterface.execute(sql)
 
         photByObject    = {}
@@ -689,8 +751,10 @@ class PhotometricRmsFigure(QaFigure):
         sp1 = self.fig.add_subplot(211)
         sp2 = self.fig.add_subplot(212, sharex = sp1)
 
-        self.plotSparseContour(sp1, allcatMags, alldApMags, binSizeX = 0.25, binSizeY = 0.1)
-        self.plotSparseContour(sp2, allcatMags, alldPsfMags, binSizeX = 0.25, binSizeY = 0.1)
+        #self.plotSparseContour(sp1, allcatMags, alldApMags, binSizeX = 0.25, binSizeY = 0.1)
+        #self.plotSparseContour(sp2, allcatMags, alldPsfMags, binSizeX = 0.25, binSizeY = 0.1)
+        self.plotSparseContour(sp1, allcatMags, alldApMags, binSizeX = 0.1, binSizeY = 0.01)
+        self.plotSparseContour(sp2, allcatMags, alldPsfMags, binSizeX = 0.1, binSizeY = 0.01)
 
         sp1.plot(binnedAp[0], binnedAp[1]+binnedAp[2], 'bv', alpha = 0.5)
         sp1.plot(binnedAp[0], binnedAp[1]-binnedAp[2], 'b^', alpha = 0.5)
@@ -716,10 +780,17 @@ class PhotometricRmsFigure(QaFigure):
         sp1.set_ylim(num.median(binnedAp[1]) - yrange/2, num.median(binnedAp[1]) + yrange/2)
         sp2.set_ylim(num.median(binnedPsf[1]) - yrange/2, num.median(binnedPsf[1]) + yrange/2)
 
+        self.sdqaMetrics[0].setValue(sigmeanAp)
+        self.sdqaMetrics[1].setValue(sigmeanPsf)
+
         
 class ZeropointFitFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
+
+        # Need to come up with a reasonable metric here
+        self.sdqaMetrics = [SdqaMetric('ZeropointFitFigure'),]
+        
         self.data     = {}
         self.dataType = {
             "Zeropoint"         : num.float64,
@@ -769,6 +840,7 @@ class ZeropointFitFigure(QaFigure):
         scesql += ' and ccdName = "%s"' % (ccdName)
         scesql += ' and filterName = "%s"' % (filterName)
         sceresults  = dbInterface.execute(scesql)
+        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, scesql)
         if len(sceresults) != 1:
             # throw exception or something
             return
@@ -789,6 +861,7 @@ class ZeropointFitFigure(QaFigure):
         srosql += ' and (ra <= %f)'   % (max( min(llcRa, ulcRa), max(urcRa, lrcRa) ))
         srosql += ' and (decl >= %f)' % (min( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
         srosql += ' and (decl <= %f)' % (max( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
+        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, srosql)
         sroresults  = dbInterface.execute(srosql)
         refAll = {'s': [], 'g': []}
         for result in sroresults:
@@ -805,6 +878,7 @@ class ZeropointFitFigure(QaFigure):
         mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
         mrefGsql += ' and (s.objectID is not NULL)'
         mrefGsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'])))
+        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, mrefGsql)
         mrefGresults  = dbInterface.execute(mrefGsql)
         mrefGmag  = num.array([x[0] for x in mrefGresults])
         mimgGflu  = num.array([x[1] for x in mrefGresults])
@@ -823,6 +897,7 @@ class ZeropointFitFigure(QaFigure):
         mrefSsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
         mrefSsql += ' and (s.objectID is not NULL)'
         mrefSsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['s'])))
+        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, mrefSsql)
         mrefSresults  = dbInterface.execute(mrefSsql)
         mrefSmag  = num.array([x[0] for x in mrefSresults])
         mimgSflu  = num.array([x[1] for x in mrefSresults])
@@ -840,6 +915,7 @@ class ZeropointFitFigure(QaFigure):
         urefsql += ' where (sro.refObjectId = rom.refObjectId)'
         urefsql += ' and (rom.objectId is NULL)'
         urefsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'] + refAll['s'])))
+        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, urefsql)
         urefresults = dbInterface.execute(urefsql)
         urefmag     = num.array([x[0] for x in urefresults])
         self.data["UnmatchedReference"] = urefmag
@@ -849,6 +925,7 @@ class ZeropointFitFigure(QaFigure):
         uimgsql  = 'select psfFlux from Source '
         uimgsql += ' where (scienceCcdExposureId = %d)' % (sceId)
         uimgsql += ' and (objectId is NULL)'
+        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, uimgsql)
         uimgresults  = dbInterface.execute(uimgsql)
         uimgmag      = -2.5 * num.log10( num.array([x[0] for x in uimgresults]) )
         self.data["UnmatchedImage"] = uimgmag
