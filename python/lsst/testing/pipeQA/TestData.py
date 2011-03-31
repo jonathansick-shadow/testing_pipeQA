@@ -543,6 +543,8 @@ class ImSimTestData(TestData):
         testbedDir, testdataDir = findDataInTestbed(label)
         
         defaultConfig   = lsstSim.getConfig()
+        if not 'roots' in defaultConfig:
+            defaultConfig['roots'] = pexPolicy.Policy()
         roots           = defaultConfig['roots']
         roots['data']   = testdataDir
         roots['calib']  = testdataDir
@@ -590,6 +592,8 @@ class HscSimTestData(TestData):
 	argv.extend(["--instrument=hsc", "--frame=0", "--ccd=0", "--rerun=test"])
         defaultConfig, opts, args = runHsc.getConfig(argv=argv)
 
+        if not 'roots' in defaultConfig:
+            defaultConfig['roots'] = pexPolicy.Policy()
         roots           = defaultConfig['roots']
         roots['data']   = os.path.join(testdataDir, "HSC")
         roots['calib']  = os.path.join(testdataDir, "CALIB")
@@ -641,7 +645,9 @@ class SuprimeTestData(TestData):
         testbedDir, testdataDir = findDataInTestbed(label)
 
         defaultConfig   = suprimecam.getConfig()
-        roots           = defaultConfig['roots']
+        if not 'roots' in defaultConfig:
+            defaultConfig['roots'] = pexPolicy.Policy()
+        roots = defaultConfig['roots']            
         roots['data']   = os.path.join(testdataDir, "SUPA")
         roots['calib']  = os.path.join(testdataDir, "SUPA", "CALIB")
         roots['output'] = os.path.join(testdataDir, "SUPA")
@@ -685,6 +691,8 @@ class CfhtTestData(TestData):
         testbedDir, testdataDir = findDataInTestbed(label)
 
         defaultConfig   = megacam.getConfig()
+        if not 'roots' in defaultConfig:
+            defaultConfig['roots'] = pexPolicy.Policy()
         roots           = defaultConfig['roots']
         roots['data']   = testdataDir
         roots['calib']  = os.path.join(testdataDir, "calib")
