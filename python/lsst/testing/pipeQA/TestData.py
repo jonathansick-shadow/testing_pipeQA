@@ -54,7 +54,6 @@ except Exception, e:
     printFailMessage("suprimecam: " + str(e))
     haveSuprimecam = False
 
-import runHsc
 try:
     import runHsc
     import lsst.obs.hscSim            as obsHsc
