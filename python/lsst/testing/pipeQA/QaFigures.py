@@ -13,11 +13,13 @@ from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
 
-class SdqaMetric:
-    MAX = lambda self, val, maxVal: val <= maxVal
-    MIN = lambda self, val, minVal: val >= minVal
-    def __init__(self, label, value = 0.0, limits = {}, comment = None):
-        self.label   = label
+class SdqaMetric(object):
+    @staticmethod
+    def MAX(val, maxval): return val <= maxval
+    @staticmethod
+    def MIN(val, minval): return val >= minval
+
+    def __init__(self, value = 0.0, limits = {}, comment = None):
         self.value   = value
         self.limits  = limits
         self.comment = comment
@@ -27,11 +29,11 @@ class SdqaMetric:
         
     def evaluate(self):
         for lim in self.limits.keys():
-            if not lim(self, self.value, self.limits[lim]):
+            if not lim(self.value, self.limits[lim]):
                 return False
         return True
 
-class HtmlFormatter:
+class HtmlFormatter(object):
     def __init__(self):
         pass
 
@@ -129,12 +131,12 @@ def sigIQR(data, min = None, max = None):
 ###
 #
 
-class QaFigure():
+class QaFigure(object):
     def __init__(self):
         self.fig         = pylab.figure()
         self.data        = {}
         self.dataType    = {}
-        self.sdqaMetrics = [SdqaMetric('QaFigure'),]
+        self.sdqaMetrics = {} 
 
     def reset(self):
         self.data       = {}
@@ -173,12 +175,13 @@ class QaFigure():
         if clear:
             self.fig.clf()
 
-        for sdqaMetric in self.sdqaMetrics:
-            Trace("lsst.testing.pipeQA.%s" % (sdqaMetric.label), 2, "Sdqa type: %s" %
+        for key in self.sdqaMetrics.keys():
+            sdqaMetric = self.sdqaMetrics[key]
+            Trace("lsst.testing.pipeQA.SdqaMetric.%s" % (key), 2, "Sdqa type: %s" %
                   (sdqaMetric.comment))
-            Trace("lsst.testing.pipeQA.%s" % (sdqaMetric.label), 2, "Sdqa value: %.3f" %
+            Trace("lsst.testing.pipeQA.SdqaMetric.%s" % (key), 2, "Sdqa value: %.3f" %
                   (sdqaMetric.value))
-            Trace("lsst.testing.pipeQA.%s" % (sdqaMetric.label), 2, "Sdqa rating: %s" %
+            Trace("lsst.testing.pipeQA.SdqaMetric.%s" % (key), 2, "Sdqa rating: %s" %
                   (sdqaMetric.evaluate()))
             
 
@@ -254,7 +257,7 @@ class QaFigure():
 class FpaFigure(QaFigure):
     def __init__(self, cameraGeomPaf):
         QaFigure.__init__(self)
-        self.sdqaMetrics = [SdqaMetric('FpaFigure'),]
+        self.sdqaMetrics = {} 
 
         self.cameraGeomPolicy            = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         self.camera                      = cameraGeomUtils.makeCamera(self.cameraGeomPolicy)
@@ -410,11 +413,11 @@ class FpaFigure(QaFigure):
 class ZeropointFpaFigure(FpaFigure):
     def __init__(self, cameraGeomPaf):
         FpaFigure.__init__(self, cameraGeomPaf)
-        self.sdqaMetrics = [SdqaMetric('ZeropointFpaFigure',
-                                       limits = {SdqaMetric.MIN: 0.0,
-                                                 SdqaMetric.MAX: 0.10},
-                                       comment = 'RMS of zeropoint across the focal plane'),]
-                                               
+        self.sdqaMetrics = {}
+        self.sdqaMetrics['zeropointRms'] = SdqaMetric(limits = {SdqaMetric.MIN: 0.0,
+                                                                SdqaMetric.MAX: 0.10},
+                                                      comment = 'RMS of zeropoint across the focal plane')
+        
 
         # set on retrieve; reset on reset()
         self.database = None
@@ -491,15 +494,15 @@ class ZeropointFpaFigure(FpaFigure):
                 clabel = ccd.getId().getName()
                 values.append(self.data[rlabel][clabel])
         sigVal = sigIQR(values, min = 0, max = 99.99)
-        self.sdqaMetrics[0].setValue(sigVal)
+        self.sdqaMetrics['zeropointRms'].setValue(sigVal)
         
 class LightcurveFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
-        self.sdqaMetrics = [SdqaMetric('LightcurveFigure',
-                                       limits = {SdqaMetric.MIN: 0.00,
-                                                 SdqaMetric.MAX: 0.05},
-                                       comment = 'RMS of photometry; False = is variable'),]
+        self.sdqaMetrics = {}
+        self.sdqaMetrics['lightcurveRms'] = SdqaMetric(limits = {SdqaMetric.MIN: 0.00,
+                                                                 SdqaMetric.MAX: 0.05},
+                                                       comment = 'RMS of photometry; False = is variable')
                             
         self.data     = {}
         self.dataType = {
@@ -606,19 +609,18 @@ class LightcurveFigure(QaFigure):
                           fontsize = 12)
 
         sigPhot = sigIQR(self.data["psfMag"], min = 0, max = 99.99)
-        self.sdqaMetrics[0].setValue(sigPhot)
+        self.sdqaMetrics['lightcurveRms'].setValue(sigPhot)
         
 class PhotometricRmsFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
-        self.sdqaMetrics = [SdqaMetric('PhotometricRmsFigure',
-                                       limits = {SdqaMetric.MIN: 0.00,
-                                                 SdqaMetric.MAX: 0.02},
-                                       comment = 'Repeatability of Aperture photometry for bright stars'),
-                            SdqaMetric('PhotometricRmsFigure',
-                                       limits = {SdqaMetric.MIN: 0.00,
-                                                 SdqaMetric.MAX: 0.02},
-                                       comment = 'Repeatability of Psf photometry for bright stars')]
+        self.sdqaMetrics = {}
+        self.sdqaMetrics['apBrightVariance'] = SdqaMetric(limits = {SdqaMetric.MIN: 0.00,
+                                                                    SdqaMetric.MAX: 0.02},
+                                      comment = 'Repeatability of Aperture photometry for bright stars')
+        self.sdqaMetrics['psfBrightVariance'] = SdqaMetric(limits = {SdqaMetric.MIN: 0.00,
+                                                                     SdqaMetric.MAX: 0.02},
+                                      comment = 'Repeatability of Psf photometry for bright stars')
                            
         self.data     = {}
         self.dataType = {
@@ -780,8 +782,8 @@ class PhotometricRmsFigure(QaFigure):
         sp1.set_ylim(num.median(binnedAp[1]) - yrange/2, num.median(binnedAp[1]) + yrange/2)
         sp2.set_ylim(num.median(binnedPsf[1]) - yrange/2, num.median(binnedPsf[1]) + yrange/2)
 
-        self.sdqaMetrics[0].setValue(sigmeanAp)
-        self.sdqaMetrics[1].setValue(sigmeanPsf)
+        self.sdqaMetrics['apBrightVariance'].setValue(sigmeanAp)
+        self.sdqaMetrics['psfBrightVariance'].setValue(sigmeanPsf)
 
         
 class ZeropointFitFigure(QaFigure):
@@ -789,7 +791,7 @@ class ZeropointFitFigure(QaFigure):
         QaFigure.__init__(self)
 
         # Need to come up with a reasonable metric here
-        self.sdqaMetrics = [SdqaMetric('ZeropointFitFigure'),]
+        self.sdqaMetrics = {}
         
         self.data     = {}
         self.dataType = {
@@ -810,6 +812,7 @@ class ZeropointFitFigure(QaFigure):
         self.filterName = None
         self.raftName   = None
         self.ccdName    = None
+        self.fluxtype   = None
         
     def reset(self):
         self.data       = {}
@@ -818,14 +821,20 @@ class ZeropointFitFigure(QaFigure):
         self.filterName = None
         self.raftName   = None
         self.ccdName    = None
+        self.fluxtype   = None
 
-    def retrieveData(self, database, visitId, filterName, raftName, ccdName):
+    def retrieveData(self, database, visitId, filterName, raftName, ccdName, fluxtype = "ap"):
         self.reset()
+        if not (fluxtype == "psf" or fluxtype == "ap"):
+            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "WARNING: fluxtype %s not allowed")
+            return
+        
         self.database   = database
         self.visitId    = visitId
         self.filterName = filterName
         self.raftName   = raftName
         self.ccdName    = ccdName
+        self.fluxtype   = fluxtype
 
         dbId        = DatabaseIdentity(database)
         dbInterface = LsstSimDbInterface(dbId)
@@ -872,7 +881,7 @@ class ZeropointFitFigure(QaFigure):
 
         # Select all matched galaxies
         mrefGsql  = 'select sro.%sMag,' % (filterName)
-        mrefGsql += ' s.psfFlux, s.psfFluxSigma'
+        mrefGsql += ' s.%sFlux, s.%sFluxSigma' % (self.fluxtype, self.fluxtype)
         mrefGsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
         mrefGsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
         mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
@@ -891,7 +900,7 @@ class ZeropointFitFigure(QaFigure):
         
         # Select all matched stars
         mrefSsql  = 'select sro.%sMag,' % (filterName)
-        mrefSsql += ' s.psfFlux, s.psfFluxSigma'
+        mrefSsql += ' s.%sFlux, s.%sFluxSigma' % (self.fluxtype, self.fluxtype)
         mrefSsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
         mrefSsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
         mrefSsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
@@ -922,7 +931,7 @@ class ZeropointFitFigure(QaFigure):
             
 
         # Unmatched detections
-        uimgsql  = 'select psfFlux from Source '
+        uimgsql  = 'select %sFlux from Source ' % (self.fluxtype)
         uimgsql += ' where (scienceCcdExposureId = %d)' % (sceId)
         uimgsql += ' and (objectId is NULL)'
         Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, uimgsql)
@@ -1007,15 +1016,19 @@ class ZeropointFitFigure(QaFigure):
             legLabels.append("Matched Sources")
         ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
                  log = True, color = 'r', alpha = 0.5, zorder = 1)
-        ax3.set_xlabel('Image instrumental mag', fontsize = 10)
+        ax3.set_xlabel('Image instrumental %s mag' % (self.fluxtype), fontsize = 10)
         ax3.set_ylabel('N', rotation = 180, fontsize = 10)
 
         # Mag - Zpt
         ax4  = self.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
-        ax4.errorbar(mimgSmag, (mimgSmag - self.data["Zeropoint"]) - mrefSmag, yerr = mimgSmerr, fmt = 'bo',
-                     ms = 2, alpha = 0.5, capsize = 0, elinewidth = 0.5)
-        ax4.errorbar(mimgGmag, (mimgGmag - self.data["Zeropoint"]) - mrefGmag, yerr = mimgGmerr, fmt = 'go',
-                     ms = 2, alpha = 0.5, capsize = 0, elinewidth = 0.5)
+        mimgSeb = ax4.errorbar(mimgSmag, (mimgSmag - self.data["Zeropoint"]) - mrefSmag, yerr = mimgSmerr,
+                               fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
+        mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
+
+        mimgGeb = ax4.errorbar(mimgGmag, (mimgGmag - self.data["Zeropoint"]) - mrefGmag, yerr = mimgGmerr,
+                               fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
+        mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
+
         ax4.get_yaxis().set_ticks_position('right')
         ax4.get_yaxis().set_label_position('right')
         ax4.set_ylabel('Cal-Ref', fontsize = 10, rotation = 270)
