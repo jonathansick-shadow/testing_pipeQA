@@ -86,7 +86,11 @@ class HtmlFormatter(object):
                            ['0,0', '0,1', '0,2']]:
                     for c in cc:
                         imgname = self.generateFileName(prefix, r, c)
-                        buff.write('        <td><a href="%s"><img width="%i" height="%i" border="0" src="%s"></a></td>\n' % (imgname, width, height, imgname))
+                        buff.write('        <td><a href="%s">' % (imgname))
+                        buff.write('<img width="%i" height="%i" border="0" src="%s">' % (width,
+                                                                                         height,
+                                                                                         imgname))
+                        buff.write('</a></td>\n')
                     buff.write('      </tr>\n')
                 buff.write('    </table></td>\n')
             buff.write('  </tr>\n')
@@ -790,8 +794,13 @@ class ZeropointFitFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)
 
-        # Need to come up with a reasonable metric here
         self.sdqaMetrics = {}
+        self.sdqaMetrics['matchedStarZptMedianOffset'] = SdqaMetric(limits = {SdqaMetric.MIN: -0.1,
+                                                                              SdqaMetric.MAX:  0.1},
+               comment = 'Median offset of calibrated mag compared to input catalog')
+        self.sdqaMetrics['matchedStarZptRobustChi2'] = SdqaMetric(limits = {SdqaMetric.MIN: 0.00,
+                                                                            SdqaMetric.MAX: 1.25},
+               comment = 'Robust chi2/dof measurement of Psf stars to zeropoint fit; 10% to 90% percentile')
         
         self.data     = {}
         self.dataType = {
@@ -823,7 +832,7 @@ class ZeropointFitFigure(QaFigure):
         self.ccdName    = None
         self.fluxtype   = None
 
-    def retrieveData(self, database, visitId, filterName, raftName, ccdName, fluxtype = "ap"):
+    def retrieveData(self, database, visitId, filterName, raftName, ccdName, fluxtype = "psf"):
         self.reset()
         if not (fluxtype == "psf" or fluxtype == "ap"):
             Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "WARNING: fluxtype %s not allowed")
@@ -939,7 +948,6 @@ class ZeropointFitFigure(QaFigure):
         uimgmag      = -2.5 * num.log10( num.array([x[0] for x in uimgresults]) )
         self.data["UnmatchedImage"] = uimgmag
 
-
     def makeFigure(self):
         if not self.validate():
             Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "Invalid Data")
@@ -1051,4 +1059,18 @@ class ZeropointFitFigure(QaFigure):
         self.fig.suptitle('%s v%s r%s s%s' %
                           (self.database, self.visitId, self.raftName, self.ccdName),
                           fontsize = 12)
-        return
+
+        numerator   = (mimgSmag - self.data["Zeropoint"]) - mrefSmag
+        denominator = mimgSmerr
+
+        soffset     = num.sort(numerator)
+        d50         = int(0.50 * len(soffset))
+        self.sdqaMetrics['matchedStarZptMedianOffset'].setValue( soffset[d50] )
+
+        chi         = numerator / denominator
+        chi         = num.sort(chi)
+        d10         = int(0.10 * len(chi))
+        d90         = int(0.90 * len(chi))
+        rchi        = chi[d10:d90]
+        self.sdqaMetrics['matchedStarZptRobustChi2'].setValue( num.sum(rchi**2) / (len(rchi)-1) )
+        
