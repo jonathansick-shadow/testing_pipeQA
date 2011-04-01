@@ -7,3 +7,4 @@ from LogConverter import LogFileConverter
 
 from DatabaseQuery import *
 from QaFigures import *
+from PipeQaUtils import *

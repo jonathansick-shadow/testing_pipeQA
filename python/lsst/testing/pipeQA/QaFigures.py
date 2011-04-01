@@ -1,4 +1,5 @@
 from .DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
+from .PipeQaUtils import SdqaMetric, pointInsidePolygon, sigIQR
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
@@ -12,26 +13,6 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
-
-class SdqaMetric(object):
-    @staticmethod
-    def MAX(val, maxval): return val <= maxval
-    @staticmethod
-    def MIN(val, minval): return val >= minval
-
-    def __init__(self, value = 0.0, limits = {}, comment = None):
-        self.value   = value
-        self.limits  = limits
-        self.comment = comment
-
-    def setValue(self, value):
-        self.value = value
-        
-    def evaluate(self):
-        for lim in self.limits.keys():
-            if not lim(self.value, self.limits[lim]):
-                return False
-        return True
 
 class HtmlFormatter(object):
     def __init__(self):
@@ -95,41 +76,6 @@ class HtmlFormatter(object):
                 buff.write('    </table></td>\n')
             buff.write('  </tr>\n')
         buff.write('</table>\n')
-
-#
-###
-#
-
-def pointInsidePolygon(x,y,poly):
-    n = len(poly)
-    inside = False
-
-    p1x,p1y = poly[0]
-    for i in range(n+1):
-        p2x,p2y = poly[i % n]
-        if y > min(p1y,p2y):
-            if y <= max(p1y,p2y):
-                if x <= max(p1x,p2x):
-                    if p1y != p2y:
-                        xinters = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
-                    if p1x == p2x or x <= xinters:
-                        inside = not inside
-        p1x,p1y = p2x,p2y
-    return inside
-    
-
-def sigIQR(data, min = None, max = None):
-    data  = num.sort(data)
-    if (min != None) and (max != None):
-        idx   = num.where( (data > min) & (data < max) )
-        data  = data[idx]
-
-    if len(data) == 0:
-        return 0.0
-    
-    d25 = data[int(0.25 * len(data))]
-    d75 = data[int(0.75 * len(data))]
-    return 0.741 * (d75 - d25)
 
 #
 ###
@@ -795,12 +741,12 @@ class ZeropointFitFigure(QaFigure):
         QaFigure.__init__(self)
 
         self.sdqaMetrics = {}
-        self.sdqaMetrics['matchedStarZptMedianOffset'] = SdqaMetric(limits = {SdqaMetric.MIN: -0.1,
-                                                                              SdqaMetric.MAX:  0.1},
-               comment = 'Median offset of calibrated mag compared to input catalog')
-        self.sdqaMetrics['matchedStarZptRobustChi2'] = SdqaMetric(limits = {SdqaMetric.MIN: 0.00,
-                                                                            SdqaMetric.MAX: 1.25},
-               comment = 'Robust chi2/dof measurement of Psf stars to zeropoint fit; 10% to 90% percentile')
+        self.sdqaMetrics['starZptMedianOffset'] = SdqaMetric(limits = {SdqaMetric.MIN: -0.1,
+                                                                       SdqaMetric.MAX:  0.1},
+              comment = 'Median offset of calibrated mag compared to input catalog')
+        self.sdqaMetrics['starZptRobustChi2'] = SdqaMetric(limits = {SdqaMetric.MIN: 0.00,
+                                                                     SdqaMetric.MAX: 1.25},
+              comment = 'Robust chi2/dof measurement of Psf stars to zeropoint fit')
         
         self.data     = {}
         self.dataType = {
@@ -1065,12 +1011,12 @@ class ZeropointFitFigure(QaFigure):
 
         soffset     = num.sort(numerator)
         d50         = int(0.50 * len(soffset))
-        self.sdqaMetrics['matchedStarZptMedianOffset'].setValue( soffset[d50] )
+        self.sdqaMetrics['starZptMedianOffset'].setValue( soffset[d50] )
 
         chi         = numerator / denominator
         chi         = num.sort(chi)
         d10         = int(0.10 * len(chi))
         d90         = int(0.90 * len(chi))
         rchi        = chi[d10:d90]
-        self.sdqaMetrics['matchedStarZptRobustChi2'].setValue( num.sum(rchi**2) / (len(rchi)-1) )
+        self.sdqaMetrics['starZptRobustChi2'].setValue( num.sum(rchi**2) / (len(rchi)-1) )
         
