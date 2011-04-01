@@ -45,6 +45,7 @@ if __name__ == '__main__':
     parser.add_option('-r', '--raft', dest='raft', action='append', default=[])
     parser.add_option('-s', '--sensor', dest='sensor', action='append', default=[])
     parser.add_option('-o', '--output', dest='outRoot', default='pipeQA', help='Output directory prefix')
+
     parser.add_option('--photrms', dest='dophotrms', action='store_true', default=False,
                       help='Make photometric RMS plot?')
     parser.add_option('--zptfpa', dest='dozptfpa', action='store_true', default=False,
@@ -58,8 +59,8 @@ if __name__ == '__main__':
     
     (opt, args) = parser.parse_args()
     database    = opt.database
-    if database == None:
-        Trace("lsst.testing.pipeQA.testDbQueries", 1, "Error: database (-D, --database=) required")
+    if (database == None):
+        Trace("lsst.testing.pipeQA.testDbQueries", 1, "Error: database (-D) required")
         sys.exit(1)
         
     outRoot     = os.path.join(opt.outRoot, opt.database)

@@ -1020,3 +1020,39 @@ class ZeropointFitFigure(QaFigure):
         rchi        = chi[d10:d90]
         self.sdqaMetrics['starZptRobustChi2'].setValue( num.sum(rchi**2) / (len(rchi)-1) )
         
+
+
+class CentroidFpaFigure(FpaFigure):
+    def __init__(self, cameraGeomPaf):
+        FpaFigure.__init__(self, cameraGeomPaf)
+        self.sdqaMetrics = {}
+
+        # set on retrieve; reset on reset()
+        self.butler  = None
+        self.visitId = None
+
+    def reset(self):
+        FpaFigure.reset(self)
+        self.butler  = None
+        self.visitId = None
+
+    def retrieveData(self, butler, visitId):
+        self.reset()
+        self.butler   = butler
+        self.visitId  = visitId
+
+        for r in self.camera:
+            raft   = cameraGeom.cast_Raft(r)
+            raftId   = '%02d'  % (raft.getId().getSerial())
+            raftId2  = '%s,%s' % (raftId[0], raftId[1])
+
+            for c in raft:
+                ccd    = cameraGeom.cast_Ccd(c)
+                ccdId  = str(ccd.getId().getSerial())[-2:]
+                ccdId2 = '%s,%s' % (ccdId[0], ccdId[1])
+
+                # Aargh, we don't have separate source measurements for the snaps...
+                srcSnap0 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
+                srcSnap1 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
+
+                print dir(srcSnap0)

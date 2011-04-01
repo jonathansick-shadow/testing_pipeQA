@@ -48,6 +48,23 @@ def getAllKeys(inButler):
                 allkeys.append(dict(visit=visit, raft=raft, sensor=sensor))
     return allkeys
 
+def getAllKeysOpt(opt, butler):
+    allkeys = []
+    if len(opt.visit) and len(opt.raft) and len(opt.sensor):
+        allkeys.append(dict(visit = opt.visit, raft = opt.raft, sensor = opt.sensor))
+    elif len(opt.visit) and len(opt.raft):
+        sensors = butler.queryMetadata('raw', 'sensor', visit=opt.visit, raft=opt.raft)
+        for sensor in sensors:
+            allkeys.append(dict(visit = opt.visit, raft = opt.raft, sensor = sensor))
+    elif len(opt.visit):
+        rafts = butler.queryMetadata('raw', 'raft', visit = opt.visit)
+        for raft in rafts:
+            sensors = butler.queryMetadata('raw', 'sensor', visit = opt.visit, raft = raft)
+            for sensor in sensors:
+                allkeys.append(dict(visit = opt.visit, raft = opt.raft, sensor = opt.sensor))
+    else:
+        allkeys = pipeQA.getAllKeys(butler)
+    return allkeys
 
 def pointInsidePolygon(x,y,poly):
     n = len(poly)
