@@ -57,9 +57,9 @@ def testPsfPhotometry():
                                     verifyChecksum=False, outDir='local', astrometryNetData=anData)
         pr.addTestData(td2)
 
-        hsmConfig = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "policy", "hsmShape.paf")
-        qaConfig = os.path.join(os.getenv('TESTING_PIPEQA_DIR'), "policy", "lsstSim.paf")
-        pr.run(force=False, overrideConfig=[hsmConfig, qaConfig])
+        #hsmConfig = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "policy", "hsmShape.paf")
+        #qaConfig = os.path.join(os.getenv('TESTING_PIPEQA_DIR'), "policy", "lsstSim.paf")
+        pr.run(force=False, overrideConfig=[])
 
 
     ##########################
