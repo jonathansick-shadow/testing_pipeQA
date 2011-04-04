@@ -1,5 +1,6 @@
 from lsst.obs.lsstSim import LsstSimMapper
 import lsst.daf.persistence as dafPersist
+import numpy as num
 
 #
 ### HELPER CLASSES

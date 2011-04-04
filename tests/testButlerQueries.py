@@ -57,6 +57,7 @@ if __name__ == '__main__':
     inRoot   = opt.inRoot
     if (registry == None) or (inRoot == None):
         Trace("lsst.testing.pipeQA.testDbQueries", 1, "Error: registry (-R) and input root dir (-i) required")
+        parser.print_help()
         sys.exit(1)
     butler = pipeQA.PipeQaUtils.getInputButler(inRoot, registry)
         

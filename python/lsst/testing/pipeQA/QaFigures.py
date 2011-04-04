@@ -3,6 +3,7 @@ from .PipeQaUtils import SdqaMetric, pointInsidePolygon, sigIQR
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
+import lsst.pex.logging as pexLog
 from lsst.pex.logging import Trace
 
 import os
@@ -13,6 +14,10 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
+
+import lsst.pipette.readwrite as pipReadWrite
+import lsst.pipette.processCcd as pipProcCcd
+import lsst.pipette.catalog as pipCatalog
 
 class HtmlFormatter(object):
     def __init__(self):
@@ -111,7 +116,50 @@ class QaFigure(object):
                 
         return 1
 
-    def retrieveData(self):
+    def runPipette(self, rerun, visit, snap, raft, sensor, log = pexLog.Log.getDefaultLog()):
+        default = os.path.join(os.getenv("PIPETTE_DIR"), "policy", "ProcessCcdDictionary.paf")
+        overrides = os.path.join(os.getenv("PIPETTE_DIR"), "policy", "lsstSim.paf")
+        config = pipConfig.configuration([default, overrides])
+
+        io = pipReadWrite.ReadWrite(lsstSim.LsstSimMapper, ['visit', 'snap', 'raft', 'sensor'],
+                                    fileKeys=['visit', 'snap', 'raft', 'sensor', 'channel'], config=config)
+        roots = config['roots']
+        basename = os.path.join(roots['output'], '%s-%d-%d-%s-%s' % (rerun, visit, snap, raft, sensor))
+        ccdProc = pipProcCcd.ProcessCcd(config=config, log=log)
+        dataId = {'visit': visit, 'snap': snap, 'raft': raft, 'sensor': sensor}
+
+        detrends = io.detrends(dataId, config)
+        if len([x for x in detrends if x]): # We need to run at least part of the ISR
+            raws = io.readRaw(dataId)
+        else:
+            io.fileKeys = ['visit', 'raft', 'sensor']
+            raws = io.read('calexp', dataId)
+            detrends = None
+
+        exposure, psf, brightSources, apcorr, sources, matches, matchMeta = ccdProc.run(raws, detrends)
+        io.write(dataId, exposure=exposure, psf=psf, sources=sources, matches=matches, matchMeta=matchMeta)
+        catPolicy = os.path.join(os.getenv("PIPETTE_DIR"), "policy", "catalog.paf")
+        catalog = pipCatalog.Catalog(catPolicy, allowNonfinite=False)
+        if sources is not None:
+            catalog.writeSources(basename + '.sources', sources, 'sources')
+        if matches is not None:
+            catalog.writeMatches(basename + '.matches', matches, 'sources')
+        return
+
+    def retrieveData(self, retrievalType = "db", **kwargs):
+        if not (retrievalType == "db" or retrievalType == "butler"):
+            Trace("lsst.testing.pipeQA.QaFigure.retrieveData", 1, "WARNING: retrievalType %s not allowed")
+            return
+        if (retrievalType == "db"):
+            self.retrieveDataDb(kwargs)
+        else:
+            self.retrieveDataButler(kwargs)
+    
+    def retrieveDataDb(self):
+        # override
+        pass
+    
+    def retrieveDataButler(self):
         # override
         pass
     
@@ -380,7 +428,7 @@ class ZeropointFpaFigure(FpaFigure):
         self.visitId  = None
         self.filter   = None
 
-    def retrieveData(self, database, visitId, defZpt = 29.5):
+    def retrieveDataDb(self, database, visitId, defZpt = 29.5):
         self.reset()
         self.database = database
         self.visitId  = visitId
@@ -474,7 +522,7 @@ class LightcurveFigure(QaFigure):
         self.database = None
         self.filter   = None
         
-    def retrieveData(self, database, refObjectId, filter = 'r'):
+    def retrieveDataDb(self, database, refObjectId, filter = 'r'):
         self.reset()
         self.roid     = refObjectId
         self.database = database
@@ -586,7 +634,7 @@ class PhotometricRmsFigure(QaFigure):
         self.database = None
         self.filter   = None
         
-    def retrieveData(self, database, filter, minPts = 2):
+    def retrieveDataDb(self, database, filter, minPts = 2):
         self.reset()
         self.database = database
         self.filter   = filter
@@ -778,7 +826,7 @@ class ZeropointFitFigure(QaFigure):
         self.ccdName    = None
         self.fluxtype   = None
 
-    def retrieveData(self, database, visitId, filterName, raftName, ccdName, fluxtype = "psf"):
+    def retrieveDataDb(self, database, visitId, filterName, raftName, ccdName, fluxtype = "psf"):
         self.reset()
         if not (fluxtype == "psf" or fluxtype == "ap"):
             Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "WARNING: fluxtype %s not allowed")
@@ -1036,7 +1084,7 @@ class CentroidFpaFigure(FpaFigure):
         self.butler  = None
         self.visitId = None
 
-    def retrieveData(self, butler, visitId):
+    def retrieveDataButler(self, butler, visitId):
         self.reset()
         self.butler   = butler
         self.visitId  = visitId
@@ -1044,15 +1092,17 @@ class CentroidFpaFigure(FpaFigure):
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             raftId   = '%02d'  % (raft.getId().getSerial())
-            raftId2  = '%s,%s' % (raftId[0], raftId[1])
+            raftIds  = '%s,%s' % (raftId[0], raftId[1])
 
             for c in raft:
                 ccd    = cameraGeom.cast_Ccd(c)
                 ccdId  = str(ccd.getId().getSerial())[-2:]
-                ccdId2 = '%s,%s' % (ccdId[0], ccdId[1])
+                ccdIds = '%s,%s' % (ccdId[0], ccdId[1])
+
+                self.runPipette(rerun = 'centroidFpa', visitId, snap = 0, raftId, ccdId)
+                self.runPipette(rerun = 'centroidFpa', visitId, snap = 1, raftId, ccdId)
 
                 # Aargh, we don't have separate source measurements for the snaps...
-                srcSnap0 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
-                srcSnap1 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
-
-                print dir(srcSnap0)
+                #srcSnap0 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
+                #srcSnap1 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
+                #print dir(srcSnap0)

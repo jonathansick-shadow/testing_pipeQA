@@ -61,6 +61,7 @@ if __name__ == '__main__':
     database    = opt.database
     if (database == None):
         Trace("lsst.testing.pipeQA.testDbQueries", 1, "Error: database (-D) required")
+        parser.print_help()
         sys.exit(1)
         
     outRoot     = os.path.join(opt.outRoot, opt.database)
@@ -80,7 +81,7 @@ if __name__ == '__main__':
         else:
             prmsfig = pipeQA.PhotometricRmsFigure()
             for filter in results:
-                prmsfig.retrieveData(database, filter[0])
+                prmsfig.retrieveDataDb(database, filter[0])
                 prmsfig.makeFigure()
                 prmsfig.saveFigure(os.path.join(outRoot, "photRms_%s.png" % (filter)))
             
@@ -94,7 +95,7 @@ if __name__ == '__main__':
 
         zptfpafig = pipeQA.ZeropointFpaFigure(cameraGeomPaf)
         for visitId in visitIds:
-            zptfpafig.retrieveData(database, visitId)
+            zptfpafig.retrieveDataDb(database, visitId)
             zptfpafig.makeFigure(doLabel = True)
             zptfpafig.saveFigure(os.path.join(outRoot, "zptFPA_%d.png" % (visitId)))
 
@@ -112,7 +113,7 @@ if __name__ == '__main__':
             results    = dbInterface.execute(sql) # need mag for reference catalog query
             filterName = results[0][0]
 
-            fptfitfig.retrieveData(database, visitId, filterName, raft, ccd)
+            fptfitfig.retrieveDataDb(database, visitId, filterName, raft, ccd)
             fptfitfig.makeFigure()
             
             prefix = 'zptFit_%d' % (visitId)
@@ -147,7 +148,7 @@ if __name__ == '__main__':
                 for raftccd in results3:
                     raft, ccd = raftccd
 
-                    fptfitfig.retrieveData(database, visitId, filterName, raft, ccd)
+                    fptfitfig.retrieveDataDb(database, visitId, filterName, raft, ccd)
                     fptfitfig.makeFigure()
                     fptfitfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
                 
@@ -155,7 +156,7 @@ if __name__ == '__main__':
         
     if opt.refObjectId != None:
         lcfig = pipeQA.LightcurveFigure()
-        lcfig.retrieveData(database, int(opt.refObjectId))
+        lcfig.retrieveDataDb(database, int(opt.refObjectId))
         if opt.period != None:
             lcfig.makeFigure(float(opt.period))
         else:
