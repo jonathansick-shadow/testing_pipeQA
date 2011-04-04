@@ -1,5 +1,6 @@
 from .DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
 from .PipeQaUtils import SdqaMetric, pointInsidePolygon, sigIQR
+from .TestData import ImSimTestData
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
@@ -18,6 +19,7 @@ from matplotlib.patches import Ellipse
 import lsst.pipette.readwrite as pipReadWrite
 import lsst.pipette.processCcd as pipProcCcd
 import lsst.pipette.catalog as pipCatalog
+import lsst.pipette.config as pipConfig
 
 class HtmlFormatter(object):
     def __init__(self):
@@ -115,36 +117,6 @@ class QaFigure(object):
                     return 0
                 
         return 1
-
-    def runPipette(self, rerun, visit, snap, raft, sensor, log = pexLog.Log.getDefaultLog()):
-        default = os.path.join(os.getenv("PIPETTE_DIR"), "policy", "ProcessCcdDictionary.paf")
-        overrides = os.path.join(os.getenv("PIPETTE_DIR"), "policy", "lsstSim.paf")
-        config = pipConfig.configuration([default, overrides])
-
-        io = pipReadWrite.ReadWrite(lsstSim.LsstSimMapper, ['visit', 'snap', 'raft', 'sensor'],
-                                    fileKeys=['visit', 'snap', 'raft', 'sensor', 'channel'], config=config)
-        roots = config['roots']
-        basename = os.path.join(roots['output'], '%s-%d-%d-%s-%s' % (rerun, visit, snap, raft, sensor))
-        ccdProc = pipProcCcd.ProcessCcd(config=config, log=log)
-        dataId = {'visit': visit, 'snap': snap, 'raft': raft, 'sensor': sensor}
-
-        detrends = io.detrends(dataId, config)
-        if len([x for x in detrends if x]): # We need to run at least part of the ISR
-            raws = io.readRaw(dataId)
-        else:
-            io.fileKeys = ['visit', 'raft', 'sensor']
-            raws = io.read('calexp', dataId)
-            detrends = None
-
-        exposure, psf, brightSources, apcorr, sources, matches, matchMeta = ccdProc.run(raws, detrends)
-        io.write(dataId, exposure=exposure, psf=psf, sources=sources, matches=matches, matchMeta=matchMeta)
-        catPolicy = os.path.join(os.getenv("PIPETTE_DIR"), "policy", "catalog.paf")
-        catalog = pipCatalog.Catalog(catPolicy, allowNonfinite=False)
-        if sources is not None:
-            catalog.writeSources(basename + '.sources', sources, 'sources')
-        if matches is not None:
-            catalog.writeMatches(basename + '.matches', matches, 'sources')
-        return
 
     def retrieveData(self, retrievalType = "db", **kwargs):
         if not (retrievalType == "db" or retrievalType == "butler"):
@@ -1075,6 +1047,11 @@ class CentroidFpaFigure(FpaFigure):
         FpaFigure.__init__(self, cameraGeomPaf)
         self.sdqaMetrics = {}
 
+        # for butler runs
+        self.label = 'centroidFpa'
+        if not os.environ.has_key('TESTBED_PATH'):
+            os.environ['TESTBED_PATH'] = self.label
+        
         # set on retrieve; reset on reset()
         self.butler  = None
         self.visitId = None
@@ -1099,10 +1076,10 @@ class CentroidFpaFigure(FpaFigure):
                 ccdId  = str(ccd.getId().getSerial())[-2:]
                 ccdIds = '%s,%s' % (ccdId[0], ccdId[1])
 
-                self.runPipette(rerun = 'centroidFpa', visitId, snap = 0, raftId, ccdId)
-                self.runPipette(rerun = 'centroidFpa', visitId, snap = 1, raftId, ccdId)
+                testData = ImSimTestData(label = self.label)
+                config   = testData.defaultConfig()
 
-                # Aargh, we don't have separate source measurements for the snaps...
-                #srcSnap0 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
-                #srcSnap1 = self.butler.get('icSrc', visit = self.visitId, raft = raftId2, sensor = ccdId2)
-                #print dir(srcSnap0)
+                dataId0  = dict(visit=visitId, snap=0, raft=raftId, sensor=ccdId)
+                dataId1  = dict(visit=visitId, snap=1, raft=raftId, sensor=ccdId)
+                testData.runPipette(rerun = self.label, dataId = dataId0, config = config, log = pexLog.Log.getDefaultLog())
+                testData.runPipette(rerun = self.label, dataId = dataId1, config = config, log = pexLog.Log.getDefaultLog())
