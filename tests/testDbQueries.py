@@ -81,7 +81,7 @@ if __name__ == '__main__':
         else:
             prmsfig = pipeQA.PhotometricRmsFigure()
             for filter in results:
-                prmsfig.retrieveDataDb(database, filter[0])
+                prmsfig.retrieveDataViaDb(database, filter[0])
                 prmsfig.makeFigure()
                 prmsfig.saveFigure(os.path.join(outRoot, "photRms_%s.png" % (filter)))
             
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
         zptfpafig = pipeQA.ZeropointFpaFigure(cameraGeomPaf)
         for visitId in visitIds:
-            zptfpafig.retrieveDataDb(database, visitId)
+            zptfpafig.retrieveDataViaDb(database, visitId)
             zptfpafig.makeFigure(doLabel = True)
             zptfpafig.saveFigure(os.path.join(outRoot, "zptFPA_%d.png" % (visitId)))
 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
             results    = dbInterface.execute(sql) # need mag for reference catalog query
             filterName = results[0][0]
 
-            fptfitfig.retrieveDataDb(database, visitId, filterName, raft, ccd)
+            fptfitfig.retrieveDataViaDb(database, visitId, filterName, raft, ccd)
             fptfitfig.makeFigure()
             
             prefix = 'zptFit_%d' % (visitId)
@@ -148,7 +148,7 @@ if __name__ == '__main__':
                 for raftccd in results3:
                     raft, ccd = raftccd
 
-                    fptfitfig.retrieveDataDb(database, visitId, filterName, raft, ccd)
+                    fptfitfig.retrieveDataViaDb(database, visitId, filterName, raft, ccd)
                     fptfitfig.makeFigure()
                     fptfitfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
                 
@@ -156,7 +156,7 @@ if __name__ == '__main__':
         
     if opt.refObjectId != None:
         lcfig = pipeQA.LightcurveFigure()
-        lcfig.retrieveDataDb(database, int(opt.refObjectId))
+        lcfig.retrieveDataViaDb(database, int(opt.refObjectId))
         if opt.period != None:
             lcfig.makeFigure(float(opt.period))
         else:

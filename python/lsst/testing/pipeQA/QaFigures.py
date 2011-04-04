@@ -123,15 +123,15 @@ class QaFigure(object):
             Trace("lsst.testing.pipeQA.QaFigure.retrieveData", 1, "WARNING: retrievalType %s not allowed")
             return
         if (retrievalType == "db"):
-            self.retrieveDataDb(kwargs)
+            self.retrieveDataViaDb(kwargs)
         else:
-            self.retrieveDataButler(kwargs)
+            self.retrieveDataViaButler(kwargs)
     
-    def retrieveDataDb(self):
+    def retrieveDataViaDb(self):
         # override
         pass
     
-    def retrieveDataButler(self):
+    def retrieveDataViaButler(self):
         # override
         pass
     
@@ -400,7 +400,7 @@ class ZeropointFpaFigure(FpaFigure):
         self.visitId  = None
         self.filter   = None
 
-    def retrieveDataDb(self, database, visitId, defZpt = 29.5):
+    def retrieveDataViaDb(self, database, visitId, defZpt = 29.5):
         self.reset()
         self.database = database
         self.visitId  = visitId
@@ -494,7 +494,7 @@ class LightcurveFigure(QaFigure):
         self.database = None
         self.filter   = None
         
-    def retrieveDataDb(self, database, refObjectId, filter = 'r'):
+    def retrieveDataViaDb(self, database, refObjectId, filter = 'r'):
         self.reset()
         self.roid     = refObjectId
         self.database = database
@@ -606,7 +606,7 @@ class PhotometricRmsFigure(QaFigure):
         self.database = None
         self.filter   = None
         
-    def retrieveDataDb(self, database, filter, minPts = 2):
+    def retrieveDataViaDb(self, database, filter, minPts = 2):
         self.reset()
         self.database = database
         self.filter   = filter
@@ -798,7 +798,7 @@ class ZeropointFitFigure(QaFigure):
         self.ccdName    = None
         self.fluxtype   = None
 
-    def retrieveDataDb(self, database, visitId, filterName, raftName, ccdName, fluxtype = "psf"):
+    def retrieveDataViaDb(self, database, visitId, filterName, raftName, ccdName, fluxtype = "psf"):
         self.reset()
         if not (fluxtype == "psf" or fluxtype == "ap"):
             Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "WARNING: fluxtype %s not allowed")
@@ -1046,11 +1046,7 @@ class CentroidFpaFigure(FpaFigure):
     def __init__(self, cameraGeomPaf):
         FpaFigure.__init__(self, cameraGeomPaf)
         self.sdqaMetrics = {}
-
-        # for butler runs
         self.label = 'centroidFpa'
-        if not os.environ.has_key('TESTBED_PATH'):
-            os.environ['TESTBED_PATH'] = self.label
         
         # set on retrieve; reset on reset()
         self.butler  = None
@@ -1061,10 +1057,13 @@ class CentroidFpaFigure(FpaFigure):
         self.butler  = None
         self.visitId = None
 
-    def retrieveDataButler(self, butler, visitId):
+    def retrieveDataViaButler(self, butler, visitId):
         self.reset()
         self.butler   = butler
         self.visitId  = visitId
+
+        if not os.environ.has_key('TESTBED_PATH'):
+            os.environ['TESTBED_PATH'] = self.butler.mapper.root
 
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
