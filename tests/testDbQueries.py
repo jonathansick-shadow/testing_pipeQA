@@ -118,6 +118,9 @@ if __name__ == '__main__':
             
             prefix = 'zptFit_%d' % (visitId)
             outdir = os.path.join(outRoot, prefix)
+            if not os.path.isdir(outdir):
+                Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outdir))
+                os.makedirs(outdir)
             fptfitfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
             
         else:
