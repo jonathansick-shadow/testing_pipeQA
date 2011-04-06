@@ -1,6 +1,7 @@
 import os
 import MySQLdb
 import lsst.pex.policy as pexPolicy
+import time
 from lsst.pex.logging import Trace
 
 class DatabaseIdentity:
@@ -48,9 +49,13 @@ class LsstSimDbInterface(DatabaseInterface):
                                       passwd = dbId.mySqlPasswd)
         self.cursor = self.db.cursor()
 
-    def execute(self, sql, verbose = False):
+    def execute(self, sql):
         Trace("lsst.testing.pipeQA.LsstSimDbInterface", 3, "Executing: %s" % (sql))
+        t0 = time.time()
         self.cursor.execute(sql)
-        return self.cursor.fetchall()
+        results = self.cursor.fetchall()
+        t1 = time.time()
+        Trace("lsst.testing.pipeQA.LsstSimDbInterface", 2, "Time for SQL query: %.1f s" % (t1-t0))
+        return results
 
     
