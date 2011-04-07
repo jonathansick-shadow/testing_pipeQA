@@ -1046,7 +1046,6 @@ class CentroidFpaFigure(FpaFigure):
     def __init__(self, cameraGeomPaf):
         FpaFigure.__init__(self, cameraGeomPaf)
         self.sdqaMetrics = {}
-        self.label = 'centroidFpa'
         
         # set on retrieve; reset on reset()
         self.butler  = None
@@ -1057,13 +1056,12 @@ class CentroidFpaFigure(FpaFigure):
         self.butler  = None
         self.visitId = None
 
-    def retrieveDataViaButler(self, butler, visitId):
+    def retrieveDataViaButler(self, visitId, runDir):
         self.reset()
-        self.butler   = butler
         self.visitId  = visitId
 
         if not os.environ.has_key('TESTBED_PATH'):
-            os.environ['TESTBED_PATH'] = self.butler.mapper.root
+            os.environ['TESTBED_PATH'] = runDir
 
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
@@ -1075,7 +1073,7 @@ class CentroidFpaFigure(FpaFigure):
                 ccdId  = str(ccd.getId().getSerial())[-2:]
                 ccdIds = '%s,%s' % (ccdId[0], ccdId[1])
 
-                testData = ImSimTestData(label = self.label)
+                testData = ImSimTestData(label = 'caw')
                 config   = testData.defaultConfig()
 
                 dataId0  = dict(visit=visitId, snap=0, raft=raftId, sensor=ccdId)

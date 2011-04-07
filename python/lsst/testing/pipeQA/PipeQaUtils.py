@@ -51,20 +51,20 @@ def getAllKeys(inButler):
 
 def getAllKeysOpt(opt, butler):
     allkeys = []
-    if len(opt.visit) and len(opt.raft) and len(opt.sensor):
-        allkeys.append(dict(visit = opt.visit, raft = opt.raft, sensor = opt.sensor))
-    elif len(opt.visit) and len(opt.raft):
-        sensors = butler.queryMetadata('raw', 'sensor', visit=opt.visit, raft=opt.raft)
+    if len(opt.visit) == 1 and len(opt.raft) == 1 and len(opt.sensor) == 1:
+        allkeys.append(dict(visit = opt.visit[0], raft = opt.raft[0], sensor = opt.sensor[0]))
+    elif len(opt.visit) == 1 and len(opt.raft) == 1:
+        sensors = butler.queryMetadata('raw', 'sensor', visit=opt.visit[0], raft=opt.raft[0])
         for sensor in sensors:
-            allkeys.append(dict(visit = opt.visit, raft = opt.raft, sensor = sensor))
-    elif len(opt.visit):
-        rafts = butler.queryMetadata('raw', 'raft', visit = opt.visit)
+            allkeys.append(dict(visit = opt.visit[0], raft = opt.raft[0], sensor = sensor))
+    elif len(opt.visit) == 1:
+        rafts = butler.queryMetadata('raw', 'raft', visit = opt.visit[0])
         for raft in rafts:
-            sensors = butler.queryMetadata('raw', 'sensor', visit = opt.visit, raft = raft)
+            sensors = butler.queryMetadata('raw', 'sensor', visit = opt.visit[0], raft = raft)
             for sensor in sensors:
-                allkeys.append(dict(visit = opt.visit, raft = opt.raft, sensor = opt.sensor))
+                allkeys.append(dict(visit = opt.visit[0], raft = raft, sensor = sensor))
     else:
-        allkeys = pipeQA.getAllKeys(butler)
+        allkeys = getAllKeys(butler)
     return allkeys
 
 def pointInsidePolygon(x,y,poly):

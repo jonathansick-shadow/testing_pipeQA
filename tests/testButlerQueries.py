@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
         cfig = pipeQA.CentroidFpaFigure(cameraGeomPaf)
         for visitId in visits:
-            cfig.retrieveDataViaButler(butler, visitId)
+            cfig.retrieveDataViaButler(visitId, os.path.split(registry)[0])
             cfig.makeFigure(doLabel = True)
             cfig.saveFigure(os.path.join(outRoot, "cshift_%d.png" % (visitId)))
             
