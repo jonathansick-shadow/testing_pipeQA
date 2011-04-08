@@ -855,23 +855,28 @@ class ZeropointFitFigure(QaFigure):
                 else: refAll['g'].append(oid)
 
         # Select all matched galaxies
-        mrefGsql  = 'select sro.%sMag,' % (filterName)
-        mrefGsql += ' s.%sFlux, s.%sFluxSigma' % (self.fluxtype, self.fluxtype)
-        mrefGsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
-        mrefGsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
-        mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
-        mrefGsql += ' and (s.objectID is not NULL)'
-        mrefGsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'])))
-        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, mrefGsql)
-        mrefGresults  = dbInterface.execute(mrefGsql)
-        mrefGmag  = num.array([x[0] for x in mrefGresults])
-        mimgGflu  = num.array([x[1] for x in mrefGresults])
-        mimgGferr = num.array([x[2] for x in mrefGresults])
-        mimgGmag  = -2.5 * num.log10(mimgGflu)
-        mimgGmerr =  2.5 / num.log(10.0) * mimgGferr / mimgGflu
-        self.data["MatchedGalaxies"] = {"Refmag": mrefGmag,
-                                        "Imgmag": mimgGmag,
-                                        "Imgerr": mimgGmerr}
+        if len(refAll['g']) == 0:
+            self.data["MatchedGalaxies"] = {"Refmag": num.array(()),
+                                            "Imgmag": num.array(()),
+                                            "Imgerr": num.array(())}
+        else:
+            mrefGsql  = 'select sro.%sMag,' % (filterName)
+            mrefGsql += ' s.%sFlux, s.%sFluxSigma' % (self.fluxtype, self.fluxtype)
+            mrefGsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
+            mrefGsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
+            mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
+            mrefGsql += ' and (s.objectID is not NULL)'
+            mrefGsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'])))
+            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, mrefGsql)
+            mrefGresults  = dbInterface.execute(mrefGsql)
+            mrefGmag  = num.array([x[0] for x in mrefGresults])
+            mimgGflu  = num.array([x[1] for x in mrefGresults])
+            mimgGferr = num.array([x[2] for x in mrefGresults])
+            mimgGmag  = -2.5 * num.log10(mimgGflu)
+            mimgGmerr =  2.5 / num.log(10.0) * mimgGferr / mimgGflu
+            self.data["MatchedGalaxies"] = {"Refmag": mrefGmag,
+                                            "Imgmag": mimgGmag,
+                                            "Imgerr": mimgGmerr}
         
         # Select all matched stars
         mrefSsql  = 'select sro.%sMag,' % (filterName)
@@ -974,6 +979,12 @@ class ZeropointFitFigure(QaFigure):
         if len(mrefGmag) > 0 and len(mrefSmag) > 0:
             ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
                      orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
+        elif len(mrefGmag):
+            ax2.hist(mrefGmag, bins=num.arange(ymin, ymax, 0.25),
+                     orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
+        elif len(mrefSmag) > 0:
+            ax2.hist(mrefSmag, bins=num.arange(ymin, ymax, 0.25),
+                     orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
         ax2.set_xlabel('N', fontsize = 10)
         ax2.set_ylabel('Reference catalog: %s band (mag)' % (self.filterName), fontsize = 10)
         legLines.append(pu[0])
@@ -988,6 +999,17 @@ class ZeropointFitFigure(QaFigure):
                                   log = True, color = 'b', alpha = 0.5, zorder = 2)
             legLines.append(pm[0])
             legLabels.append("Matched Sources")
+        elif len(mimgGmag) > 0:
+            nm, bm, pm = ax3.hist(mimgGmag, bins=num.arange(xmin, xmax, 0.25),
+                                  log = True, color = 'b', alpha = 0.5, zorder = 2)
+            legLines.append(pm[0])
+            legLabels.append("Matched Sources")
+        elif len(mimgSmag) > 0:
+            nm, bm, pm = ax3.hist(mimgSmag, bins=num.arange(xmin, xmax, 0.25),
+                                  log = True, color = 'b', alpha = 0.5, zorder = 2)
+            legLines.append(pm[0])
+            legLabels.append("Matched Sources")
+            
         ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
                  log = True, color = 'r', alpha = 0.5, zorder = 1)
         ax3.set_xlabel('Image instrumental %s mag' % (self.fluxtype), fontsize = 10)
@@ -995,13 +1017,15 @@ class ZeropointFitFigure(QaFigure):
 
         # Mag - Zpt
         ax4  = self.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
-        mimgSeb = ax4.errorbar(mimgSmag, (mimgSmag - self.data["Zeropoint"]) - mrefSmag, yerr = mimgSmerr,
-                               fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
-        mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
+        if len(mimgSmag):
+            mimgSeb = ax4.errorbar(mimgSmag, (mimgSmag - self.data["Zeropoint"]) - mrefSmag, yerr = mimgSmerr,
+                                   fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
+            mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
 
-        mimgGeb = ax4.errorbar(mimgGmag, (mimgGmag - self.data["Zeropoint"]) - mrefGmag, yerr = mimgGmerr,
-                               fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
-        mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
+        if len(mimgGmag):
+            mimgGeb = ax4.errorbar(mimgGmag, (mimgGmag - self.data["Zeropoint"]) - mrefGmag, yerr = mimgGmerr,
+                                   fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
+            mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
 
         ax4.get_yaxis().set_ticks_position('right')
         ax4.get_yaxis().set_label_position('right')
