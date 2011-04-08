@@ -690,8 +690,6 @@ class PhotometricRmsFigure(QaFigure):
         photByObject = self.data["PhotByObject"]
         keys = photByObject.keys()
 
-        print photByObject
-
         if len(keys) == 0:
             Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "No data for figure")
             return None
