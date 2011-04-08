@@ -56,9 +56,7 @@ if __name__ == '__main__':
         psv = butler.get('src', key)
         for source in psv.getSources():
             sourceId = source.getId()
-            if sourceId != 2874337312639718:
-                continue
-            import pdb; pdb.set_trace()
+
             sql = 'select psfFlux,psfFluxSigma,apFlux,apFluxSigma,filterId from Source where sourceId=%d' % (sourceId)
             results = dbInterface.execute(sql)
 
@@ -96,7 +94,7 @@ if __name__ == '__main__':
             sql += ' and (sro.isStar = 1) and (sro.isVar = 0)'
             sql += ' and (s.sourceId = %d)' % (sourceId)
             results = dbInterface.execute(sql)
-            print sql
+            #print sql
 
             # Things not matched to ref catalog as non-variable stars we can also ignore here
             if len(results) == 0:
