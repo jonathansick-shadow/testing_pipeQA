@@ -632,7 +632,7 @@ class PhotometricRmsFigure(QaFigure):
         sql += ' order by s.objectID'
         Trace("lsst.testing.pipeQA.PhotometricRmsFigure", 4, sql)
         results = dbInterface.execute(sql)
-
+        
         photByObject    = {}
         for row in results:
             objectId   = row[0]
@@ -667,15 +667,15 @@ class PhotometricRmsFigure(QaFigure):
             photByObject[objectId]['taiMjd'].append(taiMjd)
     
         for key in photByObject.keys():
-            if len(photByObject[key]) < minPts:
+            if len(photByObject[key]['taiMjd']) < minPts:
                 del photByObject[key]
-
-            photByObject[key]['catMag']    = num.array(photByObject[key]['catMag'])
-            photByObject[key]['apMag']     = num.array(photByObject[key]['apMag'])
-            photByObject[key]['apMagSig']  = num.array(photByObject[key]['apMagSig'])
-            photByObject[key]['psfMag']    = num.array(photByObject[key]['psfMag'])
-            photByObject[key]['psfMagSig'] = num.array(photByObject[key]['psfMagSig'])
-            photByObject[key]['taiMjd']    = num.array(photByObject[key]['taiMjd'])
+            else:
+                photByObject[key]['catMag']    = num.array(photByObject[key]['catMag'])
+                photByObject[key]['apMag']     = num.array(photByObject[key]['apMag'])
+                photByObject[key]['apMagSig']  = num.array(photByObject[key]['apMagSig'])
+                photByObject[key]['psfMag']    = num.array(photByObject[key]['psfMag'])
+                photByObject[key]['psfMagSig'] = num.array(photByObject[key]['psfMagSig'])
+                photByObject[key]['taiMjd']    = num.array(photByObject[key]['taiMjd'])
     
         self.data["PhotByObject"] = photByObject
 
@@ -689,6 +689,8 @@ class PhotometricRmsFigure(QaFigure):
 
         photByObject = self.data["PhotByObject"]
         keys = photByObject.keys()
+
+        print photByObject
 
         if len(keys) == 0:
             Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "No data for figure")
