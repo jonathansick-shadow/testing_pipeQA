@@ -1,7 +1,10 @@
 from PipeRunner import *
 from TestData import *
+from QaData import *
+from CameraInfo import *
 from Checksum import *
-from Manifest import Manifest
+from Manifest import Manifest, verifyManifest
+from Test import *
 from TestSet import *
 from LogConverter import LogFileConverter
 

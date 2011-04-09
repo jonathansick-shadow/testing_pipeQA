@@ -60,14 +60,22 @@ class Manifest(object):
         self.checksums    = {}
         self.filepaths    = []
         self.header       = ManifestHeader([])
-        
+
+        self.manifest = os.path.join(self.testdataDir, "manifest")
+        self.haveManifest = False
+        if os.path.exists(self.manifest):
+            self.haveManifest = True
+
         
     def read(self):
-        manifest = os.path.join(self.testdataDir, "manifest")
         missingInputs = []
         failedMd5s = []
 
-        fp = open(manifest, 'r')
+        if not self.haveManifest:
+            print "Unable to read manifest.  File "+self.manifest+" does not exist."
+            return
+
+        fp = open(self.manifest, 'r')
         lines = fp.readlines()
         self.header = ManifestHeader(lines)
 
@@ -87,7 +95,10 @@ class Manifest(object):
 
         
     def getHeader(self, key):
-        return self.header.get(key)
+        if self.haveManifest:
+            return self.header.get(key)
+        else:
+            return None
 
     def verifyExists(self):
         missingInputs = []
@@ -130,8 +141,7 @@ class Manifest(object):
         
     def write(self):
         
-        manifest = os.path.join(self.testdataDir, "manifest")
-        fp = open(manifest, 'w')
+        fp = open(self.manifest, 'w')
         fp.write(self.header.write())
         for path in self.filepaths:
             line = path + " " + str(self.checksums[path]) + "\n"
@@ -139,3 +149,28 @@ class Manifest(object):
         fp.close()
 
 
+
+def verifyManifest(dir, verifyExists=True, verifyChecksum=True, raiseOnFailure=True):
+    
+    manifest = Manifest(dir)
+    manifest.read()
+
+    msg = ""
+    
+    missingInputs = []
+    if verifyExists:
+        missingInputs   = manifest.verifyExists()
+    if (len(missingInputs) > 0):
+        msg = "Missing input files listed in manifest:\n"
+        msg += "\n".join(missingInputs) + "\n"
+        
+    failedChecksums = []
+    if verifyChecksum:
+        failedChecksums = manifest.verifyChecksum()
+    if len(failedChecksums) > 0:
+        msg += "Failed checksums:\n"
+        msg += "\n".join(failedChecksums) + "\n"
+    if len(msg) > 1 and raiseOnFailure:
+        raise Exception(msg)
+
+    return missingInputs, failedChecksums

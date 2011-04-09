@@ -48,35 +48,12 @@ class PipeRunner(object):
     
     
 
-    def getSourceSet(self, **kwargs):
+    def getSourceSet(self, dataId):
         """Get sources for requested data as one sourceSet. """
         
         ss = []
         for testdata in self.testdataList:
-            ss += testdata.getBoostSourceSet(kwargs)
+            ss += testdata.getSourceSet(dataId)
         return ss
 
     
-        if False:
-            # shamelessly stolen from Dustin
-            boostFiles = []
-            for testdata in self.testdataList:
-                filenames = testdata.getBoostOutputFilenames(kwargs)
-                boostFiles += filenames
-
-            ss = []
-
-            for fn in boostFiles:
-                loc            = dafPersist.LogicalLocation(fn)
-                storageList    = dafPersist.StorageList()
-                additionalData = dafBase.PropertySet()
-                persistence    = dafPersist.Persistence.getPersistence(pexPolicy.Policy())
-
-                storageList.append(persistence.getRetrieveStorage("BoostStorage", loc))
-                psvptr = persistence.unsafeRetrieve("PersistableSourceVector", storageList, additionalData)
-                psv = afwDet.PersistableSourceVector.swigConvert(psvptr)
-                ss.append(psv.getSources())
-
-            return ss[0]
-
-        

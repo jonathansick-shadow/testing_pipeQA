@@ -13,89 +13,9 @@ from lsst.testing.pipeQA.LogConverter   import LogFileConverter
 
 
 import lsst.pipette as pipette
+import QaDataUtils as qaDataUtils
 
 #import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
-
-# When these try/except loads fail, it's easy to miss the error message
-# ... let's be a bit louder.
-def printFailMessage(msg):
-    s = """
-        #
-	# ERROR: *************
-	#
-	# Unable to load package: %s
-	#
-	#
-	""" % (msg)
-    sys.stderr.write(s)
-    
-
-try:
-    import lsstSim
-    import lsst.obs.lsstSim           as obsLsst
-    haveLsstSim = True
-except Exception, e:
-    printFailMessage("lsstSim: " + str(e))
-    haveLsstSim = False
-
-try:    
-    import megacam
-    import lsst.obs.cfht              as obsCfht
-    haveMegacam = True
-except Exception, e:
-    printFailMessage("megecam: " + str(e))
-    haveMegacam = False
-
-try:
-    import suprimecam
-    import lsst.obs.suprimecam        as obsSuprimecam
-    haveSuprimecam = True
-except Exception, e:
-    printFailMessage("suprimecam: " + str(e))
-    haveSuprimecam = False
-
-try:
-    import runHsc
-    import lsst.obs.hscSim            as obsHsc
-    haveHsc = True
-except Exception, e:
-    printFailMessage("hscSim: " + str(e))
-    haveHsc = False
-
-    
-def findDataInTestbed(label):
-    """Scan TESTBED_PATH directories to find a testbed dataset with a given name"""
-    
-    # If label==None -> use TESTBOT_DIR (_DIR, not _PATH ... only one dataset can be run)
-    if re.search("^testBot", label):
-        testbotDir = os.getenv("TESTBOT_DIR")
-        testbedDir, testdataDir  = os.path.split(testbotDir)
-        return testbedDir, testbotDir
-
-    
-    # otherwise, get a specific test-data set from one of the testbed directories
-    testbedPath = os.getenv("TESTBED_PATH")
-    if testbedPath is not None:
-        testbedDirs = testbedPath.split(":")
-    else:
-        raise Exception("Must specify environment variable TESTBED_PATH.")
-    
-    #############################
-    # find the label in the testbed path
-    testbedDir = None
-    testdataDir = None
-    for tbDir in testbedDirs:
-        path = os.path.join(tbDir, label)
-        if os.path.exists(path):
-            testbedDir = tbDir
-            testdataDir = path
-                
-    if testbedDir is None:
-        msg = "Testbed %s was not found in any of the TESTBED_PATH directories:\n" % (label)
-        msg += "\n".join(testbedDirs) + "\n"
-        raise Exception(msg)
-    
-    return testbedDir, testdataDir
 
     
 #######################################################################
@@ -126,7 +46,8 @@ class TestData(object):
         self.defaultConfig = defaultConfig
         roots = self.defaultConfig['roots']
 
-        self.kwargs      = kwargs
+        self.kwargs         = kwargs
+	self.dataIdRegex    = self.kwargs.get('dataId', {})
         self.haveManifest   = self.kwargs.get('haveManifest', False)
         self.verifyChecksum = self.kwargs.get('verifyChecksum', False)
         self.astrometryNetData = self.kwargs.get('astrometryNetData', None)
@@ -161,18 +82,10 @@ class TestData(object):
         # a level is considered a discriminator if it represents different pictures of the same thing
         # ... so the same object may appear in multiple 'visits', but not on multiple 'sensors'
         # dataInfo is passed in from the derived class as it's specific to each mapper
-        
-        dataIdRegexDict = {}
         for array in dataInfo:
             dataIdName, dataIdDiscrim = array
             self.dataIdNames.append(dataIdName)
             self.dataIdDiscrim.append(dataIdDiscrim)
-
-            # if the user requested eg. visit=1234.*
-            # pull that out of kwargs and put it in dataIdRegexDict
-            if self.kwargs.has_key(dataIdName):
-                dataIdRegexDict[dataIdName] = self.kwargs[dataIdName]
-                
 
         # keep a list of any:
         #  - logfiles we write,
@@ -237,7 +150,7 @@ class TestData(object):
 
         # of the data available, get a list of the ones the user actually wants us
         #  to run.  A bit sketchy here ... kwargs contains non-idname info as well.
-        self.dataTuples = self._regexMatchDataIds(dataIdRegexDict, self.availableDataTuples)
+        self.dataTuples = self._regexMatchDataIds(self.dataIdRegex, self.availableDataTuples)
 
 
         # if/when we run, we'll store tracebacks for any failed runs
@@ -311,7 +224,6 @@ class TestData(object):
             dataId = self._tupleToDataId(dataTuple)
             
             # see if we already have the outputs
-            print dataId
             isWritten = self.outButler.datasetExists('src', dataId)
 
             # set isWritten if we're a testBot ... assume we shouldn't try to run
@@ -409,13 +321,10 @@ class TestData(object):
     #######################################################################
     #
     #######################################################################
-    def getBoostSourceSet(self, kwargs):
+    def getSourceSet(self, dataIdRegex):
         """Get sources for requested data as one sourceSet."""
-        dataTuplesToFetch = self._regexMatchDataIds(kwargs, self.dataTuples)
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
 
-        #self.setupAstrometryNetData()
-        print self.outDir, kwargs, dataTuplesToFetch
-        
         # get the datasets corresponding to the request
         sourceSet = []
         for dataTuple in dataTuplesToFetch:
@@ -533,14 +442,14 @@ class ImSimTestData(TestData):
     def __init__(self, label, **kwargs):
         """ """
 
-	if not haveLsstSim:
-	    raise RuntimeError("obs_lsstSim isn't available.  Can't process imsim data.")
+	import lsst.obs.lsstSim           as obsLsst
+	import lsstSim
 	
         mapper         = obsLsst.LsstSimMapper
         dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
         
         # find the label in the testbed path
-        testbedDir, testdataDir = findDataInTestbed(label)
+        testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
         
         defaultConfig   = lsstSim.getConfig()
         if not 'roots' in defaultConfig:
@@ -559,6 +468,7 @@ class ImSimTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
+	import lsstSim
         lsstSim.run(rerun, dataId['visit'], dataId['snap'], dataId['raft'], dataId['sensor'],
                     config, log=log)
 
@@ -577,15 +487,14 @@ class HscSimTestData(TestData):
     #######################################################################
     def __init__(self, label, **kwargs):
         """ """
-        
-	if not haveHsc:
-	    raise RuntimeError("obs_subaru isn't available.  Can't process hscSim data.")
-
+	
+	import lsst.obs.hscSim            as obsHsc
+	import runHsc
         mapper         = obsHsc.HscSimMapper
         dataInfo       = [['visit',1], ['ccd', 0]]
         
         # find the label in the testbed path
-        testbedDir, testdataDir = findDataInTestbed(label)
+        testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
         #defaultConfig = runHsc.getConfigQa()
         argv = []
@@ -608,6 +517,7 @@ class HscSimTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
+	import runHsc
         #runHsc.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
         runHsc.doRun(rerun=rerun, frameId=dataId['visit'], ccdId=dataId['ccd'],
                    doMerge=True, doBreak=False,
@@ -635,14 +545,13 @@ class SuprimeTestData(TestData):
     def __init__(self, label, **kwargs):
         """ """
         
-	if not haveSuprimecam:
-	    raise RuntimeError("obs_subaru isn't available.  Can't process suprimecam data.")
-
+	import lsst.obs.suprimecam        as obsSuprimecam
+	import suprimecam
         mapper         = obsSuprimecam.SuprimecamMapper
         dataInfo       = [['visit',1], ['ccd', 0]]
         
         # find the label in the testbed path
-        testbedDir, testdataDir = findDataInTestbed(label)
+        testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
         defaultConfig   = suprimecam.getConfig()
         if not 'roots' in defaultConfig:
@@ -662,6 +571,7 @@ class SuprimeTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
+	import suprimecam
         suprimecam.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
 
 
@@ -680,15 +590,14 @@ class CfhtTestData(TestData):
     #######################################################################
     def __init__(self, label, **kwargs):
         """ """
-        
-	if not haveMegacam:
-	    raise RuntimeError("obs_cfht isn't available.  Can't process megacam data.")
-	
+
+	import lsst.obs.cfht              as obsCfht
+	import megacam
         mapper         = obsCfht.CfhtMapper
         dataInfo       = [['visit',1], ['ccd', 0]]
         
         # find the label in the testbed path
-        testbedDir, testdataDir = findDataInTestbed(label)
+        testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
         defaultConfig   = megacam.getConfig()
         if not 'roots' in defaultConfig:
@@ -708,6 +617,7 @@ class CfhtTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
+	import megacam
         megacam.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
 
 
@@ -724,7 +634,7 @@ class CfhtTestData(TestData):
 #######################################################################
 def makeTestData(label, **kwargs):
         
-    testbedDir, testdataDir = findDataInTestbed(label)
+    testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
         
     regFile = 'registry.sqlite3'
     registry = os.path.join(testdataDir, regFile)

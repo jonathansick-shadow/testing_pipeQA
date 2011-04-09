@@ -975,10 +975,10 @@ class ZeropointFitFigure(QaFigure):
         # Unmatched & matched reference objects
         ax2  = self.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
         nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
-                              orientation='horizontal', log = True, color = 'r', alpha = 0.5, zorder = 1)
+                              orientation='horizontal', log = True, alpha = 0.5, zorder = 1)
         if len(mrefGmag) > 0 and len(mrefSmag) > 0:
             ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
-                     orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
+                     orientation='horizontal', log = True, alpha = 0.5, zorder = 2)
         elif len(mrefGmag):
             ax2.hist(mrefGmag, bins=num.arange(ymin, ymax, 0.25),
                      orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
@@ -996,7 +996,7 @@ class ZeropointFitFigure(QaFigure):
         ax3.get_yaxis().set_label_position('right')
         if len(mimgGmag) > 0 and len(mimgSmag) > 0:
             nm, bm, pm = ax3.hist(num.concatenate((mimgGmag,mimgSmag)), bins=num.arange(xmin, xmax, 0.25),
-                                  log = True, color = 'b', alpha = 0.5, zorder = 2)
+                                  log = True, alpha = 0.5, zorder = 2)
             legLines.append(pm[0])
             legLabels.append("Matched Sources")
         elif len(mimgGmag) > 0:
@@ -1011,7 +1011,7 @@ class ZeropointFitFigure(QaFigure):
             legLabels.append("Matched Sources")
             
         ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
-                 log = True, color = 'r', alpha = 0.5, zorder = 1)
+                 log = True, alpha = 0.5, zorder = 1)
         ax3.set_xlabel('Image instrumental %s mag' % (self.fluxtype), fontsize = 10)
         ax3.set_ylabel('N', rotation = 180, fontsize = 10)
 

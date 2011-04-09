@@ -36,7 +36,7 @@ import matplotlib
 import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 
-#import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
+#import lsst.meas.extensions.shapeHSM as shapeHSM
 
 
 def testPsfPhotometry():
@@ -45,20 +45,26 @@ def testPsfPhotometry():
     anData = "cpl_hsc_devel"
     anData = "hsc-dc1-2010-08-04.1-starsonly"
     anData = "imsim_20100625"
+    #anData = "imsim_20100716"
     
     #########################
     # run the appropriate data set for this test
     pr = pipeQA.PipeRunner()
     if True:
-        td1 = pipeQA.makeTestData("imsimTestData001", visit='85501867', snap='0', raft='1,1', sensor='1,1',
-                                    verifyChecksum=False, outDir='local', astrometryNetData=anData)
+        td1 = pipeQA.makeTestData("imsimTestData001",
+				  dataId={'visit':'85501867', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
+                                  verifyChecksum=False, astrometryNetData=anData,
+                                  outDir='local')
         pr.addTestData(td1)
-        td2 = pipeQA.makeTestData("imsimTestData001", visit='85502008', snap='0', raft='1,1', sensor='1,1',
-                                    verifyChecksum=False, outDir='local', astrometryNetData=anData)
+        td2 = pipeQA.makeTestData("imsimTestData001",
+				  dataId={'visit':'85502008', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
+                                  verifyChecksum=False, astrometryNetData=anData,
+                                  outDir='local')
         pr.addTestData(td2)
 
         #hsmConfig = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "policy", "hsmShape.paf")
         #qaConfig = os.path.join(os.getenv('TESTING_PIPEQA_DIR'), "policy", "lsstSim.paf")
+        #pr.run(force=False, overrideConfig=[hsmConfig, qaConfig])
         pr.run(force=False, overrideConfig=[])
 
 
@@ -71,8 +77,8 @@ def testPsfPhotometry():
 
     ##########################
     # get the data we want from the piperunner
-    ss1 = pr.getSourceSet(visit='85501867', raft='1,1')
-    ss2 = pr.getSourceSet(visit='85502008', raft='1,1')
+    ss1 = pr.getSourceSet(dataId={'visit':'85501867', 'raft':'1,1'})
+    ss2 = pr.getSourceSet(dataId={'visit':'85502008', 'raft':'1,1'})
     tolerance = 1.0 * numpy.pi/180.0
     matchList = afwDet.matchRaDec(ss1, ss2, tolerance)
 
@@ -90,8 +96,8 @@ def testPsfPhotometry():
 
         s0, s1 = match.first, match.second
 
-        #print "ixx: ", s0.getIxx()
-        #print "e1: ", s0.getE1(), "   shear1: ", s0.getShear1()
+        print "ixx: ", s0.getIxx()
+        print "e1: ", s0.getE1(), "   shear1: ", s0.getShear1()
         
         m0 = -2.5*numpy.log10(s0.getApFlux())
         m1 = -2.5*numpy.log10(s1.getApFlux())

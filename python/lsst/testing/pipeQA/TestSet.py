@@ -9,6 +9,7 @@ import eups
 
 from lsst.testing.pipeQA.LogConverter  import LogFileConverter
 from lsst.testing.pipeQA.TestFailError import TestFailError
+from lsst.testing.pipeQA.Test          import Test
 
 class TestSet(object):
     
@@ -18,7 +19,7 @@ class TestSet(object):
         wwwBase = "www"
         testfileName = inspect.stack()[-1][1]
         self.testfileBase = re.sub(".py", "", os.path.split(testfileName)[1])
-        self.wwwDir = os.path.join(wwwBase, self.testfileBase)
+        self.wwwDir = os.path.join(wwwBase, "test_"+self.testfileBase)
 
         if not os.path.exists(self.wwwDir):
             os.mkdir(self.wwwDir)
@@ -102,25 +103,33 @@ class TestSet(object):
         self.conn.commit()
 
     
-    def addTest(self, label, value, limits, comment):
+    def addTest(self, *args):
         """Add a test to this testing suite."""
+
+        if len(args) == 4:
+            label, value, limits, comment = args
+            test = Test(label, value, limits, comment)
+        elif len(args) == 1:
+            test, = args
         
-        self.tests.append(label)
+        self.tests.append(test)
 
         # grab a traceback for failed tests
         backtrace = ""
         try:
-            if (value < limits[0] or value > limits[1]):
-                raise TestFailError("Failed test '"+label+"': " +
-                                    "value '" + str(value) + "' not in range '" + str(limits)+"'.")
+            if test.evaluate():
+                raise TestFailError("Failed test '"+test.label+"': " +
+                                    "value '" + str(test.value) + "' not in range '" + str(test.limits)+"'.")
         except TestFailError, e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             backtrace = "".join(traceback.format_stack()[:-1]) + "\n" + str(e)
             
         # enter the test in the db
         keys = [x.split()[0] for x in self.tables[self.summTable]]
-        replacements = dict( zip(keys, [label, value, limits[0], limits[1], comment, backtrace]) )
+        replacements = dict( zip(keys, [test.label, test.value, test.limits[0], test.limits[1], test.comment,
+                                        backtrace]) )
         self._insertOrUpdate(self.summTable, replacements, ['label'])
+
 
         
     def importExceptionDict(self, exceptDict):
