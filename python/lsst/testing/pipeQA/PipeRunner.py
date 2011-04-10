@@ -56,4 +56,23 @@ class PipeRunner(object):
             ss += testdata.getSourceSet(dataId)
         return ss
 
+    def getSourceSetBySensor(self, dataId):
+        """Get sources for requested data as one sourceSet. """
+        
+        ssDict = {}
+        for testdata in self.testdataList:
+            ssD = testdata.getSourceSetBySensor(dataId)
+	    for k, ss in ssD.items():
+		ssDict[k] = ss
+        return ssDict
+
+    def getSourceSetBySensorTransposed(self, dataId, accessor):
+        """Get sources for requested data as one sourceSet. """
+        
+        ssDict = {}
+        for testdata in self.testdataList:
+            ssD = testdata.getSourceSetBySensorTransposed(dataId, accessor)
+	    for k, ss in ssD.items():
+		ssDict[k] = ss
+        return ssDict
     

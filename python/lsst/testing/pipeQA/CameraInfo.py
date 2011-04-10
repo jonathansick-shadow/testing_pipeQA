@@ -1,16 +1,22 @@
 import os
+import eups
+
+import lsst.afw.cameraGeom.utils as cameraGeomUtils
 
 ####################################################################
 #
 # CameraInfo base class
 #
 ####################################################################
+
+
 class CameraInfo(object):
     
-    def __init__(self, name, dataInfo, mapperClass=None):
+    def __init__(self, name, dataInfo, mapperClass=None, camera=None):
         self.name        = name
         self.dataInfo    = dataInfo
         self.mapperClass = mapperClass
+	self.camera      = camera
         
 
     def getRoots(self, data, calib, output):
@@ -66,7 +72,14 @@ class LsstSimCameraInfo(CameraInfo):
             print "Failed to import lsst.obs.lsstSim", e
             mapper = None
         dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
-        CameraInfo.__init__(self, "lsstSim", dataInfo, mapper)
+
+	simdir        = eups.productDir("obs_lsstSim")
+	cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
+	
+        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+	
+        CameraInfo.__init__(self, "lsstSim", dataInfo, mapper, camera)
 
 
     def getRoots(self, baseDir, output=None):

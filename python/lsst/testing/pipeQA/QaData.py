@@ -1,6 +1,8 @@
 import sys, os, glob, re, stat, copy
 import traceback
 
+import numpy
+
 import sqlite
 
 import eups
@@ -41,10 +43,72 @@ class QaData(object):
             self.dataIdNames.append(dataIdName)
             self.dataIdDiscrim.append(dataIdDiscrim)
 
+	# cache the dataId requests
+	# they may contain regexes ... we won't know if our cached sourceSets have
+	#   all the entries that match unless we redo the query
+	#   But, if we've already done the identical query, we know we have everything
+	self.queryCache = {}
+	self.transposeQueryCache = {}
+
         # cache source sets to avoid reloading the same thing
         self.sourceSetCache = {}
+	self.sourceSetTransposedCache = {}
+	
         # cache calexp to avoid reloading
         self.calexpCache = {}
+
+
+    def getSourceSetBySensorTransposed(self, dataIdRegex, accessors):
+
+	dataIdStr = self._dataIdToString(dataIdRegex)
+
+	# if they want a specific dataId and we have it ....
+	ssTDict = {}
+	if self.sourceSetTransposedCache.has_key(dataIdStr):
+	    ssTDict[dataIdStr] = {}
+	    haveIt = True
+	    for accessor in accessors:
+		if self.sourceSetTransposedCache[dataIdStr].has_key(accessor):
+		    ssTDict[dataIdStr][accessor] = self.sourceSetTranposedCache[dataIdStr][accessor]
+		else:
+		    haveIt = False
+		    break
+	    if haveIt:
+		return ssTDict
+
+	# if they've made this exact query before ... we must have it!
+	if False:
+	    ssTDict = {}
+	    if self.transposeQueryCache.has_key(dataIdStr+"-"+accessor):
+		for k, ssDict in self.sourceSetTransposedCache():
+		    if re.search(dataIdStr, k):
+			if not ssTDict.has_key(k):
+			    ssTDict[k] = {}
+			ssTDict[k][accessor] = ssDict[accessor]
+		return ssTDict
+
+	# get it and put the transpose in the cache
+	# return a copy of what we cached.
+	ssDict = self.getSourceSetBySensor(dataIdRegex)
+	ssTDict = {}
+	for k, ss in ssDict.items():
+	    if not self.sourceSetTransposedCache.has_key(k):
+		self.sourceSetTransposedCache[k] = {}
+	    ssTDict[k] = {}
+	    for accessor in accessors:
+		tmp = numpy.array([])
+		for s in ss:
+		    method = getattr(s, "get"+accessor)
+		    value = method()
+		    tmp = numpy.append(tmp, value)
+		self.sourceSetTransposedCache[k][accessor] = tmp
+		ssTDict[k][accessor] = tmp
+
+	#self.transposeQueryCache[dataIdStr+'-'+accessor] = True
+	
+	return ssTDict
+
+    
 
     def verifyDataIdKeys(self, dataIdKeys, raiseOnFailure=True):
         missingKeys = []
@@ -88,13 +152,18 @@ class QaData(object):
     #######################################################################
     def _dataIdToDataTuple(self, dataId):
 	""" """
+	# if snap isn't specified, we'll add it.
+	dataIdCopy = copy.copy(dataId)
+	if not dataIdCopy.has_key('snap'):
+	    dataIdCopy['snap'] = '0'
+	    
 	dataList = []
 	for i in range(len(self.dataIdNames)):
 	    dataIdName = self.dataIdNames[i]
-	    if dataId.has_key(dataIdName):
-		dataList.append(dataId[dataIdName])
+	    if dataIdCopy.has_key(dataIdName):
+		dataList.append(dataIdCopy[dataIdName])
 	    else:
-		raise Exception("key: "+dataIdName+" not in dataId: "+ str(dataId))
+		raise Exception("key: "+dataIdName+" not in dataId: "+ str(dataIdCopy))
 	return tuple(dataList)
 
     def _dataIdToString(self, dataId):
@@ -185,19 +254,19 @@ class ButlerQaData(QaData):
     #######################################################################
     #
     #######################################################################
-    def getSourceSet(self, dataIdRegex):
+    def getSourceSetBySensor(self, dataIdRegex):
         """Get sources for requested data as one sourceSet."""
         
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
 
         # get the datasets corresponding to the request
-        sourceSet = []
+        ssDict = {}
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
             dataKey = self._dataTupleToString(dataTuple)
             
             if self.sourceSetCache.has_key(dataKey):
-                sourceSet += copy.copy(self.sourceSetCache[dataKey])
+                ssDict[dataKey] = copy.copy(self.sourceSetCache[dataKey])
                 continue
 
             # make sure we actually have the output file
@@ -218,12 +287,19 @@ class ButlerQaData(QaData):
                         s.setPsfFlux(psfFlux/fmag0)
 
                 self.sourceSetCache[dataKey] = sourceSetTmp
-                sourceSet += copy.copy(sourceSetTmp)
+                ssDict[dataKey] = copy.copy(sourceSetTmp)
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
                 
-        return sourceSet
-            
+        return ssDict
+
+    def getSourceSet(self, dataIdRegex):
+
+	ssDict = self.getSourceSetBySensor(dataIdRegex)
+	ssReturn = []
+	for key, ss in ssDict.items():
+	    ssReturn += ss
+	return ssReturn
 
 
     #######################################################################
@@ -316,86 +392,13 @@ class DbQaData(QaData):
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
 
-    def getSourceSet(self, dataIdRegex):
+    def getSourceSetBySensor(self, dataIdRegex):
 
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        accessors = [
-            ["Ra",                           "ra",                           ],
-            ["Dec",                          "decl",                         ],
-            ["RaErrForWcs",                  "raSigmaForWcs",                ],
-            ["DecErrForWcs",                 "declSigmaForWcs",              ],
-            ["RaErrForDetection",            "raSigmaForDetection",          ],
-            ["DecErrForDetection",           "declSigmaForDetection",        ],
-            ["XFlux",                        "xFlux",                        ],
-            ["XFluxErr",                     "xFluxSigma",                   ],
-            ["YFlux",                        "yFlux",                        ],
-            ["YFluxErr",                     "yFluxSigma",                   ],
-            ["RaFlux",                       "raFlux",                       ],
-            ["RaFluxErr",                    "raFluxSigma",                  ],
-            ["DecFlux",                      "declFlux",                     ],
-            ["DecFluxErr",                   "declFluxSigma",                ],
-            ["XPeak",                        "xPeak",                        ],
-            ["YPeak",                        "yPeak",                        ],
-            ["RaPeak",                       "raPeak",                       ],
-            ["DecPeak",                      "declPeak",                     ],
-            ["XAstrom",                      "xAstrom",                      ],
-            ["XAstromErr",                   "xAstromSigma",                 ],
-            ["YAstrom",                      "yAstrom",                      ],
-            ["YAstromErr",                   "yAstromSigma",                 ],
-            ["RaAstrom",                     "raAstrom",                     ],
-            ["RaAstromErr",                  "raAstromSigma",                ],
-            ["DecAstrom",                    "declAstrom",                   ],
-            ["DecAstromErr",                 "declAstromSigma",              ],
-            ["TaiMidPoint",                  "taiMidPoint",                  ],
-            ["TaiRange",                     "taiRange",                     ],
-            ["PsfFlux",                      "psfFlux",                      ],
-            ["PsfFluxErr",                   "psfFluxSigma",                 ],
-            ["ApFlux",                       "apFlux",                       ],
-            ["ApFluxErr",                    "apFluxSigma",                  ],
-            ["ModelFlux",                    "modelFlux",                    ],
-            ["ModelFluxErr",                 "modelFluxSigma",               ],
-            ["InstFlux",                     "instFlux",                     ],
-            ["InstFluxErr",                  "instFluxSigma",                ],
-            ["NonGrayCorrFlux",              "nonGrayCorrFlux",              ],
-            ["NonGrayCorrFluxErr",           "nonGrayCorrFluxSigma",         ],
-            ["AtmCorrFlux",                  "atmCorrFlux",                  ],
-            ["AtmCorrFluxErr",               "atmCorrFluxSigma",             ],
-            ["ApDia",                        "apDia",                        ],
-            ["Ixx",                          "ixx",                          ],
-            ["IxxErr",                       "ixxSigma",                     ],
-            ["Iyy",                          "iyy",                          ],
-            ["IyyErr",                       "iyySigma",                     ],
-            ["Ixy",                          "ixy",                          ],
-            ["IxyErr",                       "ixySigma",                     ],
-            ["PsfIxx",                       "psfIxx",                       ],
-            ["PsfIxxErr",                    "psfIxxSigma",                  ],
-            ["PsfIyy",                       "psfIyy",                       ],
-            ["PsfIyyErr",                    "psfIyySigma",                  ],
-            ["PsfIxy",                       "psfIxy",                       ],
-            ["PsfIxyErr",                    "psfIxySigma",                  ],
-            ["Resolution",                   "resolution_SG",                ],
-            ["E1",                           "e1_SG",                        ],
-            ["E1Err",                        "e1_SG_Sigma",                  ],
-            ["E2",                           "e2_SG",                        ],
-            ["E2Err",                        "e2_SG_Sigma",                  ],
-            ["Shear1",                       "shear1_SG",                    ],
-            ["Shear1Err",                    "shear1_SG_Sigma",              ],
-            ["Shear2",                       "shear2_SG",                    ],
-            ["Shear2Err",                    "shear2_SG_Sigma",              ],
-            ["Sigma",                        "sourceWidth_SG",               ],
-            ["SigmaErr",                     "sourceWidth_SG_Sigma",         ],
-            #["ShapeStatus",                  "shapeStatus",                  ],
-            ["Snr",                          "snr",                          ],
-            ["Chi2",                         "chi2",                         ],
-            ["FlagForAssociation",           "flagForAssociation",           ],
-            ["FlagForDetection",             "flagForDetection",             ],
-            ["FlagForWcs",                   "flagForWcs",                   ],
-            ]
-
-        setMethods = ["set"+x for x in zip(*accessors)[0]]
-        selectList = ["s."+x for x in zip(*accessors)[1]]
+        setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
+        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
         selectStr = ",".join(selectList)
 
         
@@ -415,12 +418,24 @@ class DbQaData(QaData):
 	
 	# if there are no regexes (ie. actual wildcard expressions),
 	#  we can check the cache, otherwise must run the query
+	
 	if not re.search("\%", sql) and haveAllKeys:
 	    dataIdCopy = copy.copy(dataIdRegex)
 	    dataIdCopy['snap'] = "0"
 	    key = self._dataIdToString(dataIdCopy)
 	    if self.sourceSetCache.has_key(key):
-		return self.sourceSetCache[key]
+		return {key : self.sourceSetCache[key]}
+
+	# if the dataIdRegex is identical to an earlier query, we must already have all the data
+	dataIdStr = self._dataIdToString(dataIdRegex)
+	if self.queryCache.has_key(dataIdStr):
+	    ssDict = {}
+	    # get only the ones that match the request
+	    for key, ss in self.sourceSetCache.items():
+		if re.search(dataIdStr, key):
+		    ssDict[key] = ss
+	    return ssDict
+
 
 	# run the query
         results  = self.dbInterface.execute(sql)
@@ -446,9 +461,20 @@ class DbQaData(QaData):
                 
             ss.append(s)
 
+	# cache it
+	self.queryCache[dataIdStr] = True
+	for k, ss in ssDict.items():
+	    self.sourceSetCache[k] = ssDict[k]
+	
+	return ssDict
+
+
+
+    def getSourceSet(self, dataIdRegex):
+
+	ssDict = self.getSourceSetBySensor(dataIdRegex)
 	ssReturn = []
 	for key, ss in ssDict.items():
-	    self.sourceSetCache[key] = ss
 	    ssReturn += ss
 	    
         return ssReturn
