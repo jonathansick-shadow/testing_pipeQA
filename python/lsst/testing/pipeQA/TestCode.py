@@ -5,7 +5,7 @@
 #- TestSet
 #- Test
 try:
-    from lsst.testing.displayQA import *
+    from lsst.testing.displayQA.TestCode import *
 except Exception, e:
     from DefaultTestCode import *
 

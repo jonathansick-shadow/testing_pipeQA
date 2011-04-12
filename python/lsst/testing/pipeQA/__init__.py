@@ -6,7 +6,7 @@ from QaAnalysis import *
 from Checksum import *
 from Manifest import Manifest, verifyManifest
 
-from TestSet import *
+from TestCode import *
 
 from DatabaseQuery import *
 from QaFigures import *
