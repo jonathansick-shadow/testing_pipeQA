@@ -18,6 +18,7 @@ class QaAnalysis(object):
 	return []
 
 
+
 class SourceBoundsQaAnalysis(QaAnalysis):
 
     def __init__(self, testSet=None):
@@ -38,9 +39,6 @@ class SourceBoundsQaAnalysis(QaAnalysis):
 
 	self.testSet.addTest(t)
 	
-	return [t]
-
-
     def plot(self, data, dataId):
 
 	fig = qaFig.FpaQaFigure(data.cameraInfo.camera)
@@ -51,4 +49,4 @@ class SourceBoundsQaAnalysis(QaAnalysis):
 	for k, v in data.items():
 	    print k, v
 	    
-	return [fig]
+	self.testSet.addFigure(fig, "sourceBounds.png", "test caption")

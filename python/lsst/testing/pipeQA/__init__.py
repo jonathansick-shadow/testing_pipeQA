@@ -5,7 +5,7 @@ from CameraInfo import *
 from QaAnalysis import *
 from Checksum import *
 from Manifest import Manifest, verifyManifest
-
+from QaFigure import *
 from TestCode import *
 
 from DatabaseQuery import *

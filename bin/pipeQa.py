@@ -47,14 +47,11 @@ def main(dataset, dataIdInput):
 	pipeQA.SourceBoundsQaAnalysis()
 	]
 
-    ts = pipeQA.TestSet()
     for a in analysisList:
-	testList = a.test(data, dataId)
-	ts.addTests(testList)
-	figList = a.plot(data, dataId)
-	for i in range(len(figList)):
-	    ts.addFigure(figList[i], "fig_"+str(i)+".png", "caption"+str(i))
-
+	a.test(data, dataId)
+	a.plot(data, dataId)
+	
+	
 
 
 #############################################################

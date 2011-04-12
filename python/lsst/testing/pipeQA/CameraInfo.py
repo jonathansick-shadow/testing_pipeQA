@@ -193,3 +193,29 @@ class SuprimecamCameraInfo(CameraInfo):
         return "pipeQA"
     
     
+
+def getCameraInfoAvailable():
+
+    available = []
+
+    def tryLoad(cameraInfo):
+	haveCam = True
+	try:
+	    ci = cameraInfo()
+	except Exception, e:
+	    haveCam = False
+	return haveCam
+
+    all = [
+	LsstSimCameraInfo,
+	CfhtCameraInfo,
+	HscCameraInfo,
+	SuprimecamCameraInfo,
+	]
+
+    for camInfo in all:
+	if tryLoad(LsstSimCameraInfo):
+	    available.append(camInfo())
+
+    return available
+    
