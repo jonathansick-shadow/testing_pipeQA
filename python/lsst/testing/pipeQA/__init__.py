@@ -6,10 +6,7 @@ from QaAnalysis import *
 from Checksum import *
 from Manifest import Manifest, verifyManifest
 
-try:
-    from lsst.testing.displayQA import *
-except Exception, e:
-    from TestSet import *
+from TestSet import *
 
 from DatabaseQuery import *
 from QaFigures import *

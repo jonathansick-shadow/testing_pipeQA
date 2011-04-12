@@ -20,8 +20,6 @@ import os
 import datetime
 
 import lsst.testing.pipeQA as pipeQA
-import lsst.testing.displayQA as dispQA
-
 
 #############################################################
 #
@@ -49,7 +47,7 @@ def main(dataset, dataIdInput):
 	pipeQA.SourceBoundsQaAnalysis()
 	]
 
-    ts = dispQA.makeTestSet(useWww=False)
+    ts = pipeQA.TestSet()
     for a in analysisList:
 	testList = a.test(data, dataId)
 	ts.addTests(testList)
