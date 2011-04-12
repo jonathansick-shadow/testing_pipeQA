@@ -1,8 +1,15 @@
+import lsst.testing.displayQA  as dispQA
+import QaFigure as qaFig
+import numpy
+
 
 class QaAnalysis(object):
 
-    def __init__(self):
-	pass
+    def __init__(self, testSet=None):
+	if not testSet is None:
+	    self.testSet = testSet
+	else:
+	    self.testSet = dispQA.makeTestSet(label='sourceBounds')
 
     def test(self):
 	return []
@@ -11,20 +18,10 @@ class QaAnalysis(object):
 	return []
 
 
-import Test as qaTest
-import TestSet as qaTestSet
-import QaFigure as qaFig
-import numpy
-
 class SourceBoundsQaAnalysis(QaAnalysis):
 
-    def __init__(self):
-	QaAnalysis.__init__(self, testSet=None)
-
-	if not testSet is None:
-	    self.testSet = testSet
-	else:
-	    self.testSet = qaTestSet.TestSet(label='sourceBounds')
+    def __init__(self, testSet=None):
+	QaAnalysis.__init__(self, testSet)
 
 
     def test(self, data, dataId):
@@ -37,7 +34,7 @@ class SourceBoundsQaAnalysis(QaAnalysis):
 	value = 0
 	limits = [-1, 1]
 	comment = "dummy"
-	t = qaTest.Test(label, value, limits, comment)
+	t = dispQA.Test(label, value, limits, comment)
 
 	self.testSet.addTest(t)
 	

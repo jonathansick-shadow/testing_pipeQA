@@ -9,7 +9,7 @@ import lsst.pex.logging                 as pexLog
 import lsst.daf.persistence             as dafPersist
 from lsst.testing.pipeQA.Checksum       import Checksum
 from lsst.testing.pipeQA.Manifest       import Manifest
-from lsst.testing.pipeQA.LogConverter   import LogFileConverter
+from lsst.testing.displayQA.LogConverter   import LogFileConverter
 
 
 import lsst.pipette as pipette

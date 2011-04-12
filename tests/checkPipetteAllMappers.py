@@ -28,6 +28,7 @@ Test to verify quality of PSF photometry on test frames
 import os, sys
 import unittest
 import lsst.testing.pipeQA as pipeQA
+import lsst.testing.displayQA as dispQA
 import numpy
 
 import lsst.afw.detection as afwDet
@@ -127,7 +128,7 @@ def testPipetteAllMappers():
     # - note that this is not intended to verify quality per se, just to
     #   check that pipette still runs.
     
-    ts = pipeQA.TestSet(mainDisplayFull=True)
+    ts = dispQA.TestSet(mainDisplayFull=True)
     
     ts.importLogs(pr.getLogFiles())
     ts.importEupsSetups(pr.getEupsSetupFiles())
