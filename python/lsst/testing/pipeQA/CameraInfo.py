@@ -75,7 +75,6 @@ class LsstSimCameraInfo(CameraInfo):
 
 	simdir        = eups.productDir("obs_lsstSim")
 	cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
-	
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
 	
@@ -110,7 +109,13 @@ class CfhtCameraInfo(CameraInfo):
             print "Failed to import lsst.obs.cfht", e
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
-        CameraInfo.__init__(self, "cfht", dataInfo, mapper)
+	
+	simdir        = eups.productDir("obs_cfht")
+	cameraGeomPaf = os.path.join(simdir, "megacam", "description", "Full_Megacam_geom.paf")
+        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+
+        CameraInfo.__init__(self, "cfht", dataInfo, mapper, camera)
 
         
     def getRoots(self, baseDir, output=None):
@@ -136,7 +141,13 @@ class HscCameraInfo(CameraInfo):
             print "Failed to import lsst.obs.hscSim", e
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
-        CameraInfo.__init__(self, "hscSim", dataInfo, mapper)
+
+	simdir        = eups.productDir("obs_subaru")
+	cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
+        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+
+        CameraInfo.__init__(self, "hscSim", dataInfo, mapper, camera)
         
     def getRoots(self, baseDir, output=None):
         baseOut = os.path.join(baseDir, "HSC")
@@ -162,7 +173,13 @@ class SuprimecamCameraInfo(CameraInfo):
             print "Failed to import lsst.obs.suprimecam", e
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
-        CameraInfo.__init__(self, "suprimecam", dataInfo, mapper)
+
+	simdir        = eups.productDir("obs_subaru")
+	cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
+        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+
+        CameraInfo.__init__(self, "suprimecam", dataInfo, mapper, camera)
 
     def getRoots(self, baseDir, output=None):
         baseOut = os.path.join(baseDir, "SUPA")

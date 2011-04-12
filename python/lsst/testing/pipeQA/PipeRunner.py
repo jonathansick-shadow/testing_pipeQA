@@ -66,12 +66,12 @@ class PipeRunner(object):
 		ssDict[k] = ss
         return ssDict
 
-    def getSourceSetBySensorTransposed(self, dataId, accessor):
+    def getSourceSetColumnsBySensor(self, dataId, accessorList):
         """Get sources for requested data as one sourceSet. """
         
         ssDict = {}
         for testdata in self.testdataList:
-            ssD = testdata.getSourceSetBySensorTransposed(dataId, accessor)
+            ssD = testdata.getSourceSetColumnsBySensor(dataId, accessorList)
 	    for k, ss in ssD.items():
 		ssDict[k] = ss
         return ssDict

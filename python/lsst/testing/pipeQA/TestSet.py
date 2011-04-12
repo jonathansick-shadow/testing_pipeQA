@@ -13,13 +13,15 @@ from lsst.testing.pipeQA.Test          import Test
 
 class TestSet(object):
     
-    def __init__(self, mainDisplayFull=False):
+    def __init__(self, label=None, mainDisplayFull=False):
         """Constructor to create a TestSet object for a new suite of tests."""
         
         wwwBase = "www"
         testfileName = inspect.stack()[-1][1]
         self.testfileBase = re.sub(".py", "", os.path.split(testfileName)[1])
         self.wwwDir = os.path.join(wwwBase, "test_"+self.testfileBase)
+	if not label is None:
+	    self.wwwDir += "_"+label
 
         if not os.path.exists(self.wwwDir):
             os.mkdir(self.wwwDir)
@@ -102,7 +104,13 @@ class TestSet(object):
         self.curs.execute(cmd, values)
         self.conn.commit()
 
-    
+
+    def addTests(self, testList):
+
+	for test in testList:
+	    self.addTest(test)
+	    
+	
     def addTest(self, *args):
         """Add a test to this testing suite."""
 
@@ -111,7 +119,7 @@ class TestSet(object):
             test = Test(label, value, limits, comment)
         elif len(args) == 1:
             test, = args
-        
+
         self.tests.append(test)
 
         # grab a traceback for failed tests

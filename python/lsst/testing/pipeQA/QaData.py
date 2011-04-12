@@ -31,10 +31,11 @@ class QaData(object):
     #######################################################################
     #
     #######################################################################
-    def __init__(self, label, rerun, dataInfo):
+    def __init__(self, label, rerun, cameraInfo):
         self.label = label
         self.rerun = rerun
-        self.dataInfo = dataInfo
+	self.cameraInfo = cameraInfo
+        self.dataInfo = self.cameraInfo.dataInfo
         
         self.dataIdNames   = []
         self.dataIdDiscrim = []
@@ -48,28 +49,28 @@ class QaData(object):
 	#   all the entries that match unless we redo the query
 	#   But, if we've already done the identical query, we know we have everything
 	self.queryCache = {}
-	self.transposeQueryCache = {}
+	self.columnQueryCache = {}
 
         # cache source sets to avoid reloading the same thing
         self.sourceSetCache = {}
-	self.sourceSetTransposedCache = {}
+	self.sourceSetColumnCache = {}
 	
         # cache calexp to avoid reloading
         self.calexpCache = {}
 
 
-    def getSourceSetBySensorTransposed(self, dataIdRegex, accessors):
+    def getSourceSetColumnsBySensor(self, dataIdRegex, accessors):
 
 	dataIdStr = self._dataIdToString(dataIdRegex)
 
 	# if they want a specific dataId and we have it ....
 	ssTDict = {}
-	if self.sourceSetTransposedCache.has_key(dataIdStr):
+	if self.sourceSetColumnCache.has_key(dataIdStr):
 	    ssTDict[dataIdStr] = {}
 	    haveIt = True
 	    for accessor in accessors:
-		if self.sourceSetTransposedCache[dataIdStr].has_key(accessor):
-		    ssTDict[dataIdStr][accessor] = self.sourceSetTranposedCache[dataIdStr][accessor]
+		if self.sourceSetColumnCache[dataIdStr].has_key(accessor):
+		    ssTDict[dataIdStr][accessor] = self.sourceSetColumnCache[dataIdStr][accessor]
 		else:
 		    haveIt = False
 		    break
@@ -79,8 +80,8 @@ class QaData(object):
 	# if they've made this exact query before ... we must have it!
 	if False:
 	    ssTDict = {}
-	    if self.transposeQueryCache.has_key(dataIdStr+"-"+accessor):
-		for k, ssDict in self.sourceSetTransposedCache():
+	    if self.columnQueryCache.has_key(dataIdStr+"-"+accessor):
+		for k, ssDict in self.sourceSetColumnCache():
 		    if re.search(dataIdStr, k):
 			if not ssTDict.has_key(k):
 			    ssTDict[k] = {}
@@ -92,8 +93,8 @@ class QaData(object):
 	ssDict = self.getSourceSetBySensor(dataIdRegex)
 	ssTDict = {}
 	for k, ss in ssDict.items():
-	    if not self.sourceSetTransposedCache.has_key(k):
-		self.sourceSetTransposedCache[k] = {}
+	    if not self.sourceSetColumnCache.has_key(k):
+		self.sourceSetColumnCache[k] = {}
 	    ssTDict[k] = {}
 	    for accessor in accessors:
 		tmp = numpy.array([])
@@ -101,7 +102,7 @@ class QaData(object):
 		    method = getattr(s, "get"+accessor)
 		    value = method()
 		    tmp = numpy.append(tmp, value)
-		self.sourceSetTransposedCache[k][accessor] = tmp
+		self.sourceSetColumnCache[k][accessor] = tmp
 		ssTDict[k][accessor] = tmp
 
 	#self.transposeQueryCache[dataIdStr+'-'+accessor] = True
@@ -191,9 +192,8 @@ class ButlerQaData(QaData):
         haveManifest = boolean, verify files in dataDir are present according to manifest
         verifyChecksum = boolean, verify files in dataDir have correct checksum as listed in manifest
         """
-        QaData.__init__(self, label, rerun, cameraInfo.dataInfo)
+        QaData.__init__(self, label, rerun, cameraInfo)
         self.rerun = rerun
-        self.mapperClass = cameraInfo.mapperClass
         self.dataDir = dataDir
 
 
@@ -233,7 +233,7 @@ class ButlerQaData(QaData):
 
         #######################################
         # get butler
-        self.outMapper = cameraInfo.getMapper(self.dataDir, rerun=self.rerun)
+        self.outMapper = self.cameraInfo.getMapper(self.dataDir, rerun=self.rerun)
         self.outButler = dafPersist.ButlerFactory(mapper=self.outMapper).create()
 
         
@@ -386,8 +386,7 @@ class DbQaData(QaData):
     #ButlerQaData.__init__(self, label, rerun, cameraInfo, dataDir, **kwargs):
 
     def __init__(self, database, rerun, cameraInfo):
-        QaData.__init__(self, database, rerun, cameraInfo.dataInfo)
-        self.cameraInfo  = cameraInfo
+        QaData.__init__(self, database, rerun, cameraInfo)
         self.dbId        = DatabaseIdentity(self.label)
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
@@ -525,7 +524,7 @@ def makeQaData(label, rerun=None, retrievalType=None, **kwargs):
 	
 	# see if there's a testbed directory called 'label'
 	validButler = False
-	testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
+	testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label, raiseOnFailure=False)
 	if (not testbedDir is None) and (not testdataDir is None):
 	    validButler = True
 
