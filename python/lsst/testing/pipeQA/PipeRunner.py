@@ -1,4 +1,3 @@
-import lsst.pex.policy                   as pexPolicy
 import lsst.daf.persistence              as dafPersist
 import lsst.daf.base                     as dafBase
 import lsst.afw.detection                as afwDet

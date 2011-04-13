@@ -5,11 +5,14 @@ import numpy
 
 import sqlite
 
-import eups
 import lsst.pex.policy                  as pexPolicy
 import lsst.pex.logging                 as pexLog
 import lsst.daf.persistence             as dafPersist
 import lsst.afw.detection               as afwDet
+import lsst.afw.image                   as afwImage
+import lsst.meas.astrom                 as measAst
+import lsst.afw.geom                    as afwGeom
+import lsst.afw.cameraGeom              as cameraGeom
 
 from .DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
 
@@ -59,6 +62,7 @@ class QaData(object):
         self.calexpCache = {}
 	self.wcsCache = {}
 	self.detectorCache = {}
+	self.raftDetectorCache = {}
 	self.filterCache = {}
 	self.calibCache = {}
 
@@ -113,6 +117,19 @@ class QaData(object):
 	
 	return ssTDict
 
+
+
+
+    def getWcsBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.wcsCache, dataIdRegex)
+    def getDetectorBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.detectorCache, dataIdRegex)
+    def getFilterBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.filterCache, dataIdRegex)
+    def getCalibBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.calibCache, dataIdRegex)
+
+
     
 
     def verifyDataIdKeys(self, dataIdKeys, raiseOnFailure=True):
@@ -126,6 +143,8 @@ class QaData(object):
                 raise Exception("Key(s): "+keyStr+" not valid for camera "+str(self.cameraInfo))
             return False
         return True
+
+
 
 
     #######################################################################
@@ -333,6 +352,7 @@ class ButlerQaData(QaData):
                 print str(dataTuple) + " calib output file missing.  Skipping."
                 
 
+
     def getCalexpEntryBySensor(self, cache, dataIdRegex):
 
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
@@ -347,18 +367,6 @@ class ButlerQaData(QaData):
 		entryDict[dataKey] = cache[dataKey]
 	    
         return entryDict
-
-
-    def getWcsBySensor(self, dataIdRegex):
-	return self.getCalexpEntryBySensor(self.wcsCache, dataIdRegex)
-    def getDetectorBySensor(self, dataIdRegex):
-	return self.getCalexpEntryBySensor(self.detectorCache, dataIdRegex)
-    def getFilterBySensor(self, dataIdRegex):
-	return self.getCalexpEntryBySensor(self.filterCache, dataIdRegex)
-    def getCalibBySensor(self, dataIdRegex):
-	return self.getCalexpEntryBySensor(self.calibCache, dataIdRegex)
-
-
 
 
 
@@ -534,40 +542,95 @@ class DbQaData(QaData):
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-	if False:
-	    # sce.fluxMag0, sce.filterName
-	    sql  = 'select sce.visit, sce.raftName, sce.ccdName,'
-	    sql += '  from Source as s, Science_Ccd_Exposure as sce'
-	    sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+        selectList = ["sce."+x for x in qaDataUtils.getSceDbNames()]
+        selectStr = ",".join(selectList)
 
-	    haveAllKeys = True
+	sql  = 'select '+selectStr
+	sql += '  from Science_Ccd_Exposure as sce'
+	sql += '  where '
 
-	    for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
-		key, sqlName = keyNames
-		if dataIdRegex.has_key(key):
-		    sql += '    and '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
-		else:
-		    haveAllKeys = False
+	haveAllKeys = True
+
+	whereList = []
+	for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+	    key, sqlName = keyNames
+	    if dataIdRegex.has_key(key):
+		whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+	    else:
+		haveAllKeys = False
+	sql += " and ".join(whereList)
 
 
-	    for dataTuple in dataTuplesToFetch:
-		dataId = self._dataTupleToDataId(dataTuple)
-		dataKey = self._dataTupleToString(dataTuple)
+	# if there are no regexes (ie. actual wildcard expressions),
+	#  we can check the cache, otherwise must run the query
+	if not re.search("\%", sql) and haveAllKeys:
+	    dataIdCopy = copy.copy(dataIdRegex)
+	    dataIdCopy['snap'] = "0"
+	    key = self._dataIdToString(dataIdCopy)
+	    if self.calexpCache.has_key(key):
+		return
 
-		if self.calexpCache.has_key(dataKey):
-		    continue
+	# if the dataIdRegex is identical to an earlier query, we must already have all the data
+	#dataIdStr = self._dataIdToString(dataIdRegex)
+	#if self.queryCache.has_key(dataIdStr):
+	#    return
 
-		if self.outButler.datasetExists('calexp', dataId):
-		    calexp = self.outButler.get('calexp', dataId)
+	# run the query
+	results  = self.dbInterface.execute(sql)
 
-		    self.wcsCache[dataKey] = calexp.getWcs()
-		    self.detectorCache[dataKey] = calexp.getDetector()
-		    self.filterCache[dataKey] = calexp.getFilter()
-		    self.calibCache[dataKey] = calexp.getCalib()
+	for row in results:
 
-		    self.calexpCache[dataKey] = True
-		else:
-		    print str(dataTuple) + " calib output file missing.  Skipping."
+	    rowDict = dict(zip(qaDataUtils.getSceDbNames(), row))
+
+	    visit, raft, sensor = rowDict['visit'], rowDict['raftName'], rowDict['ccdName']
+	    dataIdTmp = {'visit':visit, 'raft':raft, 'sensor':sensor, 'snap':'0'}
+	    key = self._dataIdToString(dataIdTmp)
+
+	    #print rowDict
+	    if not self.wcsCache.has_key(key):
+		crval = afwGeom.makePointD(rowDict['crval1'], rowDict['crval2'])
+		crpix = afwGeom.makePointD(rowDict['crpix1'], rowDict['crpix2'])
+		cd11, cd12, cd21, cd22 = rowDict['cd1_1'], rowDict['cd1_2'], rowDict['cd2_1'], rowDict['cd2_2']
+		wcs = afwImage.createWcs(crval, crpix, cd11, cd12, cd21, cd22)
+		self.wcsCache[key] = wcs
+
+	    if not self.detectorCache.has_key(key):
+		raftName = "R:"+rowDict['raftName']
+		ccdName = raftName + " S:"+rowDict['ccdName']
+		raftId = cameraGeom.Id(raftName)
+		ccdId = cameraGeom.Id(ccdName)
+		ccdDetector = cameraGeom.Detector(ccdId)
+		raftDetector = cameraGeom.Detector(raftId)
+		ccdDetector.setParent(raftDetector)
+		self.raftDetectorCache[key] = raftDetector
+		self.detectorCache[key] = ccdDetector
+
+	    if not self.filterCache.has_key(key):
+		#filter = afwImage.Filter(rowDict['filterName'])
+		#self.filterCache[key] = filter
+		pass
+	    
+	    if not self.calibCache.has_key(key):
+		calib = afwImage.Calib()
+		calib.setFluxMag0(rowDict['fluxMag0'], rowDict['fluxMag0Sigma'])
+		self.calibCache[key] = calib
+
+	    self.calexpCache[key] = True
+
+
+
+    def getCalexpEntryBySensor(self, cache, dataIdRegex):
+
+        # get the datasets corresponding to the request
+	self.loadCalexp(dataIdRegex)
+	dataIdStr = self._dataIdToString(dataIdRegex
+					 )
+        entryDict = {}
+	for dataKey in cache.keys():
+	    if re.search(dataIdStr, dataKey):
+		entryDict[dataKey] = cache[dataKey]
+        return entryDict
+
 
 
     def getSourceSet(self, dataIdRegex):

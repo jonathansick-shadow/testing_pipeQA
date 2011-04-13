@@ -1,13 +1,17 @@
+import os, sys
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
 import numpy
 
-import pylab
+#import pylab
+import matplotlib.figure as figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
-
+from matplotlib import cm
+from matplotlib import colors
 
 import QaFigureUtils as qaFigUtils
 
@@ -15,7 +19,8 @@ import QaFigureUtils as qaFigUtils
 class QaFig(object):
 
     def __init__(self):
-        self.fig         = pylab.figure()
+        self.fig         = figure.Figure()
+	self.canvas      = FigCanvas(self.fig)
 
     def reset(self):
         self.fig.clf()
@@ -59,7 +64,7 @@ class FpaQaFigure(QaFig):
             for c in raft:
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
-                self.data[rlabel][clabel] = 0.0
+                self.data[rlabel][clabel] = None
 		
     def validate(self):
         # Since we establish the structure of data in __init__, it
@@ -80,25 +85,35 @@ class FpaQaFigure(QaFig):
 
     def makeFigure(self, 
                    DPI = 100., size = (1024, 1024), borderPix = 100,
-                   boundaryColors = 'r', doLabel = False):
-
-        if not self.validate():
-            Trace("lsst.testing.pipeQA.FpaFigure", 1, "Invalid Data")
-            return None
+                   boundaryColors = 'r', doLabel = False, showUndefined=False,
+		   vlimits=None, cmap="jet"):
 
         self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
         
         sp     = self.fig.gca()
         values = []  # needs to be synchronized with self.rectangles
+	patches = []
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
             for c in raft:
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
-                values.append(self.data[rlabel][clabel])
+		value = self.data[rlabel][clabel]
+		if (not value is None) or (showUndefined):
+		    values.append(value)
+		    patches.append(self.rectangles[clabel])
 
-        p = PatchCollection(self.rectangles)
+	if len(patches) == 0:
+	    patches = self.rectangles.value()
+
+	if not vlimits is None:
+	    norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1])
+	else:
+	    norm = colors.Normalize()
+
+	cmap = getattr(cm, cmap)
+        p = PatchCollection(patches, norm=norm, cmap=cmap)
         p.set_array(numpy.array(values))
         cb = self.fig.colorbar(p)
         sp.add_collection(p)
@@ -107,7 +122,7 @@ class FpaQaFigure(QaFig):
             sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
 
         if doLabel:
-            for r in self.rectangles:
+            for r in self.rectangles.values():
                 label = r.get_label()
                 bbox  = r.get_bbox()
                 xplot = 0.5 * (bbox.x0 + bbox.x1)
@@ -121,7 +136,7 @@ class FpaQaFigure(QaFig):
         ymin = +1e10
         xmax = -1e10
         ymax = -1e10
-        for r in self.rectangles:
+        for r in self.rectangles.values():
             bbox  = r.get_bbox()
             
             if (bbox.x0 < xmin):

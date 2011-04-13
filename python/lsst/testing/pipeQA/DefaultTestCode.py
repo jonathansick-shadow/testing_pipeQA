@@ -5,7 +5,6 @@ import re
 import inspect
 import sqlite
 import stat
-import eups
 
 
 class TestFailError(Exception):

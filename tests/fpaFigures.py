@@ -38,7 +38,7 @@ def main():
 		fig.data[raft][ccd] = 1.0*i
 		i += 1
 	
-	fig.makeFigure(size=(1024, 1024))
+	fig.makeFigure(size=(1024, 1024), showUndefined=True)
 	ts.addFigure(fig, camInfo.name+".png", "FPA for camera: "+camInfo.name)
 
 

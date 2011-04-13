@@ -44,13 +44,13 @@ def main(dataset, dataIdInput):
 
 
     analysisList = [
-	pipeQA.SourceBoundsQaAnalysis(),
+	#pipeQA.SourceBoundsQaAnalysis(),
 	pipeQA.ZeropointQaAnalysis(),
 	]
 
     for a in analysisList:
 	a.test(data, dataId)
-	a.plot(data, dataId)
+	a.plot(data, dataId, showUndefined=False)
 	
 	
 
@@ -77,6 +77,8 @@ if __name__ == '__main__':
 		      help="Specify raft as regex (default=%default)")
     parser.add_option("-s", "--snap", default=".*",
 		      help="Specify snap as regex (default=%default)")
+    parser.add_option("-C", "--camera", default="L",
+		      help="(L)sst, (C)fht, (H)sc, (S)uprime")
     
     opts, args = parser.parse_args()
 
@@ -91,13 +93,20 @@ if __name__ == '__main__':
 	'snap': opts.snap,
 	}
     dataset, = args
-    
-    #dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
-    #dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'0,0'}
 
-    dataset = 'hscsimTestData002'
-    #dataset = 'cfhtTestData002'
-    #dataset = 'suprimeTestData002'
-    dataId['visit'] = '.*'
+
+    if opts.camera=='L':
+	dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
+	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
+
+    elif opts.camera=='H':
+	dataset = 'hscsimTestData002'
+	dataId['visit'] = '.*'
+    elif opts.camera=='C':
+	dataset = 'cfhtTestData002'
+	dataId['visit'] = '.*'
+    elif opts.camera=="S":
+	dataset = 'suprimeTestData002'
+        dataId['visit'] = '.*'
 
     main(dataset, dataId)

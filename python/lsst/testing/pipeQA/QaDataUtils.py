@@ -118,3 +118,53 @@ def getSourceSetDbNames():
     return zip(*getSourceSetNameList())[1]
     
 
+def getSceNameList():
+    nameList = [
+	['scienceCcdExposureId', 'scienceCcdExposureId' ],
+	['visit',                'visit'                ],
+	['raft',                 'raft'                 ],
+	['raftName',             'raftName'             ],
+	['ccd',                  'ccd'                  ],
+	['ccdName',              'ccdName'              ],
+	['filterId',             'filterId'             ],
+	['filterName',           'filterName'           ],
+	['ra',                   'ra'                   ],
+	['decl',                 'decl'                 ],
+	['equinox',              'equinox'              ],
+	['raDeSys',              'raDeSys'              ],
+	['ctype1',               'ctype1'               ],
+	['ctype2',               'ctype2'               ],
+	['crpix1',               'crpix1'               ],
+	['crpix2',               'crpix2'               ],
+	['crval1',               'crval1'               ],
+	['crval2',               'crval2'               ],
+	['cd1_1',                'cd1_1'                ],
+	['cd1_2',                'cd1_2'                ],
+	['cd2_1',                'cd2_1'                ],
+	['cd2_2',                'cd2_2'                ],
+	['llcRa',                'llcRa'                ],
+	['llcDecl',              'llcDecl'              ],
+	['ulcRa',                'ulcRa'                ],
+	['ulcDecl',              'ulcDecl'              ],
+	['urcRa',                'urcRa'                ],
+	['urcDecl',              'urcDecl'              ],
+	['lrcRa',                'lrcRa'                ],
+	['lrcDecl',              'lrcDecl'              ],
+	['taiMjd',               'taiMjd'               ],
+	['obsStart',             'obsStart'             ],
+	['expMidpt',             'expMidpt'             ],
+	['expTime',              'expTime'              ],
+	['nCombine',             'nCombine'             ],
+	['binX',                 'binX'                 ],
+	['binY',                 'binY'                 ],
+	['readNoise',            'readNoise'            ],
+	['saturationLimit',      'saturationLimit'      ],
+	['gainEff',              'gainEff'              ],
+	['fluxMag0',             'fluxMag0'             ],
+	['fluxMag0Sigma',        'fluxMag0Sigma'        ],
+	['fwhm',                 'fwhm'                 ],
+	]
+    return nameList
+
+def getSceDbNames():
+    return zip(*getSceNameList())[1]

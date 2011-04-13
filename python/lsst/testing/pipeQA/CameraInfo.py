@@ -73,7 +73,8 @@ class LsstSimCameraInfo(CameraInfo):
             mapper = None
         dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
 
-	simdir        = eups.productDir("obs_lsstSim")
+	#simdir        = eups.productDir("obs_lsstSim")
+	simdir        = os.environ['OBS_LSSTSIM_DIR']
 	cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
@@ -110,7 +111,8 @@ class CfhtCameraInfo(CameraInfo):
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
 	
-	simdir        = eups.productDir("obs_cfht")
+	#simdir        = eups.productDir("obs_cfht")
+	simdir         = os.environ['OBS_CFHT_DIR']
 	cameraGeomPaf = os.path.join(simdir, "megacam", "description", "Full_Megacam_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
@@ -142,7 +144,8 @@ class HscCameraInfo(CameraInfo):
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
 
-	simdir        = eups.productDir("obs_subaru")
+	#simdir        = eups.productDir("obs_subaru")
+	simdir         = os.environ['OBS_SUBARU_DIR']
 	cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
@@ -174,7 +177,8 @@ class SuprimecamCameraInfo(CameraInfo):
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
 
-	simdir        = eups.productDir("obs_subaru")
+	#simdir        = eups.productDir("obs_subaru")
+	simdir         = os.environ['OBS_SUBARU_DIR']
 	cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)

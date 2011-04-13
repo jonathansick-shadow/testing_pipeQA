@@ -1,7 +1,8 @@
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
 
-import pylab
+import numpy
+
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
@@ -76,7 +77,7 @@ def plotSparseContour(sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
 
 
 def cameraToRectangles(camera):
-    rectangles = []
+    rectangles = {}
     boundaries = []
     for r in camera:
 	raft = cameraGeom.cast_Raft(r)
@@ -95,9 +96,17 @@ def cameraToRectangles(camera):
 
 	    cxc     = ccd.getCenterPixel().getX()
 	    cyc     = ccd.getCenterPixel().getY()
+	    orient  = ccd.getOrientation()
+	    nQuart  = ccd.getOrientation().getNQuarter()
+	    yaw     = orient.getYaw()
+
 	    cbbox   = ccd.getAllPixels(True)
 	    cwidth  = cbbox.getX1() - cbbox.getX0()
 	    cheight = cbbox.getY1() - cbbox.getY0()
+	    if abs(yaw - numpy.pi/2.0) < 1.0e-3:  # nQuart == 1 or nQuart == 3:
+		ctmp = cwidth
+		cwidth = cheight
+		cheight = ctmp
 
 	    cx0     = rxc + cxc - cwidth/2
 	    cy0     = ryc + cyc - cheight/2
@@ -114,7 +123,7 @@ def cameraToRectangles(camera):
 		ymax = cy1
 
 	    crectangle = Rectangle((cx0, cy0), cwidth, cheight, fill = False, label = label)
-	    rectangles.append(crectangle)
+	    rectangles[label] = crectangle
 
 	boundaries.append(((xmin, xmin), (ymin, ymax)))
 	boundaries.append(((xmin, xmax), (ymin, ymin)))
