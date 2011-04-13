@@ -30,8 +30,17 @@ def main():
 	print "trying camera: ", camInfo.name
 	camera = camInfo.camera
 	fig = pipeQA.FpaQaFigure(camera)
-	fig.makeFigure()
-	ts.addFigure(fig, camInfo.name, "FPA for camera: "+camInfo.name)
+
+	# set values to range 0 to 1
+	i = 0
+	for raft,ccdDict in fig.data.items():
+	    for ccd, value in ccdDict.items():
+		fig.data[raft][ccd] = 1.0*i
+		i += 1
+	
+	fig.makeFigure(size=(1024, 1024))
+	ts.addFigure(fig, camInfo.name+".png", "FPA for camera: "+camInfo.name)
+
 
 
 if __name__ == '__main__':

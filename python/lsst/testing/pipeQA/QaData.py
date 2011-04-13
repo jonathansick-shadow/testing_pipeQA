@@ -55,8 +55,12 @@ class QaData(object):
         self.sourceSetCache = {}
 	self.sourceSetColumnCache = {}
 	
-        # cache calexp to avoid reloading
+        # cache calexp info, but not the MaskedImage ... it's too big.
         self.calexpCache = {}
+	self.wcsCache = {}
+	self.detectorCache = {}
+	self.filterCache = {}
+	self.calibCache = {}
 
 
     def getSourceSetColumnsBySensor(self, dataIdRegex, accessors):
@@ -276,8 +280,9 @@ class ButlerQaData(QaData):
                 sourceSetTmp = persistableSourceVector.getSources()
 
                 if self.outButler.datasetExists('calexp', dataId):
-                    postIsrCcd = self.outButler.get('calexp', dataId)
-                    calib = postIsrCcd.getCalib()
+
+		    calibDict = self.getCalibBySensor(dataId)
+                    calib = calibDict[dataKey]
                     
                     fmag0, fmag0err = calib.getFluxMag0()
                     for s in sourceSetTmp:
@@ -302,6 +307,61 @@ class ButlerQaData(QaData):
 	return ssReturn
 
 
+
+    def loadCalexp(self, dataIdRegex):
+	
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
+
+        # get the datasets corresponding to the request
+        for dataTuple in dataTuplesToFetch:
+            dataId = self._dataTupleToDataId(dataTuple)
+            dataKey = self._dataTupleToString(dataTuple)
+            
+            if self.calexpCache.has_key(dataKey):
+                continue
+
+	    if self.outButler.datasetExists('calexp', dataId):
+		calexp = self.outButler.get('calexp', dataId)
+		
+		self.wcsCache[dataKey] = calexp.getWcs()
+		self.detectorCache[dataKey] = calexp.getDetector()
+		self.filterCache[dataKey] = calexp.getFilter()
+		self.calibCache[dataKey] = calexp.getCalib()
+		
+                self.calexpCache[dataKey] = True
+            else:
+                print str(dataTuple) + " calib output file missing.  Skipping."
+                
+
+    def getCalexpEntryBySensor(self, cache, dataIdRegex):
+
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
+
+        # get the datasets corresponding to the request
+        entryDict = {}
+        for dataTuple in dataTuplesToFetch:
+            dataId = self._dataTupleToDataId(dataTuple)
+            dataKey = self._dataTupleToString(dataTuple)
+	    self.loadCalexp(dataId)
+	    if cache.has_key(dataKey):
+		entryDict[dataKey] = cache[dataKey]
+	    
+        return entryDict
+
+
+    def getWcsBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.wcsCache, dataIdRegex)
+    def getDetectorBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.detectorCache, dataIdRegex)
+    def getFilterBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.filterCache, dataIdRegex)
+    def getCalibBySensor(self, dataIdRegex):
+	return self.getCalexpEntryBySensor(self.calibCache, dataIdRegex)
+
+
+
+
+
     #######################################################################
     # utility to go through a list of data Tuples and return
     #  the ones which match regexes for the corresponding data type
@@ -323,7 +383,7 @@ class ButlerQaData(QaData):
                 dataId = dataTuple[i]
 
                 # if it doesn't match, this frame isn't to be run.
-                if not re.search(regexForThisId,  str(dataId)):
+                if not re.search(str(regexForThisId),  str(dataId)):
                     match = False
 
             if match:
@@ -467,6 +527,47 @@ class DbQaData(QaData):
 	
 	return ssDict
 
+
+
+    def loadCalexp(self, dataIdRegex):
+	
+        # verify that the dataId keys are valid
+        self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
+
+	if False:
+	    # sce.fluxMag0, sce.filterName
+	    sql  = 'select sce.visit, sce.raftName, sce.ccdName,'
+	    sql += '  from Source as s, Science_Ccd_Exposure as sce'
+	    sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+
+	    haveAllKeys = True
+
+	    for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+		key, sqlName = keyNames
+		if dataIdRegex.has_key(key):
+		    sql += '    and '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
+		else:
+		    haveAllKeys = False
+
+
+	    for dataTuple in dataTuplesToFetch:
+		dataId = self._dataTupleToDataId(dataTuple)
+		dataKey = self._dataTupleToString(dataTuple)
+
+		if self.calexpCache.has_key(dataKey):
+		    continue
+
+		if self.outButler.datasetExists('calexp', dataId):
+		    calexp = self.outButler.get('calexp', dataId)
+
+		    self.wcsCache[dataKey] = calexp.getWcs()
+		    self.detectorCache[dataKey] = calexp.getDetector()
+		    self.filterCache[dataKey] = calexp.getFilter()
+		    self.calibCache[dataKey] = calexp.getCalib()
+
+		    self.calexpCache[dataKey] = True
+		else:
+		    print str(dataTuple) + " calib output file missing.  Skipping."
 
 
     def getSourceSet(self, dataIdRegex):

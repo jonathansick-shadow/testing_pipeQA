@@ -44,7 +44,8 @@ def main(dataset, dataIdInput):
 
 
     analysisList = [
-	pipeQA.SourceBoundsQaAnalysis()
+	pipeQA.SourceBoundsQaAnalysis(),
+	pipeQA.ZeropointQaAnalysis(),
 	]
 
     for a in analysisList:
