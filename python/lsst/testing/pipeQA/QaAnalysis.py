@@ -5,11 +5,8 @@ import TestCode as testCode
 
 class QaAnalysis(object):
 
-    def __init__(self, testSet=None, label=""):
-	if not testSet is None:
-	    self.testSet = testSet
-	else:
-	    self.testSet = testCode.TestSet(label=label)
+    def __init__(self):
+	self.testSets = {}
 
     def test(self):
 	return []
@@ -17,12 +14,17 @@ class QaAnalysis(object):
     def plot(self):
 	return []
 
+    def getTestSet(self, group):
+	label = self.__class__.__name__
+	if not self.testSets.has_key(group):
+	    self.testSets[group] = testCode.TestSet(label, group=group)
+	return self.testSets[group]
 
 
 class SourceBoundsQaAnalysis(QaAnalysis):
 
-    def __init__(self, testSet=None):
-	QaAnalysis.__init__(self, testSet, label="SourceBounds")
+    def __init__(self):
+	QaAnalysis.__init__(self)
 
     def test(self, data, dataId):
 
@@ -34,10 +36,12 @@ class SourceBoundsQaAnalysis(QaAnalysis):
 	value = 0
 	limits = [-1, 1]
 	comment = "dummy"
-	t = testCode.Test(label, value, limits, comment)
 
-	self.testSet.addTest(t)
-	
+	group = dataId['visit']
+	testSet = self.getTestSet(group)
+	t = testCode.Test(label, value, limits, comment)
+	testSet.addTest(t)
+
     def plot(self, data, dataId, showUndefined=False):
 
 	fig = qaFig.FpaQaFigure(data.cameraInfo.camera)
@@ -45,13 +49,16 @@ class SourceBoundsQaAnalysis(QaAnalysis):
 
 	fig.makeFigure(showUndefined=showUndefined)
 
-	self.testSet.addFigure(fig, "sourceBounds.png", "test caption")
+	group = dataId['visit']
+	testSet = self.getTestSet(group)
+	testSet.addFigure(fig, "sourceBounds.png", "test caption")
+
 
 
 class ZeropointQaAnalysis(QaAnalysis):
 
-    def __init__(self, testSet=None):
-	QaAnalysis.__init__(self, testSet, label="Zeropoint")
+    def __init__(self):
+	QaAnalysis.__init__(self)
 
 
     def test(self, data, dataId):
@@ -59,6 +66,10 @@ class ZeropointQaAnalysis(QaAnalysis):
 	# get data
 	self.detector = data.getDetectorBySensor(dataId)
 	self.calib = data.getCalibBySensor(dataId)
+
+	group = dataId['visit']
+	testSet = self.getTestSet(group)
+
 
 	self.values = []
 	self.data = {}
@@ -85,7 +96,7 @@ class ZeropointQaAnalysis(QaAnalysis):
 		limits = [-3.0, 3.0]
 		comment = "stdev with respect other ccds."
 		t = testCode.Test(label, value, limits, comment)
-		self.testSet.addTest(t)
+		testSet.addTest(t)
 
 		self.data[raftName][ccdName] = value
 		
@@ -101,4 +112,7 @@ class ZeropointQaAnalysis(QaAnalysis):
 
 	fig.makeFigure(showUndefined=showUndefined, vlimits=[-3.0, 3.0], cmap="gray")
 
-	self.testSet.addFigure(fig, "zeropoint.png", "Zeropoint caption")
+	group = dataId['visit']
+	testSet = self.getTestSet(group)
+	
+	testSet.addFigure(fig, "zeropoint.png", "Zeropoint caption")

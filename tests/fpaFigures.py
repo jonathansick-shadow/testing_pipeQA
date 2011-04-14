@@ -24,7 +24,7 @@ import lsst.testing.pipeQA as pipeQA
 
 def main():
 
-    ts = pipeQA.TestSet()
+    ts = pipeQA.TestSet(group="debug")
 
     for camInfo in pipeQA.getCameraInfoAvailable():
 	print "trying camera: ", camInfo.name

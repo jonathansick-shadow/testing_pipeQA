@@ -93,6 +93,7 @@ class FpaQaFigure(QaFig):
         sp     = self.fig.gca()
         values = []  # needs to be synchronized with self.rectangles
 	patches = []
+	allValues = []
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
@@ -100,19 +101,23 @@ class FpaQaFigure(QaFig):
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
 		value = self.data[rlabel][clabel]
+		allValues.append(value)
 		if (not value is None) or (showUndefined):
 		    values.append(value)
 		    patches.append(self.rectangles[clabel])
 
-	if len(patches) == 0:
-	    patches = self.rectangles.value()
-
 	if not vlimits is None:
-	    norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1])
+	    norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1], clip=False)
 	else:
 	    norm = colors.Normalize()
+	    
+	if len(patches) == 0:
+	    patches = self.rectangles.values()
+	    values = allValues
 
 	cmap = getattr(cm, cmap)
+	cmap.set_over('r', 0.8)
+	cmap.set_under('b', 0.8)
         p = PatchCollection(patches, norm=norm, cmap=cmap)
         p.set_array(numpy.array(values))
         cb = self.fig.colorbar(p)

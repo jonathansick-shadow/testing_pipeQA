@@ -66,6 +66,9 @@ class QaData(object):
 	self.filterCache = {}
 	self.calibCache = {}
 
+	# store the explicit dataId (ie. no regexes) for each key used in a cache
+	self.dataIdLookup = {}
+	
 
     def getSourceSetColumnsBySensor(self, dataIdRegex, accessors):
 
@@ -193,7 +196,15 @@ class QaData(object):
     def _dataIdToString(self, dataId):
 	return self._dataTupleToString(self._dataIdToDataTuple(dataId))
     
+
+    def keyStringsToVisits(self, keyList):
+	visits = {}
+	for key in keyList:
+	    visit = str(self.dataIdLookup[key]['visit'])
+	    visits[visit] = True
+	return visits.keys()
     
+	
     def getSourceSet(self, dataId):
         pass
 
@@ -272,7 +283,16 @@ class ButlerQaData(QaData):
         self.dataTuples = self._regexMatchDataIds(dataIdRegexDict, self.availableDataTuples)
 
 
-                
+
+    def getVisits(self, dataIdRegex):
+	""" Return explicit visits matching for a dataIdRegex."""
+	visits = []
+	dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
+	for dataTuple in dataTuplesToFetch:
+	    dataId = self._dataTupleToDataId(dataTuple)
+	    visits.append(str(dataId['visit']))
+	return set(visits)
+    
 
     #######################################################################
     #
@@ -312,6 +332,8 @@ class ButlerQaData(QaData):
 
                 self.sourceSetCache[dataKey] = sourceSetTmp
                 ssDict[dataKey] = copy.copy(sourceSetTmp)
+		self.dataIdLookup[dataKey] = dataId
+		
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
                 
@@ -348,6 +370,8 @@ class ButlerQaData(QaData):
 		self.calibCache[dataKey] = calexp.getCalib()
 		
                 self.calexpCache[dataKey] = True
+		self.dataIdLookup[dataKey] = dataId
+		
             else:
                 print str(dataTuple) + " calib output file missing.  Skipping."
                 
@@ -515,6 +539,8 @@ class DbQaData(QaData):
 	    visit, raft, sensor = row[0:3]
 	    dataIdTmp = {'visit':visit, 'raft':raft, 'sensor':sensor, 'snap':'0'}
 	    key = self._dataIdToString(dataIdTmp)
+	    self.dataIdLookup[key] = dataIdTmp
+	    
 	    if not ssDict.has_key(key):
 		ssDict[key] = []
 	    ss = ssDict[key]
@@ -535,6 +561,27 @@ class DbQaData(QaData):
 	
 	return ssDict
 
+
+
+    def getVisits(self, dataIdRegex):
+	""" Return explicit visits matching for a dataIdRegex."""
+
+	sql = "select distinct visit from Science_Ccd_Exposure"
+	sql += "   where "
+	haveAllKeys = True
+
+	whereList = []
+	for keyNames in [['visit', 'visit'], ['raft', 'raftName'], ['sensor', 'ccdName']]:
+	    key, sqlName = keyNames
+	    if dataIdRegex.has_key(key):
+		whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+	    else:
+		haveAllKeys = False
+	sql += " and ".join(whereList)
+
+	results = self.dbInterface.execute(sql)
+	visits = map(str, zip(*results)[0])
+	return visits
 
 
     def loadCalexp(self, dataIdRegex):
@@ -585,7 +632,8 @@ class DbQaData(QaData):
 	    visit, raft, sensor = rowDict['visit'], rowDict['raftName'], rowDict['ccdName']
 	    dataIdTmp = {'visit':visit, 'raft':raft, 'sensor':sensor, 'snap':'0'}
 	    key = self._dataIdToString(dataIdTmp)
-
+	    self.dataIdLookup[key] = dataIdTmp
+	    
 	    #print rowDict
 	    if not self.wcsCache.has_key(key):
 		crval = afwGeom.makePointD(rowDict['crval1'], rowDict['crval2'])
@@ -652,6 +700,7 @@ class DbQaData(QaData):
     ########################################
     def _sqlLikeEqual(self, field, regex):
 	""" """
+
         clause = ""
         if re.search('^\d+$', regex):
             clause += field + " = %s" % (regex)

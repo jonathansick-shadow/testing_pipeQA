@@ -18,6 +18,7 @@ import re
 import optparse
 import os
 import datetime
+import copy
 
 import lsst.testing.pipeQA as pipeQA
 
@@ -43,14 +44,20 @@ def main(dataset, dataIdInput):
 	    raise Exception("Key "+k+" not available for this dataset (camera="+data.cameraInfo.name+")")
 
 
+    # split by visit for now
+    visits = data.getVisits(dataId)
+    
     analysisList = [
-	#pipeQA.SourceBoundsQaAnalysis(),
+	pipeQA.SourceBoundsQaAnalysis(),
 	pipeQA.ZeropointQaAnalysis(),
 	]
 
     for a in analysisList:
-	a.test(data, dataId)
-	a.plot(data, dataId, showUndefined=False)
+	for visit in visits:
+	    dataIdVisit = copy.copy(dataId)
+	    dataIdVisit['visit'] = visit
+	    a.test(data, dataIdVisit)
+	    a.plot(data, dataIdVisit, showUndefined=False)
 	
 	
 
@@ -98,6 +105,7 @@ if __name__ == '__main__':
     if opts.camera=='L':
 	dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
 	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
+	dataId = {'visit':'855.*', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 
     elif opts.camera=='H':
 	dataset = 'hscsimTestData002'
