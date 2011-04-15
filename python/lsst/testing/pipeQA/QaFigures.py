@@ -189,7 +189,7 @@ class QaFigure(object):
         return num.array(bx), num.array(by), num.array(bs), num.array(bdy)
 
 
-    def plotSparseContour(self, sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
+    def plotSparseContour(self, sp, x, y, binSizeX, binSizeY, minCont = 25, nCont = 7):
         idx   = num.isfinite(x)
         x     = x[idx]
         y     = y[idx]
@@ -207,11 +207,9 @@ class QaFigure(object):
             yidx = (y[i] - ymin) // binSizeY
             cdata[yidx][xidx] += 1
     
-        #if cdata.max() < minCont:
-        #    minCont = 1
-            
         cs    = num.arange(minCont, cdata.max(), (cdata.max() - minCont) // nCont).astype(num.int)
-        c     = sp.contour(cdata, cs, origin='lower', linewidths=1, extent=(xmin,xmax,ymin,ymax))
+        #c    = sp.contour(cdata, cs, origin='lower', linewidths=1, extent=(xmin,xmax,ymin,ymax))
+        c     = sp.contourf(cdata, cs, origin='lower', cmap=pylab.cm.jet, extent=(xmin,xmax,ymin,ymax))
         outer = c.collections[0]._paths
     
         xp = []
@@ -221,7 +219,7 @@ class QaFigure(object):
             if not (True in found):
                 xp.append(x[i])
                 yp.append(y[i])
-        sp.plot(xp, yp, 'r.', ms = 1)
+        sp.plot(xp, yp, 'k.', ms = 0.5)
 
             
 class FpaFigure(QaFigure):
@@ -415,7 +413,6 @@ class ZeropointFpaFigure(FpaFigure):
         sql += ' where sce.raft = rm.raftNum '
         sql += ' and sce.ccd = cm.ccdNum'
         sql += ' and sce.visit = %s' % (visitId)
-        Trace("lsst.testing.pipeQA.ZeropointFpaFigure", 4, sql)
         results  = dbInterface.execute(sql)
         if len(results) == 0:
             return None
@@ -516,7 +513,6 @@ class LightcurveFigure(QaFigure):
         sql += ' and (sro.refObjectId = %d)' % (self.roid)
         sql += ' and (s.filterId = %d)' % (filterId)
         #sql += ' and ((s.flagForDetection & 0xa01) = 0)'
-        Trace("lsst.testing.pipeQA.LightcurveFigure", 4, sql)
         results = dbInterface.execute(sql)
 
         self.data["taiMjd"]      = num.array([x[0] for x in results])
@@ -630,7 +626,6 @@ class PhotometricRmsFigure(QaFigure):
         sql += ' and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += ' and s.objectID is not NULL'        
         sql += ' order by s.objectID'
-        Trace("lsst.testing.pipeQA.PhotometricRmsFigure", 4, sql)
         results = dbInterface.execute(sql)
         
         photByObject    = {}
@@ -728,11 +723,11 @@ class PhotometricRmsFigure(QaFigure):
         self.plotSparseContour(sp1, allcatMags, alldApMags, binSizeX = 0.1, binSizeY = 0.01)
         self.plotSparseContour(sp2, allcatMags, alldPsfMags, binSizeX = 0.1, binSizeY = 0.01)
 
-        sp1.plot(binnedAp[0], binnedAp[1]+binnedAp[2], 'bv', alpha = 0.5)
-        sp1.plot(binnedAp[0], binnedAp[1]-binnedAp[2], 'b^', alpha = 0.5)
-
-        sp2.plot(binnedPsf[0], binnedPsf[1]+binnedPsf[2], 'bv', alpha = 0.5)
-        sp2.plot(binnedPsf[0], binnedPsf[1]-binnedPsf[2], 'b^', alpha = 0.5)
+        # Arrows at +/- width?
+        #sp1.plot(binnedAp[0], binnedAp[1]+binnedAp[2], 'bv', alpha = 0.5)
+        #sp1.plot(binnedAp[0], binnedAp[1]-binnedAp[2], 'b^', alpha = 0.5)
+        #sp2.plot(binnedPsf[0], binnedPsf[1]+binnedPsf[2], 'bv', alpha = 0.5)
+        #sp2.plot(binnedPsf[0], binnedPsf[1]-binnedPsf[2], 'b^', alpha = 0.5)
         
         sp1.text(0.1, 0.9, r"$\sigma_{\rm %.1f - %.1f} = %.3f$" % ((minmag+sigmaOffset),
                                                                    (minmag+sigmaOffset+sigmaRange),
@@ -824,7 +819,6 @@ class ZeropointFitFigure(QaFigure):
         scesql += ' and ccdName = "%s"' % (ccdName)
         scesql += ' and filterName = "%s"' % (filterName)
         sceresults  = dbInterface.execute(scesql)
-        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, scesql)
         if len(sceresults) != 1:
             # throw exception or something
             return
@@ -845,7 +839,6 @@ class ZeropointFitFigure(QaFigure):
         srosql += ' and (ra <= %f)'   % (max( min(llcRa, ulcRa), max(urcRa, lrcRa) ))
         srosql += ' and (decl >= %f)' % (min( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
         srosql += ' and (decl <= %f)' % (max( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
-        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, srosql)
         sroresults  = dbInterface.execute(srosql)
         refAll = {'s': [], 'g': []}
         for result in sroresults:
@@ -867,7 +860,6 @@ class ZeropointFitFigure(QaFigure):
             mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
             mrefGsql += ' and (s.objectID is not NULL)'
             mrefGsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'])))
-            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, mrefGsql)
             mrefGresults  = dbInterface.execute(mrefGsql)
             mrefGmag  = num.array([x[0] for x in mrefGresults])
             mimgGflu  = num.array([x[1] for x in mrefGresults])
@@ -886,7 +878,6 @@ class ZeropointFitFigure(QaFigure):
         mrefSsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
         mrefSsql += ' and (s.objectID is not NULL)'
         mrefSsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['s'])))
-        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, mrefSsql)
         mrefSresults  = dbInterface.execute(mrefSsql)
         mrefSmag  = num.array([x[0] for x in mrefSresults])
         mimgSflu  = num.array([x[1] for x in mrefSresults])
@@ -904,7 +895,6 @@ class ZeropointFitFigure(QaFigure):
         urefsql += ' where (sro.refObjectId = rom.refObjectId)'
         urefsql += ' and (rom.objectId is NULL)'
         urefsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'] + refAll['s'])))
-        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, urefsql)
         urefresults = dbInterface.execute(urefsql)
         urefmag     = num.array([x[0] for x in urefresults])
         self.data["UnmatchedReference"] = urefmag
@@ -914,7 +904,6 @@ class ZeropointFitFigure(QaFigure):
         uimgsql  = 'select %sFlux from Source ' % (self.fluxtype)
         uimgsql += ' where (scienceCcdExposureId = %d)' % (sceId)
         uimgsql += ' and (objectId is NULL)'
-        Trace("lsst.testing.pipeQA.ZeropointFitFigure", 4, uimgsql)
         uimgresults  = dbInterface.execute(uimgsql)
         uimgmag      = -2.5 * num.log10( num.array([x[0] for x in uimgresults]) )
         self.data["UnmatchedImage"] = uimgmag
