@@ -1,7 +1,7 @@
-import QaFigure as qaFig
+import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
-import TestCode as testCode
+import lsst.testing.pipeQA.TestCode as testCode
 
 class QaAnalysis(object):
 
@@ -19,6 +19,7 @@ class QaAnalysis(object):
 	if not self.testSets.has_key(group):
 	    self.testSets[group] = testCode.TestSet(label, group=group)
 	return self.testSets[group]
+
 
 
 class SourceBoundsQaAnalysis(QaAnalysis):

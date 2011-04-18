@@ -21,6 +21,7 @@ import datetime
 import copy
 
 import lsst.testing.pipeQA as pipeQA
+import lsst.testing.pipeQA.analysis     as qaAnalysis
 
 #############################################################
 #
@@ -48,8 +49,8 @@ def main(dataset, dataIdInput):
     visits = data.getVisits(dataId)
     
     analysisList = [
-	pipeQA.SourceBoundsQaAnalysis(),
-	pipeQA.ZeropointQaAnalysis(),
+	qaAnalysis.SourceBoundsQaAnalysis(),
+	qaAnalysis.ZeropointQaAnalysis(),
 	]
 
     for a in analysisList:
