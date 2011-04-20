@@ -78,7 +78,9 @@ def plotSparseContour(sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
 
 def cameraToRectangles(camera):
     rectangles = {}
-    boundaries = []
+    centers = {}
+    raftBoundaries = []
+    ccdBoundaries = []
     for r in camera:
 	raft = cameraGeom.cast_Raft(r)
 
@@ -124,11 +126,18 @@ def cameraToRectangles(camera):
 
 	    crectangle = Rectangle((cx0, cy0), cwidth, cheight, fill = False, label = label)
 	    rectangles[label] = crectangle
+	    centers[label] = (rxc+cxc, ryc+cyc)
 
-	boundaries.append(((xmin, xmin), (ymin, ymax)))
-	boundaries.append(((xmin, xmax), (ymin, ymin)))
-	boundaries.append(((xmin, xmax), (ymax, ymax)))
-	boundaries.append(((xmax, xmax), (ymin, ymax)))
+	    ccdBoundaries.append(((cx0, cx0), (cy0, cy1)))
+	    ccdBoundaries.append(((cx0, cx1), (cy0, cy0)))
+	    ccdBoundaries.append(((cx0, cx1), (cy1, cy1)))
+	    ccdBoundaries.append(((cx1, cx1), (cy0, cy1)))
+	    
 
-    return rectangles, boundaries
+	raftBoundaries.append(((xmin, xmin), (ymin, ymax)))
+	raftBoundaries.append(((xmin, xmax), (ymin, ymin)))
+	raftBoundaries.append(((xmin, xmax), (ymax, ymax)))
+	raftBoundaries.append(((xmax, xmax), (ymin, ymax)))
+
+    return centers, rectangles, raftBoundaries, ccdBoundaries
 

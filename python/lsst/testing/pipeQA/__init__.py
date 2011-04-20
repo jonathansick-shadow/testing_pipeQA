@@ -1,20 +1,23 @@
-from PipeRunner import *
-from TestData import *
+from PipeRunner   import *
+from TestData     import *
 
-from QaData import *
+# utilities
+from Checksum     import *
+from Manifest     import Manifest, verifyManifest
+from TestCode     import *
+from CameraInfo   import *
+
+# the QaData 
+from QaData       import *
 from ButlerQaData import *
-from DbQaData import *
-from makeQaData import *
+from DbQaData     import *
+from makeQaData   import *
 
-from CameraInfo import *
-
+# QaAnalsys classes
 #from analysis import *
+
+# QaFigure classes
 #from figures import *
-
-from Checksum import *
-from Manifest import Manifest, verifyManifest
-from TestCode import *
-
 
 
 from DatabaseQuery import *

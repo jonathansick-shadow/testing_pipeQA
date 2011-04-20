@@ -49,8 +49,9 @@ def main(dataset, dataIdInput):
     visits = data.getVisits(dataId)
     
     analysisList = [
-	qaAnalysis.SourceBoundsQaAnalysis(),
-	qaAnalysis.ZeropointQaAnalysis(),
+	#qaAnalysis.SourceBoundsQaAnalysis(),
+	#qaAnalysis.ZeropointQaAnalysis(),
+	qaAnalysis.PsfVsApertureQaAnalysis(),
 	]
 
     for a in analysisList:

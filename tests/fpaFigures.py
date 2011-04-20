@@ -14,7 +14,8 @@ import optparse
 import os
 import datetime
 
-import lsst.testing.pipeQA as pipeQA
+import lsst.testing.pipeQA         as pipeQA
+import lsst.testing.pipeQA.figures as qaFig
 
 #############################################################
 #
@@ -29,17 +30,23 @@ def main():
     for camInfo in pipeQA.getCameraInfoAvailable():
 	print "trying camera: ", camInfo.name
 	camera = camInfo.camera
-	fig = pipeQA.FpaQaFigure(camera)
-
+	sfig = qaFig.FpaQaFigure(camera)
+	vfig = qaFig.VectorFpaQaFigure(camera)
+	
 	# set values to range 0 to 1
+	key0 = sfig.data.keys()[0]
+	n = len(sfig.data.keys()) * len(sfig.data[key0].keys())
 	i = 0
-	for raft,ccdDict in fig.data.items():
+	for raft in sorted(sfig.data.keys()):
 	    for ccd, value in ccdDict.items():
-		fig.data[raft][ccd] = 1.0*i
+		sfig.data[raft][ccd] = 1.0*i
+		vfig.data[raft][ccd] = [2.0*3.142*1.0*i/n, 1500*i/n, 1.0*i]
 		i += 1
 	
-	fig.makeFigure(size=(1024, 1024), showUndefined=True)
-	ts.addFigure(fig, camInfo.name+".png", "FPA for camera: "+camInfo.name)
+	sfig.makeFigure(size=(1024, 1024), showUndefined=True)
+	ts.addFigure(sfig, camInfo.name+"_scalar.png", "Scalar FPA for camera: "+camInfo.name)
+	vfig.makeFigure(size=(1024, 1024), showUndefined=True)
+	ts.addFigure(vfig, camInfo.name+"_vector.png", "Vector FPA for camera: "+camInfo.name)
 
 
 
