@@ -23,6 +23,7 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 	# get data
 	self.ssDict        = data.getSourceSetBySensor(dataId)
 	self.detector      = data.getDetectorBySensor(dataId)
+	self.calib         = data.getCalibBySensor(dataId)
 	
 	self.diff = raftCcdData.RaftCcdVector(self.detector)
 	self.mag  = raftCcdData.RaftCcdVector(self.detector)
@@ -33,13 +34,15 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 	    
 	    qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
 	    for s in ss:
-		psfFlux = s.getPsfFlux()
-		apFlux  = s.getApFlux()
-		psfMag  = -2.5*numpy.log10(psfFlux)
-		apMag   = -2.5*numpy.log10(apFlux)
-		if s.getFlagForDetection() & measAlg.Flags.STAR:
-		    self.diff.append(raft, ccd, psfMag - apMag)
-		    self.mag.append(raft, ccd, apMag)
+		f1 = s.getPsfFlux()
+		f2 = s.getModelFlux()
+		if (f1 > 0.0 and f2 > 0.0 and
+		    (s.getFlagForDetection() & measAlg.Flags.STAR) + 1):
+		    
+		    m1 = self.calib[key].getMagnitude(f1)
+		    m2 = self.calib[key].getMagnitude(f2)
+		    self.diff.append(raft, ccd, m1 - m2)
+		    self.mag.append(raft, ccd, m2)
 		    
 	group = dataId['visit']
 	testSet = self.getTestSet(group)
@@ -48,27 +51,28 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 	
 	# get the mean difference and add tests
 	self.means = raftCcdData.RaftCcdData(self.detector)
-	for raft, ccd, mean in self.diff.listKeysAndValues('mean', nLowest=nLowest):
+	for raft, ccd, mean, n in self.diff.listKeysAndValues('meanclip', nLowest=nLowest):
 	    self.means.set(raft, ccd, mean)
 	    label = "mean psf_vs_aper " + ccd
-	    comment = "mean psf-ap magnitude difference (nstar = %d)" % (len(self.diff.get(raft, ccd)))
+	    comment = "mean psf-ap magnitude difference (nstar/clip=%d/%d)" % (len(self.diff.get(raft, ccd)),n)
 	    testSet.addTest( testCode.Test(label, mean, [-0.02, 0.02], comment) )
 
 	# get the mean difference and add tests
 	self.medians = raftCcdData.RaftCcdData(self.detector)
-	for raft, ccd, median in self.diff.listKeysAndValues('median', nLowest=nLowest):
+	for raft, ccd, median, n in self.diff.listKeysAndValues('median', nLowest=nLowest):
 	    self.medians.set(raft, ccd, median)
 	    label = "median psf_vs_aper " + ccd
-	    comment = "median psf-ap magnitude difference (nstar = %d)" % (len(self.diff.get(raft, ccd)))
+	    comment = "median psf-ap magnitude difference (nstar/clip=%d/%d)" % (len(self.diff.get(raft, ccd)), n)
 	    testSet.addTest( testCode.Test(label, median, [-0.02, 0.02], comment) )
 	    
 	# get the stdev and add tests
 	self.stds  = raftCcdData.RaftCcdData(self.detector)
-	for raft, ccd, std in self.diff.listKeysAndValues('std', nLowest=nLowest):
+	for raft, ccd, std, n in self.diff.listKeysAndValues('stdevclip', nLowest=nLowest):
 	    self.stds.set(raft, ccd, std)
 	    label = "stdev psf_vs_aper " + ccd
-	    comment = "stdev of psf-ap magnitude difference (nstar = %d)" % (len(self.diff.get(raft, ccd)))
-	    testSet.addTest( testCode.Test(label, std, [0.0, 0.1], comment) )
+	    comment = "stdev of psf-ap magnitude difference (nstar/clip=%d/%d)" % (len(self.diff.get(raft, ccd)), n)
+	    testSet.addTest( testCode.Test(label, std, [0.0, 0.02], comment) )
+
 
     def plot(self, data, dataId, showUndefined=False):
 
@@ -81,7 +85,7 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 	    for ccd, value in ccdDict.items():
 		fig.data[raft][ccd] = self.means.get(raft, ccd)
 
-	fig.makeFigure(showUndefined=showUndefined)
+	fig.makeFigure(showUndefined=showUndefined, cmap="gray", vlimits=[-0.02, 0.02])
 	testSet.addFigure(fig, "psfMinusAperture.png", "Psf - aper magnitude differences.")
 	
 
@@ -95,23 +99,30 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 	sm = cm.ScalarMappable(norm, cmap=cm.jet)
 
 	i = 0
-	xmin, xmax = 0.0, 0.0
+	xmin, xmax = 1.0e99, -1.0e99
 	for raft, ccd in self.mag.raftCcdKeys():
 	    mag  = self.mag.get(raft, ccd)
 	    diff = self.diff.get(raft, ccd)
+
+	    # if there's no data, dump a single point at xmax, 0.0
+	    if not len(mag) > 0:
+		mag = numpy.array([xmax])
+		diff = numpy.array([0.0])
+
 	    min, max = mag.min(), mag.max()
 	    if min < xmin: xmin = min
-	    if max < xmax: xmax = max
+	    if max > xmax: xmax = max
 	    
 	    size = 1.0
 	    color = sm.to_rgba(i)
 	    ax.scatter(mag, diff, size, color=color, label=ccd)
 	    i += 1
+
 	box = ax.get_position()
 	ax.set_position([box.x0, box.y0, 0.75*box.width, box.height])
 	fp = fm.FontProperties(size="small")
 	ax.legend(prop=fp, loc=(1.05, 0.0))
 	ax.set_xlim([xmin, xmax])
-	ax.set_ylim([-2.0, 2.0])
+	ax.set_ylim([-0.6, 0.6])
 
 	testSet.addFigure(fig.fig, "diff_psf-ap.png", "psf-ap vs. ap")

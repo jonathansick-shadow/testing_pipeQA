@@ -1,4 +1,6 @@
+import sys, os, re
 import numpy
+import lsst.afw.math as afwMath
 
 class RaftCcdData(object):
 
@@ -64,7 +66,7 @@ class RaftCcdVector(RaftCcdData):
     def __init__(self, detector):
 	RaftCcdData.__init__(self, detector, initValue=numpy.array([]))
 
-    def listKeysAndValues(self, methodName=None, nHighest=None, nLowest=None):
+    def xxxlistKeysAndValues(self, methodName=None, nHighest=None, nLowest=None):
 	kvList = []
 	for raft in sorted(self.data.keys()):
 	    for ccd in sorted(self.data[raft].keys()):
@@ -91,6 +93,35 @@ class RaftCcdVector(RaftCcdData):
 			value = method()
 		kvList.append([raft, ccd, value])
 	return kvList
+
+
+    def listKeysAndValues(self, methodName=None, nHighest=None, nLowest=None):
+
+	methods = {
+	    "median" : afwMath.MEDIAN,
+	    "meanclip" : afwMath.MEANCLIP,
+	    "stdevclip" : afwMath.STDEVCLIP,
+	    "mean" : afwMath.MEAN,
+	    "stdev" : afwMath.STDEV,
+	    }
+	
+	kvList = []
+	for raft in sorted(self.data.keys()):
+	    for ccd in sorted(self.data[raft].keys()):
+		dtmp = self.data[raft][ccd]
+		if not nHighest is None:
+		    dtmp.sort()
+		    dtmp = dtmp[-nHighest:]
+		if (not nLowest is None) and (nHighest is None):
+		    dtmp.sort()
+		    dtmp = dtmp[0:nLowest]
+		stat = afwMath.makeStatistics(dtmp, afwMath.NPOINT | methods[methodName])
+		value = stat.getValue(methods[methodName])
+		n = stat.getValue(afwMath.NPOINT)
+		kvList.append([raft, ccd, value, n])
+		
+	return kvList
+
 	
     def reset(self, initValue=numpy.array([])):
 	RaftCcdData.reset(self, initValue)

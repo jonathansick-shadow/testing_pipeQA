@@ -25,7 +25,7 @@ import lsst.testing.pipeQA.figures as qaFig
 
 def main():
 
-    ts = pipeQA.TestSet(group="debug")
+    ts = pipeQA.TestSet(group="selftest")
 
     for camInfo in pipeQA.getCameraInfoAvailable():
 	print "trying camera: ", camInfo.name

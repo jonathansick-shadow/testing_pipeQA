@@ -22,9 +22,9 @@ def isStar(ss):
     syy = afwMath.makeStatistics(viyy, afwMath.MEANCLIP | afwMath.STDEVCLIP)
 
     for s in ss:
-	xxOk = (sxx.getValue(afwMath.MEANCLIP) - s.getIxx())/sxx.getValue(afwMath.STDEVCLIP) < 2.0
-	xyOk = (sxy.getValue(afwMath.MEANCLIP) - s.getIxy())/sxx.getValue(afwMath.STDEVCLIP) < 2.0
-	yyOk = (syy.getValue(afwMath.MEANCLIP) - s.getIyy())/sxx.getValue(afwMath.STDEVCLIP) < 2.0
+	xxOk = (sxx.getValue(afwMath.MEANCLIP) - s.getIxx())/sxx.getValue(afwMath.STDEVCLIP) < 3.0
+	xyOk = (sxy.getValue(afwMath.MEANCLIP) - s.getIxy())/sxx.getValue(afwMath.STDEVCLIP) < 3.0
+	yyOk = (syy.getValue(afwMath.MEANCLIP) - s.getIyy())/sxx.getValue(afwMath.STDEVCLIP) < 3.0
 
 	if xxOk and xyOk and yyOk:
 	    s.setFlagForDetection(s.getFlagForDetection() | measAlg.Flags.STAR)

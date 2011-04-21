@@ -106,6 +106,7 @@ if __name__ == '__main__':
 
     if opts.camera=='L':
 	dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
+	dataset = 'buildbot_weekly_latest'
 	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	dataId = {'visit':'855.*', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 
