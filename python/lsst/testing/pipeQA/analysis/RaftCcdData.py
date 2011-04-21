@@ -10,6 +10,13 @@ class RaftCcdData(object):
 	
 	self.cache = None
 
+    def raftCcdKeys(self):
+	keyList = []
+	for raft in sorted(self.data.keys()):
+	    for ccd in sorted(self.data[raft].keys()):
+		keyList.append([raft, ccd])
+	return keyList
+	
 
     def listKeysAndValues(self):
 	kvList = []
@@ -57,18 +64,31 @@ class RaftCcdVector(RaftCcdData):
     def __init__(self, detector):
 	RaftCcdData.__init__(self, detector, initValue=numpy.array([]))
 
-    def listKeysAndValues(self, methodName):
+    def listKeysAndValues(self, methodName=None, nHighest=None, nLowest=None):
 	kvList = []
 	for raft in sorted(self.data.keys()):
 	    for ccd in sorted(self.data[raft].keys()):
-		finite = numpy.where( numpy.isfinite(self.data[raft][ccd]) )
-		dtmp = self.data[raft][ccd][finite]
-		value = None
-		if methodName == 'median':
-		    value = numpy.median(dtmp)
+		# if not method specified, return the list
+		if methodName is None:
+		    value = self.data[raft][ccd]
+
+		# otherwise reduce the list to a number: eg. mean, std, median
 		else:
-		    method = getattr(dtmp, methodName)
-		    value = method()
+		    finite = numpy.where( numpy.isfinite(self.data[raft][ccd]) )
+		    dtmp = self.data[raft][ccd][finite]
+		    if not nHighest is None:
+			dtmp.sort()
+			dtmp = dtmp[-nHighest:]
+		    if (not nLowest is None) and (nHighest is None):
+			dtmp.sort()
+			dtmp = dtmp[0:nLowest]
+
+		    value = None
+		    if methodName == 'median':
+			value = numpy.median(dtmp)
+		    else:
+			method = getattr(dtmp, methodName)
+			value = method()
 		kvList.append([raft, ccd, value])
 	return kvList
 	

@@ -53,9 +53,11 @@ class FpaQaFigure(QaFig):
 	if not data is None:
 	    if not self.validate():
 		raise Exception("Data did not pass validation.")
-	else:
-	    self.data = {}
-	    self.reset()
+
+	self.data = {}
+	self.reset()
+
+	self.map = {}
 	
     def reset(self):
         for r in self.camera:
