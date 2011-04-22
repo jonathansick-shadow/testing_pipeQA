@@ -16,10 +16,10 @@ from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
 
-import lsst.pipette.readwrite as pipReadWrite
-import lsst.pipette.processCcd as pipProcCcd
-import lsst.pipette.catalog as pipCatalog
-import lsst.pipette.config as pipConfig
+#import lsst.pipette.readwrite as pipReadWrite
+#import lsst.pipette.processCcd as pipProcCcd
+#import lsst.pipette.catalog as pipCatalog
+#import lsst.pipette.config as pipConfig
 
 class HtmlFormatter(object):
     def __init__(self):
@@ -49,11 +49,11 @@ class HtmlFormatter(object):
     def generateHtml(self, buff, prefix, width = 75, height = 75):
         buff.write('<html><body><table>\n')
 
-        for rr in [['',    '4,1', '4,2', '4,3',  '',],
-                   ['3,0', '3,1', '3,2', '3,3', '3,4',],
-                   ['2,0', '2,1', '2,2', '2,3', '2,4',],
-                   ['1,0', '1,1', '1,2', '1,3', '1,4',],
-                   ['',    '0,1', '0,2', '0,3', '',]]:
+        for rr in [['',    '1,4', '2,4', '3,4',  '',],
+                   ['0,3', '1,3', '2,3', '3,3', '4,3',],
+                   ['0,2', '1,2', '2,2', '3,2', '4,2',],
+                   ['0,1', '1,1', '2,1', '3,1', '4,1',],
+                   ['',    '1,0', '2,0', '3,0', '',]]:
             buff.write('  <tr>\n')
             for r in rr:
                 if len(r):
@@ -69,9 +69,9 @@ class HtmlFormatter(object):
                     continue
 
                 buff.write('    <td><table>\n')
-                for cc in [['2,0', '2,1', '2,2'], 
-                           ['1,0', '1,1', '1,2'], 
-                           ['0,0', '0,1', '0,2']]:
+                for cc in [['0,2', '1,2', '2,2'], 
+                           ['0,1', '1,1', '2,1'], 
+                           ['0,0', '1,0', '2,0']]:
                     for c in cc:
                         imgname = self.generateFileName(prefix, r, c)
                         buff.write('        <td><a href="%s">' % (imgname))
@@ -207,7 +207,10 @@ class QaFigure(object):
             yidx = (y[i] - ymin) // binSizeY
             cdata[yidx][xidx] += 1
     
-        cs    = num.arange(minCont, cdata.max(), (cdata.max() - minCont) // nCont).astype(num.int)
+        if cdata.max() < minCont:
+            minCont = cdata.max() // 2
+        cstep = max(1, (cdata.max() - minCont) // nCont)
+        cs    = num.arange(minCont, cdata.max(), cstep).astype(num.int)
         #c    = sp.contour(cdata, cs, origin='lower', linewidths=1, extent=(xmin,xmax,ymin,ymax))
         c     = sp.contourf(cdata, cs, origin='lower', cmap=pylab.cm.jet, extent=(xmin,xmax,ymin,ymax))
         outer = c.collections[0]._paths
@@ -1030,11 +1033,6 @@ class ZeropointFitFigure(QaFigure):
         pylab.setp(ax4.get_xticklabels(), visible=False)
         pylab.setp(ax4.get_yticklabels(), fontsize = 8)
 
-        ax2.set_xlim(1, 999)
-        ax3.set_ylim(1, 999)
-        ax4.set_ylim(-0.99, 0.99)
-        axis.axis((xmax, xmin, ymax, ymin))
-
         self.fig.legend(legLines, legLabels,
                         numpoints=1, prop=FontProperties(size='small'), loc = 'center right')
         self.fig.suptitle('%s v%s r%s s%s' %
@@ -1047,6 +1045,7 @@ class ZeropointFitFigure(QaFigure):
         soffset     = num.sort(numerator)
         d50         = int(0.50 * len(soffset))
         self.sdqaMetrics['starZptMedianOffset'].setValue( soffset[d50] )
+        ax4.axhline(y = soffset[d50], c='k', linestyle=':', alpha = 0.5)
 
         chi         = numerator / denominator
         chi         = num.sort(chi)
@@ -1054,6 +1053,13 @@ class ZeropointFitFigure(QaFigure):
         d90         = int(0.90 * len(chi))
         rchi        = chi[d10:d90]
         self.sdqaMetrics['starZptRobustChi2'].setValue( num.sum(rchi**2) / (len(rchi)-1) )
+
+        # Final axis limits
+        ax2.set_xlim(1, 999)
+        ax3.set_ylim(1, 999)
+        ax4.set_ylim(-0.24, 0.24)
+        axis.axis((xmax, xmin, ymax, ymin))
+
         
 
 
