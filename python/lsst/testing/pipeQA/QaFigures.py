@@ -1055,8 +1055,8 @@ class ZeropointFitFigure(QaFigure):
         self.sdqaMetrics['starZptRobustChi2'].setValue( num.sum(rchi**2) / (len(rchi)-1) )
 
         # Final axis limits
-        ax2.set_xlim(1, 999)
-        ax3.set_ylim(1, 999)
+        ax2.set_xlim(0.75, 999)
+        ax3.set_ylim(0.75, 999)
         ax4.set_ylim(-0.24, 0.24)
         axis.axis((xmax, xmin, ymax, ymin))
 
