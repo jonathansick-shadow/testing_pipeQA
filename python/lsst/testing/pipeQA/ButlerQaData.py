@@ -88,6 +88,8 @@ class ButlerQaData(QaData):
         self.dataTuples = self._regexMatchDataIds(dataIdRegexDict, self.availableDataTuples)
 
 
+    def getDataName(self):
+	return os.path.realpath(self.dataDir) + " rerun="+str(self.rerun)
 
     def getVisits(self, dataIdRegex):
 	""" Return explicit visits matching for a dataIdRegex."""
@@ -130,10 +132,9 @@ class ButlerQaData(QaData):
                     
                     fmag0, fmag0err = calib.getFluxMag0()
                     for s in sourceSetTmp:
-                        apFlux  = s.getApFlux()
-                        psfFlux = s.getPsfFlux()
-                        s.setApFlux(apFlux/fmag0)
-                        s.setPsfFlux(psfFlux/fmag0)
+                        s.setApFlux(s.getApFlux()/fmag0)
+                        s.setPsfFlux(s.getPsfFlux()/fmag0)
+			s.setModelFlux(s.getModelFlux()/fmag0)
 
                 self.sourceSetCache[dataKey] = sourceSetTmp
                 ssDict[dataKey] = copy.copy(sourceSetTmp)
@@ -166,13 +167,33 @@ class ButlerQaData(QaData):
             if self.calexpCache.has_key(dataKey):
                 continue
 
-	    if self.outButler.datasetExists('calexp', dataId):
-		calexp = self.outButler.get('calexp', dataId)
+	    if self.outButler.datasetExists('calexp_md', dataId):
+		calexp_md = self.outButler.get('calexp_md', dataId)
 		
-		self.wcsCache[dataKey] = calexp.getWcs()
-		self.detectorCache[dataKey] = calexp.getDetector()
-		self.filterCache[dataKey] = calexp.getFilter()
-		self.calibCache[dataKey] = calexp.getCalib()
+		#self.wcsCache[dataKey]      = calexp.getWcs()
+		#self.detectorCache[dataKey] = calexp.getDetector()
+		#self.filterCache[dataKey]   = calexp.getFilter()
+		#self.calibCache[dataKey]    = calexp.getCalib()
+		self.wcsCache[dataKey]      = afwImage.makeWcs(calexp_md)
+
+		ccdName = calexp_md.getAsString('DETNAME')
+		names = ccdName.split()
+		if len(names) > 1:
+		    raftName = names[0]
+		else:
+		    raftName = "R:0,0"
+
+		raftId = cameraGeom.Id(raftName)
+		ccdId = cameraGeom.Id(ccdName)
+		ccdDetector = cameraGeom.Detector(ccdId)
+		raftDetector = cameraGeom.Detector(raftId)
+		ccdDetector.setParent(raftDetector)
+		self.raftDetectorCache[dataKey] = raftDetector
+		self.detectorCache[dataKey] = ccdDetector
+		
+		#self.detectorCache[dataKey] = cameraGeom.Detector()
+		self.filterCache[dataKey]   = afwImage.Filter(calexp_md)
+		self.calibCache[dataKey]    = afwImage.Calib(calexp_md)
 		
                 self.calexpCache[dataKey] = True
 		self.dataIdLookup[dataKey] = dataId

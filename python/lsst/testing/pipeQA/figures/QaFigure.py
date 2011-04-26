@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, re
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
 import numpy
@@ -18,10 +18,14 @@ import QaFigureUtils as qaFigUtils
 
 class QaFig(object):
 
-    def __init__(self):
-        self.fig         = figure.Figure()
+    def __init__(self, size=(4.0, 4.0), dpi=100): # (512, 512), DPI=100):
+        self.fig         = figure.Figure(figsize=size)
+	self.fig.set_dpi(dpi)
 	self.canvas      = FigCanvas(self.fig)
-
+	self.map         = {}
+        #self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
+	self.mapAreas    = []
+	
     def reset(self):
         self.fig.clf()
 	
@@ -37,7 +41,46 @@ class QaFig(object):
 	return self.fig
 
     def savefig(self, path, **kwargs):
-	self.fig.savefig(path, **kwargs)
+	self.fig.savefig(path, dpi=self.fig.get_dpi(), **kwargs)
+
+    def savemap(self, path):
+	mapList = self.getMapInfo()
+	if len(mapList) > 0:
+	    fp = open(path, 'w')
+
+	    # don't include overplotted map areas
+	    n = 100
+	    xpmax, ypmax = self.fig.transFigure.transform((1.0, 1.0))
+	    haveLookup = numpy.zeros([n, n])
+	    for array in mapList:
+
+		label, x0, y0, x1, y1, info = array
+		ix = int(n*0.5*(x0 + x1)/xpmax)
+		iy = int(n*0.5*(y0 + y1)/ypmax)
+		ixOk = ix >= 0 and ix < n
+		iyOk = iy >= 0 and iy < n
+		if ixOk and iyOk and haveLookup[ix,iy] == 0:
+		    fp.write("%s %d %d %d %d %s\n" % (label, x0, y0, x1, y1, info))
+		    haveLookup[ix,iy] = 1
+		    
+	    fp.close()
+
+
+    def addMapArea(self, label, area, info):
+	axes = self.fig.gca()
+
+	x0, y0, x1, y1 = area
+	tr = self.fig.transFigure.transform((1.0, 1.0))
+	xpmax, ypmax = tr
+	xy1 = axes.transData.transform((x0, y0))
+	xy2 = axes.transData.transform((x1, y1))
+	left, bottom = xy1
+	right, top = xy2
+	self.mapAreas.append([label, left, ypmax-top, right, ypmax-bottom, info])
+
+    
+    def getMapInfo(self):
+	return self.mapAreas
 
 
 
@@ -57,17 +100,20 @@ class FpaQaFigure(QaFig):
 	self.data = {}
 	self.reset()
 
-	self.map = {}
+	self.reset(data=self.map)
 	
-    def reset(self):
+    def reset(self, data=None):
+	if data is None:
+	    data = self.data
+	    
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
-            self.data[rlabel] = {}
+            data[rlabel] = {}
             for c in raft:
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
-                self.data[rlabel][clabel] = None
+                data[rlabel][clabel] = None
 		
     def validate(self):
         # Since we establish the structure of data in __init__, it
@@ -86,14 +132,48 @@ class FpaQaFigure(QaFig):
         return True
 
 
-    def makeFigure(self, 
-                   DPI = 100., size = (1024, 1024), borderPix = 100,
-                   boundaryColors = 'r', doLabel = False, showUndefined=False,
-		   vlimits=None, cmap="jet"):
 
-        self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
-        
+    def getMapInfo(self):
+
+	mapList = []
+	axes = self.fig.gca()
+
+	tr = self.fig.transFigure.transform((1.0, 1.0))
+	xpmax, ypmax = tr
+	
+	for r in self.camera:
+	    raft = cameraGeom.cast_Raft(r)
+	    rlabel = raft.getId().getName()
+	    for c in raft:
+		ccd = cameraGeom.cast_Ccd(c)
+		clabel = ccd.getId().getName()
+		info = self.map[rlabel][clabel]
+
+		if ((not info is None) and
+		    self.ccdBoundaries.has_key(clabel) and
+		    (not self.ccdBoundaries[clabel] is None)):
+		    bound = self.ccdBoundaries[clabel]
+		    x0, x1 = bound[0]
+		    y0, y1 = bound[1]
+		    xy1 = axes.transData.transform((x0, y0))
+		    xy2 = axes.transData.transform((x1, y1))
+		    left, bottom = xy1
+		    right, top = xy2
+		    label = re.sub("\s+", "_", clabel)
+		    mapList.append([label, left, ypmax-top, right, ypmax-bottom, info])
+
+	return mapList
+
+
+    def makeFigure(self, 
+                   borderPix = 100,
+                   boundaryColors = 'r', doLabel = False, showUndefined=False,
+		   vlimits=None, cmap="jet", title=None):
+
+	self.fig.subplots_adjust(left=0.175, right=0.95)
+	
         sp     = self.fig.gca()
+
         values = []  # needs to be synchronized with self.rectangles
 	patches = []
 	allValues = []
@@ -119,8 +199,8 @@ class FpaQaFigure(QaFig):
 	    values = allValues
 
 	cmap = getattr(cm, cmap)
-	cmap.set_over('r', 0.8)
-	cmap.set_under('b', 0.8)
+	#cmap.set_over('r', 0.8)
+	#cmap.set_under('b', 0.8)
         p = PatchCollection(patches, norm=norm, cmap=cmap)
         p.set_array(numpy.array(values))
         cb = self.fig.colorbar(p)
@@ -128,8 +208,12 @@ class FpaQaFigure(QaFig):
 
         for b in self.raftBoundaries:
             sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
-        for b in self.ccdBoundaries:
-            sp.plot(b[0], b[1], 'k-', lw=1)
+	for b in self.ccdBoundaries.values():
+	    x0, x1 = b[0]
+	    y0, y1 = b[1]
+	    x = numpy.array([x0, x0, x1, x1, x0])
+	    y = numpy.array([y0, y1, y1, y0, y0])
+            sp.plot(x, y, 'k-', lw=1)
 
         if doLabel:
             for r in self.rectangles.values():
@@ -137,11 +221,21 @@ class FpaQaFigure(QaFig):
                 bbox  = r.get_bbox()
                 xplot = 0.5 * (bbox.x0 + bbox.x1)
                 yplot = bbox.y1 - size[1]//2
-                sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
+                sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 6, weight = 'bold')
 
-        sp.set_xlabel("Focal Plane X", fontsize = 20, weight = 'bold')
-        sp.set_ylabel("Focal Plane Y", fontsize = 20, weight = 'bold')
+	if not title is None:
+	    sp.set_title(title)
+        sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
+        sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
 
+	for tic in cb.ax.get_yticklabels():
+	    tic.set_size("x-small")
+	for tic in sp.get_xticklabels():
+	    tic.set_size("x-small")
+	for tic in sp.get_yticklabels():
+	    tic.set_size("x-small")
+	    tic.set_rotation(45)
+	    
         xmin = +1e10
         ymin = +1e10
         xmax = -1e10
@@ -159,8 +253,7 @@ class FpaQaFigure(QaFig):
                 ymax = bbox.y1
         sp.set_xlim((xmin - borderPix, xmax + borderPix))
         sp.set_ylim((ymin - borderPix, ymax + borderPix))
-    
-
+	#self.fig.subplotparams.update(left=0.15)
 
 class VectorFpaQaFigure(FpaQaFigure):
 
@@ -169,12 +262,11 @@ class VectorFpaQaFigure(FpaQaFigure):
 
 
     def makeFigure(self, 
-                   DPI = 100., size = (1024, 1024), borderPix = 100,
+                   borderPix = 100,
                    raftBoundColors = 'r', doLabel = False, showUndefined=False,
-		   vlimits=None, cmap="jet"):
+		   vlimits=None, cmap="jet", title=None):
 
-        self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
-        
+	self.fig.subplots_adjust(left=0.175, right=0.95)
         sp     = self.fig.gca()
         colorValues = []  # needs to be synchronized with self.rectangles
 	patches = []
@@ -242,8 +334,12 @@ class VectorFpaQaFigure(FpaQaFigure):
 
         for b in self.raftBoundaries:
             sp.plot(b[0], b[1], '%s-' % (raftBoundColors), lw=3)
-        for b in self.ccdBoundaries:
-            sp.plot(b[0], b[1], 'k-', lw=1)
+        for b in self.ccdBoundaries.values():
+	    x0, x1 = b[0]
+	    y0, y1 = b[1]
+	    x = numpy.array([x0, x0, x1, x1, x0])
+	    y = numpy.array([y0, y1, y1, y0, y0])
+            sp.plot(x, y, 'k-', lw=1)
 
         if doLabel:
             for r in self.rectangles.values():
@@ -253,8 +349,18 @@ class VectorFpaQaFigure(FpaQaFigure):
                 yplot = bbox.y1 - size[1]//2
                 sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
 
-        sp.set_xlabel("Focal Plane X", fontsize = 20, weight = 'bold')
-        sp.set_ylabel("Focal Plane Y", fontsize = 20, weight = 'bold')
+	if not title is None:
+	    sp.set_title(title)
+        sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
+        sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
+
+	for tic in cb.ax.get_yticklabels():
+	    tic.set_size("x-small")
+	for tic in sp.get_xticklabels():
+	    tic.set_size("x-small")
+	for tic in sp.get_yticklabels():
+	    tic.set_size("x-small")
+	    tic.set_rotation(45)
 
         xmin = +1e10
         ymin = +1e10

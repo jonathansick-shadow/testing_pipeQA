@@ -46,6 +46,10 @@ class QaData(object):
 
 	# store the explicit dataId (ie. no regexes) for each key used in a cache
 	self.dataIdLookup = {}
+
+
+    def getDataName(self):
+	return self.label+" rerun="+str(self.rerun)
 	
 
     def getSourceSetColumnsBySensor(self, dataIdRegex, accessors):

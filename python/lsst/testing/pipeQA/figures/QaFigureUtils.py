@@ -80,7 +80,7 @@ def cameraToRectangles(camera):
     rectangles = {}
     centers = {}
     raftBoundaries = []
-    ccdBoundaries = []
+    ccdBoundaries = {}
     for r in camera:
 	raft = cameraGeom.cast_Raft(r)
 
@@ -103,8 +103,8 @@ def cameraToRectangles(camera):
 	    yaw     = orient.getYaw()
 
 	    cbbox   = ccd.getAllPixels(True)
-	    cwidth  = cbbox.getX1() - cbbox.getX0()
-	    cheight = cbbox.getY1() - cbbox.getY0()
+	    cwidth  = cbbox.getMaxX() - cbbox.getMinX()
+	    cheight = cbbox.getMaxY() - cbbox.getMinY()
 	    if abs(yaw - numpy.pi/2.0) < 1.0e-3:  # nQuart == 1 or nQuart == 3:
 		ctmp = cwidth
 		cwidth = cheight
@@ -128,10 +128,7 @@ def cameraToRectangles(camera):
 	    rectangles[label] = crectangle
 	    centers[label] = (rxc+cxc, ryc+cyc)
 
-	    ccdBoundaries.append(((cx0, cx0), (cy0, cy1)))
-	    ccdBoundaries.append(((cx0, cx1), (cy0, cy0)))
-	    ccdBoundaries.append(((cx0, cx1), (cy1, cy1)))
-	    ccdBoundaries.append(((cx1, cx1), (cy0, cy1)))
+	    ccdBoundaries[label] = ((cx0, cx1), (cy0, cy1))
 	    
 
 	raftBoundaries.append(((xmin, xmin), (ymin, ymax)))

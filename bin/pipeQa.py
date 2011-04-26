@@ -56,6 +56,7 @@ def main(dataset, dataIdInput):
 
     for a in analysisList:
 	for visit in visits:
+	    print "Running visit: ", visit
 	    dataIdVisit = copy.copy(dataId)
 	    dataIdVisit['visit'] = visit
 	    a.test(data, dataIdVisit)
@@ -107,9 +108,13 @@ if __name__ == '__main__':
     if opts.camera=='L':
 	dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
 	dataset = 'buildbot_weekly_latest'
+	#dataset = "update"
 	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-	dataId = {'visit':'855.*', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-
+	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+	#dataId = {'visit':'857064441.*', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
+	#dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+	
     elif opts.camera=='H':
 	dataset = 'hscsimTestData002'
 	dataId['visit'] = '.*'

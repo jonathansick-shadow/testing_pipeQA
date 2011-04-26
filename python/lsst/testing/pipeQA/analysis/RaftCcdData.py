@@ -95,7 +95,7 @@ class RaftCcdVector(RaftCcdData):
 	return kvList
 
 
-    def listKeysAndValues(self, methodName=None, nHighest=None, nLowest=None):
+    def listKeysAndValues(self, methodName=None, nHighest=None, nLowest=None, limits=None):
 
 	methods = {
 	    "median" : afwMath.MEDIAN,
@@ -108,13 +108,19 @@ class RaftCcdVector(RaftCcdData):
 	kvList = []
 	for raft in sorted(self.data.keys()):
 	    for ccd in sorted(self.data[raft].keys()):
-		dtmp = self.data[raft][ccd]
+		dtmp = self.data[raft][ccd].copy()
 		if not nHighest is None:
 		    dtmp.sort()
 		    dtmp = dtmp[-nHighest:]
 		if (not nLowest is None) and (nHighest is None):
 		    dtmp.sort()
 		    dtmp = dtmp[0:nLowest]
+		    
+		if not limits is None:
+		    lo, hi = limits
+		    w = numpy.where( (dtmp > lo) & (dtmp < hi) )
+		    dtmp = dtmp[w]
+		    
 		stat = afwMath.makeStatistics(dtmp, afwMath.NPOINT | methods[methodName])
 		value = stat.getValue(methods[methodName])
 		n = stat.getValue(afwMath.NPOINT)
@@ -128,4 +134,4 @@ class RaftCcdVector(RaftCcdData):
 
     def append(self, raft, ccd, value):
 	self.data[raft][ccd] = numpy.append(self.data[raft][ccd], value)
-    
+

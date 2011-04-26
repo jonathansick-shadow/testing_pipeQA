@@ -38,7 +38,7 @@ class Test(object):
 
 class TestSet(object):
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, group=""):
 	self.testDir = os.path.join("tests", ".tests")
 	self.figDir = os.path.join("figures")
 
@@ -94,6 +94,9 @@ class TestSet(object):
 	fp.write(message+"\n")
 	fp.close()
 
+
+    def addMetadata(self, *args):
+	pass
 	
     def addTests(self, testList):
 	for test in testList:

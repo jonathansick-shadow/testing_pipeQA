@@ -80,10 +80,10 @@ class DbQaData(QaData):
             s = afwDet.Source()
 
 	    visit, raft, sensor = row[0:3]
-	    dataIdTmp = {'visit':visit, 'raft':raft, 'sensor':sensor, 'snap':'0'}
+	    dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
 	    key = self._dataIdToString(dataIdTmp)
 	    self.dataIdLookup[key] = dataIdTmp
-	    
+
 	    if not ssDict.has_key(key):
 		ssDict[key] = []
 	    ss = ssDict[key]
@@ -94,7 +94,15 @@ class DbQaData(QaData):
                 if not value is None:
                     method(value)
                 i += 1
-                
+
+
+	    # calibrate it
+	    calib = self.getCalibBySensor(dataIdTmp)
+	    fmag0, fmag0Err = calib[key].getFluxMag0()
+	    s.setPsfFlux(s.getPsfFlux()/fmag0)
+	    s.setApFlux(s.getApFlux()/fmag0)
+	    s.setModelFlux(s.getModelFlux()/fmag0)
+	    
             ss.append(s)
 
 	# cache it
@@ -179,8 +187,8 @@ class DbQaData(QaData):
 	    
 	    #print rowDict
 	    if not self.wcsCache.has_key(key):
-		crval = afwGeom.makePointD(rowDict['crval1'], rowDict['crval2'])
-		crpix = afwGeom.makePointD(rowDict['crpix1'], rowDict['crpix2'])
+		crval = afwGeom.PointD(rowDict['crval1'], rowDict['crval2'])
+		crpix = afwGeom.PointD(rowDict['crpix1'], rowDict['crpix2'])
 		cd11, cd12, cd21, cd22 = rowDict['cd1_1'], rowDict['cd1_2'], rowDict['cd2_1'], rowDict['cd2_2']
 		wcs = afwImage.createWcs(crval, crpix, cd11, cd12, cd21, cd22)
 		self.wcsCache[key] = wcs
@@ -197,9 +205,8 @@ class DbQaData(QaData):
 		self.detectorCache[key] = ccdDetector
 
 	    if not self.filterCache.has_key(key):
-		#filter = afwImage.Filter(rowDict['filterName'])
-		#self.filterCache[key] = filter
-		pass
+		filter = afwImage.Filter(rowDict['filterName'], True)
+		self.filterCache[key] = filter
 	    
 	    if not self.calibCache.has_key(key):
 		calib = afwImage.Calib()
