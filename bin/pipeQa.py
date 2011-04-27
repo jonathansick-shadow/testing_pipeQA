@@ -52,6 +52,7 @@ def main(dataset, dataIdInput):
 	#qaAnalysis.SourceBoundsQaAnalysis(),
 	#qaAnalysis.ZeropointQaAnalysis(),
 	qaAnalysis.PsfVsApertureQaAnalysis(),
+	qaAnalysis.PsfEllipticityQaAnalysis(),
 	]
 
     for a in analysisList:
@@ -113,7 +114,7 @@ if __name__ == '__main__':
 	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'857064441.*', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-	#dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+	dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	
     elif opts.camera=='H':
 	dataset = 'hscsimTestData002'

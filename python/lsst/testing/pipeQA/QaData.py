@@ -1,6 +1,8 @@
 import sys, os, re, copy
 import numpy
 
+import lsst.ap.cluster as apCluster
+
 #######################################################################
 #
 #
@@ -130,7 +132,22 @@ class QaData(object):
         return True
 
 
+    def getSourceClusters(self, dataIdRegex,
+			  epsilonArcsec = 0.5,
+			  minNeighbors = 1,
+			  pointsPerLeaf = 100,
+			  leafExtentThresholdArcsec = 0.5):
+	
+	policy = pexPolicy.Policy()
+	policy.set("epsilonArcsec", epsilonArcsec)
+	policy.set("minNeighbors", minNeighbors)
+	policy.set("pointsPerLeaf", pointsPerLeaf)
+	policy.set("leafExtentThresholdArcsec", leafExtentThresholdArcsec)
 
+	sources = self.getSourceSet(dataIdRegex)
+	sourceClusters = apCluster.cluster(sources, policy)
+	
+	return sourceClusters
 
     #######################################################################
     #

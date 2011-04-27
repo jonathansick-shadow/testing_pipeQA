@@ -2,6 +2,7 @@ import os, sys, re
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
 import numpy
+import numpy.ma as numpyMa
 
 #import pylab
 import matplotlib.figure as figure
@@ -185,9 +186,12 @@ class FpaQaFigure(QaFig):
                 clabel = ccd.getId().getName()
 		value = self.data[rlabel][clabel]
 		allValues.append(value)
-		if (not value is None) or (showUndefined):
-		    values.append(value)
-		    patches.append(self.rectangles[clabel])
+		#if (not value is None) or (showUndefined):
+		if value is None:
+		    value = numpy.NaN
+		values.append(value)
+		patches.append(self.rectangles[clabel])
+
 
 	if not vlimits is None:
 	    norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1], clip=False)
@@ -199,10 +203,11 @@ class FpaQaFigure(QaFig):
 	    values = allValues
 
 	cmap = getattr(cm, cmap)
-	#cmap.set_over('r', 0.8)
-	#cmap.set_under('b', 0.8)
+	cmap.set_bad('k', 0.2)
         p = PatchCollection(patches, norm=norm, cmap=cmap)
-        p.set_array(numpy.array(values))
+	value_array = numpy.array(values)
+	masked_value_array = numpyMa.masked_where(numpy.isnan(value_array), value_array)
+        p.set_array(masked_value_array)
         cb = self.fig.colorbar(p)
         sp.add_collection(p)
 
@@ -275,7 +280,8 @@ class VectorFpaQaFigure(FpaQaFigure):
 	radiansWrtX = {}
 	lenInPix = {}
 	colorScalar = {}
-	    
+	haveColors = False
+	
 	for r in self.camera:
 	    raft   = cameraGeom.cast_Raft(r)
 	    rlabel = raft.getId().getName()
@@ -293,17 +299,23 @@ class VectorFpaQaFigure(FpaQaFigure):
 		    else:
 			raise Exception("values for Vector must be float or [radians, lenInPix, [colorFloat]].")
 		else:
-		    radiansWrtXtmp, lenInPixtmp, colorScalartmp = float(values), 1500.0, None
+		    if not values is None:
+			values = float(values)
+		    radiansWrtXtmp, lenInPixtmp, colorScalartmp = values, 1500.0, None
 		
 		allValues.append(radiansWrtXtmp)
-		if (not radiansWrtXtmp is None) or (showUndefined):
+		if (not radiansWrtXtmp is None): # or (showUndefined):
 		    if not colorScalartmp is None:
 			colorValues.append(colorScalartmp)
 			patches.append(self.rectangles[clabel])
 			colorScalar[clabel] = colorScalartmp
+			haveColors = True
 		    radiansWrtX[clabel] = radiansWrtXtmp
 		    lenInPix[clabel]    = lenInPixtmp
-		    
+		else:
+		    colorValues.append(numpy.NaN)
+		    patches.append(self.rectangles[clabel])
+
 
 	if not vlimits is None:
 	    norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1], clip=False)
@@ -315,11 +327,15 @@ class VectorFpaQaFigure(FpaQaFigure):
 	    #colorValues = allValues
 
 	    cmap = getattr(cm, cmap)
-	    cmap.set_over('r', 0.8)
-	    cmap.set_under('b', 0.8)
+	    cmap.set_bad('k', 0.2)
+	    #cmap.set_over('r', 0.8)
+	    #cmap.set_under('b', 0.8)
 	    p = PatchCollection(patches, norm=norm, cmap=cmap)
-	    p.set_array(numpy.array(colorValues))
-	    cb = self.fig.colorbar(p)
+	    value_array = numpy.array(colorValues)
+	    masked_value_array = numpyMa.masked_where(numpy.isnan(value_array), value_array)
+	    p.set_array(masked_value_array)
+	    if haveColors:
+		cb = self.fig.colorbar(p)
 	    sp.add_collection(p)
 
 
@@ -354,8 +370,9 @@ class VectorFpaQaFigure(FpaQaFigure):
         sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
         sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
 
-	for tic in cb.ax.get_yticklabels():
-	    tic.set_size("x-small")
+	if len(patches) > 0 and haveColors:
+	    for tic in cb.ax.get_yticklabels():
+		tic.set_size("x-small")
 	for tic in sp.get_xticklabels():
 	    tic.set_size("x-small")
 	for tic in sp.get_yticklabels():
