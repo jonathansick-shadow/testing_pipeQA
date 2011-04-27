@@ -26,6 +26,116 @@ class DbQaData(QaData):
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
 
+    def getMatchListBySensor(self, dataIdRegex):
+	
+	self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
+
+        setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
+        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
+        selectStr = ",".join(selectList)
+	
+	sql  = 'select sce.filterId, sce.filterName from Science_Ccd_Exposure as sce'
+	sql += ' where '
+	haveAllKeys = True
+
+	idWhereList = []
+	for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+	    key, sqlName = keyNames
+	    if dataIdRegex.has_key(key):
+		idWhereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+	    else:
+		haveAllKeys = False
+	idWhere = " and ".join(idWhereList)
+
+	# if there are no regexes (ie. actual wildcard expressions),
+	#  we can check the cache, otherwise must run the query
+	
+	if not re.search("\%", idWhere) and haveAllKeys:
+	    dataIdCopy = copy.copy(dataIdRegex)
+	    dataIdCopy['snap'] = "0"
+	    key = self._dataIdToString(dataIdCopy)
+	    if self.matchListCache.has_key(key):
+		return {key : self.matchListCache[key]}
+
+	# if the dataIdRegex is identical to an earlier query, we must already have all the data
+	dataIdStr = self._dataIdToString(dataIdRegex)
+	if self.matchQueryCache.has_key(dataIdStr):
+	    matchListDict = {}
+	    # get only the ones that match the request
+	    for key, matchList in self.matchListCache.items():
+		if re.search(dataIdStr, key):
+		    matchListDict[key] = matchList
+	    return matchListDict
+
+	sql += idWhere
+	result = self.dbInterface.execute(sql)
+	filterId, filterName = result[0]
+
+	
+        # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
+        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, '%(filterName)
+	sql += selectStr
+        sql += '  from Source as s, Science_Ccd_Exposure as sce,'
+        sql += '    RefObjMatch as rom, SimRefObject as sro'
+        sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+        sql += '    and (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
+        sql += '    and (sro.isStar = 1) and (sro.isVar = 0)'
+        sql += '    and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
+        sql += '    and s.objectID is not NULL'        
+	sql += '    and '+idWhere
+	
+
+	# run the query
+        results  = self.dbInterface.execute(sql)
+
+        # parse results and put them in a sourceSet
+        matchListDict = {}
+        for row in results:
+            s = afwDet.Source()
+	    sref = afwDet.Source()
+	    
+	    visit, raft, sensor, mag, ra, dec = row[0:6]
+	    dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
+	    key = self._dataIdToString(dataIdTmp)
+	    self.dataIdLookup[key] = dataIdTmp
+
+	    if not matchListDict.has_key(key):
+		matchListDict[key] = []
+	    matchList = matchListDict[key]
+
+	    sref.setRa(ra)
+	    sref.setDec(dec)
+	    flux = 10**(-mag/2.5)
+	    sref.setPsfFlux(flux)
+	    sref.setApFlux(flux)
+	    sref.setModelFlux(flux)
+	    
+            i = 0
+	    for value in row[6:]:
+                method = getattr(s, setMethods[i])
+                if not value is None:
+                    method(value)
+                i += 1
+
+
+	    # calibrate it
+	    calib = self.getCalibBySensor(dataIdTmp)
+	    fmag0, fmag0Err = calib[key].getFluxMag0()
+	    s.setPsfFlux(s.getPsfFlux()/fmag0)
+	    s.setApFlux(s.getApFlux()/fmag0)
+	    s.setModelFlux(s.getModelFlux()/fmag0)
+	    
+            matchList.append([s, sref])
+
+	# cache it
+	self.matchQueryCache[dataIdStr] = True
+	for k, matchList in matchListDict.items():
+	    self.matchListCache[k] = matchListDict[k]
+	
+	return matchListDict
+
+
+
     def getSourceSetBySensor(self, dataIdRegex):
 
         # verify that the dataId keys are valid

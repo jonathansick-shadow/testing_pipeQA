@@ -14,51 +14,102 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 
-class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
+class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self):
+    def __init__(self, magType1='psf', magType2='aperture'):
 	qaAna.QaAnalysis.__init__(self)
+
+	def magType(mType):
+	    if re.search("(psf|PSF)", mType):
+		return "psf"
+	    elif re.search("^ap", mType):
+		return "ap"
+	    elif re.search("^mod", mType):
+		return "mod"
+	    elif re.search("^cat", mType):
+		return "cat"
+
+	self.magType1 = magType(magType1)
+	self.magType2 = magType(magType2)
+
+
+    def _getFlux(self, mType, s, sref):
+	if mType=="psf":
+	    return s.getPsfFlux()
+	elif mType=="ap":
+	    return s.getApFlux()
+	elif mType=="mod":
+	    return s.getModelFlux()
+	elif mType=="cat":
+	    return sref.getPsfFlux()
+	
 
     def test(self, data, dataId):
 	
 	# get data
-	self.ssDict        = data.getSourceSetBySensor(dataId)
 	self.detector      = data.getDetectorBySensor(dataId)
-	self.calib         = data.getCalibBySensor(dataId)
 	self.filter        = data.getFilterBySensor(dataId)
 	
 	self.diff = raftCcdData.RaftCcdVector(self.detector)
 	self.mag  = raftCcdData.RaftCcdVector(self.detector)
 
 	filter = None
-	for key, ss in self.ssDict.items():
-	    raft = self.detector[key].getParent().getId().getName()
-	    ccd  = self.detector[key].getId().getName()
 
-	    filter = self.filter[key].getName()
-	    
-	    qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
-	    for s in ss:
-		f1 = s.getPsfFlux()
-		f2 = s.getApFlux()
-		if ((f1 > 0.0 and f2 > 0.0) and
-		    not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER )):
-		    #(s.getFlagForDetection() & measAlg.Flags.STAR)):
+	# if we're asked to compare catalog fluxes ... we need a matchlist
+	if  self.magType1=="cat" or self.magType2=="cat":
+	    self.matchListDict = data.getMatchListBySensor(dataId)
+	    for key, matchList in self.matchListDict.items():
+		raft = self.detector[key].getParent().getId().getName()
+		ccd  = self.detector[key].getId().getName()
+		filter = self.filter[key].getName()
+
+		for m in matchList:
+		    s, sref = m
 		    
-		    m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
-		    m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
+		    f1 = self._getFlux(self.magType1, s, sref)
+		    f2 = self._getFlux(self.magType2, s, sref)
+		    
+		    if not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER ):
+			m1 = -2.5*numpy.log10(f1)
+			m2 = -2.5*numpy.log10(f2)
+			
+			self.diff.append(raft, ccd, m1 - m2)
+			self.mag.append(raft, ccd, m1)
 
-		    self.diff.append(raft, ccd, m1 - m2)
-		    self.mag.append(raft, ccd, m2)
+	# if we're not asked for catalog fluxes, we can just use a sourceSet
+	else:
+	    self.ssDict        = data.getSourceSetBySensor(dataId)
+	    for key, ss in self.ssDict.items():
+		raft = self.detector[key].getParent().getId().getName()
+		ccd  = self.detector[key].getId().getName()
+
+		filter = self.filter[key].getName()
+
+		qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
+		for s in ss:
+		    f1 = self._getFlux(self.magType1, s, s)
+		    f2 = self._getFlux(self.magType2, s, s)
+		    
+		    if ((f1 > 0.0 and f2 > 0.0) and
+			not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER )):
+			#(s.getFlagForDetection() & measAlg.Flags.STAR)):
+
+			m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
+			m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
+
+			self.diff.append(raft, ccd, m1 - m2)
+			self.mag.append(raft, ccd, m2)
+
+
 		    
 	group = dataId['visit']
-	testSet = self.getTestSet(group)
+	testSet = self.getTestSet(group, label=self.magType1+"-"+self.magType2)
 	testSet.addMetadata('dataset', data.getDataName())
 	testSet.addMetadata('visit', dataId['visit'])
 	testSet.addMetadata('filter', filter)
+	testSet.addMetadata('magType1', self.magType1)
+	testSet.addMetadata('magType2', self.magType2)
 
-	nLowest = 100
-	
 	self.means = raftCcdData.RaftCcdData(self.detector)
 	self.medians = raftCcdData.RaftCcdData(self.detector)
 	self.stds  = raftCcdData.RaftCcdData(self.detector)
@@ -75,19 +126,21 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 	    std = stat.getValue(afwMath.STDEVCLIP)
 	    n = stat.getValue(afwMath.NPOINT)
 
+	    tag = self.magType1+"_vs_"+self.magType2
+	    dtag = self.magType1+"-"+self.magType2
 	    self.means.set(raft, ccd, mean)
-	    label = "mean psf_vs_aper " + re.sub("\s+", "_", ccd)
-	    comment = "mean psf-ap (mag lt 20, nstar/clip=%d/%d)" % (len(dmag),n)
+	    label = "mean "+tag +" " + re.sub("\s+", "_", ccd)
+	    comment = "mean "+dtag+" (mag lt 20, nstar/clip=%d/%d)" % (len(dmag),n)
 	    testSet.addTest( testCode.Test(label, mean, [-0.02, 0.02], comment) )
 
 	    self.medians.set(raft, ccd, median)
-	    label = "median psf_vs_aper "+re.sub("\s+", "_", ccd)
-	    comment = "median psf-ap (mag lt 20, nstar/clip=%d/%d)" % (len(dmag), n)
+	    label = "median "+tag+" "+re.sub("\s+", "_", ccd)
+	    comment = "median "+dtag+" (mag lt 20, nstar/clip=%d/%d)" % (len(dmag), n)
 	    testSet.addTest( testCode.Test(label, median, [-0.02, 0.02], comment) )
 
 	    self.stds.set(raft, ccd, std)
-	    label = "stdev psf_vs_aper " + re.sub("\s+", "_", ccd)
-	    comment = "stdev of psf-ap (mag lt 20, nstar/clip=%d/%d)" % (len(dmag), n)
+	    label = "stdev "+tag+" " + re.sub("\s+", "_", ccd)
+	    comment = "stdev of "+dtag+" (mag lt 20, nstar/clip=%d/%d)" % (len(dmag), n)
 	    testSet.addTest( testCode.Test(label, std, [0.0, 0.02], comment) )
 		
 
@@ -95,7 +148,7 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined=False):
 
 	group = dataId['visit']
-	testSet = self.getTestSet(group)
+	testSet = self.getTestSet(group, label=self.magType1+"-"+self.magType2)
 
 	# fpa figure
 	meanFig = qaFig.FpaQaFigure(data.cameraInfo.camera)
@@ -107,14 +160,17 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 		if not self.means.get(raft, ccd) is None:
 		    meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
 		    stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
-		
+
+	tag = "m$_{"+self.magType1+"}$-m$_{"+self.magType2+"}$"
+	dtag = self.magType1+"-"+self.magType2
+	wtag = self.magType1+"minus"+self.magType2
 	meanFig.makeFigure(showUndefined=showUndefined, cmap="Spectral_r", vlimits=[-0.02, 0.02],
-			   title="Mean m$_{PSF}$-m$_{Ap}$")
-	testSet.addFigure(meanFig, "meanPsfMinusAperture.png", "mean Psf - aper mag",
+			   title="Mean "+tag)
+	testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag",
 			  saveMap=True, navMap=True)
 	stdFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, 0.03],
-			  title="Stdev m$_{PSF}$-m$_{Ap}$")
-	testSet.addFigure(stdFig, "stdPsfMinusAperture.png", "stdev Psf - aper mag",
+			  title="Stdev "+tag)
+	testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag",
 			  saveMap=True, navMap=True)
 	
 
@@ -160,14 +216,15 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 	    #ax.set_position([box.x0, box.y0, 0.75*box.width, box.height])
 	    #fp = fm.FontProperties(size="small")
 	    #ax.legend(prop=fp, loc=(1.05, 0.0))
-	    ax.set_title("m$_{PSF}$ - m$_{Ap}$  versus  m$_{Ap}$")
-	    ax.set_xlabel("m$_{Ap}$")
-	    ax.set_ylabel("m$_{PSF}$ - m$_{Ap}$")
+	    tag1 = "m$_{"+self.magType1+"}$"
+	    ax.set_title(tag +"  versus  "+tag1)
+	    ax.set_xlabel(tag1)
+	    ax.set_ylabel(tag)
 	    ax.set_xlim(xlim)
 	    ax.set_ylim(ylim)
 
 	    label = re.sub("\s+", "_", ccd)
-	    testSet.addFigure(fig, "diff_psf-ap_"+label+".png", "psf-ap vs. ap")
+	    testSet.addFigure(fig, "diff_"+dtag+"_"+label+".png", dtag+" vs. "+self.magType1)
 	    
 	    color = sm.to_rgba(i)
 	    ax0.scatter(mag, diff, size, color=color, label=ccd)
@@ -183,16 +240,9 @@ class PsfVsApertureQaAnalysis(qaAna.QaAnalysis):
 
 
 
-	#box = ax0.get_position()
-	#ax0.set_position([box.x0, box.y0, 0.75*box.width, box.height])
-	#fp = fm.FontProperties(size="small")
-	#ax0.legend(prop=fp, loc=(1.05, 0.0))
-	ax0.set_title("m$_{PSF}$ - m$_{Ap}$  versus  m$_{Ap}$")
-	ax0.set_xlabel("m$_{Ap}$")
-	ax0.set_ylabel("m$_{PSF}$ - m$_{Ap}$")
-	#ax0.set_xlim(xlim)
-	#ax0.set_ylim(ylim)
-
+	ax0.set_title(tag +"  versus  "+tag1)
+	ax0.set_xlabel(tag1)
+	ax0.set_ylabel(tag)
 	    
-	testSet.addFigure(fig0, "diff_psf-ap_all.png", "psf-ap vs. ap", saveMap=True)
+	testSet.addFigure(fig0, "diff_"+dtag+"_all.png", dtag+" vs. "+self.magType1, saveMap=True)
 

@@ -37,6 +37,9 @@ class QaData(object):
         # cache source sets to avoid reloading the same thing
         self.sourceSetCache = {}
 	self.sourceSetColumnCache = {}
+
+	self.matchQueryCache = {}
+	self.matchListCache = {}
 	
         # cache calexp info, but not the MaskedImage ... it's too big.
         self.calexpCache = {}

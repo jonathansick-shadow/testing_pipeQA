@@ -123,22 +123,26 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	    t = self.theta.get(raft, ccd)
 	    dx = eLen*numpy.cos(t)
 	    dy = eLen*numpy.sin(t)
-	    x = self.x.get(raft, ccd)
-	    y = self.y.get(raft, ccd)
+	    x = self.x.get(raft, ccd) - 0.5*dx
+	    y = self.y.get(raft, ccd) - 0.5*dy
 
+	    xmax, ymax = x.max(), y.max()
+	    xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
+	    ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
 	    
 	    print "plotting ", ccd
 	    
 	    fig = qaFig.QaFig(size=figsize)
 	    fig.fig.subplots_adjust(left=0.15)
 	    ax = fig.fig.add_subplot(111)
-	    ax.quiver(x, y, dx, dy, color='k', pivot='middle')
+	    for i in range(len(x)):
+		ax.plot([x[i], x[i]+dx[i]], [y[i], y[i]+dy[i]], '-k')
 
 	    ax.set_title("PSF ellipticity")
 	    ax.set_xlabel("x [pixels]")
 	    ax.set_ylabel("y [pixels]")
-	    #ax.set_xlim(xlim)
-	    #ax.set_ylim(ylim)
+	    ax.set_xlim(xlim)
+	    ax.set_ylim(ylim)
 	    for tic in ax.get_xticklabels() + ax.get_yticklabels():
 		tic.set_size("x-small")
 

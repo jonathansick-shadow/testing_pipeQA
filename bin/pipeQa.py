@@ -51,13 +51,16 @@ def main(dataset, dataIdInput):
     analysisList = [
 	#qaAnalysis.SourceBoundsQaAnalysis(),
 	#qaAnalysis.ZeropointQaAnalysis(),
-	qaAnalysis.PsfVsApertureQaAnalysis(),
-	qaAnalysis.PsfEllipticityQaAnalysis(),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "ap"),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "mod"),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "cat"),
+	#qaAnalysis.PsfEllipticityQaAnalysis(),
+	#qaAnalysis.AstrometricErrorQaAnalysis(),
 	]
 
     for a in analysisList:
 	for visit in visits:
-	    print "Running visit: ", visit
+	    print "Running " + str(a) + " visit: ", visit
 	    dataIdVisit = copy.copy(dataId)
 	    dataIdVisit['visit'] = visit
 	    a.test(data, dataIdVisit)
@@ -114,7 +117,7 @@ if __name__ == '__main__':
 	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'857064441.*', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-	dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+	dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
 	
     elif opts.camera=='H':
 	dataset = 'hscsimTestData002'

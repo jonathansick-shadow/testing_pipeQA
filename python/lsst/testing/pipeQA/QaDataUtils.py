@@ -39,6 +39,7 @@ def findDataInTestbed(label, raiseOnFailure=True):
 def getSourceSetNameList():
     
     accessors = [
+	["Id",                           "objectId"                      ],
 	["Ra",                           "ra",                           ],
 	["Dec",                          "decl",                         ],
 	["RaErrForWcs",                  "raSigmaForWcs",                ],

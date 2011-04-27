@@ -14,13 +14,19 @@ class QaAnalysis(object):
     def plot(self):
 	return []
 
-    def getTestSet(self, group):
-	label = self.__class__.__name__
+    def getTestSet(self, group, label=None):
+	if not label is None:
+	    label = self.__class__.__name__ + "."+ label
+	else:
+	    label = self.__class__.__name__
+	    
 	if not self.testSets.has_key(group):
 	    self.testSets[group] = testCode.TestSet(label, group=group)
 	return self.testSets[group]
 
-
+    def __str__(self):
+	return self.__class__.__name__
+    
 
 class SourceBoundsQaAnalysis(QaAnalysis):
 
