@@ -124,8 +124,9 @@ class DbQaData(QaData):
 	    s.setPsfFlux(s.getPsfFlux()/fmag0)
 	    s.setApFlux(s.getApFlux()/fmag0)
 	    s.setModelFlux(s.getModelFlux()/fmag0)
-	    
-            matchList.append([s, sref])
+
+	    dist = 0.0
+            matchList.append([sref, s, dist])
 
 	# cache it
 	self.matchQueryCache[dataIdStr] = True

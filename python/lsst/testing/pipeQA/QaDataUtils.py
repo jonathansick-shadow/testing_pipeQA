@@ -1,4 +1,12 @@
 import os, re
+import math
+
+import lsst.afw.image   as afwImage
+import lsst.afw.coord   as afwCoord
+import lsst.pex.logging  as pexLog
+import lsst.pex.policy  as pexPolicy
+import lsst.meas.astrom as measAstrom
+import lsst.meas.algorithms.utils as maUtils
 
 def findDataInTestbed(label, raiseOnFailure=True):
     """Scan TESTBED_PATH directories to find a testbed dataset with a given name"""
@@ -169,3 +177,92 @@ def getSceNameList():
 
 def getSceDbNames():
     return zip(*getSceNameList())[1]
+
+
+
+
+def getCalibObjects(butler, filterName, dataId):
+    """
+    A version of getCalibObjectsImpl that isn't a class method, for use by other code
+    
+    @param useOutputSrc             # use fluxes from the "src", not "icSrc"
+    """
+
+    log = pexLog.Log.getDefaultLog()
+    
+    psources = butler.get('icSrc', dataId)
+    pmatches = butler.get('icMatch', dataId)
+    calexp_md = butler.get('calexp_md', dataId)
+
+    wcs = afwImage.makeWcs(calexp_md)
+    W, H = calexp_md.get("NAXIS1"), calexp_md.get("NAXIS2")
+    calib = afwImage.Calib(calexp_md)
+
+    matches = pmatches.getSourceMatches()
+    sources = psources.getSources()
+
+    anid = pmatches.getSourceMatchMetadata().getInt('ANINDID')
+
+    del psources; del pmatches; del calexp_md # cleanup
+
+    useOutputSrc = False
+    if useOutputSrc:
+        srcs = butler.get('src', dataId).getSources()
+        import lsst.afw.detection as afwDetect
+        pmMatch = afwDetect.matchXy(sources, srcs, 1.0, True)
+        for icSrc, src, d in pmMatch:
+            icSrc.setPsfFlux(src.getPsfFlux())
+
+    # ref sources
+    xc, yc = 0.5*W, 0.5*H
+    radec = wcs.pixelToSky(xc, yc)
+    ra = radec.getLongitude(afwCoord.DEGREES)
+    dec = radec.getLatitude(afwCoord.DEGREES)
+    radius = wcs.pixelScale()*math.hypot(xc, yc)*1.1
+
+    pol = pexPolicy.Policy()
+    pol.set('matchThreshold', 30)
+    solver = measAstrom.createSolver(pol, log)
+    idName = 'id'
+
+    X = solver.getCatalogue(ra, dec, radius, filterName, idName, anid)
+    refsources = X.refsources
+    inds = X.inds
+
+    referrs, stargal = None, None
+    cols = solver.getTagAlongColumns(anid)
+    colnames = [c.name for c in cols]
+
+    col = 'starnotgal'
+    if col in colnames:
+        stargal1 = solver.getTagAlongBool(anid, col, inds)
+        stargal = []
+        for i in range(len(stargal1)):
+            stargal.append(stargal1[i])
+
+    fdict = maUtils.getDetectionFlags()
+
+    keepref = []
+    keepi = []
+    for i in xrange(len(refsources)):
+        x, y = wcs.skyToPixel(refsources[i].getRa(), refsources[i].getDec())
+        if x < 0 or y < 0 or x > W or y > H:
+            continue
+        refsources[i].setXAstrom(x)
+        refsources[i].setYAstrom(y)
+        if stargal[i]:
+            refsources[i].setFlagForDetection(refsources[i].getFlagForDetection() | fdict["STAR"])
+        keepref.append(refsources[i])
+        keepi.append(i)
+
+    refsources = keepref
+
+    if referrs is not None:
+        referrs = [referrs[i] for i in keepi]
+    if stargal is not None:
+        stargal = [stargal[i] for i in keepi]
+
+    measAstrom.joinMatchList(matches, refsources, first=True, log=log)
+    measAstrom.joinMatchList(matches, sources, first=False, log=log)
+
+    return matches, calib, refsources

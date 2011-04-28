@@ -67,8 +67,9 @@ class QaFig(object):
 	    fp.close()
 
 
-    def addMapArea(self, label, area, info):
-	axes = self.fig.gca()
+    def addMapArea(self, label, area, info, axes=None):
+	if axes is None:
+	    axes = self.fig.gca()
 
 	x0, y0, x1, y1 = area
 	tr = self.fig.transFigure.transform((1.0, 1.0))
@@ -178,6 +179,7 @@ class FpaQaFigure(QaFig):
         values = []  # needs to be synchronized with self.rectangles
 	patches = []
 	allValues = []
+	missingCcds = {}
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
@@ -189,6 +191,7 @@ class FpaQaFigure(QaFig):
 		#if (not value is None) or (showUndefined):
 		if value is None:
 		    value = numpy.NaN
+		    missingCcds[clabel] = self.ccdBoundaries[clabel]
 		values.append(value)
 		patches.append(self.rectangles[clabel])
 
@@ -216,9 +219,16 @@ class FpaQaFigure(QaFig):
 	for b in self.ccdBoundaries.values():
 	    x0, x1 = b[0]
 	    y0, y1 = b[1]
-	    x = numpy.array([x0, x0, x1, x1, x0])
-	    y = numpy.array([y0, y1, y1, y0, y0])
-            sp.plot(x, y, 'k-', lw=1)
+	    x = [x0, x0, x1, x1, x0]
+	    y = [y0, y1, y1, y0, y0]
+	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=1.0)
+	for b in missingCcds.values():
+	    x0, x1 = b[0]
+	    y0, y1 = b[1]
+	    x = [x0, x1, x0, x1]
+	    y = [y0, y1, y1, y0]
+	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
+
 
         if doLabel:
             for r in self.rectangles.values():

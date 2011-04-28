@@ -14,6 +14,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 from  matplotlib.ticker import MaxNLocator
+from matplotlib.collections import LineCollection
 
 class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
@@ -43,11 +44,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    filter = self.filter[key].getName()
 
 	    for m in matchList:
-		s, sref = m
+		sref, s, dist = m
 		#print "%.10f %.10f %.10f %.10f" % (s.getRa(), sref.getRa(), s.getDec(), sref.getDec())
 		dDec = sref.getDec() - s.getDec()
 		dRa  = (sref.getRa() - s.getRa())*abs(numpy.cos(sref.getDec()))
-		
+
 		if not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER ):
 		    self.dRa.append(raft, ccd, dRa)
 		    self.dDec.append(raft, ccd, dDec)
@@ -71,12 +72,17 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    
 	    errArcsec = 206265.0*numpy.sqrt(dRa**2 + dDec**2)
 	    thetaRad  = numpy.arctan2(dDec, dRa)
-	    
-	    stat  = afwMath.makeStatistics(errArcsec, afwMath.NPOINT | afwMath.MEDIAN)
-	    medErrArcsec = stat.getValue(afwMath.MEDIAN)
-	    stat  = afwMath.makeStatistics(thetaRad, afwMath.NPOINT | afwMath.MEDIAN)
-	    medThetaRad = stat.getValue(afwMath.MEDIAN)
-	    n = stat.getValue(afwMath.NPOINT)
+
+	    if len(errArcsec) > 0:
+		stat  = afwMath.makeStatistics(errArcsec, afwMath.NPOINT | afwMath.MEDIAN)
+		medErrArcsec = stat.getValue(afwMath.MEDIAN)
+		stat  = afwMath.makeStatistics(thetaRad, afwMath.NPOINT | afwMath.MEDIAN)
+		medThetaRad = stat.getValue(afwMath.MEDIAN)
+		n = stat.getValue(afwMath.NPOINT)
+	    else:
+		medErrArcsec = 99.0
+		medThetaRad = 0.0
+		n = 0
 
 	    self.medErrArcsec.set(raft, ccd, medErrArcsec)
 	    self.medThetaRad.set(raft, ccd, medThetaRad)
@@ -109,6 +115,9 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
 	#
 	figsize = (6.5, 3.25)
+	conv = colors.ColorConverter()
+	black = conv.to_rgb('k')
+
 	
 	i = 0
 	for raft, ccd in self.dRa.raftCcdKeys():
@@ -122,6 +131,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    x = self.x.get(raft, ccd)
 	    y = self.y.get(raft, ccd)
 
+	    # if there's no data, dump a single point at 0,0
+	    if not len(x) > 0:
+		x = numpy.array([0.0])
+		y = numpy.array([0.0])
+		dx = numpy.array([0.0])
+		dy = numpy.array([0.0])
+		
 	    # round up to nearest 1024 for limits
 	    xmax, ymax = x.max(), y.max()
 	    xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
@@ -162,13 +178,16 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    box = ax0.get_position()
 	    ax0.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
 	    ax = ax0.twinx()
-	    
-	    z = numpy.zeros(len(dx))
-	    for i in range(len(dx)):
-		ax.plot([0.0, dx[i]], [0.0, dy[i]], '-r')
-	    ax.scatter(dx, dy, s=1.0, color='k')
 
-	    #ax.set_title("Astrometric displacements")
+	    # this is much faster than calling plot() in a loop, and quiver() scale length buggy
+	    z = numpy.zeros(len(dx))
+	    xy2 = zip(dx, dy)
+	    xy1 = zip(z, z)
+	    lines = zip(xy1, xy2)
+	    p = LineCollection(lines, colors=black*len(lines))
+	    ax.add_collection(p)
+	    ax.scatter(dx, dy, s=1.0, color='r')
+
 	    ax.set_xlabel("dRa [arcsec]")
 	    ax.set_ylabel("dDec [arcsec]")
 	    ax.set_xlim([-rmax, rmax])

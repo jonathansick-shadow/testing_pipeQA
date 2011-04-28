@@ -5,8 +5,9 @@ import lsst.testing.pipeQA.TestCode as testCode
 
 class QaAnalysis(object):
 
-    def __init__(self):
+    def __init__(self, testLabel=None):
 	self.testSets = {}
+	self.testLabel = testLabel
 
     def test(self):
 	return []
@@ -25,7 +26,10 @@ class QaAnalysis(object):
 	return self.testSets[group]
 
     def __str__(self):
-	return self.__class__.__name__
+	testLabel = ""
+	if not self.testLabel is None:
+	    testLabel = "."+self.testLabel
+	return self.__class__.__name__ + testLabel
     
 
 class SourceBoundsQaAnalysis(QaAnalysis):

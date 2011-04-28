@@ -101,6 +101,54 @@ class ButlerQaData(QaData):
 	return set(visits)
     
 
+
+    def getMatchListBySensor(self, dataIdRegex):
+	
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
+	
+        # get the datasets corresponding to the request
+        matchListDict = {}
+        for dataTuple in dataTuplesToFetch:
+            dataId = self._dataTupleToDataId(dataTuple)
+            dataKey = self._dataTupleToString(dataTuple)
+            
+            if self.matchListCache.has_key(dataKey):
+                matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
+                continue
+
+	    filterObj = self.getFilterBySensor(dataId)
+	    filterName = filterObj[dataKey].getName()
+
+            # make sure we actually have the output file
+            isWritten = self.outButler.datasetExists('icMatch', dataId)
+            if isWritten:
+                #persistableMatchVector = self.outButler.get('icMatch', dataId)
+		
+		matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
+                self.matchListCache[dataKey] = matches #persistableMatchVector.getSourceMatches()
+
+		if self.outButler.datasetExists('calexp', dataId):
+
+		    calibDict = self.getCalibBySensor(dataId)
+                    calib = calibDict[dataKey]
+                    
+                    fmag0, fmag0err = calib.getFluxMag0()
+                    for m in self.matchListCache[dataKey]:
+			sref, s, dist = m
+                        s.setApFlux(s.getApFlux()/fmag0)
+                        s.setPsfFlux(s.getPsfFlux()/fmag0)
+			s.setModelFlux(s.getModelFlux()/fmag0)
+
+                matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
+		self.dataIdLookup[dataKey] = dataId
+		
+            else:
+                print str(dataTuple) + " output file missing.  Skipping."
+
+	return matchListDict
+
+
+
     #######################################################################
     #
     #######################################################################
@@ -120,9 +168,9 @@ class ButlerQaData(QaData):
                 continue
 
             # make sure we actually have the output file
-            isWritten = self.outButler.datasetExists('src', dataId)
+            isWritten = self.outButler.datasetExists('icSrc', dataId)
             if isWritten:
-                persistableSourceVector = self.outButler.get('src', dataId)
+                persistableSourceVector = self.outButler.get('icSrc', dataId)
                 sourceSetTmp = persistableSourceVector.getSources()
 
                 if self.outButler.datasetExists('calexp', dataId):

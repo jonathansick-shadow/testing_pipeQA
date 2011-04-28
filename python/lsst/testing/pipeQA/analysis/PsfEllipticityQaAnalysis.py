@@ -13,6 +13,8 @@ import QaAnalysisUtils as qaAnaUtil
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
+from matplotlib.collections import LineCollection
+
 
 class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 
@@ -49,6 +51,13 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 		b2 = 0.5*(ixx+iyy) - numpy.sqrt(0.25*(ixx-iyy)**2 + ixy**2)
 		ellip = 1.0 - numpy.sqrt(b2/a2)
 		theta = 0.5*numpy.arctan2(2.0*ixy, ixx-iyy)
+
+		# vectors have no direction, so default to pointing in +ve 'y'
+		# - failing to do this caused a stats bug when alignment is near pi/2
+		#   both +/- pi/2 arise but are essentially the same, ... and the mean is near zero
+		if theta < 0.0:
+		    theta += numpy.pi
+		    
 		#print ixx, iyy, ixy, a2, b2, ellip, theta
 		
 		if numpy.isfinite(ellip) and numpy.isfinite(theta):
@@ -116,6 +125,9 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	#xlim = [0, 25.0]
 	#ylim = [0, 0.4]
 
+	conv = colors.ColorConverter()
+	black = conv.to_rgb('k')
+
 	i = 0
 	xmin, xmax = 1.0e99, -1.0e99
 	for raft, ccd in self.ellip.raftCcdKeys():
@@ -135,9 +147,13 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	    fig = qaFig.QaFig(size=figsize)
 	    fig.fig.subplots_adjust(left=0.15)
 	    ax = fig.fig.add_subplot(111)
-	    for i in range(len(x)):
-		ax.plot([x[i], x[i]+dx[i]], [y[i], y[i]+dy[i]], '-k')
 
+	    xy1 = zip(x, y)
+	    xy2 = zip(x+dx, y+dy)
+	    lines = zip(xy1, xy2)
+	    p = LineCollection(lines, colors=black*len(lines))
+	    ax.add_collection(p)
+	    
 	    ax.set_title("PSF ellipticity")
 	    ax.set_xlabel("x [pixels]")
 	    ax.set_ylabel("y [pixels]")
@@ -147,7 +163,8 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 		tic.set_size("x-small")
 
 	    label = re.sub("\s+", "_", ccd)
-	    testSet.addFigure(fig, "psfEllip_"+label+".png", "PSF ellipticity")
+	    testSet.addFigure(fig, "psfEllip_"+label+".png",
+			      "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen))
 	    
 	    i += 1
 
