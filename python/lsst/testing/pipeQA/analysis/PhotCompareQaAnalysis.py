@@ -55,6 +55,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	
 	self.diff = raftCcdData.RaftCcdVector(self.detector)
 	self.mag  = raftCcdData.RaftCcdVector(self.detector)
+	self.x    = raftCcdData.RaftCcdVector(self.detector)
+	self.y    = raftCcdData.RaftCcdVector(self.detector)
 
 	filter = None
 	flags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
@@ -80,6 +82,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 			if numpy.isfinite(m1) and numpy.isfinite(m2):
 			    self.diff.append(raft, ccd, m1 - m2)
 			    self.mag.append(raft, ccd, m1)
+			    self.x.append(raft, ccd, s.getXAstrom())
+			    self.y.append(raft, ccd, s.getYAstrom())
+					  
 
 	# if we're not asked for catalog fluxes, we can just use a sourceSet
 	else:
@@ -101,6 +106,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 			self.diff.append(raft, ccd, m1 - m2)
 			self.mag.append(raft, ccd, m1)
+			self.x.append(raft, ccd, s.getXAstrom())
+			self.y.append(raft, ccd, s.getYAstrom())
 
 
 		    
@@ -225,10 +232,14 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	for raft, ccd in self.mag.raftCcdKeys():
 	    mag  = self.mag.get(raft, ccd)
 	    diff = self.diff.get(raft, ccd)
+	    x    = self.x.get(raft, ccd)
+	    y    = self.y.get(raft, ccd)
 
 	    if len(mag) == 0:
 		mag = numpy.array([xmax])
 		diff = numpy.array([0.0])
+		x    = numpy.array([0.0])
+		y    = numpy.array([0.0])
 
 	    whereCut = numpy.where(mag < self.cut)
 
@@ -263,9 +274,21 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    ax_2.set_yticks([])
 	    ax_2dummy.set_ylabel(tag)
 
+	    dmag = 0.1
+	    ddiff1 = 0.02
+	    ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
 	    label = re.sub("\s+", "_", ccd)
+	    for j in range(len(mag)):
+		info = "nolink:x:%.2f_y:%.2f" % (x[j], y[j])
+		area = (mag[j]-dmag, diff[j]-ddiff1, mag[j]+dmag, diff[j]+ddiff1)
+		fig.addMapArea(label, area, info, axes=ax_1)
+		area = (mag[j]-dmag, diff[j]-ddiff2, mag[j]+dmag, diff[j]+ddiff2)
+		fig.addMapArea(label, area, info, axes=ax_2)
+		
+
 	    testSet.addFigure(fig, "diff_"+dtag+"_"+label+".png",
-			      dtag+" vs. "+self.magType1 + ". Point used for statistics shown in red.")
+			      dtag+" vs. "+self.magType1 + ". Point used for statistics shown in red.",
+			      saveMap=True)
 
 
 	    # append values to arrays for a plot showing all data
