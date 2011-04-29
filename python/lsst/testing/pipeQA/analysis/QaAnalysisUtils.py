@@ -28,5 +28,5 @@ def isStar(ss):
 
 	if xxOk and xyOk and yyOk:
 	    s.setFlagForDetection(s.getFlagForDetection() | measAlg.Flags.STAR)
-	    
+
 

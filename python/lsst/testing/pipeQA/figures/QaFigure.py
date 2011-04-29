@@ -170,7 +170,9 @@ class FpaQaFigure(QaFig):
     def makeFigure(self, 
                    borderPix = 100,
                    boundaryColors = 'r', doLabel = False, showUndefined=False,
-		   vlimits=None, cmap="jet", title=None):
+		   vlimits=None, cmap="jet", title=None,
+		   cmapOver=None, cmapUnder=None
+		   ):
 
 	self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
 	
@@ -207,6 +209,10 @@ class FpaQaFigure(QaFig):
 
 	cmap = getattr(cm, cmap)
 	cmap.set_bad('k', 0.2)
+	if not cmapOver is None:
+	    cmap.set_over(cmapOver, 1.0)
+	if not cmapUnder is None:
+	    cmap.set_under(cmapUnder, 1.0)
         p = PatchCollection(patches, norm=norm, cmap=cmap)
 	value_array = numpy.array(values)
 	masked_value_array = numpyMa.masked_where(numpy.isnan(value_array), value_array)
@@ -280,7 +286,9 @@ class VectorFpaQaFigure(FpaQaFigure):
     def makeFigure(self, 
                    borderPix = 100,
                    raftBoundColors = 'r', doLabel = False, showUndefined=False,
-		   vlimits=None, cmap="jet", title=None):
+		   vlimits=None, cmap="jet", title=None,
+		   cmapOver=None, cmapUnder=None
+		   ):
 
 	self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
         sp     = self.fig.gca()
@@ -341,6 +349,10 @@ class VectorFpaQaFigure(FpaQaFigure):
 
 	    cmap = getattr(cm, cmap)
 	    cmap.set_bad('k', 0.2)
+	    if not cmapOver is None:
+		cmap.set_over(cmapOver, 1.0)
+	    if not cmapUnder is None:
+		cmap.set_under(cmapUnder, 1.0)
 	    #cmap.set_over('r', 0.8)
 	    #cmap.set_under('b', 0.8)
 	    p = PatchCollection(patches, norm=norm, cmap=cmap)

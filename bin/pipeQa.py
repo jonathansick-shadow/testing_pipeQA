@@ -117,7 +117,7 @@ if __name__ == '__main__':
 	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-	dataId = {'visit':'857064441', 'snap':'0', 'raft':'0,1', 'sensor':'1,?'}
+	dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	#dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
 	
     elif opts.camera=='H':

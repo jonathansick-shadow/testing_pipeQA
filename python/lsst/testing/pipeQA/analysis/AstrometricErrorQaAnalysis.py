@@ -109,7 +109,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 		    astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
 		
 	astFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, 1.0],
-			  title="Median astrometric error")
+			  title="Median astrometric error", cmapOver='#ff0000')
 	testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 
 			  saveMap=True, navMap=True)
 

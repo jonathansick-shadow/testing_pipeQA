@@ -57,6 +57,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	self.mag  = raftCcdData.RaftCcdVector(self.detector)
 
 	filter = None
+	flags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
 
 	# if we're asked to compare catalog fluxes ... we need a matchlist
 	if  self.magType1=="cat" or self.magType2=="cat":
@@ -72,7 +73,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 		    f1 = self._getFlux(self.magType1, s, sref)
 		    f2 = self._getFlux(self.magType2, s, sref)
 
-		    if not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER ):
+		    if (f1 > 0.0 and f2 > 0.0 and not s.getFlagForDetection() & flags):
 			m1 = -2.5*numpy.log10(f1)
 			m2 = -2.5*numpy.log10(f2)
 
@@ -89,20 +90,17 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 		filter = self.filter[key].getName()
 
-		qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
+		#qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
 		for s in ss:
 		    f1 = self._getFlux(self.magType1, s, s)
 		    f2 = self._getFlux(self.magType2, s, s)
 		    
-		    if ((f1 > 0.0 and f2 > 0.0) and
-			not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER )):
-			#(s.getFlagForDetection() & measAlg.Flags.STAR)):
-
+		    if ((f1 > 0.0 and f2 > 0.0) and not s.getFlagForDetection() & flags):
 			m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
 			m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
 
 			self.diff.append(raft, ccd, m1 - m2)
-			self.mag.append(raft, ccd, m2)
+			self.mag.append(raft, ccd, m1)
 
 
 		    
@@ -179,12 +177,16 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	tag = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
 	dtag = self.magType1+"-"+self.magType2
 	wtag = self.magType1+"minus"+self.magType2
+	deepPink = '#ff1493'
+	darkViolet = '#9400d3'
+	blue = '#0000ff'
+	red = '#ff0000'
 	meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.02, 0.02],
-			   title="Mean "+tag)
+			   title="Mean "+tag, cmapOver=red, cmapUnder=blue)
 	testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag   (brighter than %.1f)" % (self.cut),
 			  saveMap=True, navMap=True)
 	stdFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, 0.03],
-			  title="Stdev "+tag)
+			  title="Stdev "+tag, cmapOver=red)
 	testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag  (brighter than %.1f)" % (self.cut),
 			  saveMap=True, navMap=True)
 	
