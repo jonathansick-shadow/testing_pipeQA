@@ -52,11 +52,11 @@ def main(dataset, dataIdInput):
     analysisList = [
 	#qaAnalysis.SourceBoundsQaAnalysis(),
 	#qaAnalysis.ZeropointQaAnalysis(),
-	#qaAnalysis.PhotCompareQaAnalysis("psf", "ap", cut=magCut),
-	#qaAnalysis.PhotCompareQaAnalysis("psf", "mod", cut=magCut),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "ap", cut=magCut),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "mod", cut=magCut),
 	qaAnalysis.PhotCompareQaAnalysis("psf", "cat", cut=magCut),
-	#qaAnalysis.PsfEllipticityQaAnalysis(),
-	#qaAnalysis.AstrometricErrorQaAnalysis(),
+	qaAnalysis.PsfEllipticityQaAnalysis(),
+	qaAnalysis.AstrometricErrorQaAnalysis(),
 	]
 
     for a in analysisList:
@@ -113,11 +113,11 @@ if __name__ == '__main__':
     if opts.camera=='L':
 	dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
 	dataset = 'buildbot_weekly_latest'
-	dataset = "update"
+	#dataset = "update"
 	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-	dataId = {'visit':'857064441', 'snap':'0', 'raft':'1,2', 'sensor':'.*'}
+	dataId = {'visit':'857064441', 'snap':'0', 'raft':'0,1', 'sensor':'1,?'}
 	#dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
 	
     elif opts.camera=='H':

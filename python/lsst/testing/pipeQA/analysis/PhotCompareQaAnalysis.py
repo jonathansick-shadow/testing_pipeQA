@@ -176,7 +176,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 		    meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
 		    stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
 
-	tag = "m$_{"+self.magType1+"}$-m$_{"+self.magType2+"}$"
+	tag = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
 	dtag = self.magType1+"-"+self.magType2
 	wtag = self.magType1+"minus"+self.magType2
 	meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.02, 0.02],
@@ -189,13 +189,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 			  saveMap=True, navMap=True)
 	
 
-	# dmag vs mag
+
+
+	#############################################
+	#
 	figsize = (6.5, 3.75)
-	fig0 = qaFig.QaFig(size=figsize)
-	fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
-	ax0_1 = fig0.fig.add_subplot(121)
-	ax0_2 = fig0.fig.add_subplot(122)
-	
 	nKeys = len(self.mag.raftCcdKeys())
 	norm = colors.Normalize(vmin=0, vmax=nKeys)
 	sm = cm.ScalarMappable(norm, cmap=cm.jet)
@@ -209,8 +207,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	size = 1.0
 	
 	i = 0
-	xmin, xmax = self.mag.summarize('min'), self.mag.summarize('max')
-	ymin, ymax = self.diff.summarize('min'), self.diff.summarize('max')
+	xmin, xmax = self.mag.summarize('min', default=0.0), self.mag.summarize('max', default=25.0)
+	ymin, ymax = self.diff.summarize('min', default=-1.0), self.diff.summarize('max', default=1.0)
 	xrang = xmax-xmin
 	xmin, xmax = xmin-0.05*xrang, xmax+0.05*xrang
 	yrang = ymax-ymin
@@ -218,9 +216,17 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	xlim2 = [xmin, xmax]
 	ylim2 = [ymin, ymax]
 
+	allMags = numpy.array([])
+	allDiffs = numpy.array([])
+	allColor = [] #numpy.array([])
+	allLabels = []
 	for raft, ccd in self.mag.raftCcdKeys():
 	    mag  = self.mag.get(raft, ccd)
 	    diff = self.diff.get(raft, ccd)
+
+	    if len(mag) == 0:
+		mag = numpy.array([xmax])
+		diff = numpy.array([0.0])
 
 	    whereCut = numpy.where(mag < self.cut)
 
@@ -236,7 +242,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    clr = numpy.array(clr)
 	    clr[whereCut] = [red] * len(whereCut)
 
-	    tag1 = "m$_{"+self.magType1+"}$"
+	    tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
 	    for ax in [ax_1, ax_2]:
 		ax.scatter(mag, diff, size, color=clr, label=ccd)
 		ax.set_xlabel(tag1)
@@ -260,25 +266,40 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 			      dtag+" vs. "+self.magType1 + ". Point used for statistics shown in red.")
 
 
-	    ####################
-	    # data for all ccds
-	    color = sm.to_rgba(i)
-	    for ax in [ax0_1, ax0_2]:
-		ax.scatter(mag, diff, size, color=color, label=ccd)
-	    ax0_1.set_xlim(xlim)
-	    ax0_2.set_xlim(xlim2)
-	    ax0_1.set_ylim(ylim)
-	    ax0_2.set_ylim(ylim2)
-
-	    dmag = 0.1
-	    ddiff1 = 0.02
-	    ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
-	    for j in range(len(mag)):
-		area = (mag[j]-dmag, diff[j]-ddiff1, mag[j]+dmag, diff[j]+ddiff1)
-		fig0.addMapArea(label, area, "%.3f_%.3f"% (mag[j], diff[j]), axes=ax0_1)
-		area = (mag[j]-dmag, diff[j]-ddiff2, mag[j]+dmag, diff[j]+ddiff2)
-		fig0.addMapArea(label, area, "%.3f_%.3f"% (mag[j], diff[j]), axes=ax0_2)
+	    # append values to arrays for a plot showing all data
+	    allMags = numpy.append(allMags, mag)
+	    allDiffs = numpy.append(allDiffs, diff)
+	    color = [sm.to_rgba(i)] * len(mag)
+	    allColor += color
+	    allLabels += [label] * len(mag)
 	    i += 1
+
+
+	# dmag vs mag
+	fig0 = qaFig.QaFig(size=figsize)
+	fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
+	ax0_1 = fig0.fig.add_subplot(121)
+	ax0_2 = fig0.fig.add_subplot(122)
+
+	
+	####################
+	# data for all ccds
+	allColor = numpy.array(allColor)
+	for ax in [ax0_1, ax0_2]:
+	    ax.scatter(allMags, allDiffs, size, color=allColor)
+	ax0_1.set_xlim(xlim)
+	ax0_2.set_xlim(xlim2)
+	ax0_1.set_ylim(ylim)
+	ax0_2.set_ylim(ylim2)
+
+	dmag = 0.1
+	ddiff1 = 0.02
+	ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
+	for j in range(len(allMags)):
+	    area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
+	    fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
+	    area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
+	    fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
 
 
 
@@ -288,7 +309,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	ax0_2.set_yticks([])
 
 	ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
-		  [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
+		   [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
 	ax0_2.set_xlim(xlim2)
 	ax0_2.set_ylim(ylim2)
 

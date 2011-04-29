@@ -172,7 +172,7 @@ class FpaQaFigure(QaFig):
                    boundaryColors = 'r', doLabel = False, showUndefined=False,
 		   vlimits=None, cmap="jet", title=None):
 
-	self.fig.subplots_adjust(left=0.175, right=0.95)
+	self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
 	
         sp     = self.fig.gca()
 
@@ -247,6 +247,7 @@ class FpaQaFigure(QaFig):
 	    tic.set_size("x-small")
 	for tic in sp.get_xticklabels():
 	    tic.set_size("x-small")
+	    tic.set_rotation(22)
 	for tic in sp.get_yticklabels():
 	    tic.set_size("x-small")
 	    tic.set_rotation(45)
@@ -281,7 +282,7 @@ class VectorFpaQaFigure(FpaQaFigure):
                    raftBoundColors = 'r', doLabel = False, showUndefined=False,
 		   vlimits=None, cmap="jet", title=None):
 
-	self.fig.subplots_adjust(left=0.175, right=0.95)
+	self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
         sp     = self.fig.gca()
         colorValues = []  # needs to be synchronized with self.rectangles
 	patches = []
@@ -292,6 +293,7 @@ class VectorFpaQaFigure(FpaQaFigure):
 	colorScalar = {}
 	haveColors = False
 	
+	missingCcds = {}
 	for r in self.camera:
 	    raft   = cameraGeom.cast_Raft(r)
 	    rlabel = raft.getId().getName()
@@ -325,6 +327,7 @@ class VectorFpaQaFigure(FpaQaFigure):
 		else:
 		    colorValues.append(numpy.NaN)
 		    patches.append(self.rectangles[clabel])
+		    missingCcds[clabel] = self.ccdBoundaries[clabel]
 
 
 	if not vlimits is None:
@@ -366,6 +369,13 @@ class VectorFpaQaFigure(FpaQaFigure):
 	    x = numpy.array([x0, x0, x1, x1, x0])
 	    y = numpy.array([y0, y1, y1, y0, y0])
             sp.plot(x, y, 'k-', lw=1)
+	for b in missingCcds.values():
+	    x0, x1 = b[0]
+	    y0, y1 = b[1]
+	    x = [x0, x1, x0, x1]
+	    y = [y0, y1, y1, y0]
+	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
+
 
         if doLabel:
             for r in self.rectangles.values():
@@ -385,6 +395,7 @@ class VectorFpaQaFigure(FpaQaFigure):
 		tic.set_size("x-small")
 	for tic in sp.get_xticklabels():
 	    tic.set_size("x-small")
+	    tic.set_rotation(22)
 	for tic in sp.get_yticklabels():
 	    tic.set_size("x-small")
 	    tic.set_rotation(45)

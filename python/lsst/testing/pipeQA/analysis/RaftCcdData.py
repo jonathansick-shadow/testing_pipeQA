@@ -52,12 +52,16 @@ class RaftCcdData(object):
 		for ccd, value in ccdDict.items():
 		    self.cache = numpy.append(self.cache, value)
 
-    def summarize(self, methodName, recache=False):
+    def summarize(self, methodName, recache=False, default=numpy.NaN):
 	self.cacheValues(recache)
 	if methodName == 'median':
 	    return numpy.median(self.cache)
-	method = getattr(self.cache, methodName)
-	return method()
+	if len(self.cache) > 0:
+	    method = getattr(self.cache, methodName)
+	    value = method()
+	else:
+	    value = default
+	return value
     
 	
 
