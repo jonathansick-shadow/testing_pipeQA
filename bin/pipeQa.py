@@ -29,9 +29,9 @@ import lsst.testing.pipeQA.analysis     as qaAnalysis
 #
 #############################################################
 
-def main(dataset, dataIdInput):
+def main(dataset, dataIdInput, rerun=None):
 
-    data = pipeQA.makeQaData(dataset)
+    data = pipeQA.makeQaData(dataset, rerun=rerun)
 
     # take what we need for this camera, ignore the rest
     dataId = {}
@@ -130,4 +130,8 @@ if __name__ == '__main__':
 	dataset = 'suprimeTestData002'
         dataId['visit'] = '.*'
 
-    main(dataset, dataId)
+    dataset = "HSC"
+    dataId = {'visit':'.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+    rerun = "price"
+    
+    main(dataset, dataId, rerun)

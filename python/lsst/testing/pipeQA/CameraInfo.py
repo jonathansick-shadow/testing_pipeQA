@@ -32,13 +32,13 @@ class CameraInfo(object):
         registry, calibRegistry = self.getRegistries(baseDir)
         return os.path.exists(registry) and os.path.exists(calibRegistry)
 
-    def getMapper(self, baseDir, rerun=None):
-        roots = self.getRoots(baseDir)
-        registry, calibRegistry = self.getRegistries(baseDir)
-        if rerun is None:
-            return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
-        else:
-            return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
+    #def getMapper(self, baseDir, rerun=None):
+    #    roots = self.getRoots(baseDir)
+    #    registry, calibRegistry = self.getRegistries(baseDir)
+    #    if rerun is None:
+    #        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
+    #    else:
+    #        return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
     def __str__(self):
         return name
@@ -94,7 +94,11 @@ class LsstSimCameraInfo(CameraInfo):
         #calibRegistry = os.path.join(roots['data'], "registry.sqlite3")
         return os.path.exists(registry)
 
+    def getMapper(self, baseDir, rerun=None):
+        roots = self.getRoots(baseDir)
+        registry, calibRegistry = self.getRegistries(baseDir)
 
+	return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
 ####################################################################
 #
@@ -125,6 +129,12 @@ class CfhtCameraInfo(CameraInfo):
         if not output is None:
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, os.path.join(baseDir, "calib"), baseDir)
+
+
+    def getMapper(self, baseDir, rerun=None):
+        roots = self.getRoots(baseDir)
+        registry, calibRegistry = self.getRegistries(baseDir)
+	return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
 
 ####################################################################
@@ -162,6 +172,12 @@ class HscCameraInfo(CameraInfo):
         return "pipeQA"
     
 
+    def getMapper(self, baseDir, rerun=None):
+        roots = self.getRoots(baseDir)
+        registry, calibRegistry = self.getRegistries(baseDir)
+	return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
+
+
 ####################################################################
 #
 # SuprimecamCameraInfo class
@@ -196,6 +212,11 @@ class SuprimecamCameraInfo(CameraInfo):
     def getDefaultRerun(self):
         return "pipeQA"
     
+
+    def getMapper(self, baseDir, rerun=None):
+        roots = self.getRoots(baseDir)
+        registry, calibRegistry = self.getRegistries(baseDir)
+	return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
     
 
 def getCameraInfoAvailable():
