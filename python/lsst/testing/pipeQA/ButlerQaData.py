@@ -117,7 +117,9 @@ class ButlerQaData(QaData):
                 continue
 
 	    filterObj = self.getFilterBySensor(dataId)
-	    filterName = filterObj[dataKey].getName()
+	    filterName = "unknown"
+	    if filterObj.has_key(dataKey):
+		filterName = filterObj[dataKey].getName()
 
             # make sure we actually have the output file
             isWritten = self.outButler.datasetExists('icMatch', dataId)
@@ -125,7 +127,7 @@ class ButlerQaData(QaData):
                 #persistableMatchVector = self.outButler.get('icMatch', dataId)
 		
 		matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
-                self.matchListCache[dataKey] = matches #persistableMatchVector.getSourceMatches()
+                self.matchListCache[dataKey] = [] # matches #persistableMatchVector.getSourceMatches()
 
 		if self.outButler.datasetExists('calexp', dataId):
 
@@ -133,12 +135,15 @@ class ButlerQaData(QaData):
                     calib = calibDict[dataKey]
                     
                     fmag0, fmag0err = calib.getFluxMag0()
-                    for m in self.matchListCache[dataKey]:
+                    for m in matches:
 			sref, s, dist = m
-                        s.setApFlux(s.getApFlux()/fmag0)
-                        s.setPsfFlux(s.getPsfFlux()/fmag0)
-			s.setModelFlux(s.getModelFlux()/fmag0)
-
+			if ((not sref is None) and (not s is None)):
+			    s.setApFlux(s.getApFlux()/fmag0)
+			    s.setPsfFlux(s.getPsfFlux()/fmag0)
+			    s.setModelFlux(s.getModelFlux()/fmag0)
+			    self.matchListCache[dataKey].append([sref, s, dist])
+			
+			    
                 matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
 		self.dataIdLookup[dataKey] = dataId
 		
@@ -291,6 +296,10 @@ class ButlerQaData(QaData):
                 # if it doesn't match, this frame isn't to be run.
                 if not re.search(str(regexForThisId),  str(dataId)):
                     match = False
+
+		# ignore the guiding ccds on the hsc camera
+		if re.search('^hsc.*', self.cameraInfo.name) and dataIdName == 'ccd' and dataId > 99:
+		    match = False
 
             if match:
                 dataTuples.append(dataTuple)

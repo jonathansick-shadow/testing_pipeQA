@@ -30,7 +30,10 @@ class CameraInfo(object):
         
     def verifyRegistries(self, baseDir):
         registry, calibRegistry = self.getRegistries(baseDir)
-        return os.path.exists(registry) and os.path.exists(calibRegistry)
+	haveReg = os.path.exists(registry)
+	haveCalib = os.path.exists(calibRegistry)
+	print self.name, registry, calibRegistry, haveReg, haveCalib
+        return haveReg and haveCalib
 
     #def getMapper(self, baseDir, rerun=None):
     #    roots = self.getRoots(baseDir)

@@ -80,12 +80,17 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	for raft, ccd in self.ellip.raftCcdKeys():
 	    ellip = self.ellip.get(raft, ccd)
 	    theta = self.theta.get(raft, ccd)
-	    
-	    stat = afwMath.makeStatistics(ellip, afwMath.NPOINT | afwMath.MEDIAN)
-	    ellipMed = stat.getValue(afwMath.MEDIAN)
-	    stat = afwMath.makeStatistics(theta, afwMath.NPOINT | afwMath.MEDIAN)
-	    thetaMed = stat.getValue(afwMath.MEDIAN)
-	    n      = stat.getValue(afwMath.NPOINT)
+
+	    if len(ellip) > 0:
+		stat = afwMath.makeStatistics(ellip, afwMath.NPOINT | afwMath.MEDIAN)
+		ellipMed = stat.getValue(afwMath.MEDIAN)
+		stat = afwMath.makeStatistics(theta, afwMath.NPOINT | afwMath.MEDIAN)
+		thetaMed = stat.getValue(afwMath.MEDIAN)
+		n      = stat.getValue(afwMath.NPOINT)
+	    else:
+		ellipMed = 99.0
+		thetaMed = 0.0
+		n = 0
 
 	    # add a test for acceptible psf ellipticity
 	    self.ellipMedians.set(raft, ccd, ellipMed)
@@ -138,6 +143,12 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	    x = self.x.get(raft, ccd) - 0.5*dx
 	    y = self.y.get(raft, ccd) - 0.5*dy
 
+	    if len(x) == 0:
+		x = numpy.array([0.0])
+		y = numpy.array([0.0])
+		dx = numpy.array([0.0])
+		dy = numpy.array([0.0])
+		
 	    xmax, ymax = x.max(), y.max()
 	    xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
 	    ylim = [0, 1024*int(ymax/1024.0 + 0.5)]

@@ -37,6 +37,12 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 
     def _getFlux(self, mType, s, sref):
+
+	# if the source isn't valid, return NaN
+	if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
+	    return numpy.NaN
+	    
+	
 	if mType=="psf":
 	    return s.getPsfFlux()
 	elif mType=="ap":
@@ -71,7 +77,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 		for m in matchList:
 		    sref, s, dist = m
-		    
+
 		    f1 = self._getFlux(self.magType1, s, sref)
 		    f2 = self._getFlux(self.magType2, s, sref)
 
@@ -181,6 +187,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 		    meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
 		    stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
 
+	tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
 	tag = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
 	dtag = self.magType1+"-"+self.magType2
 	wtag = self.magType1+"minus"+self.magType2
@@ -255,7 +262,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    clr = numpy.array(clr)
 	    clr[whereCut] = [red] * len(whereCut)
 
-	    tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
 	    for ax in [ax_1, ax_2]:
 		ax.scatter(mag, diff, size, color=clr, label=ccd)
 		ax.set_xlabel(tag1)
@@ -309,6 +315,12 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	
 	####################
 	# data for all ccds
+	if len(allMags) == 0:
+	    allMags = numpy.array([xmax])
+	    allDiffs = numpy.array([0.0])
+	    allColor = [black]
+	    allLabels = ["no_valid_data"]
+	    
 	allColor = numpy.array(allColor)
 	for ax in [ax0_1, ax0_2]:
 	    ax.scatter(allMags, allDiffs, size, color=allColor)

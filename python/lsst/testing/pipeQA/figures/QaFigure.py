@@ -323,6 +323,7 @@ class VectorFpaQaFigure(FpaQaFigure):
 			values = float(values)
 		    radiansWrtXtmp, lenInPixtmp, colorScalartmp = values, 1500.0, None
 		
+		lenInPix[clabel]    = lenInPixtmp
 		allValues.append(radiansWrtXtmp)
 		if (not radiansWrtXtmp is None): # or (showUndefined):
 		    if not colorScalartmp is None:
@@ -331,12 +332,11 @@ class VectorFpaQaFigure(FpaQaFigure):
 			colorScalar[clabel] = colorScalartmp
 			haveColors = True
 		    radiansWrtX[clabel] = radiansWrtXtmp
-		    lenInPix[clabel]    = lenInPixtmp
 		else:
 		    colorValues.append(numpy.NaN)
 		    patches.append(self.rectangles[clabel])
 		    missingCcds[clabel] = self.ccdBoundaries[clabel]
-
+		    
 
 	if not vlimits is None:
 	    norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1], clip=False)

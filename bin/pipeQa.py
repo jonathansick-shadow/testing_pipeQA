@@ -59,8 +59,8 @@ def main(dataset, dataIdInput, rerun=None):
 	qaAnalysis.AstrometricErrorQaAnalysis(),
 	]
 
-    for a in analysisList:
-	for visit in visits:
+    for visit in visits:
+	for a in analysisList:
 	    print "Running " + str(a) + " visit: ", visit
 	    dataIdVisit = copy.copy(dataId)
 	    dataIdVisit['visit'] = visit
@@ -117,7 +117,7 @@ if __name__ == '__main__':
 	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-	dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
+	#dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	#dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
 	
     elif opts.camera=='H':
@@ -130,8 +130,9 @@ if __name__ == '__main__':
 	dataset = 'suprimeTestData002'
         dataId['visit'] = '.*'
 
-    dataset = "HSC"
-    dataId = {'visit':'.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-    rerun = "price"
+    #dataset = "Subaru"
+    #dataId = {'visit':'.*', 'ccd':'.*'}
+    #dataId = {'visit':'216', 'ccd':'.*'}
+    #rerun = "price"
     
     main(dataset, dataId, rerun)
