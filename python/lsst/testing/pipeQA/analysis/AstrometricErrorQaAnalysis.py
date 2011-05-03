@@ -45,7 +45,6 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
 	    for m in matchList:
 		sref, s, dist = m
-		#print "%.10f %.10f %.10f %.10f" % (s.getRa(), sref.getRa(), s.getDec(), sref.getDec())
 		ra, dec, raRef, decRef = \
 		    [x*numpy.pi/180.0 for x in [s.getRa(), s.getDec(), sref.getRa(), sref.getDec()]]
 		

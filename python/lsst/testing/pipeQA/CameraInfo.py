@@ -32,16 +32,9 @@ class CameraInfo(object):
         registry, calibRegistry = self.getRegistries(baseDir)
 	haveReg = os.path.exists(registry)
 	haveCalib = os.path.exists(calibRegistry)
-	print self.name, registry, calibRegistry, haveReg, haveCalib
+	#print self.name, registry, calibRegistry, haveReg, haveCalib
         return haveReg and haveCalib
 
-    #def getMapper(self, baseDir, rerun=None):
-    #    roots = self.getRoots(baseDir)
-    #    registry, calibRegistry = self.getRegistries(baseDir)
-    #    if rerun is None:
-    #        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
-    #    else:
-    #        return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
     def __str__(self):
         return name
