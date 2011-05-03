@@ -109,6 +109,8 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 
 	vLen = 1000.0  # for e=1.0
 
+	figFmt = "png"
+
 	# fpa figure
 	ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo.camera)
 	for raft, ccdDict in ellipFig.data.items():
@@ -121,7 +123,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 		
 	ellipFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, 0.1],
 			    title="Median PSF Ellipticity")
-	testSet.addFigure(ellipFig, "medPsfEllip.png", "Median PSF Ellipticity",
+	testSet.addFigure(ellipFig, "medPsfEllip."+figFmt, "Median PSF Ellipticity",
 			  saveMap=True, navMap=True)
 
 	#
@@ -174,7 +176,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 		tic.set_size("x-small")
 
 	    label = re.sub("\s+", "_", ccd)
-	    testSet.addFigure(fig, "psfEllip_"+label+".png",
+	    testSet.addFigure(fig, "psfEllip_"+label+"."+figFmt,
 			      "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen))
 	    
 	    i += 1

@@ -94,6 +94,8 @@ if __name__ == '__main__':
 		      help="Specify snap as regex (default=%default)")
     parser.add_option("-C", "--camera", default="L",
 		      help="(L)sst, (C)fht, (H)sc, (S)uprime")
+    parser.add_option("-R", "--rerun", default=None,
+		      help="Rerun to analyse - only valid for hsc/suprimecam (default=%default)")
     
     opts, args = parser.parse_args()
 
@@ -107,6 +109,7 @@ if __name__ == '__main__':
 	'raft': opts.raft,
 	'snap': opts.snap,
 	}
+    rerun = opts.rerun
     dataset, = args
 
 
@@ -117,7 +120,7 @@ if __name__ == '__main__':
 	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
 	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-	#dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
+	dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
 	#dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
 	
     elif opts.camera=='H':
