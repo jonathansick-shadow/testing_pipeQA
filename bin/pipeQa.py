@@ -33,6 +33,10 @@ def main(dataset, dataIdInput, rerun=None):
 
     data = pipeQA.makeQaData(dataset, rerun=rerun)
 
+    if data.cameraInfo.name == 'lsstSim' and dataIdInput.has_key('ccd'):
+	dataIdInput['sensor'] = dataIdInput['ccd']
+	
+
     # take what we need for this camera, ignore the rest
     dataId = {}
     for name in data.dataIdNames:
@@ -52,11 +56,11 @@ def main(dataset, dataIdInput, rerun=None):
     analysisList = [
 	#qaAnalysis.SourceBoundsQaAnalysis(),
 	#qaAnalysis.ZeropointQaAnalysis(),
-	qaAnalysis.PhotCompareQaAnalysis("psf", "ap", cut=magCut),
-	qaAnalysis.PhotCompareQaAnalysis("psf", "mod", cut=magCut),
-	qaAnalysis.PhotCompareQaAnalysis("psf", "cat", cut=magCut),
-	qaAnalysis.PsfEllipticityQaAnalysis(),
 	qaAnalysis.AstrometricErrorQaAnalysis(),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "cat", cut=magCut),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "ap",  cut=magCut),
+	qaAnalysis.PhotCompareQaAnalysis("psf", "mod", cut=magCut),
+	qaAnalysis.PsfEllipticityQaAnalysis(),
 	]
 
     for visit in visits:
@@ -113,29 +117,30 @@ if __name__ == '__main__':
     dataset, = args
 
 
-    if opts.camera=='L':
-	dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
-	dataset = 'buildbot_weekly_latest'
-	#dataset = "update"
-	dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-	dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-	#dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-	dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-	#dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
-	
-    elif opts.camera=='H':
-	dataset = 'hscsimTestData002'
-	dataId['visit'] = '.*'
-    elif opts.camera=='C':
-	dataset = 'cfhtTestData002'
-	dataId['visit'] = '.*'
-    elif opts.camera=="S":
-	dataset = 'suprimeTestData002'
-        dataId['visit'] = '.*'
+    if False:
+	if opts.camera=='L':
+	    dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
+	    dataset = 'buildbot_weekly_latest'
+	    #dataset = "update"
+	    dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
+	    dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+	    #dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
+	    dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
+	    #dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
 
-    #dataset = "Subaru"
-    #dataId = {'visit':'.*', 'ccd':'.*'}
-    #dataId = {'visit':'216', 'ccd':'.*'}
-    #rerun = "price"
+	elif opts.camera=='H':
+	    dataset = 'hscsimTestData002'
+	    dataId['visit'] = '.*'
+	    #dataset = "Subaru"
+	    #dataId = {'visit':'.*', 'ccd':'.*'}
+	    #dataId = {'visit':'216', 'ccd':'.*'}
+	    #rerun = "price"
+	elif opts.camera=='C':
+	    dataset = 'cfhtTestData002'
+	    dataId['visit'] = '.*'
+	elif opts.camera=="S":
+	    dataset = 'suprimeTestData002'
+	    dataId['visit'] = '.*'
+
     
     main(dataset, dataId, rerun)

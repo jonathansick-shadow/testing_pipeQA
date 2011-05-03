@@ -7,6 +7,8 @@ import lsst.meas.astrom                 as measAst
 import lsst.afw.geom                    as afwGeom
 import lsst.afw.cameraGeom              as cameraGeom
 
+import numpy
+
 import Manifest   as manifest
 import CameraInfo as qaCamInfo
 
@@ -141,8 +143,10 @@ class ButlerQaData(QaData):
 			    s.setApFlux(s.getApFlux()/fmag0)
 			    s.setPsfFlux(s.getPsfFlux()/fmag0)
 			    s.setModelFlux(s.getModelFlux()/fmag0)
+			    s.setRa((180.0/numpy.pi)*s.getRa())
+			    s.setDec((180.0/numpy.pi)*s.getDec())
 			    self.matchListCache[dataKey].append([sref, s, dist])
-			
+			    
 			    
                 matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
 		self.dataIdLookup[dataKey] = dataId

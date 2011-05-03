@@ -46,8 +46,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    for m in matchList:
 		sref, s, dist = m
 		#print "%.10f %.10f %.10f %.10f" % (s.getRa(), sref.getRa(), s.getDec(), sref.getDec())
-		dDec = sref.getDec() - s.getDec()
-		dRa  = (sref.getRa() - s.getRa())*abs(numpy.cos(sref.getDec()))
+		ra, dec, raRef, decRef = \
+		    [x*numpy.pi/180.0 for x in [s.getRa(), s.getDec(), sref.getRa(), sref.getDec()]]
+		
+		dDec = decRef - dec
+		dRa  = (raRef - ra)*abs(numpy.cos(decRef))
 
 		if not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER ):
 		    self.dRa.append(raft, ccd, dRa)
@@ -65,12 +68,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	self.medErrArcsec = raftCcdData.RaftCcdData(self.detector)
 	self.medThetaRad  = raftCcdData.RaftCcdData(self.detector)
 	
-	lim = 1.0 # arcsec
+	self.maxErr = 0.2 # arcsec
 	for raft,  ccd in self.dRa.raftCcdKeys():
 	    dRa  = self.dRa.get(raft, ccd)
 	    dDec = self.dDec.get(raft, ccd)
 	    
 	    errArcsec = 206265.0*numpy.sqrt(dRa**2 + dDec**2)
+	    #errArcsec = 3600.0*numpy.sqrt(dRa**2 + dDec**2)
 	    thetaRad  = numpy.arctan2(dDec, dRa)
 
 	    if len(errArcsec) > 0:
@@ -80,7 +84,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 		medThetaRad = stat.getValue(afwMath.MEDIAN)
 		n = stat.getValue(afwMath.NPOINT)
 	    else:
-		medErrArcsec = 99.0
+		medErrArcsec = 10.0*self.maxErr
 		medThetaRad = 0.0
 		n = 0
 
@@ -89,7 +93,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    
 	    label = "median astrometry error "+re.sub("\s+", "_", ccd)
 	    comment = "median sqrt(dRa^2+dDec^2) (arcsec, nstar=%d)" % (n)
-	    testSet.addTest( testCode.Test(label, medErrArcsec, [0.0, lim], comment) )
+	    testSet.addTest( testCode.Test(label, medErrArcsec, [0.0, self.maxErr], comment) )
 
 
     def plot(self, data, dataId, showUndefined=False):
@@ -108,7 +112,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 		    astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
 		    astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
 		
-	astFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, 1.0],
+	astFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, self.maxErr],
 			  title="Median astrometric error", cmapOver='#ff0000')
 	testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 
 			  saveMap=True, navMap=True)
@@ -124,6 +128,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    ra = self.dRa.get(raft, ccd)
 	    dec = self.dDec.get(raft, ccd)
 	    eLen = 206265.0*numpy.sqrt(ra**2 + dec**2)
+	    #eLen = 3600.0*numpy.sqrt(ra**2 + dec**2)
 	    t = numpy.arctan2(dec, ra)
 	    
 	    dx = eLen*numpy.cos(t)
@@ -158,8 +163,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    ax.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
 
 	    ax.scatter(x, y, 0.5, color='r')
-	    q = ax.quiver(x, y, dx, dy, color='k', scale=100.0, angles='xy')
-	    ax.quiverkey(q, 0.9, -0.2, 10.0, "10 arcsec", coordinates='axes',
+	    q = ax.quiver(x, y, dx, dy, color='k', scale=5.0, angles='xy')
+	    ax.quiverkey(q, 0.9, -0.2, 1.0, "1 arcsec", coordinates='axes',
 			 fontproperties={'size':"small"})
 
 	    ax.xaxis.set_major_locator(MaxNLocator(8))
