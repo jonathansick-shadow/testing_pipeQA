@@ -68,7 +68,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	self.medErrArcsec = raftCcdData.RaftCcdData(self.detector)
 	self.medThetaRad  = raftCcdData.RaftCcdData(self.detector)
 	
-	self.maxErr = 0.2 # arcsec
+	self.maxErr = 0.5 # arcsec
 	for raft,  ccd in self.dRa.raftCcdKeys():
 	    dRa  = self.dRa.get(raft, ccd)
 	    dDec = self.dDec.get(raft, ccd)
