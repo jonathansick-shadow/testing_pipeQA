@@ -21,6 +21,8 @@ from matplotlib.patches import Ellipse
 #import lsst.pipette.catalog as pipCatalog
 #import lsst.pipette.config as pipConfig
 
+RAD2DEG = 180. / num.pi
+
 class HtmlFormatter(object):
     def __init__(self):
         pass
@@ -754,6 +756,196 @@ class PhotometricRmsFigure(QaFigure):
         self.sdqaMetrics['psfBrightVariance'].setValue(sigmeanPsf)
 
         
+class CompletenessFigure(QaFigure):
+    def __init__(self):
+        QaFigure.__init__(self)
+
+        self.sdqaMetrics = {}
+        
+        self.data     = {}
+        self.dataType = {
+            "Zeropoint"         : num.float64,
+            "AllGalaxies"       : num.ndarray,
+            "MatchedGalaxies"   : num.ndarray,
+            "AllStars"          : num.ndarray,
+            "MatchedStars"      : num.ndarray,
+            "UnmatchedImage"    : num.ndarray
+            }
+
+        # set on retrieve; reset on reset()
+        self.database   = None
+        self.visitId    = None
+        self.filterName = None
+        self.raftName   = None
+        self.ccdName    = None
+        self.fluxtype   = None
+        
+    def reset(self):
+        self.data       = {}
+        self.database   = None
+        self.visitId    = None
+        self.filterName = None
+        self.raftName   = None
+        self.ccdName    = None
+        self.fluxtype   = None
+
+    def retrieveDataViaDb(self, database, visitId, filterName, raftName, ccdName,
+                          fluxtype = "psf", printReg = False):
+        self.reset()
+        if not (fluxtype == "psf" or fluxtype == "ap"):
+            Trace("lsst.testing.pipeQA.ZeropointFitFigure", 1, "WARNING: fluxtype %s not allowed")
+            return
+        
+        self.database   = database
+        self.visitId    = visitId
+        self.filterName = filterName
+        self.raftName   = raftName
+        self.ccdName    = ccdName
+        self.fluxtype   = fluxtype
+
+        dbId        = DatabaseIdentity(database)
+        dbInterface = LsstSimDbInterface(dbId)
+
+        # Select all reference stars within this field
+        # First, get field limits and zeropoint
+        scesql  = 'select scienceCcdExposureId,fluxMag0,llcRa,ulcRa,llcDecl,ulcDecl,'
+        scesql += ' lrcRa,urcRa,lrcDecl,urcDecl'
+        scesql += ' from Science_Ccd_Exposure'
+        scesql += ' where visit = %d' % (visitId)
+        scesql += ' and raftName = "%s"' % (raftName)
+        scesql += ' and ccdName = "%s"' % (ccdName)
+        scesql += ' and filterName = "%s"' % (filterName)
+        sceresults  = dbInterface.execute(scesql)
+        if len(sceresults) != 1:
+            # throw exception or something
+            return
+        sceId,fmag0,llcRa,ulcRa,llcDecl,ulcDecl,lrcRa,urcRa,lrcDecl,urcDecl = sceresults[0]
+        polygon = ( (llcRa,llcDecl),
+                    (ulcRa,ulcDecl),
+                    (urcRa,urcDecl),
+                    (lrcRa,lrcDecl),
+                    (llcRa,llcDecl) )
+        zpt = -2.5 * num.log10(fmag0)
+        self.data["Zeropoint"] = zpt
+
+        # Select all simRefObjects in this field
+        # Really need a stored procedure to do this; will fail near poles and around ra=0
+        # Do some basic filtering for now
+        srosql  = 'select refObjectId,isStar,ra,decl,%sMag from SimRefObject' % (filterName)
+        srosql += ' where (ra >= %f)' % (min( min(llcRa, ulcRa), max(urcRa, lrcRa) ))
+        srosql += ' and (ra <= %f)'   % (max( min(llcRa, ulcRa), max(urcRa, lrcRa) ))
+        srosql += ' and (decl >= %f)' % (min( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
+        srosql += ' and (decl <= %f)' % (max( min(llcDecl, ulcDecl), max(urcDecl, lrcDecl) ))
+        sroresults  = dbInterface.execute(srosql)
+        refAll = {'s': [], 'g': []}
+        allGalaxies = []
+        allStars    = []
+        for result in sroresults:
+            oid, isStar, ra, decl, mag = result
+            if pointInsidePolygon(ra, decl, polygon):
+                if isStar:
+                    refAll['s'].append(oid)
+                    allStars.append(mag)
+                else:
+                    refAll['g'].append(oid)
+                    allGalaxies.append(mag)
+        self.data["AllGalaxies"] = num.array(allGalaxies)
+        self.data["AllStars"]    = num.array(allStars)
+
+        # Select all matched galaxies
+        mrefGsql  = 'select sro.%sMag' % (filterName)
+        mrefGsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
+        mrefGsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
+        mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
+        mrefGsql += ' and (s.objectID is not NULL)'
+        mrefGsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'])))
+        mrefGresults  = dbInterface.execute(mrefGsql)
+        mrefGmag  = num.array([x[0] for x in mrefGresults])
+        self.data["MatchedGalaxies"] = mrefGmag
+        
+        # Select all matched stars
+        mrefSsql  = 'select sro.%sMag, s.ra, s.decl' % (filterName)
+        mrefSsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
+        mrefSsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
+        mrefSsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
+        mrefSsql += ' and (s.objectID is not NULL)'
+        mrefSsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['s'])))
+        mrefSresults  = dbInterface.execute(mrefSsql)
+        mrefSmag  = num.array([x[0] for x in mrefSresults])
+        mrefSra   = num.array([x[1] for x in mrefSresults])
+        mrefSdecl = num.array([x[2] for x in mrefSresults])
+        if printReg:
+            for i in range(len(mrefSra)):
+                print "circle(%s,%s,2\") # width=2 color=green" % (
+                    mrefSra[i], mrefSdecl[i])
+        self.data["MatchedStars"] = mrefSmag
+
+        # Unmatched detections
+        uimgsql  = 'select dnToAbMag(s.%sFlux, sce.fluxMag0), s.ra, s.decl' % (self.fluxtype)
+        uimgsql += ' from Source as s, Science_Ccd_Exposure as sce' 
+        uimgsql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+        uimgsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
+        uimgsql += ' and (s.objectId is NULL)'
+        uimgresults = dbInterface.execute(uimgsql)
+        uimgmag  = num.array([x[0] for x in uimgresults])
+        uimgra   = num.array([x[1] for x in uimgresults])
+        uimgdecl = num.array([x[2] for x in uimgresults])
+        if printReg:
+            for i in range(len(uimgra)):
+                print "circle(%s,%s,2\") # width=2 color=red" % (
+                    uimgra[i], uimgdecl[i])
+        self.data["UnmatchedImage"] = uimgmag
+
+    def makeFigure(self):
+        if not self.validate():
+            Trace("lsst.testing.pipeQA.CompletenessFigure", 1, "Invalid Data")
+            return None
+
+        bins = num.arange(14, 25, 0.1)
+
+        # Just to get the histogram results
+        sp1       = self.fig.add_subplot(111)
+        allGhist  = sp1.hist(self.data["AllGalaxies"], bins=bins)
+        matGhist  = sp1.hist(self.data["MatchedGalaxies"], bins=bins)
+        allShist  = sp1.hist(self.data["AllStars"], bins=bins)
+        matShist  = sp1.hist(self.data["MatchedStars"], bins=bins)
+        unmathist = sp1.hist(self.data["UnmatchedImage"], bins=bins)
+
+        # Reset for actual plotting
+        self.fig.clf()
+        sp1  = self.fig.add_subplot(311)
+        sp2  = self.fig.add_subplot(312, sharex = sp1)
+        sp3  = self.fig.add_subplot(313, sharex = sp1)
+
+        starRat = matShist[0].astype(num.float) / allShist[0]
+        idx     = num.where( (allShist > 0) & (starRat < 0.9) )
+        for i in idx[0]:
+            print matShist[1][:-1][i], starRat[i]
+            
+        sp1.plot(matGhist[1][:-1], matGhist[0].astype(num.float) / allGhist[0], 'b-')
+        sp2.plot(matShist[1][:-1], matShist[0].astype(num.float) / allShist[0], 'r-')
+        sp3.plot(matShist[1][:-1], unmathist[0].astype(num.float) /
+                 (matShist[0] + matGhist[0] + unmathist[0]), 'k-')
+
+
+        # Make pretty
+        pylab.setp(sp1.get_xticklabels()+sp2.get_xticklabels(), visible=False)
+        pylab.setp(sp3.get_xticklabels(), fontsize = 8)
+        pylab.setp(sp1.get_yticklabels()+sp2.get_yticklabels()+sp3.get_yticklabels(), fontsize = 8)
+        
+        sp1.set_ylabel('Match / All (Gal)', fontsize = 10, weight = 'bold')
+        sp2.set_ylabel('Match / All (Star)', fontsize = 10, weight = 'bold')
+        sp3.set_ylabel('Unmatch / Match', fontsize = 10, weight = 'bold')
+        sp3.set_xlabel('Catalog Mag', fontsize = 10, weight = 'bold')
+        self.fig.suptitle('%s v%s r%s s%s' %
+                          (self.database, self.visitId, self.raftName, self.ccdName),
+                          fontsize = 12)
+        
+        sp1.set_ylim(0.0, 1.1)
+        sp2.set_ylim(0.0, 1.1)
+        sp3.set_ylim(0.0, 1.1)
+
+
 class ZeropointFitFigure(QaFigure):
     def __init__(self):
         QaFigure.__init__(self)

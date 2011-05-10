@@ -52,6 +52,8 @@ if __name__ == '__main__':
                       help='Make FPA plot of zeropoint')
     parser.add_option('--zptfit', dest='dozptfit', action='store_true', default=False,
                       help='Make photometric zeropoint fit plot?')
+    parser.add_option('--complete', dest='docomplete', action='store_true', default=False,
+                      help='Photometric completeness figures?')
     parser.add_option('--plotlc', dest='refObjectId', default=None,
                       help='Lightcurve for given reference object')
     parser.add_option('--period', dest='period', default=None,
@@ -154,7 +156,64 @@ if __name__ == '__main__':
                     fptfitfig.retrieveDataViaDb(database, visitId, filterName, raft, ccd)
                     fptfitfig.makeFigure()
                     fptfitfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
-                
+
+    if opt.docomplete:
+        htmlf     = pipeQA.HtmlFormatter()
+        compfig   = pipeQA.CompletenessFigure()
+
+        # Do 1 sensor only
+        if len(opt.visit) == 1 and len(opt.raft) == 1 and len(opt.sensor) == 1:
+            visitId = opt.visit[0]
+            raft    = opt.raft[0]
+            ccd     = opt.sensor[0]
+            
+            sql        = 'select distinct(filterName) from Science_Ccd_Exposure where visit = %d' % (visitId)
+            results    = dbInterface.execute(sql) # need mag for reference catalog query
+            filterName = results[0][0]
+
+            compfig.retrieveDataViaDb(database, visitId, filterName, raft, ccd)
+            compfig.makeFigure()
+            
+            prefix = 'complete_%d' % (visitId)
+            outdir = os.path.join(outRoot, prefix)
+            if not os.path.isdir(outdir):
+                Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outdir))
+                os.makedirs(outdir)
+            compfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
+            
+        else:
+            # Do an entire focal plane, HTML and all
+            if len(opt.visit) == 0:
+                sql      = 'select distinct(visit) from Science_Ccd_Exposure'
+                results  = dbInterface.execute(sql)
+                visitIds = [x[0] for x in results]
+            else:
+                visitIds = opt.visit
+
+            for visitId in visitIds:
+                sql2 = 'select distinct(filterName) from Science_Ccd_Exposure where visit = %d' % (visitId)
+                results2 = dbInterface.execute(sql2) # need mag for reference catalog query
+                filterName = results2[0][0]
+
+                prefix = 'complete_%d' % (visitId)
+                outdir = os.path.join(outRoot, prefix)
+                if not os.path.isdir(outdir):
+                    Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outdir))
+                    os.makedirs(outdir)
+                outhtml = open(outdir+'.html', 'w')
+                htmlf.generateHtml(outhtml, os.path.join(prefix, prefix))
+                outhtml.close()
+
+                sql3     = 'select raftName, ccdName from Science_Ccd_Exposure where visit = %s' % (visitId)
+                results3 = dbInterface.execute(sql3)
+                for raftccd in results3:
+                    raft, ccd = raftccd
+
+                    compfig.retrieveDataViaDb(database, visitId, filterName, raft, ccd)
+                    compfig.makeFigure()
+                    compfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
+
+                    sys.exit(1)
   
         
     if opt.refObjectId != None:
