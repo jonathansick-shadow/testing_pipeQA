@@ -901,7 +901,7 @@ class CompletenessFigure(QaFigure):
             Trace("lsst.testing.pipeQA.CompletenessFigure", 1, "Invalid Data")
             return None
 
-        bins = num.arange(14, 25, 0.1)
+        bins = num.arange(14, 26, 0.1)
 
         # Just to get the histogram results
         sp1       = self.fig.add_subplot(111)
@@ -944,6 +944,89 @@ class CompletenessFigure(QaFigure):
         sp1.set_ylim(0.0, 1.1)
         sp2.set_ylim(0.0, 1.1)
         sp3.set_ylim(0.0, 1.1)
+
+class DetectionsFigure(QaFigure):
+    def __init__(self):
+        QaFigure.__init__(self)
+
+        self.sdqaMetrics = {}
+        self.sdqaMetrics['magMaxCounts'] = SdqaMetric(limits = {SdqaMetric.MIN: 23,
+                                                                SdqaMetric.MAX: 25},
+                                                      comment = 'Magnitude bin with most detections')
+        self.data     = {}
+        self.dataType = {
+            "CatalogStars"      : num.ndarray,
+            "ImageDetections"   : num.ndarray
+            }
+
+        # set on retrieve; reset on reset()
+        self.database   = None
+        self.visitId    = None
+        self.filterName = None
+        self.raftName   = None
+        self.fluxtype   = None
+        
+    def reset(self):
+        self.data       = {}
+        self.database   = None
+        self.visitId    = None
+        self.filterName = None
+        self.raftName   = None
+        self.fluxtype   = None
+
+    def retrieveDataViaDb(self, database, visitId, filterName, raftName, 
+                          fluxtype = "psf", printReg = False):
+        self.reset()
+        if not (fluxtype == "psf" or fluxtype == "ap"):
+            Trace("lsst.testing.pipeQA.DetectionsFigure", 1, "WARNING: fluxtype %s not allowed")
+            return
+        
+        self.database   = database
+        self.visitId    = visitId
+        self.filterName = filterName
+        self.raftName   = raftName
+        self.fluxtype   = fluxtype
+
+        dbId        = DatabaseIdentity(database)
+        dbInterface = LsstSimDbInterface(dbId)
+
+        catsql      = 'select sro.refObjectId, sro.ra, sro.decl, %sMag' % (filterName)
+        catsql     += ' from SimRefObject as sro, Science_Ccd_Exposure as sce'
+        catsql     += ' where (sce.visit = %d)' % (visitId)
+        catsql     += ' and (sce.raftName = "%s")' % (raftName)
+        catsql     += ' and (sro.isStar = 1) and (sro.isVar = 0)'
+        catsql     += ' and qserv_ptInSphPoly(sro.ra, sro.decl,'
+        catsql     += ' concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
+        catsql     += ' sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl))'
+        catresults  = dbInterface.execute(catsql)
+        self.data["CatalogStars"] = num.array([x[3] for x in catresults])
+
+        detsql      = 'select dnToAbMag(s.%sFlux, sce.fluxMag0)' % (self.fluxtype)
+        detsql     += ' from Source as s, Science_Ccd_Exposure as sce' 
+        detsql     += ' where ((s.flagForDetection & 0xa01) = 0)'
+        detsql     += ' and (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+        detsql     += ' and (sce.visit = %d)' % (visitId)
+        detsql     += ' and (sce.raftName = "%s")' % (raftName)
+        detresults  = dbInterface.execute(detsql)
+        self.data["ImageDetections"] = num.array([x[0] for x in detresults])
+
+    def makeFigure(self):
+        if not self.validate():
+            Trace("lsst.testing.pipeQA.CompletenessFigure", 1, "Invalid Data")
+            return None
+
+        bins = num.arange(14, 26, 0.25)
+
+        # Just to get the histogram results
+        sp1       = self.fig.add_subplot(111)
+        nc, bc, pc = sp1.hist(self.data["CatalogStars"], bins=bins, alpha=0.5, label = 'Catalog')
+        nd, bd, pd = sp1.hist(self.data["ImageDetections"], bins=bins, alpha=0.5, label = 'Detections')
+        sp1.legend(numpoints=1, prop=FontProperties(size='small'), loc = 'upper left')
+
+        sp1.set_title('%s v%s r%s %s-band' %
+                      (self.database, self.visitId, self.raftName, self.filterName),
+                      fontsize = 12)
+        self.sdqaMetrics['magMaxCounts'].setValue(bd[num.argsort(nd)[-1]])
 
 
 class ZeropointFitFigure(QaFigure):

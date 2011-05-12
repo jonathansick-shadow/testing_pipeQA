@@ -54,6 +54,8 @@ if __name__ == '__main__':
                       help='Make photometric zeropoint fit plot?')
     parser.add_option('--complete', dest='docomplete', action='store_true', default=False,
                       help='Photometric completeness figures?')
+    parser.add_option('--detects', dest='dodetects', action='store_true', default=False,
+                      help='Number of detections figure (per raft)?')
     parser.add_option('--plotlc', dest='refObjectId', default=None,
                       help='Lightcurve for given reference object')
     parser.add_option('--period', dest='period', default=None,
@@ -214,6 +216,29 @@ if __name__ == '__main__':
                     compfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, ccd))
 
                     sys.exit(1)
+
+    if opt.dodetects:
+        htmlf    = pipeQA.HtmlFormatter()
+        detfig   = pipeQA.DetectionsFigure()
+
+        # Do 1 sensor only
+        if len(opt.visit) == 1 and len(opt.raft) == 1:
+            visitId = opt.visit[0]
+            raft    = opt.raft[0]
+            
+            sql        = 'select distinct(filterName) from Science_Ccd_Exposure where visit = %d' % (visitId)
+            results    = dbInterface.execute(sql) # need mag for reference catalog query
+            filterName = results[0][0]
+
+            detfig.retrieveDataViaDb(database, visitId, filterName, raft)
+            detfig.makeFigure()
+            
+            prefix = 'detect_%d' % (visitId)
+            outdir = os.path.join(outRoot, prefix)
+            if not os.path.isdir(outdir):
+                Trace("lsst.testing.pipeQA.testDbQueries", 1, "Making output dir: %s" % (outdir))
+                os.makedirs(outdir)
+            detfig.saveFigure(htmlf.generateFileName(os.path.join(outdir, prefix), raft, "all"))
   
         
     if opt.refObjectId != None:
