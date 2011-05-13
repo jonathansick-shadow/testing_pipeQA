@@ -21,6 +21,19 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
     def __init__(self):
 	qaAna.QaAnalysis.__init__(self)
 
+
+    def free(self):
+	del self.theta
+	del self.ellip
+	del self.y
+	del self.x
+	del self.filter
+	del self.detector
+	del self.ssDict
+
+	del self.ellipMedians
+	del self.thetaMedians
+
     def test(self, data, dataId):
 	
 	# get data
@@ -41,6 +54,8 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	    ccd  = self.detector[key].getId().getName()
 
 	    filter = self.filter[key].getName()
+
+	    qaAnaUtil.isStar(ss)
 	    
 	    for s in ss:
 		ixx = s.getIxx()
@@ -59,8 +74,9 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 		    theta += numpy.pi
 		    
 		#print ixx, iyy, ixy, a2, b2, ellip, theta
+		isStar = s.getFlagForDetection() & measAlg.Flags.STAR
 		
-		if numpy.isfinite(ellip) and numpy.isfinite(theta):
+		if numpy.isfinite(ellip) and numpy.isfinite(theta) and isStar:
 		    self.ellip.append(raft, ccd, ellip)
 		    self.theta.append(raft, ccd, theta)
 		    self.x.append(raft, ccd, s.getXAstrom())
@@ -117,11 +133,12 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	    for ccd, value in ccdDict.items():
 		if not self.ellipMedians.get(raft, ccd) is None:
 		    ellipFig.data[raft][ccd] = [self.thetaMedians.get(raft, ccd),
-						10*vLen*self.ellipMedians.get(raft, ccd)]
+						10*vLen*self.ellipMedians.get(raft, ccd),
+						self.ellipMedians.get(raft, ccd)]
 		    ellipFig.map[raft][ccd] = "ell/theta=%.3f/%.0f" % (self.ellipMedians.get(raft, ccd),
 								       (180/numpy.pi)*self.thetaMedians.get(raft, ccd))
 		
-	ellipFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, 0.1],
+	ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.3],
 			    title="Median PSF Ellipticity")
 	testSet.addFigure(ellipFig, "medPsfEllip."+figFmt, "Median PSF Ellipticity",
 			  saveMap=True, navMap=True)

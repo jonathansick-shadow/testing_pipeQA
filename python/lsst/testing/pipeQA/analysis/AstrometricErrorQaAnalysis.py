@@ -21,6 +21,19 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
     def __init__(self):
 	qaAna.QaAnalysis.__init__(self)
 
+    def free(self):
+	del self.x
+	del self.y
+	del self.dDec
+	del self.dRa
+	del self.filter
+	
+	del self.detector
+	del self.matchListDict
+
+	del self.medErrArcsec
+	del self.medThetaRad
+	
     def test(self, data, dataId):
 	
 	# get data
@@ -102,7 +115,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
 	# fpa figure
 	astFig = qaFig.VectorFpaQaFigure(data.cameraInfo.camera)
-	vLen = 100
+	vLen = 5000 # length in pixels for 1 arcsec error vector
 	for raft, ccdDict in astFig.data.items():
 	    for ccd, value in ccdDict.items():
 		if not self.medErrArcsec.get(raft, ccd) is None:
@@ -111,7 +124,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 		    astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
 		    astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
 		
-	astFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, self.maxErr],
+	astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, self.maxErr],
 			  title="Median astrometric error", cmapOver='#ff0000')
 	testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 
 			  saveMap=True, navMap=True)

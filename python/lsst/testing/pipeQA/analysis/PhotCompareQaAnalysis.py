@@ -51,6 +51,21 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    return s.getModelFlux()
 	elif mType=="cat":
 	    return sref.getPsfFlux()
+
+    def free(self):
+	del self.x
+	del self.y
+	del self.mag
+	del self.diff
+	del self.filter
+	del self.detector
+	if not self.matchListDict is None:
+	    del self.matchListDict
+	if not self.ssDict is None:
+	    del self.ssDict
+	del self.means
+	del self.medians
+	del self.stds
 	
 
     def test(self, data, dataId):
@@ -63,9 +78,13 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	self.mag  = raftCcdData.RaftCcdVector(self.detector)
 	self.x    = raftCcdData.RaftCcdVector(self.detector)
 	self.y    = raftCcdData.RaftCcdVector(self.detector)
+	self.star = raftCcdData.RaftCcdVector(self.detector)
 
 	filter = None
-	flags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
+	badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
+
+	self.matchListDict = None
+	self.ssDict = None
 
 	# if we're asked to compare catalog fluxes ... we need a matchlist
 	if  self.magType1=="cat" or self.magType2=="cat":
@@ -75,22 +94,27 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 		ccd  = self.detector[key].getId().getName()
 		filter = self.filter[key].getName()
 
+		qaAnaUtil.isStar(matchList)
+
 		for m in matchList:
 		    sref, s, dist = m
-
+		    
 		    f1 = self._getFlux(self.magType1, s, sref)
 		    f2 = self._getFlux(self.magType2, s, sref)
+		    flags = s.getFlagForDetection()
 
-		    if (f1 > 0.0 and f2 > 0.0 and not s.getFlagForDetection() & flags):
+		    if (f1 > 0.0 and f2 > 0.0  and not flags & badFlags):
 			m1 = -2.5*numpy.log10(f1)
 			m2 = -2.5*numpy.log10(f2)
 
+			star = flags & measAlg.Flags.STAR
+			
 			if numpy.isfinite(m1) and numpy.isfinite(m2):
 			    self.diff.append(raft, ccd, m1 - m2)
 			    self.mag.append(raft, ccd, m1)
 			    self.x.append(raft, ccd, s.getXAstrom())
 			    self.y.append(raft, ccd, s.getYAstrom())
-					  
+			    self.star.append(raft, ccd, star)
 
 	# if we're not asked for catalog fluxes, we can just use a sourceSet
 	else:
@@ -101,20 +125,23 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 		filter = self.filter[key].getName()
 
-		#qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
+		qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
 		for s in ss:
 		    f1 = self._getFlux(self.magType1, s, s)
 		    f2 = self._getFlux(self.magType2, s, s)
+		    flags = s.getFlagForDetection()
 		    
-		    if ((f1 > 0.0 and f2 > 0.0) and not s.getFlagForDetection() & flags):
+		    if ((f1 > 0.0 and f2 > 0.0) and not flags & badFlags):
 			m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
 			m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
 
+			star = flags & measAlg.Flags.STAR
+			
 			self.diff.append(raft, ccd, m1 - m2)
 			self.mag.append(raft, ccd, m1)
 			self.x.append(raft, ccd, s.getXAstrom())
 			self.y.append(raft, ccd, s.getYAstrom())
-
+			self.star.append(raft, ccd, star)
 
 		    
 	group = dataId['visit']
@@ -132,7 +159,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	for raft,  ccd in self.mag.raftCcdKeys():
 	    dmag = self.diff.get(raft, ccd)
 	    mag = self.mag.get(raft, ccd)
-	    w = numpy.where((mag > 10) & (mag < self.cut))
+	    star = self.star.get(raft, ccd)
+	    w = numpy.where((mag > 10) & (mag < self.cut) & (star > 0))
 	    dmag = dmag[w]
 
 	    if len(dmag) > 0:
@@ -199,7 +227,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 			   title="Mean "+tag, cmapOver=red, cmapUnder=blue)
 	testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag   (brighter than %.1f)" % (self.cut),
 			  saveMap=True, navMap=True)
-	stdFig.makeFigure(showUndefined=showUndefined, cmap="YlOrRd", vlimits=[0.0, 0.03],
+	stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
 			  title="Stdev "+tag, cmapOver=red)
 	testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag  (brighter than %.1f)" % (self.cut),
 			  saveMap=True, navMap=True)
@@ -241,14 +269,16 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    diff = self.diff.get(raft, ccd)
 	    x    = self.x.get(raft, ccd)
 	    y    = self.y.get(raft, ccd)
-
+	    star = self.star.get(raft, ccd)
+	    
 	    if len(mag) == 0:
 		mag = numpy.array([xmax])
 		diff = numpy.array([0.0])
 		x    = numpy.array([0.0])
 		y    = numpy.array([0.0])
-
-	    whereCut = numpy.where(mag < self.cut)
+		star = numpy.array([0])
+		
+	    whereCut = numpy.where((mag < self.cut) & (star > 0))
 
 	    print "plotting ", ccd
 
@@ -284,7 +314,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    ddiff1 = 0.02
 	    ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
 	    label = re.sub("\s+", "_", ccd)
-	    for j in range(len(mag)):
+	    for j in xrange(len(mag)):
 		info = "nolink:x:%.2f_y:%.2f" % (x[j], y[j])
 		area = (mag[j]-dmag, diff[j]-ddiff1, mag[j]+dmag, diff[j]+ddiff1)
 		fig.addMapArea(label, area, info, axes=ax_1)
@@ -332,7 +362,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	dmag = 0.1
 	ddiff1 = 0.02
 	ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
-	for j in range(len(allMags)):
+	for j in xrange(len(allMags)):
 	    area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
 	    fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
 	    area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
@@ -357,3 +387,4 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    
 	testSet.addFigure(fig0, "diff_"+dtag+"_all.png", dtag+" vs. "+self.magType1, saveMap=True)
 
+	    

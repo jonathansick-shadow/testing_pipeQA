@@ -27,6 +27,12 @@ class QaData(object):
             self.dataIdNames.append(dataIdName)
             self.dataIdDiscrim.append(dataIdDiscrim)
 
+
+	self.initCache()
+	
+
+    def initCache(self):
+
 	# cache the dataId requests
 	# they may contain regexes ... we won't know if our cached sourceSets have
 	#   all the entries that match unless we redo the query
@@ -52,6 +58,38 @@ class QaData(object):
 	# store the explicit dataId (ie. no regexes) for each key used in a cache
 	self.dataIdLookup = {}
 
+	self.cacheList = {
+	    "query"         : self.queryCache,  
+	    "columnQuery"   : self.columnQueryCache,
+	    "sourceSet"     : self.sourceSetCache,
+	    "sourceSetColumn"  : self.sourceSetColumnCache,
+	    "matchQuery"    : self.matchQueryCache,
+	    "matchList"     : self.matchListCache,
+	    "calexp"        : self.calexpCache, 
+	    "wcs"           : self.wcsCache,    
+	    "detector"      : self.detectorCache,
+	    "raftDetector"  : self.raftDetectorCache,
+	    "filter"        : self.filterCache, 
+	    "calib"         : self.calibCache,  
+	    "dataIdLookup"  : self.dataIdLookup,
+	    }
+
+
+    def clearCache(self):
+
+	for cache in self.cacheList.values():
+	    for key in cache.keys():
+		del cache[key]
+	self.initCache()
+
+    def printCache(self):
+	for name, cache in self.cacheList.items():
+	    n = 0
+	    for key in cache:
+		if hasattr(cache[key], "__len__"):
+		    n += len(cache[key])
+	    print name, n
+		
 
     def getDataName(self):
 	return self.label+" rerun="+str(self.rerun)
@@ -159,7 +197,7 @@ class QaData(object):
         """Represent a dataTuple as a string."""
         
         s = []
-        for i in range(len(self.dataIdNames)):
+        for i in xrange(len(self.dataIdNames)):
             name = self.dataIdNames[i]
             value = re.sub("[,]", "", str(dataTuple[i]))
             s.append(name + value)
@@ -171,7 +209,7 @@ class QaData(object):
     def _dataTupleToDataId(self, dataTuple):
         """ """
         dataId = {}
-        for i in range(len(self.dataIdNames)):
+        for i in xrange(len(self.dataIdNames)):
             dataIdName = self.dataIdNames[i]
             dataId[dataIdName] = dataTuple[i]
         return dataId
@@ -187,7 +225,7 @@ class QaData(object):
 	    dataIdCopy['snap'] = '0'
 	    
 	dataList = []
-	for i in range(len(self.dataIdNames)):
+	for i in xrange(len(self.dataIdNames)):
 	    dataIdName = self.dataIdNames[i]
 	    if dataIdCopy.has_key(dataIdName):
 		dataList.append(dataIdCopy[dataIdName])

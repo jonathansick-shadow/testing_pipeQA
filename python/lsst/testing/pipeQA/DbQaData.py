@@ -12,6 +12,10 @@ from QaData        import QaData
 
 import QaDataUtils as qaDataUtils
 
+def mem(size="rss"):
+    """Generalization; memory sizes: rss, rsz, vsz."""
+    return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
+
 #########################################################################
 #
 #
@@ -92,7 +96,9 @@ class DbQaData(QaData):
         matchListDict = {}
         for row in results:
             s = afwDet.Source()
+	    qaDataUtils.setSourceBlobsNone(s)
 	    sref = afwDet.Source()
+	    qaDataUtils.setSourceBlobsNone(sref)
 	    
 	    visit, raft, sensor, mag, ra, dec = row[0:6]
 	    dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
@@ -189,6 +195,7 @@ class DbQaData(QaData):
         ssDict = {}
         for row in results:
             s = afwDet.Source()
+	    qaDataUtils.setSourceBlobsNone(s)
 
 	    visit, raft, sensor = row[0:3]
 	    dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
@@ -215,6 +222,7 @@ class DbQaData(QaData):
 	    s.setModelFlux(s.getModelFlux()/fmag0)
 	    
             ss.append(s)
+
 
 	# cache it
 	self.queryCache[dataIdStr] = True

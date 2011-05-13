@@ -43,7 +43,21 @@ def findDataInTestbed(label, raiseOnFailure=True):
     return testbedDir, testdataDir
 
 
+def setSourceBlobsNone(s):
+    s.setPhotometry(None)
+    s.setAstrometry(None)
+    s.setShape(None)
 
+def setSourceSetBlobsNone(ss):
+    for s in ss:
+	setSourceBlobsNone(s)
+
+def setMatchListBlobsNone(matchList):
+    for s1, s2, d in matchList:
+	setSourceBlobsNone(s1)
+	setSourceBlobsNone(s2)
+
+	
 def getSourceSetNameList():
     
     accessors = [
@@ -199,7 +213,9 @@ def getCalibObjects(butler, filterName, dataId):
     calib = afwImage.Calib(calexp_md)
 
     matches = pmatches.getSourceMatches()
+    setMatchListBlobsNone(matches)
     sources = psources.getSources()
+    setSourceSetBlobsNone(sources)
 
     anid = pmatches.getSourceMatchMetadata().getInt('ANINDID')
 
@@ -208,6 +224,8 @@ def getCalibObjects(butler, filterName, dataId):
     useOutputSrc = False
     if useOutputSrc:
         srcs = butler.get('src', dataId).getSources()
+	setSourceSetBlobsNone(srcs)
+	
         import lsst.afw.detection as afwDetect
         pmMatch = afwDetect.matchXy(sources, srcs, 1.0, True)
         for icSrc, src, d in pmMatch:
@@ -227,6 +245,8 @@ def getCalibObjects(butler, filterName, dataId):
 
     X = solver.getCatalogue(ra, dec, radius, filterName, idName, anid)
     refsources = X.refsources
+    setSourceSetBlobsNone(refsources)
+    
     inds = X.inds
 
     referrs, stargal = None, None

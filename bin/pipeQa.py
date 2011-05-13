@@ -23,6 +23,7 @@ import copy
 import lsst.testing.pipeQA as pipeQA
 import lsst.testing.pipeQA.analysis     as qaAnalysis
 
+
 #############################################################
 #
 # Main body of code
@@ -65,13 +66,13 @@ def main(dataset, dataIdInput, rerun=None):
 
     for visit in visits:
 	for a in analysisList:
-	    print "Running " + str(a) + " visit: ", visit
+	    print "Running " + str(a), "  visit:", visit
 	    dataIdVisit = copy.copy(dataId)
 	    dataIdVisit['visit'] = visit
 	    a.test(data, dataIdVisit)
 	    a.plot(data, dataIdVisit, showUndefined=False)
-	
-	
+	    a.free()
+	data.clearCache()
 
 
 #############################################################
