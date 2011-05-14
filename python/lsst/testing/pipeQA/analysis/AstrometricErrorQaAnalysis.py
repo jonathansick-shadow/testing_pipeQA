@@ -71,8 +71,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 		    self.y.append(raft, ccd, s.getYAstrom())
 		    
 		    
-	group = dataId['visit']
-	testSet = self.getTestSet(group)
+	testSet = self.getTestSet(data, dataId)
 	testSet.addMetadata('dataset', data.getDataName())
 	testSet.addMetadata('visit', dataId['visit'])
 	testSet.addMetadata('filter', filter)
@@ -110,8 +109,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
     def plot(self, data, dataId, showUndefined=False):
 
-	group = dataId['visit']
-	testSet = self.getTestSet(group)
+	testSet = self.getTestSet(data, dataId)
 
 	# fpa figure
 	astFig = qaFig.VectorFpaQaFigure(data.cameraInfo.camera)

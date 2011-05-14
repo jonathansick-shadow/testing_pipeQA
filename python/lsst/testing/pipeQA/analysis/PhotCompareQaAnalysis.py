@@ -144,8 +144,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 			self.star.append(raft, ccd, star)
 
 		    
-	group = dataId['visit']
-	testSet = self.getTestSet(group, label=self.magType1+"-"+self.magType2)
+	testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
 	testSet.addMetadata('dataset', data.getDataName())
 	testSet.addMetadata('visit', dataId['visit'])
 	testSet.addMetadata('filter', filter)
@@ -201,8 +200,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
     def plot(self, data, dataId, showUndefined=False):
 
-	group = dataId['visit']
-	testSet = self.getTestSet(group, label=self.magType1+"-"+self.magType2)
+	testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
 
 	# fpa figure
 	meanFig = qaFig.FpaQaFigure(data.cameraInfo.camera)

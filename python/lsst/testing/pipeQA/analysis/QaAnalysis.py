@@ -15,15 +15,22 @@ class QaAnalysis(object):
     def plot(self):
 	return []
 
-    def getTestSet(self, group, label=None):
+    def getTestSet(self, data, dataId, label=None):
+	group = dataId['visit']
+	filter = data.getFilterBySensor(dataId)
+	# all sensors have the same filter, so just grab one
+	key = filter.keys()[0]
+	filterName = filter[key].getName()
+
 	if not label is None:
 	    label = self.__class__.__name__ + "."+ label
 	else:
 	    label = self.__class__.__name__
-	    
-	if not self.testSets.has_key(group):
-	    self.testSets[group] = testCode.TestSet(label, group=group)
-	return self.testSets[group]
+
+	tsId = group + "-" + filterName
+	if not self.testSets.has_key(tsId):
+	    self.testSets[tsId] = testCode.TestSet(label, group=tsId)
+	return self.testSets[tsId]
 
     def __str__(self):
 	testLabel = ""

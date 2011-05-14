@@ -83,8 +83,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 		    self.y.append(raft, ccd, s.getYAstrom())
 		
 	# create a testset and add values
-	group = dataId['visit']
-	testSet = self.getTestSet(group)
+	testSet = self.getTestSet(data, dataId)
 	testSet.addMetadata('dataset', data.getDataName())
 	testSet.addMetadata('visit', dataId['visit'])
 	testSet.addMetadata('filter', filter)
@@ -120,8 +119,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 
     def plot(self, data, dataId, showUndefined=False):
 
-	group = dataId['visit']
-	testSet = self.getTestSet(group)
+	testSet = self.getTestSet(data, dataId)
 
 	vLen = 1000.0  # for e=1.0
 
