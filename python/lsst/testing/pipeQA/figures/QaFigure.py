@@ -26,6 +26,7 @@ class QaFig(object):
 	self.map         = {}
         #self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
 	self.mapAreas    = []
+	self.mapTransformed = True
 	
     def reset(self):
         self.fig.clf()
@@ -45,7 +46,11 @@ class QaFig(object):
 	self.fig.savefig(path, dpi=self.fig.get_dpi(), **kwargs)
 
     def savemap(self, path):
-	mapList = self.getMapInfo()
+	if self.mapTransformed:
+	    mapList = self.getMapInfo()
+	else:
+	    mapList = self.getTransformedMap()
+	    
 	if len(mapList) > 0:
 	    fp = open(path, 'w')
 
@@ -67,18 +72,28 @@ class QaFig(object):
 	    fp.close()
 
 
+    def getTransformedMap(self):
+
+	mapAreasNew = []
+	for ma in self.mapAreas:
+	    label, x0, y0, x1, y1, info, axes = ma
+	    tr = self.fig.transFigure.transform((1.0, 1.0))
+	    xpmax, ypmax = tr
+	    xy1 = axes.transData.transform((x0, y0))
+	    xy2 = axes.transData.transform((x1, y1))
+	    left, bottom = xy1
+	    right, top = xy2
+	    mapAreasNew.append([label, left, ypmax-top, right, ypmax-bottom, info])
+	    
+	return mapAreasNew
+	    
+
     def addMapArea(self, label, area, info, axes=None):
 	if axes is None:
 	    axes = self.fig.gca()
-
 	x0, y0, x1, y1 = area
-	tr = self.fig.transFigure.transform((1.0, 1.0))
-	xpmax, ypmax = tr
-	xy1 = axes.transData.transform((x0, y0))
-	xy2 = axes.transData.transform((x1, y1))
-	left, bottom = xy1
-	right, top = xy2
-	self.mapAreas.append([label, left, ypmax-top, right, ypmax-bottom, info])
+	self.mapAreas.append([label, x0, y0, x1, y1, info, axes])
+	self.mapTransformed = False
 
     
     def getMapInfo(self):

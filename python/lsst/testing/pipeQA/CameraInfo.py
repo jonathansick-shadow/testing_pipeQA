@@ -1,6 +1,7 @@
 import os
 import eups
 
+import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
 
 ####################################################################
@@ -17,8 +18,14 @@ class CameraInfo(object):
         self.dataInfo    = dataInfo
         self.mapperClass = mapperClass
 	self.camera      = camera
-        
+	
+        self.nSensor     = 0
+	for r in self.camera:
+	    raft = cameraGeom.cast_Raft(r)
+	    for c in raft:
+		self.nSensor += 1
 
+		
     def getRoots(self, data, calib, output):
         return {'data': data, 'calib': calib, 'output': output}
 
@@ -43,7 +50,9 @@ class CameraInfo(object):
     def getDefaultRerun(self):
         return None
 
-
+    def getSensorCount(self):
+	return self.nSensor
+		
 
 
 ####################################################################
