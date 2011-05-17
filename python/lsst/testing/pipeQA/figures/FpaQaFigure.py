@@ -19,7 +19,13 @@ from QaFigure import QaFigure
 
 class FpaQaFigure(QaFigure):
 
-    def __init__(self, camera, data=None):
+    def __init__(self, camera, data=None, map=None):
+        """
+        @param camera     The device whose focal plane area we're representing.
+        @param data       Data to display
+        @param map        Map areas to use.
+        """
+        
         QaFigure.__init__(self)
         self.camera = camera
         self.centers, self.rectangles, self.raftBoundaries, self.ccdBoundaries = \
@@ -29,13 +35,20 @@ class FpaQaFigure(QaFigure):
         if not data is None:
             if not self.validate():
                 raise Exception("Data did not pass validation.")
+            self.data = data
+        else:
+            self.data = {}
+            self.reset()
 
-        self.data = {}
-        self.reset()
+        if not map is None:
+            self.map = map
+        else:
+            self.reset(data=self.map)
 
-        self.reset(data=self.map)
         
     def reset(self, data=None):
+        """Set all values in data dictionary to None."""
+        
         if data is None:
             data = self.data
             
@@ -146,6 +159,19 @@ class FpaQaFigure(QaFigure):
                    vlimits=None, cmap="jet", title=None,
                    cmapOver=None, cmapUnder=None
                    ):
+        """Make the figure.
+
+        @param borderPix        width of border in pixels
+        @param boundaryColors   matplotlib color specifier for border
+        @param doLabel          add ccd labels to the figure
+        @param showUndefined    show sensors even if their value is None
+        @param vlimits          [low, high] limits for colormap
+        @param cmap             string name of an matplotlib.cm colormap
+        @param title            title of the figure
+        @param cmapOver         Color to use if above cmap high limit.
+        @param cmapUnder        Color to use if below cmap low limit.
+        """
+
 
         self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
         
@@ -226,6 +252,19 @@ class VectorFpaQaFigure(FpaQaFigure):
                    vlimits=None, cmap="jet", title=None,
                    cmapOver=None, cmapUnder=None
                    ):
+        """Make the figure.
+
+        @param borderPix        width of border in pixels
+        @param boundaryColors   matplotlib color specifier for border
+        @param doLabel          add ccd labels to the figure
+        @param showUndefined    show sensors even if their value is None
+        @param vlimits          [low, high] limits for colormap
+        @param cmap             string name of an matplotlib.cm colormap
+        @param title            title of the figure
+        @param cmapOver         Color to use if above cmap high limit.
+        @param cmapUnder        Color to use if below cmap low limit.
+        """
+
 
         self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
         sp     = self.fig.gca()
