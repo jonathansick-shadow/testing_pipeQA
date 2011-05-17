@@ -4,6 +4,7 @@ from lsst.testing.pipeQA.Checksum import Checksum
 
 # could inherit from Dict perhaps
 class ManifestHeader(object):
+    """The header metadata for a manifest file. """
 
     def __init__(self, strings=[]):
         self.entries = {}
@@ -24,14 +25,17 @@ class ManifestHeader(object):
             pass
 
     def set(self, key, value):
+        """Set a header key,value pair."""
         self.entries[key] = value
 
     def get(self, key):
+        """Get a header entry."""
         return self.entries[key]
 
     
     def verify(self):
-
+        """Verify required keys are present in header."""
+        
         # check for missing keys
         missingKeys = []
         for k in self.requiredKeys:
@@ -41,7 +45,8 @@ class ManifestHeader(object):
 
     
     def write(self):
-
+        """Write header to a string."""
+        
         missingKeys = self.verify()
         if missingKeys:
             print "Warning: required manifest header keys missing:\n" + "\n".join(missingKeys)
@@ -54,8 +59,12 @@ class ManifestHeader(object):
 
     
 class Manifest(object):
+    """A class to manage data file locations and checksums."""
 
     def __init__(self, testdataDir):
+        """
+        @param testdataDir   directory containing data.
+        """
         self.testdataDir  = testdataDir
         self.checksums    = {}
         self.filepaths    = []
@@ -68,6 +77,8 @@ class Manifest(object):
 
         
     def read(self):
+        """Load a manifest file. """
+        
         missingInputs = []
         failedMd5s = []
 
@@ -95,12 +106,16 @@ class Manifest(object):
 
         
     def getHeader(self, key):
+        """Get a specified key from the manifest header."""
+        
         if self.haveManifest:
             return self.header.get(key)
         else:
             return None
 
     def verifyExists(self):
+        """Verify that files we're managing exist. """
+        
         missingInputs = []
         for filepath in self.filepaths:
             if not os.path.exists(filepath):
@@ -108,6 +123,8 @@ class Manifest(object):
         return missingInputs
 
     def verifyChecksum(self):
+        """Verify that files we're managing have correct checksums."""
+        
         badChecksums = []
         for filepath in self.filepaths:
             if os.path.exists(filepath):
@@ -119,6 +136,10 @@ class Manifest(object):
 
         
     def create(self, hashtype):
+        """Create manifest info (checksums, timestamps) for the directory.
+
+        @param hashtype  Type of checksum to use: crc32 or md5.
+        """
         
         def callback(checksums, directory, files):
             for file in files:
@@ -140,6 +161,7 @@ class Manifest(object):
 
         
     def write(self):
+        """Write ourself as a manifest file. """
         
         fp = open(self.manifest, 'w')
         fp.write(self.header.write())
@@ -151,6 +173,12 @@ class Manifest(object):
 
 
 def verifyManifest(dir, verifyExists=True, verifyChecksum=True, raiseOnFailure=True):
+    """Verify the data files in a manifest.
+
+    @param verifyExists     Verify that files exist.
+    @param verifyChecksum   Verify the files have the correct checksum
+    @param raiseOnFailure   Raise an exception if a file fails.
+    """
     
     manifest = Manifest(dir)
     manifest.read()

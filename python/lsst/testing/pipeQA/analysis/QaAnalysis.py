@@ -4,18 +4,25 @@ import numpy
 import lsst.testing.pipeQA.TestCode as testCode
 
 class QaAnalysis(object):
+    """Baseclass for analysis classes."""
 
     def __init__(self, testLabel=None):
+        """
+        @param testLabel   A name for this kind of analysis test.
+        """
+        
         self.testSets = {}
         self.testLabel = testLabel
 
-    def test(self):
-        return []
-
-    def plot(self):
-        return []
 
     def getTestSet(self, data, dataId, label=None):
+        """Get a TestSet object in the correct group.
+
+        @param data    a QaData object
+        @param dataId  a dataId dictionary
+        @param label   a label for particular TestSet
+        """
+        
         group = dataId['visit']
         filter = data.getFilterBySensor(dataId)
         # all sensors have the same filter, so just grab one
@@ -32,6 +39,7 @@ class QaAnalysis(object):
             self.testSets[tsId] = testCode.TestSet(label, group=tsId)
         return self.testSets[tsId]
 
+
     def __str__(self):
         testLabel = ""
         if not self.testLabel is None:
@@ -39,37 +47,18 @@ class QaAnalysis(object):
         return self.__class__.__name__ + testLabel
     
 
-class SourceBoundsQaAnalysis(QaAnalysis):
+    ##########################################
+    # pure virtual methods
+    #########################################
+    def free(self):
+        """Method to free attributes to minimize memory consumption."""
+        pass
+    
+    def test(self):
+        """Method to perform tests. """
+        return []
 
-    def __init__(self):
-        QaAnalysis.__init__(self)
-
-    def test(self, data, dataId):
-
-        # get data
-        self.ss = data.getSourceSet(dataId)
-
-        # check the numbers for each visit
-        label = "SourceBoundsQaAnalysis"
-        value = 0
-        limits = [-1, 1]
-        comment = "dummy"
-
-        group = dataId['visit']
-        testSet = self.getTestSet(group)
-        t = testCode.Test(label, value, limits, comment)
-        testSet.addTest(t)
-
-    def plot(self, data, dataId, showUndefined=False):
-
-        fig = qaFig.FpaQaFigure(data.cameraInfo.camera)
-        data = fig.data
-
-        fig.makeFigure(showUndefined=showUndefined)
-
-        group = dataId['visit']
-        testSet = self.getTestSet(group)
-        testSet.addFigure(fig, "sourceBounds.png", "test caption")
-
-
+    def plot(self):
+        """Method to make figures."""
+        return []
 

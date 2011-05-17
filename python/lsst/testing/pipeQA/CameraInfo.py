@@ -14,6 +14,13 @@ import lsst.afw.cameraGeom.utils as cameraGeomUtils
 class CameraInfo(object):
     
     def __init__(self, name, dataInfo, mapperClass=None, camera=None):
+        """
+        @param name         A name for this camera
+        @param dataInfo     List of dataId [name,distinguisher] pairs (distinguisher now depricated)
+        @param mapperClass  Mapper class for this camera
+        @param camera       LSST camera object for this camera
+        """
+        
         self.name        = name
         self.dataInfo    = dataInfo
         self.mapperClass = mapperClass
@@ -27,15 +34,31 @@ class CameraInfo(object):
 
                 
     def getRoots(self, data, calib, output):
+        """Store data directories in a dictionary
+        
+        @param data    Input directory containing registry.sqlite file
+        @param calib   Input calibration directory containing calibRegistry.sqlite file
+        @param output  Output directory
+        """
         return {'data': data, 'calib': calib, 'output': output}
 
     def getRegistries(self, baseDir):
+        """Given a directory, get the registry files for this data set.
+        
+        @param baseDir  Directory wherein lives the registry
+        """
         roots = self.getRoots(baseDir)
         registry      = os.path.join(roots['data'], "registry.sqlite3")
         calibRegistry = os.path.join(roots['calib'], "calibRegistry.sqlite3")
         return registry, calibRegistry
+
         
     def verifyRegistries(self, baseDir):
+        """Verify that registry.sqlite files exist in the specified directory
+
+        @param baseDir  Directory to check for registries.
+        """
+        
         registry, calibRegistry = self.getRegistries(baseDir)
         haveReg = os.path.exists(registry)
         haveCalib = os.path.exists(calibRegistry)
@@ -48,9 +71,11 @@ class CameraInfo(object):
     
     # some butler's use a 'rerun', others don't ... base class should default to None
     def getDefaultRerun(self):
+        """Get our rerun."""
         return None
 
     def getSensorCount(self):
+        """Get the number of sensors (ie. ccds) for this camera."""
         return self.nSensor
                 
 
@@ -88,18 +113,31 @@ class LsstSimCameraInfo(CameraInfo):
 
 
     def getRoots(self, baseDir, output=None):
+        """Get data directories in a dictionary
+
+        @param baseDir The base directory where the registries can be found.
+        """
         baseOut = baseDir
         if not output is None:
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
 
     def verifyRegistries(self, baseDir):
+        """Verify that registry.sqlite files exist in the specified directory
+
+        @param baseDir  Directory to check for registries.
+        """
         roots = self.getRoots(baseDir)
         registry = os.path.join(roots['data'], "registry.sqlite3")
         #calibRegistry = os.path.join(roots['data'], "registry.sqlite3")
         return os.path.exists(registry)
 
     def getMapper(self, baseDir, rerun=None):
+        """Get a mapper for data in specified directory
+
+        @param baseDir  Directory where the registry files are to be found.
+        @param rerun    The rerun of the data we want.
+        """
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
 
@@ -130,6 +168,10 @@ class CfhtCameraInfo(CameraInfo):
 
         
     def getRoots(self, baseDir, output=None):
+        """Get data directories in a dictionary
+
+        @param baseDir The base directory where the registries can be found.
+        """
         baseOut = baseDir
         if not output is None:
             baseOut = output
@@ -137,6 +179,11 @@ class CfhtCameraInfo(CameraInfo):
 
 
     def getMapper(self, baseDir, rerun=None):
+        """Get a mapper for data in specified directory
+        
+        @param baseDir  Directory where the registry files are to be found.
+        @param rerun    The rerun of the data we want
+        """
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
@@ -168,6 +215,10 @@ class HscCameraInfo(CameraInfo):
         CameraInfo.__init__(self, "hscSim", dataInfo, mapper, camera)
         
     def getRoots(self, baseDir, output=None):
+        """Get data directories in a dictionary
+
+        @param baseDir The base directory where the registries can be found.
+        """
         baseOut = os.path.join(baseDir, "HSC")
         if not output is None:
             baseOut = output
@@ -178,6 +229,12 @@ class HscCameraInfo(CameraInfo):
     
 
     def getMapper(self, baseDir, rerun=None):
+        """Get a mapper for data in specified directory
+
+        @param baseDir  Directory where the registry files are to be found.
+        @param rerun    The rerun of the data we want
+        """
+       
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
@@ -207,6 +264,10 @@ class SuprimecamCameraInfo(CameraInfo):
         CameraInfo.__init__(self, "suprimecam", dataInfo, mapper, camera)
 
     def getRoots(self, baseDir, output=None):
+        """Get data directories in a dictionary
+
+        @param baseDir The base directory where the registries can be found.
+        """
         baseOut = os.path.join(baseDir, "SUPA")
         if not output is None:
             baseOut = output
@@ -219,13 +280,22 @@ class SuprimecamCameraInfo(CameraInfo):
     
 
     def getMapper(self, baseDir, rerun=None):
+        """Get a mapper for data in specified directory
+
+        @param baseDir  Directory where the registry files are to be found.
+        @param rerun    The rerun of the data we want
+        """
+       
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
     
 
-def getCameraInfoAvailable():
 
+
+def getCameraInfoAvailable():
+    """Get a list of available CameraInfo objects."""
+    
     available = []
 
     def tryLoad(cameraInfo):

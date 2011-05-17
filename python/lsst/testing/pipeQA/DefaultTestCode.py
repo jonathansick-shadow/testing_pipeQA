@@ -16,8 +16,17 @@ class TestFailError(Exception):
 
 
 class Test(object):
+    """A class to verify some condition is met.
+    """
 
     def __init__(self, label, value, limits, comment):
+        """
+        @param label   A name for this test
+        @param value   Value to be tested
+        @param limits  A list [min, max] specifying range of acceptable values (inclusive).
+        @param comment A comment with extra info about the test
+        """
+        
         self.label = label
         self.value = value
         self.limits = limits
@@ -27,7 +36,7 @@ class Test(object):
         return self.label+" "+str(self.evaluate())+" value="+str(self.value)+" limits="+str(self.limits)
 
     def evaluate(self):
-        """Add a test to this testing suite."""
+        """Verify that our value is within our limits."""
         
         # grab a traceback for failed tests
         if (self.value < self.limits[0] or self.value > self.limits[1]):
@@ -37,8 +46,14 @@ class Test(object):
 
 
 class TestSet(object):
+    """A container for Test objects and associated matplotlib figures."""
 
     def __init__(self, label=None, group=""):
+        """
+        @param label  A name for this testSet
+        @param group  A category this testSet belongs to
+        """
+        
         self.testDir = os.path.join("tests", ".tests")
         self.figDir = os.path.join("figures")
 
@@ -59,7 +74,10 @@ class TestSet(object):
  
 
     def addTest(self, *args):
-        """Add a test to this testing suite."""
+        """Add a test to this testing suite.
+
+        @param *args  Either a Test object, or the arguments to create one
+        """
 
         if len(args) >= 4:
             test = Test(*args)
@@ -95,15 +113,22 @@ class TestSet(object):
 
 
     def addMetadata(self, *args):
+        """Associate metadata with this TestSet """
         pass
         
     def addTests(self, testList):
+        """Add a list of Test objects to this TestSet."""
         for test in testList:
             self.addTest(test)
 
 
     def addFigure(self, fig, filename, caption, **kwargs):
-        """Add a figure to this test suite."""
+        """Add a figure to this test suite.
+        
+        @param fig      a matplotlib figure
+        @param filename The basename of the figure.
+        @param caption  text describing the figure
+        """
         
         if not os.path.exists(self.figDir):
             os.mkdir(self.figDir)

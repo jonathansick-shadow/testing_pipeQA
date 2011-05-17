@@ -11,7 +11,12 @@ from DbQaData      import makeDbQaData
 # Factory for QaData
 ###################################################
 def makeQaData(label, rerun=None, retrievalType=None, **kwargs):
-    """ """
+    """Factory to make a QaData object for either Butler data, or Database data.
+
+    @param label         identifier for the data - either a directory in TESTBED_PATH or a database name
+    @param rerun         data rerun to retrieve
+    @param retrievalType 'butler', 'db', or None (will search first for butler, then database)
+    """
     
     if retrievalType is None:
         

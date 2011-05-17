@@ -9,7 +9,11 @@ import lsst.meas.astrom as measAstrom
 import lsst.meas.algorithms.utils as maUtils
 
 def findDataInTestbed(label, raiseOnFailure=True):
-    """Scan TESTBED_PATH directories to find a testbed dataset with a given name"""
+    """Scan TESTBED_PATH directories to find a testbed dataset with a given name
+
+    @param label            Directory name to look for in TESTBED_PATH directories.
+    @param raiseOnFailure   Raise an exception if nothing is found.
+    """
     
     # If label==None -> use TESTBOT_DIR (_DIR, not _PATH ... only one dataset can be run)
     if re.search("^testBot", label):
@@ -44,21 +48,28 @@ def findDataInTestbed(label, raiseOnFailure=True):
 
 
 def setSourceBlobsNone(s):
+    """Free the blob structures (photometry,astrometry,shape) in Source to reduce object size. """
     s.setPhotometry(None)
     s.setAstrometry(None)
     s.setShape(None)
 
 def setSourceSetBlobsNone(ss):
+    """Free the blob structures (photometry,astrometry,shape) for all Source in SourceSet. """
     for s in ss:
         setSourceBlobsNone(s)
 
+
 def setMatchListBlobsNone(matchList):
+    """Free the blob structures (photometry,astrometry,shape) for all Source in MatchList. """
+    
     for s1, s2, d in matchList:
         setSourceBlobsNone(s1)
         setSourceBlobsNone(s2)
 
+
         
 def getSourceSetNameList():
+    """Associate Source accessor names to database columns in a list of pairs. """
     
     accessors = [
         ["Id",                           "objectId"                      ],
@@ -136,12 +147,16 @@ def getSourceSetNameList():
     return accessors
 
 def getSourceSetAccessors():
+    """Get a list of all accessor names for Source objects. """
     return zip(*getSourceSetNameList())[0]
 def getSourceSetDbNames():
+    """Get a list of all database names for Source objects. """
     return zip(*getSourceSetNameList())[1]
     
 
 def getSceNameList():
+    """Associate SourceCcdExposure names to database columns in a list of pairs. """
+    
     nameList = [
         ['scienceCcdExposureId', 'scienceCcdExposureId' ],
         ['visit',                'visit'                ],
@@ -190,6 +205,7 @@ def getSceNameList():
     return nameList
 
 def getSceDbNames():
+    """Get SourceCcdExposure database column names."""
     return zip(*getSceNameList())[1]
 
 

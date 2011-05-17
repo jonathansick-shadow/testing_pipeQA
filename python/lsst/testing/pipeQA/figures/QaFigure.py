@@ -18,8 +18,14 @@ import QaFigureUtils as qaFigUtils
 
 
 class QaFig(object):
-
+    """A wrapper for a matplotlib figure, and a Baseclass for more complicated QA figures. """
+    
     def __init__(self, size=(4.0, 4.0), dpi=100): # (512, 512), DPI=100):
+        """
+        @param size  Figure size in inches
+        @param dpi   Dots per inch to use.
+        """
+        
         self.fig         = figure.Figure(figsize=size)
         self.fig.set_dpi(dpi)
         self.canvas      = FigCanvas(self.fig)
@@ -27,6 +33,7 @@ class QaFig(object):
         #self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
         self.mapAreas    = []
         self.mapTransformed = True
+
         
     def reset(self):
         self.fig.clf()
@@ -42,10 +49,15 @@ class QaFig(object):
     def getFigure(self):
         return self.fig
 
+
     def savefig(self, path, **kwargs):
+        """Save figure."""
         self.fig.savefig(path, dpi=self.fig.get_dpi(), **kwargs)
 
+
     def savemap(self, path):
+        """Save internal map area data to .map file. """
+        
         if self.mapTransformed:
             mapList = self.getMapInfo()
         else:
@@ -73,6 +85,7 @@ class QaFig(object):
 
 
     def getTransformedMap(self):
+        """Take plot coordinates for map areas and convert to figure coordinates."""
 
         mapAreasNew = []
         for ma in self.mapAreas:
@@ -89,6 +102,14 @@ class QaFig(object):
             
 
     def addMapArea(self, label, area, info, axes=None):
+        """Add a map area to this figure.
+
+        @param label    an areaLabel to associate the area to other QaFigures or Tests.
+        @param area     [x0, y0, x1, y1]  llc, urc corners of the area in plot coordinates.
+        @param info     string to show no mouseover (no whitespace)
+        @param axes     axes to use for map transformation
+        """
+        
         if axes is None:
             axes = self.fig.gca()
         x0, y0, x1, y1 = area
