@@ -51,15 +51,15 @@ def main():
     mag = []
 
     for i in range(len(n)):
-	r      = size[i]*numpy.random.uniform(0.0, 1.0, n[i])**2
-	theta  = numpy.random.uniform(0.0, 2.0*numpy.pi, n[i])
-	
-	x = numpy.append(x, xcen[i] - r*numpy.cos(theta))
-	y = numpy.append(y, ycen[i] - r*numpy.sin(theta))
-	mag.append(numpy.random.normal(magPeak[i], dmag[i], n[i]))
-	
+        r      = size[i]*numpy.random.uniform(0.0, 1.0, n[i])**2
+        theta  = numpy.random.uniform(0.0, 2.0*numpy.pi, n[i])
+        
+        x = numpy.append(x, xcen[i] - r*numpy.cos(theta))
+        y = numpy.append(y, ycen[i] - r*numpy.sin(theta))
+        mag.append(numpy.random.normal(magPeak[i], dmag[i], n[i]))
+        
 
-		  
+                  
 
     ############
     # make plots 
@@ -73,32 +73,32 @@ def main():
     
     for i in range(len(n)):
 
-	# make the histogram plot
-	qafigHist = qaFig.QaFig()
-	fig = qafigHist.fig
-	ax = fig.add_subplot(111)
-	ax.hist(mag[i])
+        # make the histogram plot
+        qafigHist = qaFig.QaFig()
+        fig = qafigHist.fig
+        ax = fig.add_subplot(111)
+        ax.hist(mag[i])
 
-	# add a map area around the cluster of points
+        # add a map area around the cluster of points
 
-	# create a unique id 'areaLabel' for this area
-	# areaLabel must be passed to:
-	#  -- any Test you want displayed when this area is active (it can be a prefix/suffix etc)
-	#  -- and any QaFigure which is to be displayed when this map area is clicked (prefix/suffix ok)
-	areaLabel = "cluster%04d" % (i)
-	x0, y0, x1, y1 = xcen[i]-size[i], ycen[i]-size[i], xcen[i]+size[i], ycen[i]+size[i]
-	area      = [x0, y0, x1, y1]    # llc, urc of clickable region
-	areaInfo  = "n=%d"%(n[i]) 	# text to be displayed on mouse-over
+        # create a unique id 'areaLabel' for this area
+        # areaLabel must be passed to:
+        #  -- any Test you want displayed when this area is active (it can be a prefix/suffix etc)
+        #  -- and any QaFigure which is to be displayed when this map area is clicked (prefix/suffix ok)
+        areaLabel = "cluster%04d" % (i)
+        x0, y0, x1, y1 = xcen[i]-size[i], ycen[i]-size[i], xcen[i]+size[i], ycen[i]+size[i]
+        area      = [x0, y0, x1, y1]    # llc, urc of clickable region
+        areaInfo  = "n=%d"%(n[i])       # text to be displayed on mouse-over
 
-	# add the map area to the x,y figure
-	qafigXy.addMapArea(areaLabel, area, areaInfo)
+        # add the map area to the x,y figure
+        qafigXy.addMapArea(areaLabel, area, areaInfo)
 
 
-	# add the figure - notice areaLabel is added as a part of the filename
-	ts.addFigure(qafigHist, "hist.png", "Histogram of stars in cluster %d" % (i), areaLabel=areaLabel)
+        # add the figure - notice areaLabel is added as a part of the filename
+        ts.addFigure(qafigHist, "hist.png", "Histogram of stars in cluster %d" % (i), areaLabel=areaLabel)
 
-	# add a test - notice the 'areaLabel' is part of the Test label
-	ts.addTest("count", n[i], [0, None], "Verify > 0 stars in cluster.", areaLabel=areaLabel)
+        # add a test - notice the 'areaLabel' is part of the Test label
+        ts.addTest("count", n[i], [0, None], "Verify > 0 stars in cluster.", areaLabel=areaLabel)
 
 
     # now that we have the areas defined, make the x,y figure

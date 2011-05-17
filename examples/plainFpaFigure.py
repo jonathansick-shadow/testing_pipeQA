@@ -48,9 +48,9 @@ def main():
     # This will color-code ccds in the focal plane according to these values
     data = fpaFig.data
     for raft in sorted(data.keys()):
-	ccdDict = data[raft]
-	for ccd, value in ccdDict.items():
-	    data[raft][ccd] = numpy.random.normal(0.0, 1.0)
+        ccdDict = data[raft]
+        for ccd, value in ccdDict.items():
+            data[raft][ccd] = numpy.random.normal(0.0, 1.0)
 
     # now tell fpaFig to make the matplotlib figure, and add the fpaFigure to the TestSet
     vlimits = [-1.0, 1.0]  # the colormap limits

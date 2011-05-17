@@ -48,26 +48,26 @@ def main():
     data = fpaFig.data
     map  = fpaFig.map
     for raft in sorted(data.keys()):
-	if not re.search(raftName, raft):
-	    continue
-	ccdDict = data[raft]
-	for ccd, value in ccdDict.items():
-	    data[raft][ccd] = numpy.random.normal(0.0, 1.0)
+        if not re.search(raftName, raft):
+            continue
+        ccdDict = data[raft]
+        for ccd, value in ccdDict.items():
+            data[raft][ccd] = numpy.random.normal(0.0, 1.0)
 
-	    # this time, add a mouse-over string (no spaces) for the map
-	    map[raft][ccd]  = "data-from-" + ccd
+            # this time, add a mouse-over string (no spaces) for the map
+            map[raft][ccd]  = "data-from-" + ccd
 
-	    # make a plot for this ccd
-	    qafig = qaFig.QaFig()
-	    fig = qafig.fig
-	    ax = fig.add_subplot(111)
-	    x = 2.0*numpy.pi*numpy.arange(100)/100
-	    ax.plot(x, numpy.sin(x)+numpy.random.normal(0.0, 0.1, len(x)), 'r-')
-	    ax.set_ylim([-1.0, 1.0])
-	    
-	    areaLabel = fpaFig.getAreaLabel(raft, ccd) # areaLabels are handled by FpaQaFigure
-	    tsMapFpa.addFigure(qafig, "sine-wave.png", "Sine wave from "+ ccd, areaLabel=areaLabel)
-	    
+            # make a plot for this ccd
+            qafig = qaFig.QaFig()
+            fig = qafig.fig
+            ax = fig.add_subplot(111)
+            x = 2.0*numpy.pi*numpy.arange(100)/100
+            ax.plot(x, numpy.sin(x)+numpy.random.normal(0.0, 0.1, len(x)), 'r-')
+            ax.set_ylim([-1.0, 1.0])
+            
+            areaLabel = fpaFig.getAreaLabel(raft, ccd) # areaLabels are handled by FpaQaFigure
+            tsMapFpa.addFigure(qafig, "sine-wave.png", "Sine wave from "+ ccd, areaLabel=areaLabel)
+            
 
     # now tell fpaFig to make the matplotlib figure, and add the fpaFigure to the TestSet
     fpaFig.makeFigure(vlimits=[-1.0, 1.0], cmap="gray", cmapUnder="#0000ff", cmapOver="#ff0000")
