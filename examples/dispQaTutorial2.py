@@ -68,13 +68,13 @@ def main():
     # We'll make histograms of each cluster, and add map 'areas' to the x,y plot
     #     ... clicking in the 'area' boxes will show the histogram for the cluster we clicked on
 
-    qafigXy = qaFig.QaFig() # this will be the x,y plot
+    qafigXy = qaFig.QaFigure() # this will be the x,y plot
 
     
     for i in range(len(n)):
 
         # make the histogram plot
-        qafigHist = qaFig.QaFig()
+        qafigHist = qaFig.QaFigure()
         fig = qafigHist.fig
         ax = fig.add_subplot(111)
         ax.hist(mag[i])
@@ -115,7 +115,7 @@ def main():
     # make a histogram of *all* stars
     # - this will be displayed if no 'area' region is active, or if you click 'all'
     #  --> you can skip this figure ... then no image is displayed unless a map region is selected
-    qafigHistAll = qaFig.QaFig()
+    qafigHistAll = qaFig.QaFigure()
     fig = qafigHistAll.fig
     ax = fig.add_subplot(111)
     ax.hist(numpy.concatenate(mag))

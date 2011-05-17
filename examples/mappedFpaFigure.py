@@ -58,7 +58,7 @@ def main():
             map[raft][ccd]  = "data-from-" + ccd
 
             # make a plot for this ccd
-            qafig = qaFig.QaFig()
+            qafig = qaFig.QaFigure()
             fig = qafig.fig
             ax = fig.add_subplot(111)
             x = 2.0*numpy.pi*numpy.arange(100)/100

@@ -84,10 +84,10 @@ def main():
 
     ts = pipeQA.TestSet(group="tutorial", label="basic-howto")
 
-    # Get a matplotlib 'Figure' object with QaFig()
+    # Get a matplotlib 'Figure' object with QaFigure()
     # - this just handles instantiation, and canvas creation
     # - you could create a regular Figure in matplotlib
-    qafig = qaFig.QaFig()
+    qafig = qaFig.QaFigure()
     fig = qafig.fig
     ax = fig.add_subplot(111)
     n = 100

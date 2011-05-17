@@ -283,7 +283,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
             #################
             # data for one ccd
-            fig = qaFig.QaFig(size=figsize)
+            fig = qaFig.QaFigure(size=figsize)
             fig.fig.subplots_adjust(left=0.125, bottom=0.125)
             ax_1 = fig.fig.add_subplot(121)
             ax_2 = fig.fig.add_subplot(122)
@@ -336,7 +336,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 
         # dmag vs mag
-        fig0 = qaFig.QaFig(size=figsize)
+        fig0 = qaFig.QaFigure(size=figsize)
         fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
         ax0_1 = fig0.fig.add_subplot(121)
         ax0_2 = fig0.fig.add_subplot(122)

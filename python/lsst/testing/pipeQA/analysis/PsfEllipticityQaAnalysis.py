@@ -173,7 +173,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
             
             print "plotting ", ccd
             
-            fig = qaFig.QaFig(size=figsize)
+            fig = qaFig.QaFigure(size=figsize)
             fig.fig.subplots_adjust(left=0.15)
             ax = fig.fig.add_subplot(111)
 

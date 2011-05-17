@@ -55,7 +55,6 @@ def main(dataset, dataIdInput, rerun=None):
 
     magCut = 20.0
     analysisList = [
-        #qaAnalysis.SourceBoundsQaAnalysis(),
         #qaAnalysis.ZeropointQaAnalysis(),
         qaAnalysis.AstrometricErrorQaAnalysis(),
         qaAnalysis.PhotCompareQaAnalysis("psf", "cat", cut=magCut),
