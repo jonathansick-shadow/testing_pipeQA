@@ -53,12 +53,12 @@ def testPsfPhotometry():
     pr = pipeQA.PipeRunner()
     if True:
         td1 = pipeQA.makeTestData("imsimTestData001",
-				  dataId={'visit':'85501867', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
+                                  dataId={'visit':'85501867', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
                                   verifyChecksum=False, astrometryNetData=anData,
                                   outDir='local')
         pr.addTestData(td1)
         td2 = pipeQA.makeTestData("imsimTestData001",
-				  dataId={'visit':'85502008', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
+                                  dataId={'visit':'85502008', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
                                   verifyChecksum=False, astrometryNetData=anData,
                                   outDir='local')
         pr.addTestData(td2)

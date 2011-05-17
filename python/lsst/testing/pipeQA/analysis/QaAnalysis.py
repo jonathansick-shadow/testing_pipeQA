@@ -6,70 +6,70 @@ import lsst.testing.pipeQA.TestCode as testCode
 class QaAnalysis(object):
 
     def __init__(self, testLabel=None):
-	self.testSets = {}
-	self.testLabel = testLabel
+        self.testSets = {}
+        self.testLabel = testLabel
 
     def test(self):
-	return []
+        return []
 
     def plot(self):
-	return []
+        return []
 
     def getTestSet(self, data, dataId, label=None):
-	group = dataId['visit']
-	filter = data.getFilterBySensor(dataId)
-	# all sensors have the same filter, so just grab one
-	key = filter.keys()[0]
-	filterName = filter[key].getName()
+        group = dataId['visit']
+        filter = data.getFilterBySensor(dataId)
+        # all sensors have the same filter, so just grab one
+        key = filter.keys()[0]
+        filterName = filter[key].getName()
 
-	if not label is None:
-	    label = self.__class__.__name__ + "."+ label
-	else:
-	    label = self.__class__.__name__
+        if not label is None:
+            label = self.__class__.__name__ + "."+ label
+        else:
+            label = self.__class__.__name__
 
-	tsId = group + "-" + filterName
-	if not self.testSets.has_key(tsId):
-	    self.testSets[tsId] = testCode.TestSet(label, group=tsId)
-	return self.testSets[tsId]
+        tsId = group + "-" + filterName
+        if not self.testSets.has_key(tsId):
+            self.testSets[tsId] = testCode.TestSet(label, group=tsId)
+        return self.testSets[tsId]
 
     def __str__(self):
-	testLabel = ""
-	if not self.testLabel is None:
-	    testLabel = "."+self.testLabel
-	return self.__class__.__name__ + testLabel
+        testLabel = ""
+        if not self.testLabel is None:
+            testLabel = "."+self.testLabel
+        return self.__class__.__name__ + testLabel
     
 
 class SourceBoundsQaAnalysis(QaAnalysis):
 
     def __init__(self):
-	QaAnalysis.__init__(self)
+        QaAnalysis.__init__(self)
 
     def test(self, data, dataId):
 
-	# get data
-	self.ss = data.getSourceSet(dataId)
+        # get data
+        self.ss = data.getSourceSet(dataId)
 
-	# check the numbers for each visit
-	label = "SourceBoundsQaAnalysis"
-	value = 0
-	limits = [-1, 1]
-	comment = "dummy"
+        # check the numbers for each visit
+        label = "SourceBoundsQaAnalysis"
+        value = 0
+        limits = [-1, 1]
+        comment = "dummy"
 
-	group = dataId['visit']
-	testSet = self.getTestSet(group)
-	t = testCode.Test(label, value, limits, comment)
-	testSet.addTest(t)
+        group = dataId['visit']
+        testSet = self.getTestSet(group)
+        t = testCode.Test(label, value, limits, comment)
+        testSet.addTest(t)
 
     def plot(self, data, dataId, showUndefined=False):
 
-	fig = qaFig.FpaQaFigure(data.cameraInfo.camera)
-	data = fig.data
+        fig = qaFig.FpaQaFigure(data.cameraInfo.camera)
+        data = fig.data
 
-	fig.makeFigure(showUndefined=showUndefined)
+        fig.makeFigure(showUndefined=showUndefined)
 
-	group = dataId['visit']
-	testSet = self.getTestSet(group)
-	testSet.addFigure(fig, "sourceBounds.png", "test caption")
+        group = dataId['visit']
+        testSet = self.getTestSet(group)
+        testSet.addFigure(fig, "sourceBounds.png", "test caption")
 
 
 

@@ -42,7 +42,7 @@ class ButlerQaData(QaData):
         # handle keyword args
         ###############################################
         self.kwargs      = kwargs
-	self.dataId         = self.kwargs.get('dataId', {})
+        self.dataId         = self.kwargs.get('dataId', {})
         self.haveManifest   = self.kwargs.get('haveManifest', False)
         self.verifyChecksum = self.kwargs.get('verifyChecksum', False)
 
@@ -51,7 +51,7 @@ class ButlerQaData(QaData):
         # haveManifest = True is a bit slowish
         # verifyChecksum = True is quite slow
         manifest.verifyManifest(self.dataDir, verifyExists=self.haveManifest,
-				verifyChecksum=self.verifyChecksum)
+                                verifyChecksum=self.verifyChecksum)
 
 
         # This (dataId fetching) needs a better design, but will require butler/mapper change, I think.
@@ -91,23 +91,23 @@ class ButlerQaData(QaData):
 
 
     def getDataName(self):
-	return os.path.realpath(self.dataDir) + " rerun="+str(self.rerun)
+        return os.path.realpath(self.dataDir) + " rerun="+str(self.rerun)
 
     def getVisits(self, dataIdRegex):
-	""" Return explicit visits matching for a dataIdRegex."""
-	visits = []
-	dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
-	for dataTuple in dataTuplesToFetch:
-	    dataId = self._dataTupleToDataId(dataTuple)
-	    visits.append(str(dataId['visit']))
-	return set(visits)
+        """ Return explicit visits matching for a dataIdRegex."""
+        visits = []
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
+        for dataTuple in dataTuplesToFetch:
+            dataId = self._dataTupleToDataId(dataTuple)
+            visits.append(str(dataId['visit']))
+        return set(visits)
     
 
 
     def getMatchListBySensor(self, dataIdRegex):
-	
+        
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
-	
+        
         # get the datasets corresponding to the request
         matchListDict = {}
         for dataTuple in dataTuplesToFetch:
@@ -118,43 +118,43 @@ class ButlerQaData(QaData):
                 matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
                 continue
 
-	    filterObj = self.getFilterBySensor(dataId)
-	    filterName = "unknown"
-	    if filterObj.has_key(dataKey):
-		filterName = filterObj[dataKey].getName()
+            filterObj = self.getFilterBySensor(dataId)
+            filterName = "unknown"
+            if filterObj.has_key(dataKey):
+                filterName = filterObj[dataKey].getName()
 
             # make sure we actually have the output file
             isWritten = self.outButler.datasetExists('icMatch', dataId)
             if isWritten:
                 #persistableMatchVector = self.outButler.get('icMatch', dataId)
-		
-		matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
+                
+                matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
                 self.matchListCache[dataKey] = [] # matches #persistableMatchVector.getSourceMatches()
 
-		if self.outButler.datasetExists('calexp', dataId):
+                if self.outButler.datasetExists('calexp', dataId):
 
-		    calibDict = self.getCalibBySensor(dataId)
+                    calibDict = self.getCalibBySensor(dataId)
                     calib = calibDict[dataKey]
                     
                     fmag0, fmag0err = calib.getFluxMag0()
                     for m in matches:
-			sref, s, dist = m
-			if ((not sref is None) and (not s is None)):
-			    s.setApFlux(s.getApFlux()/fmag0)
-			    s.setPsfFlux(s.getPsfFlux()/fmag0)
-			    s.setModelFlux(s.getModelFlux()/fmag0)
-			    s.setRa((180.0/numpy.pi)*s.getRa())
-			    s.setDec((180.0/numpy.pi)*s.getDec())
-			    self.matchListCache[dataKey].append([sref, s, dist])
-			    
-			    
+                        sref, s, dist = m
+                        if ((not sref is None) and (not s is None)):
+                            s.setApFlux(s.getApFlux()/fmag0)
+                            s.setPsfFlux(s.getPsfFlux()/fmag0)
+                            s.setModelFlux(s.getModelFlux()/fmag0)
+                            s.setRa((180.0/numpy.pi)*s.getRa())
+                            s.setDec((180.0/numpy.pi)*s.getDec())
+                            self.matchListCache[dataKey].append([sref, s, dist])
+                            
+                            
                 matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
-		self.dataIdLookup[dataKey] = dataId
-		
+                self.dataIdLookup[dataKey] = dataId
+                
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
 
-	return matchListDict
+        return matchListDict
 
 
 
@@ -184,19 +184,19 @@ class ButlerQaData(QaData):
 
                 if self.outButler.datasetExists('calexp', dataId):
 
-		    calibDict = self.getCalibBySensor(dataId)
+                    calibDict = self.getCalibBySensor(dataId)
                     calib = calibDict[dataKey]
                     
                     fmag0, fmag0err = calib.getFluxMag0()
                     for s in sourceSetTmp:
                         s.setApFlux(s.getApFlux()/fmag0)
                         s.setPsfFlux(s.getPsfFlux()/fmag0)
-			s.setModelFlux(s.getModelFlux()/fmag0)
+                        s.setModelFlux(s.getModelFlux()/fmag0)
 
                 self.sourceSetCache[dataKey] = sourceSetTmp
                 ssDict[dataKey] = copy.copy(sourceSetTmp)
-		self.dataIdLookup[dataKey] = dataId
-		
+                self.dataIdLookup[dataKey] = dataId
+                
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
                 
@@ -204,16 +204,16 @@ class ButlerQaData(QaData):
 
     def getSourceSet(self, dataIdRegex):
 
-	ssDict = self.getSourceSetBySensor(dataIdRegex)
-	ssReturn = []
-	for key, ss in ssDict.items():
-	    ssReturn += ss
-	return ssReturn
+        ssDict = self.getSourceSetBySensor(dataIdRegex)
+        ssReturn = []
+        for key, ss in ssDict.items():
+            ssReturn += ss
+        return ssReturn
 
 
 
     def loadCalexp(self, dataIdRegex):
-	
+        
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
 
         # get the datasets corresponding to the request
@@ -224,37 +224,37 @@ class ButlerQaData(QaData):
             if self.calexpCache.has_key(dataKey):
                 continue
 
-	    if self.outButler.datasetExists('calexp_md', dataId):
-		calexp_md = self.outButler.get('calexp_md', dataId)
-		
-		#self.wcsCache[dataKey]      = calexp.getWcs()
-		#self.detectorCache[dataKey] = calexp.getDetector()
-		#self.filterCache[dataKey]   = calexp.getFilter()
-		#self.calibCache[dataKey]    = calexp.getCalib()
-		self.wcsCache[dataKey]      = afwImage.makeWcs(calexp_md)
+            if self.outButler.datasetExists('calexp_md', dataId):
+                calexp_md = self.outButler.get('calexp_md', dataId)
+                
+                #self.wcsCache[dataKey]      = calexp.getWcs()
+                #self.detectorCache[dataKey] = calexp.getDetector()
+                #self.filterCache[dataKey]   = calexp.getFilter()
+                #self.calibCache[dataKey]    = calexp.getCalib()
+                self.wcsCache[dataKey]      = afwImage.makeWcs(calexp_md)
 
-		ccdName = calexp_md.getAsString('DETNAME')
-		names = ccdName.split()
-		if len(names) > 1:
-		    raftName = names[0]
-		else:
-		    raftName = "R:0,0"
+                ccdName = calexp_md.getAsString('DETNAME')
+                names = ccdName.split()
+                if len(names) > 1:
+                    raftName = names[0]
+                else:
+                    raftName = "R:0,0"
 
-		raftId = cameraGeom.Id(raftName)
-		ccdId = cameraGeom.Id(ccdName)
-		ccdDetector = cameraGeom.Detector(ccdId)
-		raftDetector = cameraGeom.Detector(raftId)
-		ccdDetector.setParent(raftDetector)
-		self.raftDetectorCache[dataKey] = raftDetector
-		self.detectorCache[dataKey] = ccdDetector
-		
-		#self.detectorCache[dataKey] = cameraGeom.Detector()
-		self.filterCache[dataKey]   = afwImage.Filter(calexp_md)
-		self.calibCache[dataKey]    = afwImage.Calib(calexp_md)
-		
+                raftId = cameraGeom.Id(raftName)
+                ccdId = cameraGeom.Id(ccdName)
+                ccdDetector = cameraGeom.Detector(ccdId)
+                raftDetector = cameraGeom.Detector(raftId)
+                ccdDetector.setParent(raftDetector)
+                self.raftDetectorCache[dataKey] = raftDetector
+                self.detectorCache[dataKey] = ccdDetector
+                
+                #self.detectorCache[dataKey] = cameraGeom.Detector()
+                self.filterCache[dataKey]   = afwImage.Filter(calexp_md)
+                self.calibCache[dataKey]    = afwImage.Calib(calexp_md)
+                
                 self.calexpCache[dataKey] = True
-		self.dataIdLookup[dataKey] = dataId
-		
+                self.dataIdLookup[dataKey] = dataId
+                
             else:
                 print str(dataTuple) + " calib output file missing.  Skipping."
                 
@@ -269,10 +269,10 @@ class ButlerQaData(QaData):
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
             dataKey = self._dataTupleToString(dataTuple)
-	    self.loadCalexp(dataId)
-	    if cache.has_key(dataKey):
-		entryDict[dataKey] = cache[dataKey]
-	    
+            self.loadCalexp(dataId)
+            if cache.has_key(dataKey):
+                entryDict[dataKey] = cache[dataKey]
+            
         return entryDict
 
 
@@ -301,9 +301,9 @@ class ButlerQaData(QaData):
                 if not re.search(str(regexForThisId),  str(dataId)):
                     match = False
 
-		# ignore the guiding ccds on the hsc camera
-		if re.search('^hsc.*', self.cameraInfo.name) and dataIdName == 'ccd' and dataId > 99:
-		    match = False
+                # ignore the guiding ccds on the hsc camera
+                if re.search('^hsc.*', self.cameraInfo.name) and dataIdName == 'ccd' and dataId > 99:
+                    match = False
 
             if match:
                 dataTuples.append(dataTuple)

@@ -17,15 +17,15 @@ class CameraInfo(object):
         self.name        = name
         self.dataInfo    = dataInfo
         self.mapperClass = mapperClass
-	self.camera      = camera
-	
+        self.camera      = camera
+        
         self.nSensor     = 0
-	for r in self.camera:
-	    raft = cameraGeom.cast_Raft(r)
-	    for c in raft:
-		self.nSensor += 1
+        for r in self.camera:
+            raft = cameraGeom.cast_Raft(r)
+            for c in raft:
+                self.nSensor += 1
 
-		
+                
     def getRoots(self, data, calib, output):
         return {'data': data, 'calib': calib, 'output': output}
 
@@ -37,9 +37,9 @@ class CameraInfo(object):
         
     def verifyRegistries(self, baseDir):
         registry, calibRegistry = self.getRegistries(baseDir)
-	haveReg = os.path.exists(registry)
-	haveCalib = os.path.exists(calibRegistry)
-	#print self.name, registry, calibRegistry, haveReg, haveCalib
+        haveReg = os.path.exists(registry)
+        haveCalib = os.path.exists(calibRegistry)
+        #print self.name, registry, calibRegistry, haveReg, haveCalib
         return haveReg and haveCalib
 
 
@@ -51,8 +51,8 @@ class CameraInfo(object):
         return None
 
     def getSensorCount(self):
-	return self.nSensor
-		
+        return self.nSensor
+                
 
 
 ####################################################################
@@ -78,12 +78,12 @@ class LsstSimCameraInfo(CameraInfo):
             mapper = None
         dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
 
-	#simdir        = eups.productDir("obs_lsstSim")
-	simdir        = os.environ['OBS_LSSTSIM_DIR']
-	cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
+        #simdir        = eups.productDir("obs_lsstSim")
+        simdir        = os.environ['OBS_LSSTSIM_DIR']
+        cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
-	
+        
         CameraInfo.__init__(self, "lsstSim", dataInfo, mapper, camera)
 
 
@@ -103,7 +103,7 @@ class LsstSimCameraInfo(CameraInfo):
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
 
-	return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
 ####################################################################
 #
@@ -119,10 +119,10 @@ class CfhtCameraInfo(CameraInfo):
             print "Failed to import lsst.obs.cfht", e
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
-	
-	#simdir        = eups.productDir("obs_cfht")
-	simdir         = os.environ['OBS_CFHT_DIR']
-	cameraGeomPaf = os.path.join(simdir, "megacam", "description", "Full_Megacam_geom.paf")
+        
+        #simdir        = eups.productDir("obs_cfht")
+        simdir         = os.environ['OBS_CFHT_DIR']
+        cameraGeomPaf = os.path.join(simdir, "megacam", "description", "Full_Megacam_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
 
@@ -139,7 +139,7 @@ class CfhtCameraInfo(CameraInfo):
     def getMapper(self, baseDir, rerun=None):
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-	return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
 
 ####################################################################
@@ -159,9 +159,9 @@ class HscCameraInfo(CameraInfo):
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
 
-	#simdir        = eups.productDir("obs_subaru")
-	simdir         = os.environ['OBS_SUBARU_DIR']
-	cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
+        #simdir        = eups.productDir("obs_subaru")
+        simdir         = os.environ['OBS_SUBARU_DIR']
+        cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
 
@@ -180,7 +180,7 @@ class HscCameraInfo(CameraInfo):
     def getMapper(self, baseDir, rerun=None):
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-	return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
 
 ####################################################################
@@ -198,9 +198,9 @@ class SuprimecamCameraInfo(CameraInfo):
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
 
-	#simdir        = eups.productDir("obs_subaru")
-	simdir         = os.environ['OBS_SUBARU_DIR']
-	cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
+        #simdir        = eups.productDir("obs_subaru")
+        simdir         = os.environ['OBS_SUBARU_DIR']
+        cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
         cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
 
@@ -221,7 +221,7 @@ class SuprimecamCameraInfo(CameraInfo):
     def getMapper(self, baseDir, rerun=None):
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-	return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
     
 
 def getCameraInfoAvailable():
@@ -229,23 +229,23 @@ def getCameraInfoAvailable():
     available = []
 
     def tryLoad(cameraInfo):
-	haveCam = True
-	try:
-	    ci = cameraInfo()
-	except Exception, e:
-	    haveCam = False
-	return haveCam
+        haveCam = True
+        try:
+            ci = cameraInfo()
+        except Exception, e:
+            haveCam = False
+        return haveCam
 
     all = [
-	LsstSimCameraInfo,
-	CfhtCameraInfo,
-	HscCameraInfo,
-	SuprimecamCameraInfo,
-	]
+        LsstSimCameraInfo,
+        CfhtCameraInfo,
+        HscCameraInfo,
+        SuprimecamCameraInfo,
+        ]
 
     for camInfo in all:
-	if tryLoad(LsstSimCameraInfo):
-	    available.append(camInfo())
+        if tryLoad(LsstSimCameraInfo):
+            available.append(camInfo())
 
     return available
     

@@ -61,8 +61,8 @@ class PipeRunner(object):
         ssDict = {}
         for testdata in self.testdataList:
             ssD = testdata.getSourceSetBySensor(dataId)
-	    for k, ss in ssD.items():
-		ssDict[k] = ss
+            for k, ss in ssD.items():
+                ssDict[k] = ss
         return ssDict
 
     def getSourceSetColumnsBySensor(self, dataId, accessorList):
@@ -71,7 +71,7 @@ class PipeRunner(object):
         ssDict = {}
         for testdata in self.testdataList:
             ssD = testdata.getSourceSetColumnsBySensor(dataId, accessorList)
-	    for k, ss in ssD.items():
-		ssDict[k] = ss
+            for k, ss in ssD.items():
+                ssDict[k] = ss
         return ssDict
     

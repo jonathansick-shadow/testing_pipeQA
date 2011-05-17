@@ -24,7 +24,7 @@ class Test(object):
         self.comment = comment
 
     def __str__(self):
-	return self.label+" "+str(self.evaluate())+" value="+str(self.value)+" limits="+str(self.limits)
+        return self.label+" "+str(self.evaluate())+" value="+str(self.value)+" limits="+str(self.limits)
 
     def evaluate(self):
         """Add a test to this testing suite."""
@@ -39,23 +39,23 @@ class Test(object):
 class TestSet(object):
 
     def __init__(self, label=None, group=""):
-	self.testDir = os.path.join("tests", ".tests")
-	self.figDir = os.path.join("figures")
+        self.testDir = os.path.join("tests", ".tests")
+        self.figDir = os.path.join("figures")
 
-	if not os.path.exists(self.testDir):
-	    os.mkdir(self.testDir)
-	    
+        if not os.path.exists(self.testDir):
+            os.mkdir(self.testDir)
+            
         testfileName = inspect.stack()[-1][1]
         self.testfileName = os.path.split(testfileName)[1]
-	if not label is None:
-	    self.testfileName += "."+label
+        if not label is None:
+            self.testfileName += "."+label
 
-	self.status = True
-	self.passFile = os.path.join(self.testDir, self.testfileName)
-	self.failFile = self.passFile + ".failed"
-	self.useFile = self.passFile
-	
-	self.tests = []
+        self.status = True
+        self.passFile = os.path.join(self.testDir, self.testfileName)
+        self.failFile = self.passFile + ".failed"
+        self.useFile = self.passFile
+        
+        self.tests = []
  
 
     def addTest(self, *args):
@@ -70,56 +70,56 @@ class TestSet(object):
 
         # grab a traceback for failed tests
         backtrace = ""
-	message = str(test)
+        message = str(test)
         try:
             if not test.evaluate():
-		failMessage = "Failed test '"+test.label+"': " + \
-			      "value '" + str(test.value) + "' not in range '" + \
-			      str(test.limits)+"'."
+                failMessage = "Failed test '"+test.label+"': " + \
+                              "value '" + str(test.value) + "' not in range '" + \
+                              str(test.limits)+"'."
                 raise TestFailError(failMessage)
 
         except TestFailError, e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             message = "".join(traceback.format_stack()[:-1]) + "\n" + str(e)
 
-	    # if we failed a test, change to the .failed file.
-	    if self.status:
-		os.rename(self.useFile, self.failFile)
-		self.useFile = self.failFile
-	    self.status = False
-	    
+            # if we failed a test, change to the .failed file.
+            if self.status:
+                os.rename(self.useFile, self.failFile)
+                self.useFile = self.failFile
+            self.status = False
+            
         # enter the test in the output file
-	fp = open(self.useFile, 'w')
-	fp.write(message+"\n")
-	fp.close()
+        fp = open(self.useFile, 'w')
+        fp.write(message+"\n")
+        fp.close()
 
 
     def addMetadata(self, *args):
-	pass
-	
+        pass
+        
     def addTests(self, testList):
-	for test in testList:
-	    self.addTest(test)
+        for test in testList:
+            self.addTest(test)
 
 
     def addFigure(self, fig, filename, caption, **kwargs):
         """Add a figure to this test suite."""
-	
-	if not os.path.exists(self.figDir):
-	    os.mkdir(self.figDir)
+        
+        if not os.path.exists(self.figDir):
+            os.mkdir(self.figDir)
         path = os.path.join(self.figDir, filename)
         fig.savefig(path)
-	captionPath = os.path.join(self.figDir, filename+".caption")
-	    
-	fp = open(captionPath, 'w')
-	fp.write(caption+"\n")
-	fp.close()
+        captionPath = os.path.join(self.figDir, filename+".caption")
+            
+        fp = open(captionPath, 'w')
+        fp.write(caption+"\n")
+        fp.close()
         
     def importExceptionDict(self):
-	pass
+        pass
     def importLogs(self):
-	pass
+        pass
     def importEupsSetups(self):
-	pass
+        pass
 
 

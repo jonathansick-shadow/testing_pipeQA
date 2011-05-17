@@ -61,11 +61,11 @@ def testPipetteAllMappers():
 
     ## LsstSim
     if doLsstSim:
-	tdLsstSim = pipeQA.makeTestData("imsimTestData001",
-					dataId={'visit':'85501867', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
-					verifyChecksum=False, outDir='local',
-					astrometryNetData="imsim_20100625")
-	#pr.addTestData(tdLsstSim)
+        tdLsstSim = pipeQA.makeTestData("imsimTestData001",
+                                        dataId={'visit':'85501867', 'snap':'0', 'raft':'1,1', 'sensor':'1,1'},
+                                        verifyChecksum=False, outDir='local',
+                                        astrometryNetData="imsim_20100625")
+        #pr.addTestData(tdLsstSim)
     
 
 
@@ -73,34 +73,34 @@ def testPipetteAllMappers():
 
     ## HscSim
     if doHscSim:
-	tdHscSim = pipeQA.makeTestData("hscsimTestData001",
-				       dataId={'visit':'200', 'ccd':'50'}, 
-				       verifyChecksum=False, outDir='local',
-				       astrometryNetData="hsc-dc2-2011-01-22-starsonly")
-				       #astrometryNetData="hsc-dc2-2011-02-27plus")
-	#pr.addTestData(tdHscSim)
-	
+        tdHscSim = pipeQA.makeTestData("hscsimTestData001",
+                                       dataId={'visit':'200', 'ccd':'50'}, 
+                                       verifyChecksum=False, outDir='local',
+                                       astrometryNetData="hsc-dc2-2011-01-22-starsonly")
+                                       #astrometryNetData="hsc-dc2-2011-02-27plus")
+        #pr.addTestData(tdHscSim)
+        
 
-				     
+                                     
     ## megacam
     if doCfht:
-	tdCfht = pipeQA.makeTestData("cfhtTestData001",
-				     dataId={'visit':"788033", 'ccd':'17'},
-				     verifyChecksum=False, outDir='local',
-				     astrometryNetData="hsc-dc2-2011-01-22-starsonly")
+        tdCfht = pipeQA.makeTestData("cfhtTestData001",
+                                     dataId={'visit':"788033", 'ccd':'17'},
+                                     verifyChecksum=False, outDir='local',
+                                     astrometryNetData="hsc-dc2-2011-01-22-starsonly")
         #astrometryNetData="hsc-dc2-2011-02-27plus")
-	#pr.addTestData(tdCfht)
+        #pr.addTestData(tdCfht)
 
 
     ## Suprimecam
     visit = '101412' # ZR
     #visit = '108504' # I+
     if doSuprimecam:
-	tdScSim = pipeQA.makeTestData("suprimeTestData001",
-				      dataId={'visit':visit, 'ccd':'2'}, 
-				      verifyChecksum=False, outDir='local',
-				      astrometryNetData="hsc-dc1-2010-08-04.1-starsonly")
-	#pr.addTestData(tdScSim)
+        tdScSim = pipeQA.makeTestData("suprimeTestData001",
+                                      dataId={'visit':visit, 'ccd':'2'}, 
+                                      verifyChecksum=False, outDir='local',
+                                      astrometryNetData="hsc-dc1-2010-08-04.1-starsonly")
+        #pr.addTestData(tdScSim)
 
         
     if causeFail:
@@ -144,19 +144,19 @@ def testPipetteAllMappers():
     if doCfht:       sourceSets["cfht"]       = {'visit' : '788033',   'ccd' : '17'}
 
     limits = {
-	"lsstSim"    : [1083, 1083],
-	"hscSim"     : [1810, 1810],
-	"suprimecam" : [1390, 1440],
-	"cfht"       : [1023, 1023],
+        "lsstSim"    : [1083, 1083],
+        "hscSim"     : [1810, 1810],
+        "suprimecam" : [1390, 1440],
+        "cfht"       : [1023, 1023],
         }
     
 
     for label, dataIds in sourceSets.items():
         ss = pr.getSourceSet(dataIds)
-	n       = len(ss)
-	lim  = limits[label]
-	comment = "verify no. detections equals known value"
-	ts.addTest(label, n, lim, comment)
+        n       = len(ss)
+        lim  = limits[label]
+        comment = "verify no. detections equals known value"
+        ts.addTest(label, n, lim, comment)
 
 
 

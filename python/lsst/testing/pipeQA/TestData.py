@@ -45,7 +45,7 @@ class TestData(object):
         roots = self.defaultConfig['roots']
 
         self.kwargs         = kwargs
-	self.dataIdRegex    = self.kwargs.get('dataId', {})
+        self.dataIdRegex    = self.kwargs.get('dataId', {})
         self.haveManifest   = self.kwargs.get('haveManifest', False)
         self.verifyChecksum = self.kwargs.get('verifyChecksum', False)
         self.astrometryNetData = self.kwargs.get('astrometryNetData', None)
@@ -194,7 +194,7 @@ class TestData(object):
         config = self.defaultConfig
         if overrideConfigs is not None:
             for overrideConfig in overrideConfigs:
-		config.merge(pipette.config.Config(overrideConfig))
+                config.merge(pipette.config.Config(overrideConfig))
                 #config = pipette.config.configuration(config, overrideConfig)
 
         #srcConf = config['measure']['source']
@@ -209,12 +209,12 @@ class TestData(object):
         #do['ast']  = True
         #do['cal']  = True
 
-	if len(self.dataTuples) == 0:
-	    sys.stderr.write(
-		"WARNING: Requested data not found in registry.  Available frames:\n" +
-		str(self.availableDataTuples)
-		)
-	    
+        if len(self.dataTuples) == 0:
+            sys.stderr.write(
+                "WARNING: Requested data not found in registry.  Available frames:\n" +
+                str(self.availableDataTuples)
+                )
+            
 
         for dataTuple in self.dataTuples:
 
@@ -440,9 +440,9 @@ class ImSimTestData(TestData):
     def __init__(self, label, **kwargs):
         """ """
 
-	import lsst.obs.lsstSim           as obsLsst
-	import lsstSim
-	
+        import lsst.obs.lsstSim           as obsLsst
+        import lsstSim
+        
         mapper         = obsLsst.LsstSimMapper
         dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
         
@@ -466,7 +466,7 @@ class ImSimTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
-	import lsstSim
+        import lsstSim
         lsstSim.run(rerun, dataId['visit'], dataId['snap'], dataId['raft'], dataId['sensor'],
                     config, log=log)
 
@@ -485,9 +485,9 @@ class HscSimTestData(TestData):
     #######################################################################
     def __init__(self, label, **kwargs):
         """ """
-	
-	import lsst.obs.hscSim            as obsHsc
-	import runHsc
+        
+        import lsst.obs.hscSim            as obsHsc
+        import runHsc
         mapper         = obsHsc.HscSimMapper
         dataInfo       = [['visit',1], ['ccd', 0]]
         
@@ -496,7 +496,7 @@ class HscSimTestData(TestData):
 
         #defaultConfig = runHsc.getConfigQa()
         argv = []
-	argv.extend(["--instrument=hsc", "--frame=0", "--ccd=0", "--rerun=test"])
+        argv.extend(["--instrument=hsc", "--frame=0", "--ccd=0", "--rerun=test"])
         defaultConfig, opts, args = runHsc.getConfig(argv=argv)
 
         if not 'roots' in defaultConfig:
@@ -515,7 +515,7 @@ class HscSimTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
-	import runHsc
+        import runHsc
         #runHsc.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
         runHsc.doRun(rerun=rerun, frameId=dataId['visit'], ccdId=dataId['ccd'],
                    doMerge=True, doBreak=False,
@@ -543,8 +543,8 @@ class SuprimeTestData(TestData):
     def __init__(self, label, **kwargs):
         """ """
         
-	import lsst.obs.suprimecam        as obsSuprimecam
-	import suprimecam
+        import lsst.obs.suprimecam        as obsSuprimecam
+        import suprimecam
         mapper         = obsSuprimecam.SuprimecamMapper
         dataInfo       = [['visit',1], ['ccd', 0]]
         
@@ -569,7 +569,7 @@ class SuprimeTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
-	import suprimecam
+        import suprimecam
         suprimecam.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
 
 
@@ -589,8 +589,8 @@ class CfhtTestData(TestData):
     def __init__(self, label, **kwargs):
         """ """
 
-	import lsst.obs.cfht              as obsCfht
-	import megacam
+        import lsst.obs.cfht              as obsCfht
+        import megacam
         mapper         = obsCfht.CfhtMapper
         dataInfo       = [['visit',1], ['ccd', 0]]
         
@@ -615,7 +615,7 @@ class CfhtTestData(TestData):
     #######################################################################
     def runPipette(self, rerun, dataId, config, log):
         """ """
-	import megacam
+        import megacam
         megacam.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
 
 
@@ -647,7 +647,7 @@ def makeTestData(label, **kwargs):
     lookup = {
         "lsstSim" : [ImSimTestData,  not testCfht and not testHscSim and not testSuprimecam],
         "cfht" :    [CfhtTestData, testCfht],
-	"hscSim"  : [HscSimTestData, testHscSim], 
+        "hscSim"  : [HscSimTestData, testHscSim], 
         "suprime":  [SuprimeTestData, testSuprimecam],
         }
 
