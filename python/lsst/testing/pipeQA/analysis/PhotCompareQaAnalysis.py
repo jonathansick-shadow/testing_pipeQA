@@ -182,19 +182,20 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    tag = self.magType1+"_vs_"+self.magType2
 	    dtag = self.magType1+"-"+self.magType2
 	    self.means.set(raft, ccd, mean)
-	    label = "mean "+tag +" " + re.sub("\s+", "_", ccd)
+	    areaLabel = re.sub("\s+", "_", ccd)
+	    label = "mean "+tag +" " + areaLabel
 	    comment = "mean "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag),n)
-	    testSet.addTest( testCode.Test(label, mean, [-0.02, 0.02], comment) )
+	    testSet.addTest( testCode.Test(label, mean, [-0.02, 0.02], comment), areaLabel=areaLabel )
 
 	    self.medians.set(raft, ccd, median)
-	    label = "median "+tag+" "+re.sub("\s+", "_", ccd)
+	    label = "median "+tag+" "+areaLabel
 	    comment = "median "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag), n)
-	    testSet.addTest( testCode.Test(label, median, [-0.02, 0.02], comment) )
+	    testSet.addTest( testCode.Test(label, median, [-0.02, 0.02], comment), areaLabel=areaLabel )
 
 	    self.stds.set(raft, ccd, std)
-	    label = "stdev "+tag+" " + re.sub("\s+", "_", ccd)
+	    label = "stdev "+tag+" " + areaLabel
 	    comment = "stdev of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag), n)
-	    testSet.addTest( testCode.Test(label, std, [0.0, 0.02], comment) )
+	    testSet.addTest( testCode.Test(label, std, [0.0, 0.02], comment), areaLabel=areaLabel )
 		
 
 
@@ -224,11 +225,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.02, 0.02],
 			   title="Mean "+tag, cmapOver=red, cmapUnder=blue)
 	testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag   (brighter than %.1f)" % (self.cut),
-			  saveMap=True, navMap=True)
+			  navMap=True)
 	stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
 			  title="Stdev "+tag, cmapOver=red)
 	testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag  (brighter than %.1f)" % (self.cut),
-			  saveMap=True, navMap=True)
+			  navMap=True)
 	
 
 
@@ -311,18 +312,18 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    dmag = 0.1
 	    ddiff1 = 0.02
 	    ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
-	    label = re.sub("\s+", "_", ccd)
+	    areaLabel = re.sub("\s+", "_", ccd)
 	    for j in xrange(len(mag)):
 		info = "nolink:x:%.2f_y:%.2f" % (x[j], y[j])
 		area = (mag[j]-dmag, diff[j]-ddiff1, mag[j]+dmag, diff[j]+ddiff1)
-		fig.addMapArea(label, area, info, axes=ax_1)
+		fig.addMapArea(areaLabel, area, info, axes=ax_1)
 		area = (mag[j]-dmag, diff[j]-ddiff2, mag[j]+dmag, diff[j]+ddiff2)
-		fig.addMapArea(label, area, info, axes=ax_2)
+		fig.addMapArea(areaLabel, area, info, axes=ax_2)
 		
 
-	    testSet.addFigure(fig, "diff_"+dtag+"_"+label+".png",
+	    testSet.addFigure(fig, "diff_"+dtag+".png",
 			      dtag+" vs. "+self.magType1 + ". Point used for statistics shown in red.",
-			      saveMap=True)
+			      areaLabel=areaLabel)
 
 
 	    # append values to arrays for a plot showing all data
@@ -330,7 +331,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    allDiffs = numpy.append(allDiffs, diff)
 	    color = [sm.to_rgba(i)] * len(mag)
 	    allColor += color
-	    allLabels += [label] * len(mag)
+	    allLabels += [areaLabel] * len(mag)
 	    i += 1
 
 
@@ -383,6 +384,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	    ax.set_ylabel(tag)
 
 	    
-	testSet.addFigure(fig0, "diff_"+dtag+"_all.png", dtag+" vs. "+self.magType1, saveMap=True)
+	testSet.addFigure(fig0, "diff_"+dtag+".png", dtag+" vs. "+self.magType1, areaLabel="all")
 
 	    

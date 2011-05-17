@@ -61,9 +61,8 @@ class TestSet(object):
     def addTest(self, *args):
         """Add a test to this testing suite."""
 
-        if len(args) == 4:
-            label, value, limits, comment = args
-            test = Test(label, value, limits, comment)
+        if len(args) >= 4:
+            test = Test(*args)
         elif len(args) == 1:
             test, = args
 
@@ -103,7 +102,7 @@ class TestSet(object):
 	    self.addTest(test)
 
 
-    def addFigure(self, fig, filename, caption):
+    def addFigure(self, fig, filename, caption, **kwargs):
         """Add a figure to this test suite."""
 	
 	if not os.path.exists(self.figDir):

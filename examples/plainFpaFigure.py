@@ -25,23 +25,16 @@ import lsst.testing.pipeQA.figures as qaFig
 #
 #############################################################
 
-# This tutorial assumes you've read through dispQaTutorial1.py !
+# This tutorial assumes you've read through dispQaTutorial1.py and dispQaTutorial2.py !
 
 def main():
 
 
-    # create a TestSet
-    ts = pipeQA.TestSet(group="tutorial", label="fpa-howto")
-
-    # Adding metadata
-    ts.addMetadata("time-run", datetime.datetime.now().strftime("%a %Y-%m-%d %H:%M:%S"))
-
-
-    ###############################
-    # Adding an FPA figure
+    ##############################
+    # Adding a plain FPA figure
 
     # To demo multiple TestSets, let's add this figure to a different TestSet
-    tsFpa = pipeQA.TestSet(group="tutorial", label="FPA-figure-demo")
+    tsFpa = pipeQA.TestSet(group="tutorial", label="plain-FPA-figure-demo")
 
     # get a cameraInfo object for the camera you're interested in
     # - available: LsstSimCameraInfo, CfhtCameraInfo, HscCameraInfo, SuprimecamCamerainfo
@@ -49,22 +42,26 @@ def main():
 
     # pull out the camera, and pass it to the FPA figure constructor
     camera = camInfo.camera
-    sfig = qaFig.FpaQaFigure(camera)
+    fpaFig = qaFig.FpaQaFigure(camera)
 
-    # Fill the sfig.data attribute with the values to display.
+    # Fill the fpaFig.data attribute with the values to display.
     # This will color-code ccds in the focal plane according to these values
-    # ... just sequentially for this example ... in range 0 --> 1
-    i = 0
-    data = sfig.data
+    data = fpaFig.data
     for raft in sorted(data.keys()):
 	ccdDict = data[raft]
 	for ccd, value in ccdDict.items():
-	    data[raft][ccd] = 1.0*i
-	    i += 1
+	    data[raft][ccd] = numpy.random.normal(0.0, 1.0)
 
-    # now tell sfig to make the matplotlib figure, and add the fpaFigure to the TestSet
-    sfig.makeFigure(showUndefined=True)
-    tsFpa.addFigure(sfig, camInfo.name+".png", "FPA for camera: "+camInfo.name)
+    # now tell fpaFig to make the matplotlib figure, and add the fpaFigure to the TestSet
+    vlimits = [-1.0, 1.0]  # the colormap limits
+    cmap = "copper"        # the name of a matplotlib.cm colormap ('jet' by default)
+    
+    # color to use if below/above the cmap range, defaults are min/max of cmap    
+    cmapUnder, cmapOver = "#0000ff", "#ff0000"
+    
+    fpaFig.makeFigure(vlimits=vlimits, cmap="copper", cmapUnder=cmapUnder, cmapOver=cmapOver)
+    tsFpa.addFigure(fpaFig, camInfo.name+".png", "FPA for camera: "+camInfo.name)
+
 
 
 

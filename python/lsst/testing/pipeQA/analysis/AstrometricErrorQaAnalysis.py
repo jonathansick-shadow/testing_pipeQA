@@ -102,9 +102,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	    self.medErrArcsec.set(raft, ccd, medErrArcsec)
 	    self.medThetaRad.set(raft, ccd, medThetaRad)
 	    
-	    label = "median astrometry error "+re.sub("\s+", "_", ccd)
+	    areaLabel = re.sub("\s+", "_", ccd)  # yikes, requires knowledge of implem in FpaQaFig
+	    label = "median astrometry error "+ areaLabel
 	    comment = "median sqrt(dRa^2+dDec^2) (arcsec, nstar=%d)" % (n)
-	    testSet.addTest( testCode.Test(label, medErrArcsec, [0.0, self.maxErr], comment) )
+	    test = testCode.Test(label, medErrArcsec, [0.0, self.maxErr], comment, areaLabel=areaLabel)
+	    testSet.addTest(test)
 
 
     def plot(self, data, dataId, showUndefined=False):
@@ -125,7 +127,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 	astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, self.maxErr],
 			  title="Median astrometric error", cmapOver='#ff0000')
 	testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 
-			  saveMap=True, navMap=True)
+			  navMap=True)
 
 	#
 	figsize = (6.5, 3.25)
@@ -214,7 +216,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
 
 	    label = re.sub("\s+", "_", ccd)
-	    testSet.addFigure(fig, "astromError_"+label+".png", "Astrometric error "+label)
+	    testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)
 	    
 	    i += 1
 

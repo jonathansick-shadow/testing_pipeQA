@@ -109,9 +109,10 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 
 	    # add a test for acceptible psf ellipticity
 	    self.ellipMedians.set(raft, ccd, ellipMed)
-	    label = "median psf ellipticity "+re.sub("\s+", "_", ccd)
+	    areaLabel = re.sub("\s+", "_", ccd)
+	    label = "median psf ellipticity "+areaLabel
 	    comment = "median psf ellipticity (nstar=%d)" % (n)
-	    testSet.addTest( testCode.Test(label, ellipMed, [0.00, 0.3], comment) )
+	    testSet.addTest( testCode.Test(label, ellipMed, [0.00, 0.3], comment, areaLabel=areaLabel) )
 
 	    # stash the angles.  We'll use them to make figures in plot()
 	    self.thetaMedians.set(raft, ccd, thetaMed)
@@ -139,7 +140,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.3],
 			    title="Median PSF Ellipticity")
 	testSet.addFigure(ellipFig, "medPsfEllip."+figFmt, "Median PSF Ellipticity",
-			  saveMap=True, navMap=True)
+			  navMap=True)
 
 	#
 	figsize = (4.0, 4.0)
@@ -190,9 +191,10 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 	    for tic in ax.get_xticklabels() + ax.get_yticklabels():
 		tic.set_size("x-small")
 
-	    label = re.sub("\s+", "_", ccd)
-	    testSet.addFigure(fig, "psfEllip_"+label+"."+figFmt,
-			      "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen))
+	    areaLabel = re.sub("\s+", "_", ccd)
+	    testSet.addFigure(fig, "psfEllip.png",
+			      "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen),
+			      areaLabel=areaLabel)
 	    
 	    i += 1
 

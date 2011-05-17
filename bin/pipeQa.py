@@ -36,7 +36,7 @@ def main(dataset, dataIdInput, rerun=None):
 
     if data.cameraInfo.name == 'lsstSim' and dataIdInput.has_key('ccd'):
 	dataIdInput['sensor'] = dataIdInput['ccd']
-	
+	del dataIdInput['ccd']
 
     # take what we need for this camera, ignore the rest
     dataId = {}

@@ -149,14 +149,13 @@ class FpaQaFigure(QaFig):
         return True
 
 
+    def getAreaLabel(self, raft, ccd):
+	"""Get the area label to use for this raft,ccd."""
+	return re.sub("\s+", "_", ccd)
 
-    def getMapInfo(self):
 
-	mapList = []
-	axes = self.fig.gca()
-
-	tr = self.fig.transFigure.transform((1.0, 1.0))
-	xpmax, ypmax = tr
+    def setMapInfo(self):
+	"""Establish map areas for any defined CCDs"""
 	
 	for r in self.camera:
 	    raft = cameraGeom.cast_Raft(r)
@@ -165,21 +164,64 @@ class FpaQaFigure(QaFig):
 		ccd = cameraGeom.cast_Ccd(c)
 		clabel = ccd.getId().getName()
 		info = self.map[rlabel][clabel]
-
+		
 		if ((not info is None) and
 		    self.ccdBoundaries.has_key(clabel) and
 		    (not self.ccdBoundaries[clabel] is None)):
 		    bound = self.ccdBoundaries[clabel]
 		    x0, x1 = bound[0]
 		    y0, y1 = bound[1]
-		    xy1 = axes.transData.transform((x0, y0))
-		    xy2 = axes.transData.transform((x1, y1))
-		    left, bottom = xy1
-		    right, top = xy2
-		    label = re.sub("\s+", "_", clabel)
-		    mapList.append([label, left, ypmax-top, right, ypmax-bottom, info])
+		    label = self.getAreaLabel(rlabel, clabel)
+		    self.addMapArea(label, [x0, y0, x1, y1], info)
+		    
 
-	return mapList
+
+    def plotRaftBoundaries(self, sp, boundaryColors):
+	for b in self.raftBoundaries:
+            sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
+    def plotCcdBoundaries(self, sp):
+	for b in self.ccdBoundaries.values():
+	    x0, x1 = b[0]
+	    y0, y1 = b[1]
+	    x = [x0, x0, x1, x1, x0]
+	    y = [y0, y1, y1, y0, y0]
+	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=1.0)
+    def markMissingCcds(self, sp, missingCcds):
+	for b in missingCcds.values():
+	    x0, x1 = b[0]
+	    y0, y1 = b[1]
+	    x = [x0, x1, x0, x1]
+	    y = [y0, y1, y1, y0]
+	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
+
+    def labelSensors(self, sp):
+	for r in self.rectangles.values():
+	    label = r.get_label()
+	    bbox  = r.get_bbox()
+	    xplot = 0.5 * (bbox.x0 + bbox.x1)
+	    yplot = bbox.y1 - size[1]//2
+	    sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 6, weight = 'bold')
+	
+    def adjustTickLabels(self, sp, cb):
+	for tic in cb.ax.get_yticklabels():
+	    tic.set_size("x-small")
+	for tic in sp.get_xticklabels():
+	    tic.set_size("x-small")
+	    tic.set_rotation(22)
+	for tic in sp.get_yticklabels():
+	    tic.set_size("x-small")
+	    tic.set_rotation(45)
+	
+    def getFpaLimits(self):
+	x, y = [], []
+        for r in self.rectangles.values():
+            bbox  = r.get_bbox()
+	    x += [bbox.x0, bbox.x1]
+	    y += [bbox.y0, bbox.y1]
+	x, y = numpy.array(x), numpy.array(y)
+	return x.min(), y.min(), x.max(), y.max()
+	    
+
 
 
     def makeFigure(self, 
@@ -235,62 +277,26 @@ class FpaQaFigure(QaFig):
         cb = self.fig.colorbar(p)
         sp.add_collection(p)
 
-        for b in self.raftBoundaries:
-            sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
-	for b in self.ccdBoundaries.values():
-	    x0, x1 = b[0]
-	    y0, y1 = b[1]
-	    x = [x0, x0, x1, x1, x0]
-	    y = [y0, y1, y1, y0, y0]
-	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=1.0)
-	for b in missingCcds.values():
-	    x0, x1 = b[0]
-	    y0, y1 = b[1]
-	    x = [x0, x1, x0, x1]
-	    y = [y0, y1, y1, y0]
-	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
-
-
-        if doLabel:
-            for r in self.rectangles.values():
-                label = r.get_label()
-                bbox  = r.get_bbox()
-                xplot = 0.5 * (bbox.x0 + bbox.x1)
-                yplot = bbox.y1 - size[1]//2
-                sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 6, weight = 'bold')
+	self.plotRaftBoundaries(sp, boundaryColors)
+	self.plotCcdBoundaries(sp)
+	self.markMissingCcds(sp, missingCcds)
+	if doLabel:
+	    self.labelSensors(sp)
 
 	if not title is None:
 	    sp.set_title(title)
         sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
         sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
 
-	for tic in cb.ax.get_yticklabels():
-	    tic.set_size("x-small")
-	for tic in sp.get_xticklabels():
-	    tic.set_size("x-small")
-	    tic.set_rotation(22)
-	for tic in sp.get_yticklabels():
-	    tic.set_size("x-small")
-	    tic.set_rotation(45)
-	    
-        xmin = +1e10
-        ymin = +1e10
-        xmax = -1e10
-        ymax = -1e10
-        for r in self.rectangles.values():
-            bbox  = r.get_bbox()
-            
-            if (bbox.x0 < xmin):
-                xmin = bbox.x0
-            if (bbox.x1 > xmax):
-                xmax = bbox.x1
-            if (bbox.y0 < ymin):
-                ymin = bbox.y0
-            if (bbox.y1 > ymax):
-                ymax = bbox.y1
-        sp.set_xlim((xmin - borderPix, xmax + borderPix))
-        sp.set_ylim((ymin - borderPix, ymax + borderPix))
-	#self.fig.subplotparams.update(left=0.15)
+	self.adjustTickLabels(sp, cb)
+
+	x0, y0, x1, y1 = self.getFpaLimits()
+        sp.set_xlim((x0 - borderPix, x1 + borderPix))
+        sp.set_ylim((y0 - borderPix, y1 + borderPix))
+
+	self.setMapInfo()
+	
+
 
 class VectorFpaQaFigure(FpaQaFigure):
 
@@ -300,7 +306,7 @@ class VectorFpaQaFigure(FpaQaFigure):
 
     def makeFigure(self, 
                    borderPix = 100,
-                   raftBoundColors = 'r', doLabel = False, showUndefined=False,
+                   boundaryColors = 'r', doLabel = False, showUndefined=False,
 		   vlimits=None, cmap="jet", title=None,
 		   cmapOver=None, cmapUnder=None
 		   ):
@@ -364,8 +370,6 @@ class VectorFpaQaFigure(FpaQaFigure):
 	    norm = colors.Normalize()
 
 	if len(patches) > 0:
-	    #patches = self.rectangles.values()
-	    #colorValues = allValues
 
 	    cmap = getattr(cm, cmap)
 	    cmap.set_bad('k', 0.2)
@@ -373,8 +377,7 @@ class VectorFpaQaFigure(FpaQaFigure):
 		cmap.set_over(cmapOver, 1.0)
 	    if not cmapUnder is None:
 		cmap.set_under(cmapUnder, 1.0)
-	    #cmap.set_over('r', 0.8)
-	    #cmap.set_under('b', 0.8)
+
 	    p = PatchCollection(patches, norm=norm, cmap=cmap)
 	    value_array = numpy.array(colorValues)
 	    masked_value_array = numpyMa.masked_where(numpy.isnan(value_array), value_array)
@@ -393,60 +396,23 @@ class VectorFpaQaFigure(FpaQaFigure):
 	    dy = arrowLen*numpy.sin(angle)
 	    sp.arrow(x, y, dx, dy) #, ec="k", lw=3)
 
-        for b in self.raftBoundaries:
-            sp.plot(b[0], b[1], '%s-' % (raftBoundColors), lw=3)
-        for b in self.ccdBoundaries.values():
-	    x0, x1 = b[0]
-	    y0, y1 = b[1]
-	    x = numpy.array([x0, x0, x1, x1, x0])
-	    y = numpy.array([y0, y1, y1, y0, y0])
-            sp.plot(x, y, 'k-', lw=1)
-	for b in missingCcds.values():
-	    x0, x1 = b[0]
-	    y0, y1 = b[1]
-	    x = [x0, x1, x0, x1]
-	    y = [y0, y1, y1, y0]
-	    sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
 
-
-        if doLabel:
-            for r in self.rectangles.values():
-                label = r.get_label()
-                bbox  = r.get_bbox()
-                xplot = 0.5 * (bbox.x0 + bbox.x1)
-                yplot = bbox.y1 - size[1]//2
-                sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
+	self.plotRaftBoundaries(sp, boundaryColors)
+	self.plotCcdBoundaries(sp)
+	self.markMissingCcds(sp, missingCcds)
+	if doLabel:
+	    self.labelSensors(sp)
 
 	if not title is None:
 	    sp.set_title(title)
         sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
         sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
 
-	if len(patches) > 0 and haveColors:
-	    for tic in cb.ax.get_yticklabels():
-		tic.set_size("x-small")
-	for tic in sp.get_xticklabels():
-	    tic.set_size("x-small")
-	    tic.set_rotation(22)
-	for tic in sp.get_yticklabels():
-	    tic.set_size("x-small")
-	    tic.set_rotation(45)
+	self.adjustTickLabels(sp, cb)
 
-        xmin = +1e10
-        ymin = +1e10
-        xmax = -1e10
-        ymax = -1e10
-        for r in self.rectangles.values():
-            bbox  = r.get_bbox()
-            
-            if (bbox.x0 < xmin):
-                xmin = bbox.x0
-            if (bbox.x1 > xmax):
-                xmax = bbox.x1
-            if (bbox.y0 < ymin):
-                ymin = bbox.y0
-            if (bbox.y1 > ymax):
-                ymax = bbox.y1
-        sp.set_xlim((xmin - borderPix, xmax + borderPix))
-        sp.set_ylim((ymin - borderPix, ymax + borderPix))
-    
+	x0, y0, x1, y1 = self.getFpaLimits()
+        sp.set_xlim((x0 - borderPix, x1 + borderPix))
+        sp.set_ylim((y0 - borderPix, y1 + borderPix))
+
+	self.setMapInfo()
+

@@ -100,8 +100,6 @@ def main():
     ts.addFigure(fig, figName, caption)
 
 
-    # create a new TestSet
-    ts = pipeQA.TestSet(group="tutorial", label="clickplot-howto")
 
 
 
