@@ -25,12 +25,21 @@ class DbQaData(QaData):
     #Qa__init__(self, label, rerun, dataInfo):
 
     def __init__(self, database, rerun, cameraInfo):
+        """
+        @param database The name of the database to connect to
+        @param rerun The data rerun to use
+        @param cameraInfo A cameraInfo object describing the camera for these data
+        """
         QaData.__init__(self, database, rerun, cameraInfo)
         self.dbId        = DatabaseIdentity(self.label)
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
 
     def getMatchListBySensor(self, dataIdRegex):
+        """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
         
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
@@ -144,6 +153,10 @@ class DbQaData(QaData):
 
 
     def getSourceSetBySensor(self, dataIdRegex):
+        """Get a dict of all Sources matching dataId, with sensor name as dict keys.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
 
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
@@ -234,7 +247,10 @@ class DbQaData(QaData):
 
 
     def getVisits(self, dataIdRegex):
-        """ Return explicit visits matching for a dataIdRegex."""
+        """ Return explicit visits matching for a dataIdRegex.
+
+        @param dataIdRegex dataId dict containing regular expressions of data to retrieve.
+        """
 
         sql = "select distinct visit from Science_Ccd_Exposure"
         sql += "   where "
@@ -255,6 +271,10 @@ class DbQaData(QaData):
 
 
     def loadCalexp(self, dataIdRegex):
+        """Load the calexp data for data matching dataIdRegex.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
         
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
@@ -337,6 +357,11 @@ class DbQaData(QaData):
 
 
     def getCalexpEntryBySensor(self, cache, dataIdRegex):
+        """Fill and return the dict for a specified calexp cache.
+
+        @param cache The cache dictionary to return
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
 
         # get the datasets corresponding to the request
         self.loadCalexp(dataIdRegex)
@@ -351,6 +376,10 @@ class DbQaData(QaData):
 
 
     def getSourceSet(self, dataIdRegex):
+        """Get a SourceSet of all Sources matching dataId.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
 
         ssDict = self.getSourceSetBySensor(dataIdRegex)
         ssReturn = []
@@ -368,7 +397,8 @@ class DbQaData(QaData):
     #    - if regex is a regex - sub '.*' and '?' to '%' and return "field like 'regex'"
     ########################################
     def _sqlLikeEqual(self, field, regex):
-        """ """
+        """Utility to convert a dataId regex to an sql 'where' clause.
+        """
 
         clause = ""
         if re.search('^\d+$', regex):
@@ -391,6 +421,11 @@ class DbQaData(QaData):
 # - curently only lsstSim is available by database, so this is a trivial factory
 ###################################################
 def makeDbQaData(label, rerun=None, **kwargs):
+    """Factory for a DbQaData object.
+    
+    @param database The name of the database to connect to
+    @param rerun The data rerun to use
+    """
     return DbQaData(label, rerun, qaCamInfo.LsstSimCameraInfo())
 
 

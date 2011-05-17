@@ -9,12 +9,18 @@ import lsst.ap.cluster as apCluster
 #
 #######################################################################
 class QaData(object):
-    """ """
+    """Base class for QA data retrieval."""
 
     #######################################################################
     #
     #######################################################################
     def __init__(self, label, rerun, cameraInfo):
+        """
+        @param label The name of this data set
+        @param rerun The rerun to retrieve
+        @param cameraInfo A cameraInfo object containing specs on the camera
+        """
+        
         self.label = label
         self.rerun = rerun
         self.cameraInfo = cameraInfo
@@ -32,6 +38,7 @@ class QaData(object):
         
 
     def initCache(self):
+        """Initialize all internal cache attributes. """
 
         # cache the dataId requests
         # they may contain regexes ... we won't know if our cached sourceSets have
@@ -76,7 +83,7 @@ class QaData(object):
 
 
     def clearCache(self):
-
+        """Reset all internal cache attributes."""
         for cache in self.cacheList.values():
             for key in cache.keys():
                 del cache[key]
@@ -92,10 +99,18 @@ class QaData(object):
                 
 
     def getDataName(self):
+        """Get a string representation of ourself."""
+        # should this be __str__ or __repr__ ?
         return self.label+" rerun="+str(self.rerun)
         
 
+
     def getSourceSetColumnsBySensor(self, dataIdRegex, accessors):
+        """Get a specified Source field from all sources in SourceSet as a numpy array.
+        
+        @param dataIdRegex dataId dict with regular expressions for data to retrieve
+        @param accessors  List of accessor method names (as string without 'get' prepended)
+        """
 
         dataIdStr = self._dataIdToString(dataIdRegex)
 
@@ -149,18 +164,39 @@ class QaData(object):
 
 
     def getWcsBySensor(self, dataIdRegex):
+        """Get a dict of Wcs objects with sensor ids as keys.
+        
+        @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
+        """
         return self.getCalexpEntryBySensor(self.wcsCache, dataIdRegex)
     def getDetectorBySensor(self, dataIdRegex):
+        """Get a dict of Detector objects with sensor ids as keys.
+        
+        @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
+        """
         return self.getCalexpEntryBySensor(self.detectorCache, dataIdRegex)
     def getFilterBySensor(self, dataIdRegex):
+        """Get a dict of Filter objects with sensor ids as keys.
+        
+        @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
+        """
         return self.getCalexpEntryBySensor(self.filterCache, dataIdRegex)
     def getCalibBySensor(self, dataIdRegex):
+        """Get a dict of Calib objects with sensor ids as keys.
+        
+        @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
+        """
         return self.getCalexpEntryBySensor(self.calibCache, dataIdRegex)
 
 
     
 
     def verifyDataIdKeys(self, dataIdKeys, raiseOnFailure=True):
+        """Verify that what we're asked for makes sense for this camera (ie. ccd vs. sensor).
+
+        @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
+        @param raiseOnFailure Raise an exception if verification fails.
+        """
         missingKeys = []
         for key in dataIdKeys:
             if not key in self.dataIdNames:
@@ -173,11 +209,19 @@ class QaData(object):
         return True
 
 
+
     def getSourceClusters(self, dataIdRegex,
                           epsilonArcsec = 0.5,
                           minNeighbors = 1,
                           pointsPerLeaf = 100,
                           leafExtentThresholdArcsec = 0.5):
+        """Get apClusters for all Sources matching dataIdRegex.
+
+        @param epsilonArcsec Matching distance
+        @param minNeighbors Fewest neighbors to accept
+        @param pointsPerLeaf who knows?
+        @param leafExtentThresholdArcsec Drawing a blank here too.
+        """
         
         policy = pexPolicy.Policy()
         policy.set("epsilonArcsec", epsilonArcsec)
@@ -194,7 +238,10 @@ class QaData(object):
     #
     #######################################################################
     def _dataTupleToString(self, dataTuple):
-        """Represent a dataTuple as a string."""
+        """Represent a dataTuple as a string.
+
+        @param dataTuple The dataTupe to be converted.
+        """
         
         s = []
         for i in xrange(len(self.dataIdNames)):
@@ -207,7 +254,11 @@ class QaData(object):
     # utility to convert a data tuple to a dictionary using dataId keys
     #######################################################################
     def _dataTupleToDataId(self, dataTuple):
-        """ """
+        """Convert a dataTuple to a dataId dict.
+
+        @param dataTuple The dataTuple to be converted.
+        """
+        
         dataId = {}
         for i in xrange(len(self.dataIdNames)):
             dataIdName = self.dataIdNames[i]
@@ -218,7 +269,11 @@ class QaData(object):
     # utility to convert a dataId dictionary to a tuple
     #######################################################################
     def _dataIdToDataTuple(self, dataId):
-        """ """
+        """Convert a dataId to a dataTuple
+
+        @param dataId The dataId to be converted.
+        """
+        
         # if snap isn't specified, we'll add it.
         dataIdCopy = copy.copy(dataId)
         if not dataIdCopy.has_key('snap'):
@@ -234,18 +289,64 @@ class QaData(object):
         return tuple(dataList)
 
     def _dataIdToString(self, dataId):
+        """Convert a dataId dict to a string.
+
+        @param dataId The dataId to be converted
+        """
         return self._dataTupleToString(self._dataIdToDataTuple(dataId))
     
 
     def keyStringsToVisits(self, keyList):
+        """Extract a list of visits from a list of sensor keys.
+
+        @param keyList List of keys to have visits extracted from.
+        """
+        
         visits = {}
         for key in keyList:
             visit = str(self.dataIdLookup[key]['visit'])
             visits[visit] = True
         return visits.keys()
-    
-        
-    def getSourceSet(self, dataId):
-        pass
 
+    
+    #########################################################
+    # pure virtual methods
+        
+    def getSourceSet(self, dataIdRegex):
+        """Get a SourceSet of all Sources matching dataId.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
+        pass
+    def getSourceSetBySensor(self, dataIdRegex):
+        """Get a dict of all Sources matching dataId, with sensor name as dict keys.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
+        pass
+    def getMatchListBySensor(self, dataIdRegex):
+        """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
+        pass
+    def getCalexpEntryBySensor(self, cache, dataIdRegex):
+        """Fill and return the dict for a specified calexp cache.
+
+        @param cache The cache dictionary to return
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
+        pass
+    def getVisits(self, dataIdRegex):
+        """Get a list of all visits matching dataIdRegex
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
+        pass
+    def loadCalexp(self, dataIdRegex):
+        """Load the calexp data for data matching dataIdRegex.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
+        pass
     
