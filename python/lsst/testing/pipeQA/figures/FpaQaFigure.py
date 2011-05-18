@@ -7,7 +7,7 @@ import numpy.ma as numpyMa
 #import pylab
 import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
-from matplotlib.font_manager import FontProperties
+from matplotlib import font_manager as fm
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse

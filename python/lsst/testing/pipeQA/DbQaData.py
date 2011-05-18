@@ -142,7 +142,7 @@ class DbQaData(QaData):
 
             dist = 0.0
             matchList.append([sref, s, dist])
-
+        
         # cache it
         self.matchQueryCache[dataIdStr] = True
         for k, matchList in matchListDict.items():
@@ -335,13 +335,14 @@ class DbQaData(QaData):
             if not self.detectorCache.has_key(key):
                 raftName = "R:"+rowDict['raftName']
                 ccdName = raftName + " S:"+rowDict['ccdName']
-                raftId = cameraGeom.Id(raftName)
-                ccdId = cameraGeom.Id(ccdName)
-                ccdDetector = cameraGeom.Detector(ccdId)
-                raftDetector = cameraGeom.Detector(raftId)
-                ccdDetector.setParent(raftDetector)
-                self.raftDetectorCache[key] = raftDetector
-                self.detectorCache[key] = ccdDetector
+                #raftId = cameraGeom.Id(rowDict['raft']) #cameraGeom.Id(raftName)
+                #ccdId = cameraGeom.Id(rowDict['ccd']) #cameraGeom.Id(ccdName)
+                #ccdDetector = cameraGeom.Detector(ccdId)
+                #raftDetector = cameraGeom.Detector(raftId)
+                #ccdDetector.setParent(raftDetector)
+                #self.raftDetectorCache[key] = self.cameraInfo.camera.findDetector(raftId) #raftDetector
+                self.detectorCache[key] = self.cameraInfo.detectors[ccdName] #ccdDetector
+                self.raftDetectorCache[key] = self.cameraInfo.detectors[raftName]
 
             if not self.filterCache.has_key(key):
                 filter = afwImage.Filter(rowDict['filterName'], True)

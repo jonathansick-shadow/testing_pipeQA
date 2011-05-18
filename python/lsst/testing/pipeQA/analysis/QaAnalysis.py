@@ -37,6 +37,9 @@ class QaAnalysis(object):
         tsId = group + "-" + filterName
         if not self.testSets.has_key(tsId):
             self.testSets[tsId] = testCode.TestSet(label, group=tsId)
+            self.testSets[tsId].addMetadata('dataset', data.getDataName())
+            self.testSets[tsId].addMetadata('visit-filter', tsId)
+
         return self.testSets[tsId]
 
 

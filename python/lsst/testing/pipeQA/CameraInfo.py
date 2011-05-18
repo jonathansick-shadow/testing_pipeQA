@@ -26,12 +26,16 @@ class CameraInfo(object):
         self.mapperClass = mapperClass
         self.camera      = camera
         
+        self.detectors   = {}
         self.nSensor     = 0
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
+            self.detectors[raft.getId().getName()] = raft
             for c in raft:
+                ccd = cameraGeom.cast_Ccd(c)
+                self.detectors[ccd.getId().getName()] = ccd
                 self.nSensor += 1
-
+        
                 
     def getRoots(self, data, calib, output):
         """Store data directories in a dictionary

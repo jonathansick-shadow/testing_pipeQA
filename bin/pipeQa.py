@@ -30,7 +30,7 @@ import lsst.testing.pipeQA.analysis     as qaAnalysis
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None):
+def main(dataset, dataIdInput, rerun=None, testRegex=".*"):
 
     data = pipeQA.makeQaData(dataset, rerun=rerun)
 
@@ -56,6 +56,7 @@ def main(dataset, dataIdInput, rerun=None):
     magCut = 20.0
     analysisList = [
         #qaAnalysis.ZeropointQaAnalysis(),
+        qaAnalysis.EmptySectorQaAnalysis(4, 4),
         qaAnalysis.AstrometricErrorQaAnalysis(),
         qaAnalysis.PhotCompareQaAnalysis("psf", "cat", cut=magCut),
         qaAnalysis.PhotCompareQaAnalysis("psf", "ap",  cut=magCut),
@@ -65,12 +66,18 @@ def main(dataset, dataIdInput, rerun=None):
 
     for visit in visits:
         for a in analysisList:
-            print "Running " + str(a), "  visit:", visit
+            
+            test = str(a)
+            if not re.search(testRegex, test):
+                continue
+            
+            print "Running " + test + "  visit:" + str(visit)
             dataIdVisit = copy.copy(dataId)
             dataIdVisit['visit'] = visit
             a.test(data, dataIdVisit)
             a.plot(data, dataIdVisit, showUndefined=False)
             a.free()
+            
         data.clearCache()
 
 
@@ -100,6 +107,8 @@ if __name__ == '__main__':
                       help="(L)sst, (C)fht, (H)sc, (S)uprime")
     parser.add_option("-R", "--rerun", default=None,
                       help="Rerun to analyse - only valid for hsc/suprimecam (default=%default)")
+    parser.add_option("-t", "--test", default=".*",
+                      help="Regex specifying which QaAnalysis to run (default=%default)")
     
     opts, args = parser.parse_args()
 
@@ -143,4 +152,4 @@ if __name__ == '__main__':
             dataId['visit'] = '.*'
 
     
-    main(dataset, dataId, rerun)
+    main(dataset, dataId, rerun, opts.test)
