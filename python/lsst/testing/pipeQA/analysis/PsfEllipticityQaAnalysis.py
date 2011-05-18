@@ -84,14 +84,12 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
                 
         # create a testset and add values
         testSet = self.getTestSet(data, dataId)
-        testSet.addMetadata('dataset', data.getDataName())
-        testSet.addMetadata('visit', dataId['visit'])
-        testSet.addMetadata('filter', filter)
 
         # gets the stats for each sensor and put the values in the raftccd container
         self.ellipMedians = raftCcdData.RaftCcdData(self.detector)
         self.thetaMedians = raftCcdData.RaftCcdData(self.detector)
-        
+
+        self.limits = [0.0, 0.3]
         for raft, ccd in self.ellip.raftCcdKeys():
             ellip = self.ellip.get(raft, ccd)
             theta = self.theta.get(raft, ccd)
@@ -112,7 +110,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
             areaLabel = re.sub("\s+", "_", ccd)
             label = "median psf ellipticity "+areaLabel
             comment = "median psf ellipticity (nstar=%d)" % (n)
-            testSet.addTest( testCode.Test(label, ellipMed, [0.00, 0.3], comment, areaLabel=areaLabel) )
+            testSet.addTest( testCode.Test(label, ellipMed, self.limits, comment, areaLabel=areaLabel) )
 
             # stash the angles.  We'll use them to make figures in plot()
             self.thetaMedians.set(raft, ccd, thetaMed)
@@ -137,8 +135,8 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
                     ellipFig.map[raft][ccd] = "ell/theta=%.3f/%.0f" % (self.ellipMedians.get(raft, ccd),
                                                                        (180/numpy.pi)*self.thetaMedians.get(raft, ccd))
                 
-        ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.3],
-                            title="Median PSF Ellipticity")
+        ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limits,
+                            title="Median PSF Ellipticity", failLimits=self.limits)
         testSet.addFigure(ellipFig, "medPsfEllip."+figFmt, "Median PSF Ellipticity",
                           navMap=True)
 

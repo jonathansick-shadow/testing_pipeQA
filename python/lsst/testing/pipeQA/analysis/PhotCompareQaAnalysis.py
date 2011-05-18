@@ -145,16 +145,14 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
                     
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
-        testSet.addMetadata('dataset', data.getDataName())
-        testSet.addMetadata('visit', dataId['visit'])
-        testSet.addMetadata('filter', filter)
         testSet.addMetadata('magType1', self.magType1)
         testSet.addMetadata('magType2', self.magType2)
 
         self.means = raftCcdData.RaftCcdData(self.detector)
         self.medians = raftCcdData.RaftCcdData(self.detector)
         self.stds  = raftCcdData.RaftCcdData(self.detector)
-
+        self.deltaLimits = [-0.02, 0.02]
+        self.rmsLimits = [0.0, 0.02]
         for raft,  ccd in self.mag.raftCcdKeys():
             dmag = self.diff.get(raft, ccd)
             mag = self.mag.get(raft, ccd)
@@ -185,17 +183,17 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             areaLabel = re.sub("\s+", "_", ccd)
             label = "mean "+tag +" " + areaLabel
             comment = "mean "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag),n)
-            testSet.addTest( testCode.Test(label, mean, [-0.02, 0.02], comment), areaLabel=areaLabel )
+            testSet.addTest( testCode.Test(label, mean, self.deltaLimits, comment), areaLabel=areaLabel )
 
             self.medians.set(raft, ccd, median)
             label = "median "+tag+" "+areaLabel
             comment = "median "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag), n)
-            testSet.addTest( testCode.Test(label, median, [-0.02, 0.02], comment), areaLabel=areaLabel )
+            testSet.addTest( testCode.Test(label, median, self.deltaLimits, comment), areaLabel=areaLabel )
 
             self.stds.set(raft, ccd, std)
             label = "stdev "+tag+" " + areaLabel
             comment = "stdev of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag), n)
-            testSet.addTest( testCode.Test(label, std, [0.0, 0.02], comment), areaLabel=areaLabel )
+            testSet.addTest( testCode.Test(label, std, self.rmsLimits, comment), areaLabel=areaLabel )
                 
 
 
@@ -222,12 +220,12 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         darkViolet = '#9400d3'
         blue = '#0000ff'
         red = '#ff0000'
-        meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.02, 0.02],
-                           title="Mean "+tag, cmapOver=red, cmapUnder=blue)
+        meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
+                           title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
         testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag   (brighter than %.1f)" % (self.cut),
                           navMap=True)
         stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
-                          title="Stdev "+tag, cmapOver=red)
+                          title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
         testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag  (brighter than %.1f)" % (self.cut),
                           navMap=True)
         

@@ -76,6 +76,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         # analyse each sensor and put the values in a raftccd container
         self.emptySectors    = raftCcdData.RaftCcdData(self.detector)
         self.emptySectorsMat = raftCcdData.RaftCcdData(self.detector)
+        self.limits          = [0, 1]
         for raft, ccd in self.emptySectors.raftCcdKeys():
             x, y       = self.x.get(raft, ccd), self.y.get(raft, ccd)
             xmat, ymat = self.xmat.get(raft, ccd), self.ymat.get(raft, ccd)
@@ -99,11 +100,10 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             areaLabel = re.sub("\s+", "_", ccd)
             label = "empty ccd regions"
             comment = "%dx%d (nstar=%d)" % (self.nx, self.ny, len(x))
-            limits = [0, 1]
             
-            test = testCode.Test(label, nEmpty, limits, comment, areaLabel=areaLabel)
+            test = testCode.Test(label, nEmpty, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
-            test = testCode.Test(label+" (matched)", nEmptyMat, limits, comment, areaLabel=areaLabel)
+            test = testCode.Test(label+" (matched)", nEmptyMat, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
 
             
@@ -132,12 +132,14 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         # make the figures and add them to the testSet
         # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
         emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r", vlimits=[0, self.nx*self.ny],
-                            title="Empty sectors (%dx%d grid)" % (self.nx, self.ny))
+                            title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
+                            failLimits=self.limits)
         testSet.addFigure(emptyFig, "emptySectors.png", "Empty Sectors in %dx%d grid." % (self.nx, self.ny),
                           navMap=True)
 
         emptyFigMat.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r", vlimits=[0, self.nx*self.ny],
-                               title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny))
+                               title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny),
+                               failLimits=self.limits)
         testSet.addFigure(emptyFigMat,
                           "aa_emptySectorsMat.png", "Empty Sectors in %dx%d grid." % (self.nx, self.ny),
                           navMap=True)

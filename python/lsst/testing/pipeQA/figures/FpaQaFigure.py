@@ -122,6 +122,17 @@ class FpaQaFigure(QaFigure):
             x = [x0, x1, x0, x1]
             y = [y0, y1, y1, y0]
             sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
+    def markFailedCcds(self, sp, failedCcds):
+        for label, failSign in failedCcds.items():
+            b = self.ccdBoundaries[label]
+            x0, x1 = b[0]
+            y0, y1 = b[1]
+            x = 0.5*(x0+x1)
+            y = 0.5*(y0+y1)
+            text = "F"
+            sp.text(x, y, text, horizontalalignment="center", verticalalignment="center",
+                    fontsize=8, weight='bold')
+
 
     def labelSensors(self, sp):
         for r in self.rectangles.values():
@@ -129,7 +140,7 @@ class FpaQaFigure(QaFigure):
             bbox  = r.get_bbox()
             xplot = 0.5 * (bbox.x0 + bbox.x1)
             yplot = bbox.y1 - size[1]//2
-            sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 6, weight = 'bold')
+            sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
         
     def adjustTickLabels(self, sp, cb):
         for tic in cb.ax.get_yticklabels():
@@ -157,7 +168,8 @@ class FpaQaFigure(QaFigure):
                    borderPix = 100,
                    boundaryColors = 'r', doLabel = False, showUndefined=False,
                    vlimits=None, cmap="jet", title=None,
-                   cmapOver=None, cmapUnder=None
+                   cmapOver=None, cmapUnder=None,
+                   failLimits=None, failColor='k',
                    ):
         """Make the figure.
 
@@ -170,9 +182,14 @@ class FpaQaFigure(QaFigure):
         @param title            title of the figure
         @param cmapOver         Color to use if above cmap high limit.
         @param cmapUnder        Color to use if below cmap low limit.
+        @param failLimits       Limits to mark failure.
+        @param failColor        Color to use to mark failed sensors.
         """
 
 
+        if failLimits is None:
+            failLimits = vlimits
+            
         self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
         
         sp     = self.fig.gca()
@@ -181,6 +198,7 @@ class FpaQaFigure(QaFigure):
         patches = []
         allValues = []
         missingCcds = {}
+        failedCcds = {}
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
@@ -193,6 +211,10 @@ class FpaQaFigure(QaFigure):
                 if value is None:
                     value = numpy.NaN
                     missingCcds[clabel] = self.ccdBoundaries[clabel]
+                if value < failLimits[0]:
+                    failedCcds[clabel] = -1
+                if value > failLimits[1]:
+                    failedCcds[clabel] = 1
                 values.append(value)
                 patches.append(self.rectangles[clabel])
 
@@ -222,6 +244,7 @@ class FpaQaFigure(QaFigure):
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
         self.markMissingCcds(sp, missingCcds)
+        self.markFailedCcds(sp, failedCcds)
         if doLabel:
             self.labelSensors(sp)
 
@@ -250,7 +273,8 @@ class VectorFpaQaFigure(FpaQaFigure):
                    borderPix = 100,
                    boundaryColors = 'r', doLabel = False, showUndefined=False,
                    vlimits=None, cmap="jet", title=None,
-                   cmapOver=None, cmapUnder=None
+                   cmapOver=None, cmapUnder=None,
+                   failLimits=None, failColor='k',
                    ):
         """Make the figure.
 
@@ -263,6 +287,8 @@ class VectorFpaQaFigure(FpaQaFigure):
         @param title            title of the figure
         @param cmapOver         Color to use if above cmap high limit.
         @param cmapUnder        Color to use if below cmap low limit.
+        @param failLimits       Limits to mark failure.
+        @param failColor        Color to use to mark failed sensors.
         """
 
 
@@ -278,6 +304,7 @@ class VectorFpaQaFigure(FpaQaFigure):
         haveColors = False
         
         missingCcds = {}
+        failedCcds = {}
         for r in self.camera:
             raft   = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
@@ -308,11 +335,16 @@ class VectorFpaQaFigure(FpaQaFigure):
                         patches.append(self.rectangles[clabel])
                         colorScalar[clabel] = colorScalartmp
                         haveColors = True
+                        if colorScalartmp < failLimits[0]:
+                            failedCcds[clabel] = -1
+                        if colorScalartmp > failLimits[1]:
+                            failedCcds[clabel] = 1
                     else:
                         colorValues.append(numpy.NaN)
                         patches.append(self.rectangles[clabel])
                         missingCcds[clabel] = self.ccdBoundaries[clabel]
                     radiansWrtX[clabel] = radiansWrtXtmp
+
                 else:
                     colorValues.append(numpy.NaN)
                     patches.append(self.rectangles[clabel])
@@ -355,6 +387,7 @@ class VectorFpaQaFigure(FpaQaFigure):
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
         self.markMissingCcds(sp, missingCcds)
+        self.markFailedCcds(sp, failedCcds)
         if doLabel:
             self.labelSensors(sp)
 
