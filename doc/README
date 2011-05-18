@@ -1,0 +1,235 @@
+= pipeQA README file =
+
+== Contents ==
+
+(1) How to use basic functionality of pipeQA/displayQA
+(2) The basic layout of pipeQA/displayQA
+(3) How to add a QaAnalysis test
+(4) How to add a new Camera
+
+
+
+== (1) The basic functionality of pipeQA/displayQA    
+
+The displayQA package is designed to allow traditional unit tests to be
+accompanied by figures (presumably of some diagnostic value), and
+displayed in an organized fashion in a web browser.  The unit tests
+here are 'Test' objects, and these are associated with a TestSet
+container.  Relevant figures (matplotlib.Figure objects) can also be
+added to the TestSet.
+
+The TestSet will organize tests and figures according to two
+parameters: group, and label.  The 'group' is a category to which the
+test/figure will belong, the 'label' is a sub-category.  If no group
+is provided, a TestSet will be assigned to 'top-level' which simply
+means it isn't in a group.
+
+There are different ways to install displayQA:
+
+(1) Put the whole package directly in /var/www/html/, ~/public_html/
+    or some location visible to your webserver.  The php display code
+    is in the www/ directory of the package, but there's an index.html
+    file in the package root to forward a browser to www/index.php.
+
+(2) Put the package wherver you like, and create a symlink to www
+    from some web-visible place.
+
+(3) (not yet enabled) Put the package wherever you like and run "scons
+    install" to install the www directory in some web-visible place.
+
+    
+Annotated examples are installed in pipeQA/examples/ (it's best to
+look at them in the order listed):
+
+dispQaTutorial1.py - Create a simple TestSet, add a Test and a figure
+                     and display them
+
+dispQaTutorial2.py - Add linked map areas from a navigation figure
+                     (ie. make a clickable plot with links to other figures)
+                     
+plainFpaFigure.py  - Make an FPA figure for your camera
+
+mappedFpaFigure.py - Make an FPA figure with ccds which link to data from
+                     the respective sensors.
+
+
+It's worth knowing how data/figures are stored.  When you instantate a
+TestSet, a directory is created in www/ for your TestSet.  It's named
+according to the 'group' and 'label' values you pass as arguments to
+the constructor.  The directory name will have the form:
+
+www/test_group_label/
+
+This form must be readable by the display code (php)
+and extra underscores will cause problems.  Thus, you can't use
+underscores in group or label names.  All the data associated with a
+TestSet will be stored in this directory, so removing a test is as
+easy as deleting its test_foo_bar directory.
+
+When you create a Test object, nothing really happens.  When you add
+it to a TestSet (with addTest() method), it's information is written
+to a sqlite database (db.sqlite) in the TestSet's test_* directory.
+When you add a figure (with addFigure() method), the file is also
+written to test_* directory.
+
+It's possible to work with multiple displayQA packages.  You can
+check-out as many displayQA packages as you like, and your pipeQA
+results will be written to the one which is currently 'setup'.
+Multiple check-outs share nothing, and can display simultaneously.
+
+
+
+== (2) The basic layout of pipeQA/displayQA
+
+There are 3 principal classes used in pipeQA (each explained below):
+
+pipeQA.QaData              - data retrieval
+pipeQA.figures.QaFigure    - figures based on matplotlib
+pipeQA.analysis.QaAnalysis - specific tests/analyses of data quality
+
+Utility functions associated with each are located in similarly named
+modules with a 'Utils' appended (eg. pipeQa.QaDataUtils).
+
+Other noteworthy components include:
+
+pipeQA.CameraInfo          - Details about the camera (cameraGeom, etc)
+--> 4 derived classes: LsstSim/Cfht/Hsc/SuprimecamCameraInfo
+
+pipeQA.Checksum            - compute 32-bit, or md5 checksum for a file
+
+pipeQA.Manifest            - verify presence/checksum of data files
+
+
+The main testing code is located in the displayQA package:
+
+displayQA.TestCode         - contains full Test and TestSet classes
+
+However, to allow pipeQA to be run without setting up displayQA, there
+is some basic testing code in pipeQA (mimics LSST tests by writing
+outputs to files in tests/.tests/):
+
+pipeQA.DefaultTestCode     - contains minimal Test and TestSet classes
+pipeQA.TestCode            - loads displayQA.TestCode, if present.
+                             Otherwise DefaultTestCode
+
+
+=== QaData and derived classes ButlerQaData, DbQaData
+
+The main data retrieval class is called QaData.  There are currently
+two derived classes to handle data retrieval from either an LSST
+butler (ie. data on disk) or a MySQL database.
+
+The principal methods in QaData and its derived classes are:
+
+--> QaData (uses functionsQaDataUtils, CameraInfo)
+    - getCalibBySensor(dataIdRegex)
+    - getDetectorBySensor(dataIdRegex)
+    - getFilterBySensor(dataIdRegex)
+    - getWcsBySensor(dataIdRegex)
+    - clearCache()
+
+  \_ ButlerQaData and DbQaData
+     - getMatchListBySensor(dataIdRegex)
+     - getSourceSetBySensor(dataIdRegex)
+
+     
+Once QaData has loaded any data which are requested through its
+methods, it will cache it internally to avoid repeated disk IO, or
+database querying (depending on which QaData is used).  A clearCache()
+method is provided to free memory once data are no longer needed.
+
+ A factory function is provided to simplify construction:
+ 
+ --> makeQaData(identifierLabel, rerun=None)
+
+The identifierLabel is used to locate the data as follows:
+
+- Search through directories in TESTBED_PATH and see if one is named
+  according to the identifierLabel value.
+  
+--- if yes: forward call through makeButlerQaData()
+    - makeButlerQaData() will use registry.sqlite files to determine
+      which camera/mapper to use
+    
+--- if no:  see if mysql server contains a database named identifierLabel.
+     
+
+=== QaAnalysis and derived classes
+
+The QaAnalysis classes each contain specific tests/analyses.  The
+derived classes must contain three methods:
+
+- test(dataId, qaData_object)  - create Test objects and add them to a TestSet
+- plot(dataId, qaData_object)  - create QaFigure objects and add them to a TestSet
+- free()                       - del member attributes
+
+The EmptySectorQaAnalysis demonstrates the basic functionality, and
+can be used as a template for developing additional tests.  All
+QaAnalysis class live in pipeQA/analysis/, and currently include:
+
+- QaAnalysis
+  \_ EmptySectorQaAnalysis         - verify detection/matching across frame
+  \_ AstrometricErrorQaAnalysis    - verify astrometry errors below x-arcsec
+  \_ PhotCompareQaAnalysis         - verify photometry
+  \_ PsfEllipticityQaAnalysis      - verify psf ellipticity < limit
+
+To add a new QaAnalysis, eg. FooQaAnalysis, place it in
+pipeQA/analysis/ and make a corresponding entry in
+pipeQA/analysis/__init__.py to make the new test visible.
+
+
+
+=== QaFigure and derived classes: FpaQaFigure, VectorFpaQaFigure
+  
+- QaFigure                       - thin wrapper around matplotlib.Figure
+  \_ FpaQaAnalysis               - make Focal plane array figure with colored sensors
+     \_ VectorFpaQaFigure        - make an FPA figure with vectors in sensors
+
+
+QaFigure has the ability to store map areas associated with a figure.
+In HTML, links can be placed in an image by defining a <map> and
+specifying link regions in an <area> tag.  QaFigure will record map
+areas for an image with the addMapArea() method (see example: dispQaTutorial2.py).
+
+
+
+(3) How to add a QaAnalysis test
+
+To add a new QaAnalysis, eg. FooQaAnalysis, place it in
+pipeQA/analysis/ and make a corresponding entry in
+pipeQA/analysis/__init__.py to make the new test visible.
+
+It's best to use EmptySectorQaAnalysis.py as a template (it's
+reasonably short, and shows must of the details you might be
+interested in.
+
+Most importantly:
+
+- Derive from QaAnalysis
+- must have test(), plot(), free() methods
+
+
+    
+(4) How to add a new Camera
+
+There are currently 4 cameras supported via LSST obs_* packages (containing mappers):
+
+LsstSim
+Cfht
+Hsc
+Suprimecam
+
+All are defined in the CameraInfo.py module, and are very short.  It's
+unlikely that you'll have to add a camera, as it requires a
+corresponding mapper class.  But, if you have such a class, and you
+want it supported in pipeQA, add a derived class to CameraInfo.
+
+At this time, there's no way to determine what type of data is present
+in a directory.  To determine which Mapper class to use, CameraInfo
+resorts to looking for registry.sqlite files.  Each of the different
+Mappers expect to find a registry, or calibRegistry, in a slightly
+different place.  So far, the presence/absence of registries uniquely
+identifies the Mapper which wrote a data set.  This will have to be
+changed at some point.
+
+
