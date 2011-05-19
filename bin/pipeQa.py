@@ -101,12 +101,10 @@ if __name__ == '__main__':
                       help="Specify ccd as regex (default=%default)")
     parser.add_option("-r", "--raft", default=".*",
                       help="Specify raft as regex (default=%default)")
-    parser.add_option("-s", "--snap", default=".*",
-                      help="Specify snap as regex (default=%default)")
-    parser.add_option("-C", "--camera", default="L",
-                      help="(L)sst, (C)fht, (H)sc, (S)uprime")
     parser.add_option("-R", "--rerun", default=None,
                       help="Rerun to analyse - only valid for hsc/suprimecam (default=%default)")
+    parser.add_option("-s", "--snap", default=".*",
+                      help="Specify snap as regex (default=%default)")
     parser.add_option("-t", "--test", default=".*",
                       help="Regex specifying which QaAnalysis to run (default=%default)")
     
@@ -124,32 +122,5 @@ if __name__ == '__main__':
         }
     rerun = opts.rerun
     dataset, = args
-
-
-    if False:
-        if opts.camera=='L':
-            dataset = 'buildbot_DC3b_u_weekly_production_trunk_2011_0402_143716_science'
-            dataset = 'buildbot_weekly_latest'
-            #dataset = "update"
-            dataId = {'visit':'85501858', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-            dataId = {'visit':'8.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-            #dataId = {'visit':'855.*', 'snap':'0', 'raft':'.*', 'sensor':'.*'}
-            dataId = {'visit':'857064441', 'snap':'0', 'raft':'2,2', 'sensor':'.*'}
-            #dataId = {'visit':'855018581', 'snap':'0', 'raft':'.*', 'sensor':'1,1'}
-
-        elif opts.camera=='H':
-            dataset = 'hscsimTestData002'
-            dataId['visit'] = '.*'
-            #dataset = "Subaru"
-            #dataId = {'visit':'.*', 'ccd':'.*'}
-            #dataId = {'visit':'216', 'ccd':'.*'}
-            #rerun = "price"
-        elif opts.camera=='C':
-            dataset = 'cfhtTestData002'
-            dataId['visit'] = '.*'
-        elif opts.camera=="S":
-            dataset = 'suprimeTestData002'
-            dataId['visit'] = '.*'
-
     
     main(dataset, dataId, rerun, opts.test)
