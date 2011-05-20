@@ -45,9 +45,9 @@ def main():
                 vfig.data[raft][ccd] = [2.0*3.142*1.0*i/n, 1500*i/n, 1.0*i]
                 i += 1
         
-        sfig.makeFigure(showUndefined=True)
+        sfig.makeFigure()
         ts.addFigure(sfig, camInfo.name+"_scalar.png", "Scalar FPA for camera: "+camInfo.name)
-        vfig.makeFigure(showUndefined=True)
+        vfig.makeFigure()
         ts.addFigure(vfig, camInfo.name+"_vector.png", "Vector FPA for camera: "+camInfo.name)
 
 

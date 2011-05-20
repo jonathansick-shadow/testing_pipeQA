@@ -166,7 +166,18 @@ class FpaQaFigure(QaFigure):
         return x.min(), y.min(), x.max(), y.max()
             
 
+    def getDataArray(self):
 
+        arr = []
+        for r in self.camera:
+            raft   = cameraGeom.cast_Raft(r)
+            rlabel = raft.getId().getName()
+            for c in raft:
+                ccd    = cameraGeom.cast_Ccd(c)
+                clabel = ccd.getId().getName()
+                arr.append(self.data[rlabel][clabel])
+        return numpy.array(arr)
+    
 
     def makeFigure(self, 
                    borderPix = 100,
@@ -190,6 +201,9 @@ class FpaQaFigure(QaFigure):
         @param failColor        Color to use to mark failed sensors.
         """
 
+        if vlimits is None:
+            arr = self.getDataArray()
+            vlimits = [arr.min(), arr.max()]
 
         if failLimits is None:
             failLimits = vlimits
@@ -273,6 +287,18 @@ class VectorFpaQaFigure(FpaQaFigure):
         FpaQaFigure.__init__(self, camera)
 
 
+    def getDataArray(self):
+
+        arr = []
+        for r in self.camera:
+            raft   = cameraGeom.cast_Raft(r)
+            rlabel = raft.getId().getName()
+            for c in raft:
+                ccd    = cameraGeom.cast_Ccd(c)
+                clabel = ccd.getId().getName()
+                arr.append(self.data[rlabel][clabel][2])
+        return numpy.array(arr)
+    
     def makeFigure(self, 
                    borderPix = 100,
                    boundaryColors = 'r', doLabel = False, showUndefined=False,
@@ -295,6 +321,11 @@ class VectorFpaQaFigure(FpaQaFigure):
         @param failColor        Color to use to mark failed sensors.
         """
 
+        if vlimits is None:
+            arr = self.getDataArray()
+            vlimits = [arr.min(), arr.max()]
+        if failLimits is None:
+            failLimits = vlimits
 
         self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
         sp     = self.fig.gca()
