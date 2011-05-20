@@ -39,11 +39,11 @@ class RaftCcdData(object):
 
     def set(self, raft, ccd, value):
         self.data[raft][ccd] = value
-    def get(self, raft, ccd):
+    def get(self, raft, ccd, default=None):
         if self.data.has_key(raft) and self.data[raft].has_key(ccd):
             return self.data[raft][ccd]
         else:
-            return None
+            return default
 
     def cacheValues(self, recache=False):
         if (self.cache is None) or recache:

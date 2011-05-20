@@ -93,7 +93,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 medThetaRad = stat.getValue(afwMath.MEDIAN)
                 n = stat.getValue(afwMath.NPOINT)
             else:
-                medErrArcsec = 10.0*self.maxErr
+                medErrArcsec = -1.0
                 medThetaRad = 0.0
                 n = 0
 
@@ -123,7 +123,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                     astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
                 
         astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.maxErr],
-                          title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits)
+                          title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
+                          cmapUnder="#ff0000")
         testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 
                           navMap=True)
 

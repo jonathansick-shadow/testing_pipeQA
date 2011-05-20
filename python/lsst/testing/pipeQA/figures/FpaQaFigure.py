@@ -122,7 +122,7 @@ class FpaQaFigure(QaFigure):
             x = [x0, x1, x0, x1]
             y = [y0, y1, y1, y0]
             sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
-    def markFailedCcds(self, sp, failedCcds):
+    def markFailedCcds(self, sp, failedCcds, cmap):
         for label, failSign in failedCcds.items():
             b = self.ccdBoundaries[label]
             x0, x1 = b[0]
@@ -130,7 +130,11 @@ class FpaQaFigure(QaFigure):
             x = 0.5*(x0+x1)
             y = 0.5*(y0+y1)
             text = "F"
-            sp.text(x, y, text, horizontalalignment="center", verticalalignment="center",
+            
+            bgColor = cmap(-0.1) if  failSign > 0                    else cmap(1.1)
+            clr     = "w"        if  numpy.mean(bgColor[0:3]) > 0.5  else "k"
+                
+            sp.text(x, y, text, color=clr, horizontalalignment="center", verticalalignment="center",
                     fontsize=8, weight='bold')
 
 
@@ -244,7 +248,7 @@ class FpaQaFigure(QaFigure):
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
         self.markMissingCcds(sp, missingCcds)
-        self.markFailedCcds(sp, failedCcds)
+        self.markFailedCcds(sp, failedCcds, cmap)
         if doLabel:
             self.labelSensors(sp)
 
@@ -324,8 +328,16 @@ class VectorFpaQaFigure(FpaQaFigure):
                 else:
                     if not values is None:
                         values = float(values)
-                    radiansWrtXtmp, lenInPixtmp, colorScalartmp = values, 1500.0, None
+                        defaultLen = 1500.0  # this works for most ccds, but should change to eg. ccdwidth/2
+                    else:
+                        values = 0.0
+                        defaultLen = 0.0
+                    radiansWrtXtmp, lenInPixtmp, colorScalartmp = values, defaultLen, None
 
+                if lenInPixtmp < 0:
+                    lenInPixtmp = 0
+                #print clabel, radiansWrtXtmp, lenInPixtmp, colorScalartmp
+                
                 #print clabel, radiansWrtXtmp, lenInPixtmp, colorScalartmp
                 lenInPix[clabel]    = lenInPixtmp
                 allValues.append(radiansWrtXtmp)
@@ -387,7 +399,7 @@ class VectorFpaQaFigure(FpaQaFigure):
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
         self.markMissingCcds(sp, missingCcds)
-        self.markFailedCcds(sp, failedCcds)
+        self.markFailedCcds(sp, failedCcds, cmap)
         if doLabel:
             self.labelSensors(sp)
 

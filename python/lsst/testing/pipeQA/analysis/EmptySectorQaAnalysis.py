@@ -54,7 +54,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
         # fill containers with values we need for our test
         filter = None
-        self.size = raftCcdData.RaftCcdData(self.detector)
+        self.size = raftCcdData.RaftCcdData(self.detector, initValue=[1.0, 1.0])
         for key, ss in self.ssDict.items():
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
@@ -65,17 +65,18 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             for s in ss:
                 self.x.append(raft, ccd, s.getXAstrom())
                 self.y.append(raft, ccd, s.getYAstrom())
-            for m in self.matchListDict[key]:
-                sref, s, dist = m
-                self.xmat.append(raft, ccd, s.getXAstrom())
-                self.ymat.append(raft, ccd, s.getYAstrom())
+            if self.matchListDict.has_key(key):
+                for m in self.matchListDict[key]:
+                    sref, s, dist = m
+                    self.xmat.append(raft, ccd, s.getXAstrom())
+                    self.ymat.append(raft, ccd, s.getYAstrom())
 
         # create a testset
         testSet = self.getTestSet(data, dataId)
 
         # analyse each sensor and put the values in a raftccd container
-        self.emptySectors    = raftCcdData.RaftCcdData(self.detector)
-        self.emptySectorsMat = raftCcdData.RaftCcdData(self.detector)
+        self.emptySectors    = raftCcdData.RaftCcdData(self.detector, initValue=self.nx*self.ny)
+        self.emptySectorsMat = raftCcdData.RaftCcdData(self.detector, initValue=self.nx*self.ny)
         self.limits          = [0, 1]
         for raft, ccd in self.emptySectors.raftCcdKeys():
             x, y       = self.x.get(raft, ccd), self.y.get(raft, ccd)

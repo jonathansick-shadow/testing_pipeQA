@@ -101,7 +101,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
                 thetaMed = stat.getValue(afwMath.MEDIAN)
                 n      = stat.getValue(afwMath.NPOINT)
             else:
-                ellipMed = 99.0
+                ellipMed = -1.0
                 thetaMed = 0.0
                 n = 0
 
