@@ -198,16 +198,21 @@ class ButlerQaData(QaData):
                 persistableSourceVector = self.outButler.get('icSrc', dataId)
                 sourceSetTmp = persistableSourceVector.getSources()
 
-                if self.outButler.datasetExists('calexp', dataId):
+                #if self.outButler.datasetExists('calexp', dataId):
 
-                    calibDict = self.getCalibBySensor(dataId)
-                    calib = calibDict[dataKey]
-                    
-                    fmag0, fmag0err = calib.getFluxMag0()
-                    for s in sourceSetTmp:
-                        s.setApFlux(s.getApFlux()/fmag0)
-                        s.setPsfFlux(s.getPsfFlux()/fmag0)
-                        s.setModelFlux(s.getModelFlux()/fmag0)
+		calibDict = self.getCalibBySensor(dataId)
+		calib = calibDict[dataKey]
+
+		if not calib is None:
+		    fmag0, fmag0err = calib.getFluxMag0()
+		else:
+		    print "Warning: no calib available, fluxes uncalibrated."
+		    fmag0, fmag0err = 1.0, 1.0
+		    
+		for s in sourceSetTmp:
+		    s.setApFlux(s.getApFlux()/fmag0)
+		    s.setPsfFlux(s.getPsfFlux()/fmag0)
+		    s.setModelFlux(s.getModelFlux()/fmag0)
 
                 self.sourceSetCache[dataKey] = sourceSetTmp
                 ssDict[dataKey] = copy.copy(sourceSetTmp)
@@ -257,20 +262,27 @@ class ButlerQaData(QaData):
                 #self.calibCache[dataKey]    = calexp.getCalib()
                 self.wcsCache[dataKey]      = afwImage.makeWcs(calexp_md)
 
-                ccdName = calexp_md.getAsString('DETNAME')
+                ccdName = calexp_md.getAsString('DETNAME').strip()
                 names = ccdName.split()
                 if len(names) > 1:
                     raftName = names[0]
                 else:
                     raftName = "R:0,0"
+		raftName = raftName.strip()
 
-                raftId = cameraGeom.Id(raftName)
-                ccdId = cameraGeom.Id(ccdName)
-                ccdDetector = cameraGeom.Detector(ccdId)
-                raftDetector = cameraGeom.Detector(raftId)
-                ccdDetector.setParent(raftDetector)
-                self.raftDetectorCache[dataKey] = raftDetector
-                self.detectorCache[dataKey] = ccdDetector
+		#raftId = cameraGeom.Id(raftName)
+                #ccdId = cameraGeom.Id(ccdName)
+                #ccdDetector = cameraGeom.Detector(ccdId)
+                #raftDetector = cameraGeom.Detector(raftId)
+                #ccdDetector.setParent(raftDetector)
+                #self.raftDetectorCache[dataKey] = raftDetector
+                #self.detectorCache[dataKey] = ccdDetector
+
+                #raftName = "R:"+rowDict['raftName']
+                #ccdName = raftName + " S:"+rowDict['ccdName']
+                self.detectorCache[dataKey] = self.cameraInfo.detectors[ccdName] #ccdDetector
+                self.raftDetectorCache[dataKey] = self.cameraInfo.detectors[raftName]
+
                 
                 #self.detectorCache[dataKey] = cameraGeom.Detector()
                 self.filterCache[dataKey]   = afwImage.Filter(calexp_md)
@@ -280,7 +292,7 @@ class ButlerQaData(QaData):
                 self.dataIdLookup[dataKey] = dataId
                 
             else:
-                print str(dataTuple) + " calib output file missing.  Skipping."
+                print str(dataTuple) + " calib output file missing.  skipping."
                 
 
 
@@ -301,7 +313,9 @@ class ButlerQaData(QaData):
             self.loadCalexp(dataId)
             if cache.has_key(dataKey):
                 entryDict[dataKey] = cache[dataKey]
-            
+            else:
+		entryDict[dataKey] = None
+		
         return entryDict
 
 
@@ -353,7 +367,7 @@ class ButlerQaData(QaData):
 #
 #
 #######################################################################
-def makeButlerQaData(label, rerun=None, **kwargs):
+def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
     """Factory for a ButlerQaData object.
 
     @param label The basename directory in a TESTBED_PATH directory where the registry file exists.
@@ -367,30 +381,37 @@ def makeButlerQaData(label, rerun=None, **kwargs):
     testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
     # make sure LsstSim is last in the list (its 'verifyRegistries()' will pass for all cameras)
-    cameraInfos = [
-        qaCamInfo.CfhtCameraInfo(),
-        qaCamInfo.HscCameraInfo(),
-        qaCamInfo.SuprimecamCameraInfo(),
-        qaCamInfo.LsstSimCameraInfo(),
-        ]
+    cameraInfos = {
+	"cfht": qaCamInfo.CfhtCameraInfo(),
+	"hsc" : qaCamInfo.HscCameraInfo(),
+	"suprimecam": qaCamInfo.SuprimecamCameraInfo(),
+	"lsstsim": qaCamInfo.LsstSimCameraInfo(),
+        }
 
     # try each camera ***in-order***
     # note that LsstSim will look like all other as it uses the same registry for data and calib
     # ... must test it last
     cameraToUse = None
-    for cameraInfo in cameraInfos:
-        # if the mapper couldn't be found, we can't use this camera
-        hasMapper = not cameraInfo.mapperClass is None
-        validReg = cameraInfo.verifyRegistries(testdataDir)
-        if hasMapper and validReg:
-            cameraToUse = cameraInfo
-            break
+    if not camera is None:
+	cameraToUse = cameraInfos[camera]
+    else:
+	for cameraInfo in cameraInfos.values():
+	    # if the mapper couldn't be found, we can't use this camera
+	    hasMapper = not cameraInfo.mapperClass is None
+	    validReg = cameraInfo.verifyRegistries(testdataDir)
+	    if hasMapper and validReg:
+		cameraToUse = cameraInfo
+		break
 
     if cameraToUse is None:
         raise Exception("Can't find registries usable with any mappers.")
     else:
         if rerun is None:
             rerun = cameraToUse.getDefaultRerun()
+	print "label:       ", label
+	print "rerun:       ", rerun
+	print "camera:      ", cameraToUse.name
+	print "testdataDir: ", testdataDir
         return ButlerQaData(label, rerun, cameraToUse, testdataDir, **kwargs)
 
 

@@ -30,10 +30,12 @@ class CameraInfo(object):
         self.nSensor     = 0
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
-            self.detectors[raft.getId().getName()] = raft
+	    raftName = raft.getId().getName().strip()
+            self.detectors[raftName] = raft
             for c in raft:
                 ccd = cameraGeom.cast_Ccd(c)
-                self.detectors[ccd.getId().getName()] = ccd
+		ccdName = ccd.getId().getName().strip()
+                self.detectors[ccdName] = ccd
                 self.nSensor += 1
         
                 

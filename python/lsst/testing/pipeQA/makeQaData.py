@@ -47,8 +47,8 @@ def makeQaData(label, rerun=None, retrievalType=None, **kwargs):
             raise Exception("Unable to find "+label+" as a testbed directory or a database.")
 
             
-    if re.search("[Bb]utler", retrievalType):
-        return makeButlerQaData(label, rerun, **kwargs)
+    if re.search("([Bb]utler|lsstsim|suprimecam|cfht|hsc)", retrievalType):
+        return makeButlerQaData(label, rerun, camera=retrievalType, **kwargs)
 
     if re.search("^([Dd][Bb]|[Dd]atabase)$", retrievalType):
         return makeDbQaData(label, rerun, **kwargs)

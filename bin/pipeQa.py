@@ -30,9 +30,9 @@ import lsst.testing.pipeQA.analysis     as qaAnalysis
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, testRegex=".*"):
+def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
 
-    data = pipeQA.makeQaData(dataset, rerun=rerun)
+    data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera)
 
     if data.cameraInfo.name == 'lsstSim' and dataIdInput.has_key('ccd'):
         dataIdInput['sensor'] = dataIdInput['ccd']
@@ -99,6 +99,8 @@ if __name__ == '__main__':
                       help="Specify visit as regex. Use neg. number for last 'n' visits. (default=%default)")
     parser.add_option("-c", "--ccd", default=".*",
                       help="Specify ccd as regex (default=%default)")
+    parser.add_option("-C", "--camera", default=None,
+		      help="Specify a camera and override auto-detection (default=%default)")
     parser.add_option("-r", "--raft", default=".*",
                       help="Specify raft as regex (default=%default)")
     parser.add_option("-R", "--rerun", default=None,
@@ -123,4 +125,4 @@ if __name__ == '__main__':
     rerun = opts.rerun
     dataset, = args
     
-    main(dataset, dataId, rerun, opts.test)
+    main(dataset, dataId, rerun, opts.test, opts.camera)

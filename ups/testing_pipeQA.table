@@ -1,9 +1,9 @@
 setupRequired(pipette)
 setupRequired(ap)
 
-setupOptional(obs_lsst)
+setupOptional(obs_lsstSim)
 setupOptional(obs_cfht)
-setupOptional(obs_suprime)
+setupOptional(obs_subaru)
 
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
 envAppend(PATH, ${PRODUCT_DIR}/bin)
