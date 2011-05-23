@@ -1,4 +1,4 @@
-import os
+import os, re
 import eups
 
 import lsst.afw.cameraGeom as cameraGeom
@@ -37,7 +37,12 @@ class CameraInfo(object):
 		ccdName = ccd.getId().getName().strip()
                 self.detectors[ccdName] = ccd
                 self.nSensor += 1
-        
+
+    def getDetectorName(self, raft, ccd):
+        ccdId = self.detectors[ccd].getId()
+        name = re.sub("\s+", "_", ccdId.getName())
+        serial = "%03d" % (ccdId.getSerial())
+        return name + "--" + serial
                 
     def getRoots(self, data, calib, output):
         """Store data directories in a dictionary

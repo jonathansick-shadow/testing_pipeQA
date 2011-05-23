@@ -100,7 +100,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             self.medErrArcsec.set(raft, ccd, medErrArcsec)
             self.medThetaRad.set(raft, ccd, medThetaRad)
             
-            areaLabel = re.sub("\s+", "_", ccd)  # yikes, requires knowledge of implem in FpaQaFig
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "median astrometry error "+ areaLabel
             comment = "median sqrt(dRa^2+dDec^2) (arcsec, nstar=%d)" % (n)
             test = testCode.Test(label, medErrArcsec, self.limits, comment, areaLabel=areaLabel)
@@ -214,7 +214,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             ax0.set_yticklabels([])
 
 
-            label = re.sub("\s+", "_", ccd)
+            label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)
             
             i += 1

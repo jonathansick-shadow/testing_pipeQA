@@ -31,6 +31,8 @@ class FpaQaFigure(QaFigure):
         self.centers, self.rectangles, self.raftBoundaries, self.ccdBoundaries = \
                       qaFigUtils.cameraToRectangles(self.camera)
 
+        self.idByName = {}
+
         # To be filled in by child class
         if not data is None:
             if not self.validate():
@@ -44,6 +46,7 @@ class FpaQaFigure(QaFigure):
             self.map = map
         else:
             self.reset(data=self.map)
+
 
         
     def reset(self, data=None):
@@ -59,6 +62,7 @@ class FpaQaFigure(QaFigure):
             for c in raft:
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
+                self.idByName[clabel] = ccd.getId()
                 data[rlabel][clabel] = None
                 
     def validate(self):
@@ -80,7 +84,10 @@ class FpaQaFigure(QaFigure):
 
     def getAreaLabel(self, raft, ccd):
         """Get the area label to use for this raft,ccd."""
-        return re.sub("\s+", "_", ccd)
+        id = self.idByName[ccd]
+        name = re.sub("\s+", "_", id.getName())
+        serial = "%04d" % (id.getSerial())
+        return name + "--"+serial
 
 
     def setMapInfo(self):
@@ -347,7 +354,7 @@ class VectorFpaQaFigure(FpaQaFigure):
                 ccd    = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 values = self.data[rlabel][clabel]
-
+                defaultLen = 1500.0
                 if isinstance(values, list):
                     if len(values) == 3:
                         radiansWrtXtmp, lenInPixtmp, colorScalartmp = values
@@ -356,6 +363,9 @@ class VectorFpaQaFigure(FpaQaFigure):
                         colorScalartmp = 0.0
                     else:
                         raise Exception("values for Vector must be float or [radians, lenInPix, [colorFloat]].")
+                    if lenInPixtmp is None:
+                        lenInPixtmp = defaultLen
+                        
                 else:
                     if not values is None:
                         values = float(values)

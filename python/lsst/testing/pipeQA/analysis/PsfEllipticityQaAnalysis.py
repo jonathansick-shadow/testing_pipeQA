@@ -107,7 +107,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 
             # add a test for acceptible psf ellipticity
             self.ellipMedians.set(raft, ccd, ellipMed)
-            areaLabel = re.sub("\s+", "_", ccd)
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "median psf ellipticity "+areaLabel
             comment = "median psf ellipticity (nstar=%d)" % (n)
             testSet.addTest( testCode.Test(label, ellipMed, self.limits, comment, areaLabel=areaLabel) )
@@ -189,7 +189,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
             for tic in ax.get_xticklabels() + ax.get_yticklabels():
                 tic.set_size("x-small")
 
-            areaLabel = re.sub("\s+", "_", ccd)
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "psfEllip.png",
                               "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen),
                               areaLabel=areaLabel)

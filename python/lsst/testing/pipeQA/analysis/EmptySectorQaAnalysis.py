@@ -98,7 +98,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             self.emptySectorsMat.set(raft, ccd, nEmptyMat)
             
             # add tests for acceptible numpy of empty sectors
-            areaLabel = re.sub("\s+", "_", ccd)
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "empty ccd regions"
             comment = "%dx%d (nstar=%d)" % (self.nx, self.ny, len(x))
             
