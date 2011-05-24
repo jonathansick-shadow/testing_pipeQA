@@ -41,7 +41,7 @@ class CameraInfo(object):
     def getDetectorName(self, raft, ccd):
         ccdId = self.detectors[ccd].getId()
         name = re.sub("\s+", "_", ccdId.getName())
-        serial = "%03d" % (ccdId.getSerial())
+        serial = "%04d" % (ccdId.getSerial())
         return name + "--" + serial
                 
     def getRoots(self, data, calib, output):

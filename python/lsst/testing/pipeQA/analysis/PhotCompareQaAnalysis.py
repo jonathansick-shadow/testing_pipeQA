@@ -215,6 +215,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
 
+        xlim = [14.0, 25.0]
+        ylim = [-0.4, 0.4]
+	aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
+
         # fpa figure
         meanFig = qaFig.FpaQaFigure(data.cameraInfo.camera)
         stdFig = qaFig.FpaQaFigure(data.cameraInfo.camera)
@@ -227,7 +231,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 slope = self.trend.get(raft, ccd)
 
                 if not slope is None:
-                    slopeFig.data[raft][ccd] = [numpy.arctan2(slope[0]*200.0,1.0), None, slope[0]]
+		    # aspRatio will make the vector have the same angle as the line in the figure
+                    slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slope[0]]
                 else:
                     slopeFig.data[raft][ccd] = [None, None, None]
                     
@@ -269,8 +274,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         norm = colors.Normalize(vmin=0, vmax=nKeys)
         sm = cm.ScalarMappable(norm, cmap=cm.jet)
 
-        xlim = [14.0, 25.0]
-        ylim = [-0.4, 0.4]
 
         conv = colors.ColorConverter()
         red = conv.to_rgba('r')
