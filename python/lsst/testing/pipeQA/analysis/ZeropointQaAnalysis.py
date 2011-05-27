@@ -9,7 +9,8 @@ import RaftCcdData as raftCcdData
 class ZeropointQaAnalysis(qaAna.QaAnalysis):
 
     def __init__(self):
-        qaAna.QaAnalysis.__init__(self)
+        qaAna.QaAnalysis.__init__(self, zptMin, zptMax)
+        self.limits = [zptMin, zptMax]
 
 
     def test(self, data, dataId):
@@ -39,9 +40,8 @@ class ZeropointQaAnalysis(qaAna.QaAnalysis):
         for raftName, ccdName, zp in self.data.listKeysAndValues():
             label = "zeropoint: "+ccdName
             value = (zp - self.mean)/self.std
-            limits = [-3.0, 3.0]
             comment = "stdev with respect other ccds."
-            t = testCode.Test(label, value, limits, comment)
+            t = testCode.Test(label, value, self.limits, comment)
             testSet.addTest(t)
             self.data.set(raftName, ccdName, value)
 

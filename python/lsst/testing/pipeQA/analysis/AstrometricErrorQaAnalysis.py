@@ -18,8 +18,9 @@ from matplotlib.collections import LineCollection
 
 class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self):
+    def __init__(self, maxErr):
         qaAna.QaAnalysis.__init__(self)
+        self.limits = [0.0, maxErr]
 
     def free(self):
         del self.x
@@ -76,8 +77,6 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.medErrArcsec = raftCcdData.RaftCcdData(self.detector)
         self.medThetaRad  = raftCcdData.RaftCcdData(self.detector)
 
-        self.maxErr = 0.5 # arcsec
-        self.limits = [0.0, self.maxErr]
         for raft,  ccd in self.dRa.raftCcdKeys():
             dRa  = self.dRa.get(raft, ccd)
             dDec = self.dDec.get(raft, ccd)
@@ -122,7 +121,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                     astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
                     astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
                 
-        astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.maxErr],
+        astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
                           title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
                           cmapUnder="#ff0000")
         testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 

@@ -18,8 +18,9 @@ from matplotlib.collections import LineCollection
 
 class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self):
+    def __init__(self, ellipMax):
         qaAna.QaAnalysis.__init__(self)
+        self.limits = [0.0, ellipMax]
 
 
     def free(self):
@@ -89,7 +90,6 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
         self.ellipMedians = raftCcdData.RaftCcdData(self.detector)
         self.thetaMedians = raftCcdData.RaftCcdData(self.detector)
 
-        self.limits = [0.0, 0.3]
         for raft, ccd in self.ellip.raftCcdKeys():
             ellip = self.ellip.get(raft, ccd)
             theta = self.theta.get(raft, ccd)

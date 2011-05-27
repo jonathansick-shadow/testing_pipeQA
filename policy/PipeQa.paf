@@ -1,0 +1,145 @@
+#<?cfg paf dictionary ?>
+#
+# Dictionary for pipeQa
+#
+definitions: {
+
+    doZptQa: {
+        type: bool
+        description: "Photometric Zeropoint: qaAnalysis.ZeropointQaAnalysis"
+        maxOccurs: 1
+        default: false
+    }
+
+    zptQaMetricMin: {
+        type: double
+        description: "Metric used to evaluate quality of photometric zeropoint"
+        maxOccurs: 1
+        default: -3.0
+    }
+
+    zptQaMetricMax: {
+        type: double
+        description: "Metric used to evaluate quality of photometric zeropoint"
+        maxOccurs: 1
+        default: 3.0
+    }
+
+    ###
+    
+    doEmptySectorQa: {
+        type: bool
+        description: "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis"
+        maxOccurs: 1
+        default: true
+    }
+
+    emptySectorMaxMissing: {
+        type: integer
+        description: "Maximum number of missing CCDs"
+        maxOccurs: 1
+        default: 1
+    }
+
+    ###
+    
+    doAstromQa: {
+        type: bool
+        description: "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis"
+        maxOccurs: 1
+        default: true
+    }
+
+    astromQaMaxErr: {
+        type: double
+        description: "Maximum astrometric error (in arcseconds)"
+        maxOccurs: 1
+        default: 0.5
+    }
+
+    ###
+       
+    doPhotCompareQa: {
+        type: bool
+        description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
+        maxOccurs: 1
+        default: true
+    }
+
+    photCompareTypes: {
+        type: string
+        description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
+        maxOccurs: 5
+        default: "psf cat" "psf ap" "psf mod"
+        allowed: {
+            value:        "psf cat"
+            description:  "Compare Psf magnitudes to catalog magnitudes"
+        }
+        allowed: {
+            value:        "psf ap"
+            description:  "Compare Psf and aperture magnitudes"
+        }
+        allowed: {
+            value:        "psf mod"
+            description:  "Compare Psf and model magnitudes"
+        }
+    }
+ 
+    photCompareMagCut: {
+        type: double
+        description: "Faintest magnitude for establishing photometric RMS"
+        maxOccurs: 1
+        default: 20.0
+    }
+
+    photCompareDeltaMin: {
+        type: double
+        description: "Minimum allowed delta"
+        maxOccurs: 1
+        default: -0.2
+    }
+
+    photCompareDeltaMax: {
+        type: double
+        description: "Maximum allowed delta"
+        maxOccurs: 1
+        default:  0.2
+    }
+
+    photCompareRmsMax: {
+        type: double
+        description: "Maximum allowed photometric RMS on bright end"
+        maxOccurs: 1
+        default:  0.02
+    }
+
+    photCompareSlopeMin: {
+        type: double
+        description: "Minimum allowed slope"
+        maxOccurs: 1
+        default: -0.0015
+    }
+
+    photCompareSlopeMax: {
+        type: double
+        description: "Maximum allowed slope"
+        maxOccurs: 1
+        default:  0.0015
+    }
+
+    ###
+
+    doPsfEllipQa: {
+        type: bool
+        description: "Psf Ellipticity: qaAnalysis.PsfEllipticityQaAnalysis"
+        maxOccurs: 1
+        default: true
+    }
+
+    psfEllipMax: {
+        type: double
+        description: "Maximum median ellipticity"
+        maxOccurs: 1
+        default: 0.3
+    }
+}

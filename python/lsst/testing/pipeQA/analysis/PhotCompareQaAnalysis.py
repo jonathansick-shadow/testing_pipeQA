@@ -16,11 +16,15 @@ import matplotlib.font_manager as fm
 
 class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, magType1='psf', magType2='aperture', cut=20.0):
+    def __init__(self, magType1, magType2, magCut,
+                 deltaMin, deltaMax, rmsMax, slopeMin, slopeMax):
         testLabel = magType1+"-"+magType2
         qaAna.QaAnalysis.__init__(self, testLabel)
 
-        self.cut = cut
+        self.magCut = magCut
+        self.deltaLimits = [deltaMin, deltaMax]
+        self.rmsLimits = [0.0, rmsMax]
+        self.slopeLimits = [slopeMin, slopeMax]
         
         def magType(mType):
             if re.search("(psf|PSF)", mType):
@@ -153,15 +157,12 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.stds  = raftCcdData.RaftCcdData(self.detector)
         self.trend = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0])
         
-        self.deltaLimits = [-0.02, 0.02]
-        self.rmsLimits = [0.0, 0.02]
-        self.slopeLimits = [-0.0015, 0.0015]  # 0.01 mag over 10mag range
         self.dmagMax = 0.4
         for raft,  ccd in self.mag.raftCcdKeys():
             dmag = self.diff.get(raft, ccd)
             mag = self.mag.get(raft, ccd)
             star = self.star.get(raft, ccd)
-            w = numpy.where((mag > 10) & (mag < self.cut) & (star > 0) & (abs(dmag) < self.dmagMax) )[0]
+            w = numpy.where((mag > 10) & (mag < self.magCut) & (star > 0) & (abs(dmag) < self.dmagMax) )[0]
 
             mag = mag[w]
             dmag = dmag[w]
@@ -192,22 +193,22 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             self.means.set(raft, ccd, mean)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "mean "+tag +" " + areaLabel
-            comment = "mean "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag),n)
+            comment = "mean "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag),n)
             testSet.addTest( testCode.Test(label, mean, self.deltaLimits, comment), areaLabel=areaLabel )
 
             self.medians.set(raft, ccd, median)
             label = "median "+tag+" "+areaLabel
-            comment = "median "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag), n)
+            comment = "median "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
             testSet.addTest( testCode.Test(label, median, self.deltaLimits, comment), areaLabel=areaLabel )
 
             self.stds.set(raft, ccd, std)
             label = "stdev "+tag+" " + areaLabel
-            comment = "stdev of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag), n)
+            comment = "stdev of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
             testSet.addTest( testCode.Test(label, std, self.rmsLimits, comment), areaLabel=areaLabel )
 
             self.trend.set(raft, ccd, lineCoeffs)
             label = "slope "+tag+" " + areaLabel
-            comment = "slope of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.cut, len(dmag), n)
+            comment = "slope of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
             testSet.addTest( testCode.Test(label, lineCoeffs[0], self.slopeLimits, comment), areaLabel=areaLabel)
 
 
@@ -251,11 +252,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         red = '#ff0000'
         meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                            title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
-        testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag   (brighter than %.1f)" % (self.cut),
+        testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut),
                           navMap=True)
         stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
                           title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
-        testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag  (brighter than %.1f)" % (self.cut),
+        testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut),
                           navMap=True)
         
 
@@ -263,7 +264,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         slopeFig.makeFigure(cmap="RdBu_r", vlimits=[cScale*self.slopeLimits[0], cScale*self.slopeLimits[1]],
                             title="Slope "+tag, failLimits=self.slopeLimits)
         testSet.addFigure(slopeFig, "slope"+wtag+".png",
-                          "slope "+dtag+" mag (brighter than %.1f)" % (self.cut),
+                          "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut),
                           navMap=True)
 
 
@@ -310,7 +311,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 y    = numpy.array([0.0])
                 star = numpy.array([0])
                 
-            whereCut = numpy.where((mag < self.cut) & (star > 0) & (abs(diff) < self.dmagMax))[0]
+            whereCut = numpy.where((mag < self.magCut) & (star > 0) & (abs(diff) < self.dmagMax))[0]
             print "plotting ", ccd
 
             #################
@@ -378,7 +379,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         ax0_1 = fig0.fig.add_subplot(121)
         ax0_2 = fig0.fig.add_subplot(122)
 
-        w = numpy.where( (allMags < self.cut) & (allStars > 0) & (abs(allDiffs) < self.dmagMax))[0]
+        w = numpy.where( (allMags < self.magCut) & (allStars > 0) & (abs(allDiffs) < self.dmagMax))[0]
 
         trendCoeffs = numpy.polyfit(allMags[w], allDiffs[w], 1)
         

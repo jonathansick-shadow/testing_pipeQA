@@ -22,6 +22,7 @@ import copy
 
 import lsst.testing.pipeQA as pipeQA
 import lsst.testing.pipeQA.analysis     as qaAnalysis
+import lsst.pex.policy as pexPolicy
 
 
 #############################################################
@@ -53,17 +54,35 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
     # split by visit for now
     visits = data.getVisits(dataId)
 
-    magCut = 20.0
-    analysisList = [
-        #qaAnalysis.ZeropointQaAnalysis(),
-        qaAnalysis.EmptySectorQaAnalysis(4, 4),
-        qaAnalysis.AstrometricErrorQaAnalysis(),
-        qaAnalysis.PhotCompareQaAnalysis("psf", "cat", cut=magCut),
-        qaAnalysis.PhotCompareQaAnalysis("psf", "ap",  cut=magCut),
-        qaAnalysis.PhotCompareQaAnalysis("psf", "mod", cut=magCut),
-        qaAnalysis.PsfEllipticityQaAnalysis(),
-        ]
-
+    # Policy for which plots to make and value of quality metrics
+    policyDictName = "PipeQa.paf"
+    policyFile = pexPolicy.DefaultPolicyFile("testing_pipeQA", policyDictName, "policy")
+    policy  = pexPolicy.Policy.createPolicy(policyFile, policyFile.getRepositoryPath(), True)
+    
+    analysisList = []
+    if policy.get("doZptQa"):
+        zptMin = policy.get("zptQaMetricMin")
+        zptMax = policy.get("zptQaMetricMax")
+        analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax))
+    if policy.get("doEmptySectorQa"):
+        maxMissing = policy.get("emptySectorMaxMissing")
+        analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4))
+    if policy.get("doAstromQa"):
+        analysisList.append(qaAnalysis.AstrometricErrorQaAnalysis(policy.get("astromQaMaxErr")))
+    if policy.get("doPhotCompareQa"):
+        magCut   = policy.get("photCompareMagCut")
+        deltaMin = policy.get("photCompareDeltaMin")
+        deltaMax = policy.get("photCompareDeltaMax")
+        rmsMax   = policy.get("photCompareRmsMax")
+        slopeMin = policy.get("photCompareSlopeMin")
+        slopeMax = policy.get("photCompareSlopeMax")
+        for types in policy.getStringArray("photCompareTypes"):
+            cmp1, cmp2 = types.split()
+            analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
+                                                                 rmsMax, slopeMin, slopeMax))
+    if policy.get("doPsfEllipQa"):
+        analysisList.append(qaAnalysis.PsfEllipticityQaAnalysis(policy.get("psfEllipMax")))
+        
     for visit in visits:
         for a in analysisList:
             

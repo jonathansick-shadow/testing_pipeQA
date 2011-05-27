@@ -18,8 +18,9 @@ from matplotlib.collections import LineCollection
 
 class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, nx=4, ny=4):
+    def __init__(self, maxMissing, nx=4, ny=4):
         qaAna.QaAnalysis.__init__(self)
+        self.limits = [0, maxMissing]
         self.nx = nx
         self.ny = ny
 
@@ -77,7 +78,6 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         # analyse each sensor and put the values in a raftccd container
         self.emptySectors    = raftCcdData.RaftCcdData(self.detector, initValue=self.nx*self.ny)
         self.emptySectorsMat = raftCcdData.RaftCcdData(self.detector, initValue=self.nx*self.ny)
-        self.limits          = [0, 1]
         for raft, ccd in self.emptySectors.raftCcdKeys():
             x, y       = self.x.get(raft, ccd), self.y.get(raft, ccd)
             xmat, ymat = self.xmat.get(raft, ccd), self.ymat.get(raft, ccd)

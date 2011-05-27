@@ -117,7 +117,7 @@ if __name__ == '__main__':
             results    = dbInterface.execute(sql) # need mag for reference catalog query
             filterName = results[0][0]
 
-            fptfitfig.retrieveDataViaDb(database, visitId, filterName, raft, ccd)
+            fptfitfig.retrieveDataViaDb(database, visitId, filterName, raft, ccd, fluxtype="ap")
             fptfitfig.makeFigure()
             
             prefix = 'zptFit_%d' % (visitId)

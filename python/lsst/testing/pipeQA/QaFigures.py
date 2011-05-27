@@ -1012,7 +1012,7 @@ class DetectionsFigure(QaFigure):
 
     def makeFigure(self):
         if not self.validate():
-            Trace("lsst.testing.pipeQA.CompletenessFigure", 1, "Invalid Data")
+            Trace("lsst.testing.pipeQA.DetectionsFigure", 1, "Invalid Data")
             return None
 
         bins = num.arange(14, 26, 0.25)
@@ -1287,12 +1287,14 @@ class ZeropointFitFigure(QaFigure):
         # Mag - Zpt
         ax4  = self.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
         if len(mimgSmag):
-            mimgSeb = ax4.errorbar(mimgSmag, (mimgSmag - self.data["Zeropoint"]) - mrefSmag, yerr = mimgSmerr,
+            mimgSeb = ax4.errorbar(mimgSmag, (mimgSmag - self.data["Zeropoint"]) - mrefSmag,
+                                   yerr = mimgSmerr,
                                    fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
             mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
 
         if len(mimgGmag):
-            mimgGeb = ax4.errorbar(mimgGmag, (mimgGmag - self.data["Zeropoint"]) - mrefGmag, yerr = mimgGmerr,
+            mimgGeb = ax4.errorbar(mimgGmag, (mimgGmag - self.data["Zeropoint"]) - mrefGmag,
+                                   yerr = mimgGmerr,
                                    fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
             mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
 
@@ -1374,5 +1376,7 @@ class CentroidFpaFigure(FpaFigure):
 
                 dataId0  = dict(visit=visitId, snap=0, raft=raftId, sensor=ccdId)
                 dataId1  = dict(visit=visitId, snap=1, raft=raftId, sensor=ccdId)
-                testData.runPipette(rerun = self.label, dataId = dataId0, config = config, log = pexLog.Log.getDefaultLog())
-                testData.runPipette(rerun = self.label, dataId = dataId1, config = config, log = pexLog.Log.getDefaultLog())
+                testData.runPipette(rerun = self.label, dataId = dataId0, config = config,
+                                    log = pexLog.Log.getDefaultLog())
+                testData.runPipette(rerun = self.label, dataId = dataId1, config = config,
+                                    log = pexLog.Log.getDefaultLog())
