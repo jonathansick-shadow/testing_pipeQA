@@ -27,6 +27,29 @@ definitions: {
 
     ###
     
+    doZptFitQa: {
+        type: bool
+        description: "Photometric Zeropoint: qaAnalysis.ZeropointFitQa"
+        maxOccurs: 1
+        default: true
+    }
+
+    zptFitQaOffsetMin: {
+        type: double
+        description: "Median offset of stars from zeropoint fit; minimum good value"
+        maxOccurs: 1
+        default: -0.1
+    }
+
+    zptFitQaOffsetMax: {
+        type: double
+        description: "Median offset of stars from zeropoint fit; maximum good value"
+        maxOccurs: 1
+        default: 0.1
+    }
+
+    ###
+    
     doEmptySectorQa: {
         type: bool
         description: "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis"
@@ -141,5 +164,28 @@ definitions: {
         description: "Maximum median ellipticity"
         maxOccurs: 1
         default: 0.3
+    }
+
+    ###
+
+    doCompleteQa: {
+        type: bool
+        description: "Photometric Depth: qaAnalysis.CompletenessQa"
+        maxOccurs: 1
+        default: true
+    }
+
+    completeMinMag: {
+        type: double
+        description: "Minimum photometric depth"
+        maxOccurs: 1
+        default: 20.0
+    }
+
+    completeMaxMag: {
+        type: double
+        description: "Maximum reasonable photometric depth"
+        maxOccurs: 1
+        default: 25.0
     }
 }

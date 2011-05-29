@@ -449,7 +449,8 @@ class VectorFpaQaFigure(FpaQaFigure):
         sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
         sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
 
-        self.adjustTickLabels(sp, cb)
+        if haveColors:
+            self.adjustTickLabels(sp, cb)
 
         x0, y0, x1, y1 = self.getFpaLimits()
         sp.set_xlim((x0 - borderPix, x1 + borderPix))

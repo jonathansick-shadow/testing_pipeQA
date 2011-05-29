@@ -4,3 +4,6 @@ from ZeropointQaAnalysis         import *
 from PhotCompareQaAnalysis       import *
 from PsfEllipticityQaAnalysis    import *
 from AstrometricErrorQaAnalysis  import *
+
+from CompletenessQa              import *
+from ZeropointFitQa              import *

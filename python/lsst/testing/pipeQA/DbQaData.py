@@ -158,6 +158,9 @@ class DbQaData(QaData):
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
 
+        import pdb
+        pdb.set_trace()
+
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 

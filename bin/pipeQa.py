@@ -64,6 +64,10 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
         zptMin = policy.get("zptQaMetricMin")
         zptMax = policy.get("zptQaMetricMax")
         analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax))
+    if policy.get("doZptFitQa"):
+        offsetMin = policy.get("zptFitQaOffsetMin")
+        offsetMax = policy.get("zptFitQaOffsetMax")
+        analysisList.append(qaAnalysis.ZeropointFitQa(offsetMin, offsetMax))
     if policy.get("doEmptySectorQa"):
         maxMissing = policy.get("emptySectorMaxMissing")
         analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4))
@@ -82,7 +86,10 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
                                                                  rmsMax, slopeMin, slopeMax))
     if policy.get("doPsfEllipQa"):
         analysisList.append(qaAnalysis.PsfEllipticityQaAnalysis(policy.get("psfEllipMax")))
-        
+    if policy.get("doCompleteQa"):
+        analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
+                                                      policy.get("completeMaxMag")))
+       
     for visit in visits:
         for a in analysisList:
             
