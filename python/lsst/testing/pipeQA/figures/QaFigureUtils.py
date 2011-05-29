@@ -138,3 +138,13 @@ def cameraToRectangles(camera):
 
     return centers, rectangles, raftBoundaries, ccdBoundaries
 
+
+
+
+def qaSetp(ticklabels, **kwargs):
+    for ticklabel in ticklabels:
+        for k,v in kwargs.items():
+            methodName = "set_" + str(k)
+            if hasattr(ticklabel, methodName):
+                method = getattr(ticklabel, methodName)
+                method(v)

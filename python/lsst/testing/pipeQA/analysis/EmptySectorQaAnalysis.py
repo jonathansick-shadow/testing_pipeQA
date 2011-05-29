@@ -114,8 +114,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
 
         # make fpa figures
-        emptyFig    = qaFig.FpaQaFigure(data.cameraInfo.camera)  # one for all detections
-        emptyFigMat = qaFig.FpaQaFigure(data.cameraInfo.camera)  # one for matched detections
+        emptyFig    = qaFig.FpaQaFigure(data.cameraInfo)  # one for all detections
+        emptyFigMat = qaFig.FpaQaFigure(data.cameraInfo)  # one for matched detections
         for raft, ccdDict in emptyFig.data.items():
             for ccd, value in ccdDict.items():
 

@@ -40,9 +40,8 @@ def main():
     # - available: LsstSimCameraInfo, CfhtCameraInfo, HscCameraInfo, SuprimecamCamerainfo
     camInfo = pipeQA.LsstSimCameraInfo()
 
-    # pull out the camera, and pass it to the FPA figure constructor
-    camera = camInfo.camera
-    fpaFig = qaFig.FpaQaFigure(camera)
+    # pass it to the FPA figure constructor
+    fpaFig = qaFig.FpaQaFigure(camInfo)
 
     # Fill the fpaFig.data attribute with the values to display.
     # This will color-code ccds in the focal plane according to these values

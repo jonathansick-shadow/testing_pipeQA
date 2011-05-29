@@ -125,7 +125,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
         figFmt = "png"
 
         # fpa figure
-        ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo.camera)
+        ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo)
         for raft, ccdDict in ellipFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.ellipMedians.get(raft, ccd) is None:

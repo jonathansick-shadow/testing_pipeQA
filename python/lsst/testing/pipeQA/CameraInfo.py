@@ -122,6 +122,8 @@ class LsstSimCameraInfo(CameraInfo):
         
         CameraInfo.__init__(self, "lsstSim", dataInfo, mapper, camera)
 
+        self.doLabel = False
+
 
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
@@ -177,6 +179,7 @@ class CfhtCameraInfo(CameraInfo):
 
         CameraInfo.__init__(self, "cfht", dataInfo, mapper, camera)
 
+        self.doLabel = True
         
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
@@ -224,6 +227,8 @@ class HscCameraInfo(CameraInfo):
         camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
 
         CameraInfo.__init__(self, "hscSim", dataInfo, mapper, camera)
+
+        self.doLabel = False
         
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
@@ -274,6 +279,8 @@ class SuprimecamCameraInfo(CameraInfo):
 
         CameraInfo.__init__(self, "suprimecam", dataInfo, mapper, camera)
 
+        self.doLabel = True
+        
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 

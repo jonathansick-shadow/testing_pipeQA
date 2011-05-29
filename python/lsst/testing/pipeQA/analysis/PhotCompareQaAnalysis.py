@@ -221,9 +221,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
 
         # fpa figure
-        meanFig = qaFig.FpaQaFigure(data.cameraInfo.camera)
-        stdFig = qaFig.FpaQaFigure(data.cameraInfo.camera)
-        slopeFig = qaFig.VectorFpaQaFigure(data.cameraInfo.camera)
+        meanFig = qaFig.FpaQaFigure(data.cameraInfo)
+        stdFig = qaFig.FpaQaFigure(data.cameraInfo)
+        slopeFig = qaFig.VectorFpaQaFigure(data.cameraInfo)
         
         for raft, ccdDict in meanFig.data.items():
             for ccd, value in ccdDict.items():
@@ -322,7 +322,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             ax_2 = fig.fig.add_subplot(122)
             clr = [black] * len(mag)
             clr = numpy.array(clr)
-            clr[whereCut] = [red] * len(whereCut)
+            if len(whereCut) > 0:
+                clr[whereCut] = [red] * len(whereCut)
 
             xTrend = numpy.array(xlim)
             ax_1.plot(xTrend, numpy.array([0.0, 0.0]), "-k", lw=1.0)
@@ -381,7 +382,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         w = numpy.where( (allMags < self.magCut) & (allStars > 0) & (abs(allDiffs) < self.dmagMax))[0]
 
-        trendCoeffs = numpy.polyfit(allMags[w], allDiffs[w], 1)
+        if len(w) > 0:
+            trendCoeffs = numpy.polyfit(allMags[w], allDiffs[w], 1)
+        else:
+            trendCoeffs = [0.0, 0.0]
         
         ####################
         # data for all ccds

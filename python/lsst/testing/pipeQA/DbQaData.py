@@ -92,7 +92,7 @@ class DbQaData(QaData):
         sql += '    RefObjMatch as rom, SimRefObject as sro'
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         sql += '    and (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
-        sql += '    and (sro.isStar = 1) and (sro.isVar = 0)'
+        sql += '    and (sro.isStar = 1) ' #and (sro.varClass = 0)'
         sql += '    and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += '    and s.objectID is not NULL'        
         sql += '    and '+idWhere
@@ -157,9 +157,6 @@ class DbQaData(QaData):
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-
-        import pdb
-        pdb.set_trace()
 
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)

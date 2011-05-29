@@ -8,8 +8,8 @@ import RaftCcdData as raftCcdData
 
 class ZeropointQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self):
-        qaAna.QaAnalysis.__init__(self, zptMin, zptMax)
+    def __init__(self, zptMin, zptMax):
+        qaAna.QaAnalysis.__init__(self)
         self.limits = [zptMin, zptMax]
 
 
@@ -35,8 +35,7 @@ class ZeropointQaAnalysis(qaAna.QaAnalysis):
         self.std  = self.data.summarize('std')
 
         # go through all the values and test each one
-        group = dataId['visit']
-        testSet = self.getTestSet(group)
+        testSet = self.getTestSet(data, dataId)
         for raftName, ccdName, zp in self.data.listKeysAndValues():
             label = "zeropoint: "+ccdName
             value = (zp - self.mean)/self.std
@@ -49,7 +48,7 @@ class ZeropointQaAnalysis(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined=False):
 
         # create an fpaFigure and put in any data we have
-        fig = qaFig.FpaQaFigure(data.cameraInfo.camera)
+        fig = qaFig.FpaQaFigure(data.cameraInfo)
         for raft, ccdDict in fig.data.items():
             for ccd, value in ccdDict.items():
                 fig.data[raft][ccd] = self.data.get(raft, ccd)
@@ -58,8 +57,7 @@ class ZeropointQaAnalysis(qaAna.QaAnalysis):
         fig.makeFigure(showUndefined=showUndefined, vlimits=[-3.0, 3.0], cmap="gray")
 
         # put the figure in the appropriate testSet
-        group = dataId['visit']
-        testSet = self.getTestSet(group)
+        testSet = self.getTestSet(data, dataId)
         
         testSet.addFigure(fig, "zeropoint.png", "Zeropoint caption")
 

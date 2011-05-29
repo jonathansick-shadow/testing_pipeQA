@@ -4,10 +4,11 @@ import numpy as num
 import lsst.testing.pipeQA.TestCode as testCode
 import QaAnalysis as qaAna
 import lsst.testing.pipeQA.figures as qaFig
+import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 
-import pylab
 from matplotlib.font_manager import FontProperties
+
 
 class CompletenessQa(qaAna.QaAnalysis):
     def __init__(self, completenessMagMin, completenessMagMax):

@@ -111,7 +111,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
 
         # fpa figure
-        astFig = qaFig.VectorFpaQaFigure(data.cameraInfo.camera)
+        astFig = qaFig.VectorFpaQaFigure(data.cameraInfo)
         vLen = 5000 # length in pixels for 1 arcsec error vector
         for raft, ccdDict in astFig.data.items():
             for ccd, value in ccdDict.items():

@@ -14,20 +14,23 @@ from matplotlib.patches import Ellipse
 from matplotlib import cm
 from matplotlib import colors
 
+import colorsys
+
 import QaFigureUtils as qaFigUtils
 from QaFigure import QaFigure
 
 class FpaQaFigure(QaFigure):
 
-    def __init__(self, camera, data=None, map=None):
+    def __init__(self, cameraInfo, data=None, map=None):
         """
-        @param camera     The device whose focal plane area we're representing.
-        @param data       Data to display
-        @param map        Map areas to use.
+        @param cameraInfo  CameraInfo object for the device whose focal plane area we're representing.
+        @param data        Data to display
+        @param map         Map areas to use.
         """
-        
+
         QaFigure.__init__(self)
-        self.camera = camera
+        self.cameraInfo = cameraInfo
+        self.camera = self.cameraInfo.camera
         self.centers, self.rectangles, self.raftBoundaries, self.ccdBoundaries = \
                       qaFigUtils.cameraToRectangles(self.camera)
 
@@ -129,20 +132,23 @@ class FpaQaFigure(QaFigure):
             x = [x0, x1, x0, x1]
             y = [y0, y1, y1, y0]
             sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
-    def markFailedCcds(self, sp, failedCcds, cmap):
-        for label, failSign in failedCcds.items():
+            
+    def markFailedCcds(self, sp, failedCcds, cmap, vlimits):
+
+        for label, value in failedCcds.items():
             b = self.ccdBoundaries[label]
             x0, x1 = b[0]
             y0, y1 = b[1]
-            x = 0.5*(x0+x1)
-            y = 0.5*(y0+y1)
+            x = x0 + 0.2*(x1-x0)
+            y = y0 + 0.8*(y1-y0)
             text = "F"
-            
-            bgColor = cmap(-0.1) if  failSign > 0                    else cmap(1.1)
-            clr     = "w"        if  numpy.mean(bgColor[0:3]) > 0.5  else "k"
-                
-            sp.text(x, y, text, color=clr, horizontalalignment="center", verticalalignment="center",
-                    fontsize=8, weight='bold')
+
+            bgColor = cmap((value-vlimits[0])/(vlimits[1]-vlimits[0]))
+            r, g, b, alph = bgColor
+            lum = 0.25*r + 0.7*g + 0.05*b
+            clr     = "w"        if  lum < 0.5  else "k"
+            sp.text(x, y, text, color=clr, horizontalalignment="left", verticalalignment="top",
+                    fontsize=8)
 
 
     def labelSensors(self, sp):
@@ -150,8 +156,8 @@ class FpaQaFigure(QaFigure):
             label = r.get_label()
             bbox  = r.get_bbox()
             xplot = 0.5 * (bbox.x0 + bbox.x1)
-            yplot = bbox.y1 - size[1]//2
-            sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8, weight = 'bold')
+            yplot = bbox.y0 + 0.8*(bbox.y1 - bbox.y0)
+            sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8)
         
     def adjustTickLabels(self, sp, cb):
         for tic in cb.ax.get_yticklabels():
@@ -236,10 +242,10 @@ class FpaQaFigure(QaFigure):
                 if value is None:
                     value = numpy.NaN
                     missingCcds[clabel] = self.ccdBoundaries[clabel]
-                if value < failLimits[0]:
-                    failedCcds[clabel] = -1
-                if value > failLimits[1]:
-                    failedCcds[clabel] = 1
+                if value < failLimits[0] or value > failLimits[1]:
+                    failedCcds[clabel] = value
+                #if value > failLimits[1]:
+                #    failedCcds[clabel] = 1
                 values.append(value)
                 patches.append(self.rectangles[clabel])
 
@@ -269,8 +275,8 @@ class FpaQaFigure(QaFigure):
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
         self.markMissingCcds(sp, missingCcds)
-        self.markFailedCcds(sp, failedCcds, cmap)
-        if doLabel:
+        self.markFailedCcds(sp, failedCcds, cmap, vlimits)
+        if self.cameraInfo.doLabel or doLabel:
             self.labelSensors(sp)
 
         if not title is None:
@@ -290,8 +296,8 @@ class FpaQaFigure(QaFigure):
 
 class VectorFpaQaFigure(FpaQaFigure):
 
-    def __init__(self, camera, data=None):
-        FpaQaFigure.__init__(self, camera)
+    def __init__(self, cameraInfo, data=None):
+        FpaQaFigure.__init__(self, cameraInfo)
 
 
     def getDataArray(self):
@@ -388,10 +394,10 @@ class VectorFpaQaFigure(FpaQaFigure):
                         patches.append(self.rectangles[clabel])
                         colorScalar[clabel] = colorScalartmp
                         haveColors = True
-                        if colorScalartmp < failLimits[0]:
-                            failedCcds[clabel] = -1
-                        if colorScalartmp > failLimits[1]:
-                            failedCcds[clabel] = 1
+                        if colorScalartmp < failLimits[0] or colorScalartmp > failLimits[1]:
+                            failedCcds[clabel] = colorScalartmp
+                        #if colorScalartmp > failLimits[1]:
+                        #    failedCcds[clabel] = 1
                     else:
                         colorValues.append(numpy.NaN)
                         patches.append(self.rectangles[clabel])
@@ -440,8 +446,8 @@ class VectorFpaQaFigure(FpaQaFigure):
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
         self.markMissingCcds(sp, missingCcds)
-        self.markFailedCcds(sp, failedCcds, cmap)
-        if doLabel:
+        self.markFailedCcds(sp, failedCcds, cmap, vlimits)
+        if self.cameraInfo.doLabel or doLabel:
             self.labelSensors(sp)
 
         if not title is None:

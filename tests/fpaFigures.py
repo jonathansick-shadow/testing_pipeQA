@@ -30,9 +30,8 @@ def main():
 
     for camInfo in pipeQA.getCameraInfoAvailable():
         print "trying camera: ", camInfo.name
-        camera = camInfo.camera
-        sfig = qaFig.FpaQaFigure(camera)
-        vfig = qaFig.VectorFpaQaFigure(camera)
+        sfig = qaFig.FpaQaFigure(camInfo)
+        vfig = qaFig.VectorFpaQaFigure(camInfo)
         
         # set values to range 0 to 1
         key0 = sfig.data.keys()[0]

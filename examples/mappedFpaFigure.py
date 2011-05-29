@@ -36,10 +36,9 @@ def main():
     
     # let's add this to a different TestSet
     tsMapFpa = pipeQA.TestSet(group="tutorial", label="mapped-FPA-figure-demo")
-    camInfo = pipeQA.LsstSimCameraInfo()
-    camera = camInfo.camera
     
-    fpaFig = qaFig.FpaQaFigure(camera)
+    camInfo = pipeQA.LsstSimCameraInfo()
+    fpaFig = qaFig.FpaQaFigure(camInfo)
 
     # Fill the fpaFig.data attribute with the values to display.
     # This will color-code ccds in the focal plane according to these values

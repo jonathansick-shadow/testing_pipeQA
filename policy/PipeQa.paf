@@ -172,7 +172,7 @@ definitions: {
         type: bool
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
         maxOccurs: 1
-        default: true
+        default: false
     }
 
     completeMinMag: {
