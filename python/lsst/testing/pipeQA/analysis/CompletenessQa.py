@@ -54,7 +54,8 @@ class CompletenessQa(qaAna.QaAnalysis):
             detresults  = data.dbInterface.execute(detsql)
             self.detData.set(raftId, ccdId, num.array([x[0] for x in detresults]))
 
-            hist     = num.histogram(self.detData.get(raftId, ccdId), bins = self.bins)
+            # new=True bypasses a warning message
+            hist     = num.histogram(self.detData.get(raftId, ccdId), bins = self.bins, new=True)
             maxIdx   = num.argsort(hist[0])[-1]
             maxDepth = 0.5 * (hist[1][maxIdx] + hist[1][maxIdx+1]) # len(hist[1]) = len(hist[0]) + 1
             self.depth.set(raftId, ccdId, maxDepth)

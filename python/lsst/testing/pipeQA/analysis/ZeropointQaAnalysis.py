@@ -36,11 +36,12 @@ class ZeropointQaAnalysis(qaAna.QaAnalysis):
 
         # go through all the values and test each one
         testSet = self.getTestSet(data, dataId)
+        areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
         for raftName, ccdName, zp in self.data.listKeysAndValues():
-            label = "zeropoint: "+ccdName
+            label = "zeropoint: "
             value = (zp - self.mean)/self.std
             comment = "stdev with respect other ccds."
-            t = testCode.Test(label, value, self.limits, comment)
+            t = testCode.Test(label, value, self.limits, comment, areaLabel)
             testSet.addTest(t)
             self.data.set(raftName, ccdName, value)
 
