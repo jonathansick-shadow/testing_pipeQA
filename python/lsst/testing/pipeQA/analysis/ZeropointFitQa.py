@@ -224,7 +224,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
     
             # Plot zpt
             xzpt = num.array((xmin, xmax))
-            pzpt = axis.plot(xzpt, xzpt - self.zeroPoint.get(raft, ccd), 'b--', label = 'Zeropoint')
+            pzpt = axis.plot(xzpt, xzpt - self.zeroPoint.get(raft, ccd), 'k--', label = 'Zeropoint')
             legLines.append(pzpt)
             legLabels.append("Zeropoint")
     
@@ -236,23 +236,19 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             ax2  = fig.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
             if len(urefmag) > 0:
                 nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
-                                      #orientation='horizontal', color = 'r', log = True, alpha = 0.5, zorder = 1)
-                                      orientation='horizontal', log = True, alpha = 0.5, zorder = 1)
+                                      orientation='horizontal', facecolor = 'r', log = True, alpha = 0.5, zorder = 1)
                 legLines.append(pu[0])
                 legLabels.append("Unmatched Sources")
                 
             if len(mrefGmag) > 0 and len(mrefSmag) > 0:
                 ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
-                         #orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
-                         orientation='horizontal', log = True, alpha = 0.5, zorder = 2)
+                         orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
             elif len(mrefGmag):
                 ax2.hist(mrefGmag, bins=num.arange(ymin, ymax, 0.25),
-                         #orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
-                         orientation='horizontal', log = True, alpha = 0.5, zorder = 2)
+                         orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
             elif len(mrefSmag) > 0:
                 ax2.hist(mrefSmag, bins=num.arange(ymin, ymax, 0.25),
-                         #orientation='horizontal', log = True, color = 'b', alpha = 0.5, zorder = 2)
-                         orientation='horizontal', log = True, alpha = 0.5, zorder = 2)
+                         orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
             ax2.set_xlabel('N', fontsize = 10)
             ax2.set_ylabel('Reference catalog mag', fontsize = 10)
     
@@ -262,26 +258,22 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             ax3.get_yaxis().set_label_position('right')
             if len(mimgGmag) > 0 and len(mimgSmag) > 0:
                 nm, bm, pm = ax3.hist(num.concatenate((mimgGmag,mimgSmag)), bins=num.arange(xmin, xmax, 0.25),
-                                      #log = True, color = 'b', alpha = 0.5, zorder = 2)
-                                      log = True, alpha = 0.5, zorder = 2)
+                                      log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
                 legLines.append(pm[0])
                 legLabels.append("Matched Sources")
             elif len(mimgGmag) > 0:
                 nm, bm, pm = ax3.hist(mimgGmag, bins=num.arange(xmin, xmax, 0.25),
-                                      #log = True, color = 'b', alpha = 0.5, zorder = 2)
-                                      log = True, alpha = 0.5, zorder = 2)
+                                      log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
                 legLines.append(pm[0])
                 legLabels.append("Matched Sources")
             elif len(mimgSmag) > 0:
                 nm, bm, pm = ax3.hist(mimgSmag, bins=num.arange(xmin, xmax, 0.25),
-                                      #log = True, color = 'b', alpha = 0.5, zorder = 2)
-                                      log = True, alpha = 0.5, zorder = 2)
+                                      log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
                 legLines.append(pm[0])
                 legLabels.append("Matched Sources")
                 
             ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
-                     #log = True, color = 'r', alpha = 0.5, zorder = 1)
-                     log = True, alpha = 0.5, zorder = 1)
+                     log = True, facecolor = 'r', alpha = 0.5, zorder = 1)
             ax3.set_xlabel('Image instrumental %s mag' % (self.fluxType), fontsize = 10)
             ax3.set_ylabel('N', rotation = 180, fontsize = 10)
     

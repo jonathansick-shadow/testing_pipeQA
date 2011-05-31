@@ -94,8 +94,10 @@ class CompletenessQa(qaAna.QaAnalysis):
             # Just to get the histogram results
             fig = qaFig.QaFigure()            
             sp1 = fig.fig.add_subplot(111)
-            nc, bc, pc = sp1.hist(catData, bins=self.bins, alpha=0.5, label = 'Catalog Stars')
-            nd, bd, pd = sp1.hist(detData, bins=self.bins, alpha=0.5, label = 'Detections')
+            nd, bd, pd = sp1.hist(detData, facecolor='b', bins=self.bins,
+                                  alpha=0.5, label = 'Detections') # plot first, it has more objects/bin
+            nc, bc, pc = sp1.hist(catData, facecolor='g', bins=self.bins,
+                                  alpha=0.5, label = 'Catalog Stars')
             sp1.legend(numpoints=1, prop=FontProperties(size='small'), loc = 'upper left')
 
             label = data.cameraInfo.getDetectorName(raft, ccd)
