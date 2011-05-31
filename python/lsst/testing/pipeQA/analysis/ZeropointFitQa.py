@@ -11,8 +11,9 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 
 class ZeropointFitQa(qaAna.QaAnalysis):
-    def __init__(self, medOffsetMin, medOffsetMax):
+    def __init__(self, medOffsetMin, medOffsetMax, figsize=(5.0,5.0)):
         qaAna.QaAnalysis.__init__(self)
+        self.figsize = figsize
         self.limits = [medOffsetMin, medOffsetMax]
 
     def test(self, data, dataId, fluxType = "psf"):
@@ -181,7 +182,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             print "Plotting", ccd
 
             # Just to get the histogram results
-            fig = qaFig.QaFigure()
+            fig = qaFig.QaFigure(size=self.figsize)
 
             legLines  = []
             legLabels = []

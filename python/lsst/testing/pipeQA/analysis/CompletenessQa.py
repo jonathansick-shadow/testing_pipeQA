@@ -69,7 +69,7 @@ class CompletenessQa(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
 
         # fpa figure
-        depthFig = qaFig.FpaQaFigure(data.cameraInfo.camera)
+        depthFig = qaFig.FpaQaFigure(data.cameraInfo)
         for raft, ccdDict in depthFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.depth.get(raft, ccd) is None:
