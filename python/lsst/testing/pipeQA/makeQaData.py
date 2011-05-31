@@ -23,10 +23,12 @@ def makeQaData(label, rerun=None, retrievalType=None, **kwargs):
         # if there's only one possibility, use that
         
         # see if there's a testbed directory called 'label'
+        # if TESTBED_PATH isn't set, skip this and assume it's a db
         validButler = False
-        testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label, raiseOnFailure=False)
-        if (not testbedDir is None) and (not testdataDir is None):
-            validButler = True
+        if os.environ.has_key('TESTBED_PATH'):
+            testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label, raiseOnFailure=False)
+            if (not testbedDir is None) and (not testdataDir is None):
+                validButler = True
 
         # see if we can connect to a database with name 'label'
         # NOTE: must update if/when non-lsst databases get used
