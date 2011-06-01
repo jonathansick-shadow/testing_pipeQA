@@ -1,5 +1,6 @@
 setupRequired(pipette)
 setupRequired(ap)
+setupRequired(numpy 1.5.1 [>= 1.5.0])
 
 setupOptional(obs_lsstSim)
 setupOptional(obs_cfht)

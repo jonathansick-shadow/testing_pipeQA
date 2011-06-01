@@ -129,11 +129,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             # Metrics
             numerator   = (mimgSmag - zpt) - mrefSmag
             denominator = mimgSmerr
-            #soffset     = num.sort(numerator)
-            #d50         = int(0.50 * len(soffset))
-            med         = num.median(numerator) #soffset[d50] if len(soffset) > 0 else 0
+            med         = num.median(numerator)
             self.medOffset.set(raftId, ccdId, med)
-            
+
             areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
             label = "median offset from zeropoint"
             comment = "Median offset of calibrated stellar magnitude to zeropoint fit"
@@ -311,9 +309,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
     
             numerator   = (mimgSmag - self.zeroPoint.get(raft, ccd)) - mrefSmag
             denominator = mimgSmerr
-            #soffset     = num.sort(numerator)
-            #d50         = int(0.50 * len(soffset))
-            med         = num.median(numerator) #soffset[d50] if len(soffset) > 0 else 0
+            med         = num.median(numerator)
             ax4.axhline(y = med, c='k', linestyle=':', alpha = 0.5)
     
             # Final axis limits

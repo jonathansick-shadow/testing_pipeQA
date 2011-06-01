@@ -89,6 +89,9 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
     if policy.get("doCompleteQa"):
         analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
                                                       policy.get("completeMaxMag")))
+    if policy.get("doCompleteQa2"):
+        analysisList.append(qaAnalysis.CompletenessQa2(policy.get("completeMinMag"),
+                                                       policy.get("completeMaxMag")))
        
     for visit in visits:
         for a in analysisList:
@@ -100,8 +103,13 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
             print "Running " + test + "  visit:" + str(visit)
             dataIdVisit = copy.copy(dataId)
             dataIdVisit['visit'] = visit
-            a.test(data, dataIdVisit)
-            a.plot(data, dataIdVisit, showUndefined=False)
+            try:
+                a.test(data, dataIdVisit)
+            except Exception, e:
+                print 'WARNING:', e
+                pass
+            else:
+                a.plot(data, dataIdVisit, showUndefined=False)
             a.free()
             
         data.clearCache()

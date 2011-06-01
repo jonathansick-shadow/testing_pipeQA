@@ -32,7 +32,7 @@ class CompletenessQa(qaAna.QaAnalysis):
 
             print "Running", ccdId
             
-            catsql      = 'select sro.refObjectId, sro.ra, sro.decl, %sMag' % (filterName)
+            catsql      = 'select sro.refObjectId, sro.ra, sro.decl, sro.%sMag' % (filterName)
             catsql     += ' from SimRefObject as sro, Science_Ccd_Exposure as sce'
             catsql     += ' where (sce.visit = %s)' % (dataId['visit'])
             catsql     += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
@@ -54,8 +54,7 @@ class CompletenessQa(qaAna.QaAnalysis):
             detresults  = data.dbInterface.execute(detsql)
             self.detData.set(raftId, ccdId, num.array([x[0] for x in detresults]))
 
-            # new=True bypasses a warning message
-            hist     = num.histogram(self.detData.get(raftId, ccdId), bins = self.bins, new=True)
+            hist     = num.histogram(self.detData.get(raftId, ccdId), bins = self.bins)
             maxIdx   = num.argsort(hist[0])[-1]
             maxDepth = 0.5 * (hist[1][maxIdx] + hist[1][maxIdx+1]) # len(hist[1]) = len(hist[0]) + 1
             self.depth.set(raftId, ccdId, maxDepth)
@@ -70,17 +69,21 @@ class CompletenessQa(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
 
         # fpa figure
+        depths = []
         depthFig = qaFig.FpaQaFigure(data.cameraInfo)
         for raft, ccdDict in depthFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.depth.get(raft, ccd) is None:
                     depth = self.depth.get(raft, ccd)
+                    depths.append(depth)
                     depthFig.data[raft][ccd] = depth
                     depthFig.map[raft][ccd] = 'mag=%.2f'%(depth) 
 
         blue = '#0000ff'
         red  = '#ff0000'
-        depthFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
+        vmin = max(num.min(depths), self.limits[0])
+        vmax = min(num.max(depths), self.limits[1])
+        depthFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vmin, vmax],
                             title="Photometric Depth", cmapOver=red, cmapUnder=blue, failLimits=self.limits)
         testSet.addFigure(depthFig, "completenessDepth.png", "Estimate of photometric depth", 
                           navMap=True)
@@ -97,10 +100,11 @@ class CompletenessQa(qaAna.QaAnalysis):
             sp1 = fig.fig.add_subplot(111)
             nd, bd, pd = sp1.hist(detData, facecolor='b', bins=self.bins,
                                   alpha=0.5, label = 'Detections') # plot first, it has more objects/bin
-            nc, bc, pc = sp1.hist(catData, facecolor='g', bins=self.bins,
-                                  alpha=0.5, label = 'Catalog Stars')
+            ns, bs, ps = sp1.hist(catData, facecolor='r', bins=self.bins,
+                                  alpha=0.5, label = 'Catalog Stars Only')
             sp1.legend(numpoints=1, prop=FontProperties(size='small'), loc = 'upper left')
 
             label = data.cameraInfo.getDetectorName(raft, ccd)
             sp1.set_title('%s' % (label), fontsize = 12)
             testSet.addFigure(fig, "completeness.png", "Photometric detections "+label, areaLabel=label)
+
