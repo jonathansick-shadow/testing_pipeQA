@@ -38,14 +38,14 @@ definitions: {
         type: double
         description: "Median offset of stars from zeropoint fit; minimum good value"
         maxOccurs: 1
-        default: -0.1
+        default: -0.05
     }
 
     zptFitQaOffsetMax: {
         type: double
         description: "Median offset of stars from zeropoint fit; maximum good value"
         maxOccurs: 1
-        default: 0.1
+        default: 0.05
     }
 
     ###
@@ -171,6 +171,13 @@ definitions: {
     doCompleteQa: {
         type: bool
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
+        maxOccurs: 1
+        default: false
+    }
+
+    doCompleteQa2: {
+        type: bool
+        description: "Photometric Depth: qaAnalysis.CompletenessQa2"
         maxOccurs: 1
         default: true
     }
