@@ -1,10 +1,12 @@
 import re
 import numpy as num
 
+import lsst.meas.algorithms         as measAlg
 import lsst.testing.pipeQA.TestCode as testCode
 import QaAnalysis as qaAna
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
+import QaAnalysisUtils as qaAnaUtil
 import RaftCcdData as raftCcdData
 
 from matplotlib.font_manager import FontProperties
@@ -16,11 +18,32 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         self.figsize = figsize
         self.limits = [medOffsetMin, medOffsetMax]
 
+
+    def free(self):
+        del self.detector
+        del self.filter
+        del self.calib
+        del self.matchListDict
+        del self.ssDict
+        
+        del self.zeroPoint
+        del self.medOffset
+        
+        del self.matchedGal
+        del self.matchedStar
+        del self.unmatchedRef
+        del self.unmatchedImg
+
+
     def test(self, data, dataId, fluxType = "psf"):
         testSet = self.getTestSet(data, dataId)
         self.fluxType      = fluxType
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)
+        self.calib         = data.getCalibBySensor(dataId)
+        self.matchListDict = data.getMatchListBySensor(dataId)
+        self.ssDict        = data.getSourceSetBySensor(dataId)
+
         
         self.zeroPoint     = raftCcdData.RaftCcdData(self.detector)
         self.medOffset     = raftCcdData.RaftCcdData(self.detector)
@@ -29,7 +52,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         self.matchedStar   = raftCcdData.RaftCcdData(self.detector)
         self.unmatchedRef  = raftCcdData.RaftCcdData(self.detector)
         self.unmatchedImg  = raftCcdData.RaftCcdData(self.detector)
-            
+
+        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
+
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
@@ -37,101 +62,85 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             
             print "Running", ccdId
 
-            # Get zeropoint
-            zptsql      = 'select scienceCcdExposureId,fluxMag0 from Science_Ccd_Exposure'
-            zptsql     += ' where (visit = %s)' % (dataId['visit'])
-            zptsql     += ' and (raftName = "%s")' % (re.sub("R:", "", raftId))
-            zptsql     += ' and (ccdName = "%s")' % (ccdId[-3:])
-            zptresults  = data.dbInterface.execute(zptsql)
-            if len(zptresults) != 1:
-                # throw exception or something
-                return
-            sceId, fluxMag0 = zptresults[0]
-            zpt = -2.5 * num.log10(fluxMag0)
+            zpt = -2.5*num.log10(self.calib[key].getFluxMag0())[0]
             self.zeroPoint.set(raftId, ccdId, zpt)
-            
-            # Select all reference stars within this field
-            catsql      = 'select sro.refObjectId, sro.isStar'
-            catsql     += ' from SimRefObject as sro, Science_Ccd_Exposure as sce'
-            catsql     += ' where (sce.scienceCcdExposureId = %d)' % (sceId)
-            catsql     += ' and qserv_ptInSphPoly(sro.ra, sro.decl,'
-            catsql     += ' concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
-            catsql     += ' sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl))'
-            catresults  = data.dbInterface.execute(catsql)
 
-            # Sort by star,gal
-            refAll = {'s': [], 'g': []}
-            for result in catresults:
-                oid, isStar = result
-                if isStar: refAll['s'].append(oid)
-                else: refAll['g'].append(oid)
-    
-            # Select all matched galaxies
-            if len(refAll['g']) == 0:
-                self.matchedGal.set(raftId, ccdId, {"Refmag": num.array(()),
-                                                    "Imgmag": num.array(()),
-                                                    "Imgerr": num.array(())})
-            else:
-                mrefGsql  = 'select sro.%sMag,' % (filterName)
-                mrefGsql += ' s.%sFlux, s.%sFluxSigma' % (fluxType, fluxType)
-                mrefGsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
-                mrefGsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
-                mrefGsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
-                mrefGsql += ' and (s.objectID is not NULL)'
-                mrefGsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'])))
-                mrefGresults = data.dbInterface.execute(mrefGsql)
-                mrefGmag  = num.array([x[0] for x in mrefGresults])
-                mimgGflu  = num.array([x[1] for x in mrefGresults])
-                mimgGferr = num.array([x[2] for x in mrefGresults])
-                mimgGmag  = -2.5 * num.log10(mimgGflu)
-                mimgGmerr =  2.5 / num.log(10.0) * mimgGferr / mimgGflu
-                self.matchedGal.set(raftId, ccdId, {"Refmag": mrefGmag,
-                                                    "Imgmag": mimgGmag,
-                                                    "Imgerr": mimgGmerr})
+            matchList = self.matchListDict[key]
+            mrefSmag, mimgSmag, mimgSmerr = [], [], []
+            mrefGmag, mimgGmag, mimgGmerr = [], [], []
+            for m in matchList:
+                sref, s, dist = m
+
+                #oid = sref.getId()
+
+                if fluxType == "psf":
+                    fref  = sref.getPsfFlux()
+                    f     = s.getPsfFlux()
+                    ferr  = s.getPsfFluxErr()
+                else:
+                    fref  = sref.getPsfFlux()
+                    f     = s.getApFlux()
+                    ferr  = s.getApFluxErr()
+                    
+                flags = s.getFlagForDetection()
+
+                if (fref > 0.0 and f > 0.0  and not flags & badFlags):
+                    mrefmag  = -2.5*num.log10(fref)
+                    mimgmag  = -2.5*num.log10(f)
+                    mimgmerr =  2.5 / num.log(10.0) * ferr / f
+
+                    star = flags & measAlg.Flags.STAR
+
+                    if num.isfinite(mrefmag) and num.isfinite(mimgmag):
+                        if star > 0:
+                            mrefSmag.append(mrefmag)
+                            mimgSmag.append(mimgmag)
+                            mimgSmerr.append(mimgmerr)
+                        else:
+                            mrefGmag.append(mrefmag)
+                            mimgGmag.append(mimgmag)
+                            mimgGmerr.append(mimgmerr)
             
-            # Select all matched stars
-            mrefSsql  = 'select sro.%sMag,' % (filterName)
-            mrefSsql += ' s.%sFlux, s.%sFluxSigma' % (fluxType, fluxType)
-            mrefSsql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s'
-            mrefSsql += ' where (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
-            mrefSsql += ' and (s.scienceCcdExposureId = %d)' % (sceId)
-            mrefSsql += ' and (s.objectID is not NULL)'
-            mrefSsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['s'])))
-            mrefSresults  = data.dbInterface.execute(mrefSsql)
-            mrefSmag  = num.array([x[0] for x in mrefSresults])
-            mimgSflu  = num.array([x[1] for x in mrefSresults])
-            mimgSferr = num.array([x[2] for x in mrefSresults])
-            mimgSmag  = -2.5 * num.log10(mimgSflu)
-            mimgSmerr =  2.5 / num.log(10.0) * mimgSferr / mimgSflu
+            mrefSmag = num.array(mrefSmag)
+            mimgSmag = num.array(mimgSmag)
+            mimgSmerr = num.array(mimgSmerr)
             self.matchedStar.set(raftId, ccdId, {"Refmag": mrefSmag,
                                                  "Imgmag": mimgSmag,
                                                  "Imgerr": mimgSmerr})
-    
-            ####
-    
-            # Umatched reference catalog objects
-            urefsql  = 'select sro.%sMag from SimRefObject as sro, RefObjMatch as rom' % (filterName)
-            urefsql += ' where (sro.refObjectId = rom.refObjectId)'
-            urefsql += ' and (rom.objectId is NULL)'
-            urefsql += ' and (sro.refObjectId in (%s))' % (','.join(map(str, refAll['g'] + refAll['s'])))
-            urefresults = data.dbInterface.execute(urefsql)
-            urefmag     = num.array([x[0] for x in urefresults])
-            self.unmatchedRef.set(raftId, ccdId, urefmag)
+            mrefGmag = num.array(mrefGmag)
+            mimgGmag = num.array(mimgGmag)
+            mimgGmerr = num.array(mimgGmerr)
+            self.matchedGal.set(raftId, ccdId, {"Refmag": mrefGmag,
+                                                "Imgmag": mimgGmag,
+                                                "Imgerr": mimgGmerr})
+
+
+            ################       need to get these values ##################
+            self.unmatchedRef.set(raftId, ccdId, num.array([]))
+
     
             # Unmatched detections
-            uimgsql  = 'select %sFlux from Source ' % (fluxType)
-            uimgsql += ' where (scienceCcdExposureId = %d)' % (sceId)
-            uimgsql += ' and (objectId is NULL)'
-            uimgresults  = data.dbInterface.execute(uimgsql)
-            uimgmag      = -2.5 * num.log10( num.array([x[0] for x in uimgresults]) )
+            sids = {}
+            for m in self.matchListDict[key]:
+                sref, s, dist = m
+                sids[s.getId()] = 1
+            unmatched = []
+            for s in self.ssDict[key]:
+                if not sids.has_key(s.getId()):
+                    if self.fluxType == 'psf':
+                        f = s.getPsfFlux()
+                    else:
+                        f = s.getApFlux()
+                    unmatched.append(-2.5*num.log10(f))
+                
+            uimgmag = num.array(unmatched)
             self.unmatchedImg.set(raftId, ccdId, uimgmag)
 
             # Metrics
-            numerator   = (mimgSmag - zpt) - mrefSmag
-            denominator = mimgSmerr
-            med         = num.median(numerator)
+            numerator   = mimgSmag - mrefSmag
+            med         = num.median(numerator) 
             self.medOffset.set(raftId, ccdId, med)
-
+            
             areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
             label = "median offset from zeropoint"
             comment = "Median offset of calibrated stellar magnitude to zeropoint fit"
@@ -194,25 +203,43 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             mimgGmerr = self.matchedGal.get(raft, ccd)["Imgerr"]
             mimgGplot = axis.plot(mimgGmag, mrefGmag, '.', color='g', mfc='g', mec='g',
                                   alpha=0.5, zorder=10, label = 'Matched Galaxies')
-            for i in range(len(mrefGmag)):
-                a = Ellipse(xy=num.array([mimgGmag[i], mrefGmag[i]]),
-                            width=mimgGmerr[i]/2., height=mimgGmerr[i]/2.,
-                            alpha=0.5, fill=True, ec='g', fc='g', zorder=10)
-                axis.add_artist(a)            
+
+            ################    --------------------------------  ##################
+            # can't fig.savefig() with this Ellipse stuff ??? ... i love matplotlib
+            if False:
+                for i in range(len(mrefGmag)):
+                    print mimgGmag[i], mrefGmag[i]
+                    a = Ellipse(xy=num.array([mimgGmag[i], mrefGmag[i]]),
+                                width=mimgGmerr[i]/2., height=mimgGmerr[i]/2.,
+                                alpha=0.5, fill=True, ec='g', fc='g', zorder=10)
+                    axis.add_artist(a)
+            else:
+                axis.plot(mimgGmag, mrefGmag, 'g.', zorder=10, alpha=0.5)
+            #########################################################################
+
+                
             legLines.append(mimgGplot[0])
             legLabels.append("Matched Galaxies")
-            
+                        
             # Plot all matched stars
             mrefSmag  = self.matchedStar.get(raft, ccd)["Refmag"]
             mimgSmag  = self.matchedStar.get(raft, ccd)["Imgmag"]
             mimgSmerr = self.matchedStar.get(raft, ccd)["Imgerr"]
             mimgSplot = axis.plot(mimgSmag, mrefSmag, '.', color='b', mfc='b', mec='b',
                                   alpha=0.5, zorder=12, label = 'Matched Stars')
-            for i in range(len(mrefSmag)):
-                a = Ellipse(xy=num.array([mimgSmag[i], mrefSmag[i]]),
-                            width=mimgSmerr[i]/2., height=mimgSmerr[i]/2.,
-                            alpha=0.5, fill=True, ec='b', fc='b', zorder=12)
-                axis.add_artist(a)            
+
+            ################    --------------------------------  ##################
+            # can't fig.savefig() with this Ellipse stuff ??? ... i love matplotlib
+            if False:
+                for i in range(len(mrefSmag)):
+                    a = Ellipse(xy=num.array([mimgSmag[i], mrefSmag[i]]),
+                                width=mimgSmerr[i]/2., height=mimgSmerr[i]/2.,
+                                alpha=0.5, fill=True, ec='b', fc='b', zorder=12)
+                    axis.add_artist(a)
+            else:
+                axis.plot(mimgSmag, mrefSmag, "b.", zorder=12, alpha=0.5)
+            ########################################################################
+                
             legLines.append(mimgSplot[0])
             legLabels.append("Matched Stars")
     
@@ -230,7 +257,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             # Unmatched objects
             urefmag     = self.unmatchedRef.get(raft, ccd)
             uimgmag     = self.unmatchedImg.get(raft, ccd)
-    
+
             # Unmatched & matched reference objects
             ax2  = fig.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
             if len(urefmag) > 0:
@@ -250,6 +277,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                          orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
             ax2.set_xlabel('N', fontsize = 10)
             ax2.set_ylabel('Reference catalog mag', fontsize = 10)
+
     
             # Unmatched & matched stellar objects
             ax3  = fig.fig.add_axes([0.225, 0.1,   0.675, 0.125], sharex=axis)
@@ -279,13 +307,13 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             # Mag - Zpt
             ax4  = fig.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
             if len(mimgSmag):
-                mimgSeb = ax4.errorbar(mimgSmag, (mimgSmag - self.zeroPoint.get(raft, ccd)) - mrefSmag,
+                mimgSeb = ax4.errorbar(mimgSmag, mimgSmag - mrefSmag,
                                        yerr = mimgSmerr,
                                        fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
                 mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
     
             if len(mimgGmag):
-                mimgGeb = ax4.errorbar(mimgGmag, (mimgGmag - self.zeroPoint.get(raft, ccd)) - mrefGmag,
+                mimgGeb = ax4.errorbar(mimgGmag, mimgGmag - mrefGmag,
                                        yerr = mimgGmerr,
                                        fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
                 mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
@@ -307,9 +335,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             label = data.cameraInfo.getDetectorName(raft, ccd)
             fig.fig.suptitle('%s' % (label), fontsize = 12)
     
-            numerator   = (mimgSmag - self.zeroPoint.get(raft, ccd)) - mrefSmag
+            numerator   = (mimgSmag - mrefSmag)
             denominator = mimgSmerr
-            med         = num.median(numerator)
+            med         = num.median(numerator) 
             ax4.axhline(y = med, c='k', linestyle=':', alpha = 0.5)
     
             # Final axis limits

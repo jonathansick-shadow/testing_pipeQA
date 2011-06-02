@@ -2,6 +2,7 @@ import sys, os, re, copy
 
 import lsst.afw.detection               as afwDet
 import lsst.afw.image                   as afwImage
+import lsst.meas.algorithms             as measAlg
 import lsst.afw.geom                    as afwGeom
 import lsst.afw.cameraGeom              as cameraGeom
 
@@ -86,13 +87,13 @@ class DbQaData(QaData):
 
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, '%(filterName)
+        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, '%(filterName)
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
         sql += '    RefObjMatch as rom, SimRefObject as sro'
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         sql += '    and (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
-        sql += '    and (sro.isStar = 1) ' #and (sro.varClass = 0)'
+        #sql += '    and (sro.isStar = 1) ' #and (sro.varClass = 0)'
         sql += '    and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += '    and s.objectID is not NULL'        
         sql += '    and '+idWhere
@@ -109,7 +110,7 @@ class DbQaData(QaData):
             sref = afwDet.Source()
             qaDataUtils.setSourceBlobsNone(sref)
             
-            visit, raft, sensor, mag, ra, dec = row[0:6]
+            visit, raft, sensor, mag, ra, dec, isStar = row[0:7]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
             key = self._dataIdToString(dataIdTmp)
             self.dataIdLookup[key] = dataIdTmp
@@ -126,12 +127,17 @@ class DbQaData(QaData):
             sref.setModelFlux(flux)
             
             i = 0
-            for value in row[6:]:
+            for value in row[7:]:
                 method = getattr(s, setMethods[i])
                 if not value is None:
                     method(value)
                 i += 1
 
+            for sss in [s, sref]:
+                if isStar == 1:
+                    sss.setFlagForDetection(sss.getFlagForDetection() | measAlg.Flags.STAR)
+                else:
+                    sss.setFlagForDetection(sss.getFlagForDetection() & ~measAlg.Flags.STAR)
 
             # calibrate it
             calib = self.getCalibBySensor(dataIdTmp)
@@ -147,7 +153,7 @@ class DbQaData(QaData):
         self.matchQueryCache[dataIdStr] = True
         for k, matchList in matchListDict.items():
             self.matchListCache[k] = matchListDict[k]
-        
+
         return matchListDict
 
 
