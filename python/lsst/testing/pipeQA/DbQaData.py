@@ -243,6 +243,20 @@ class DbQaData(QaData):
             ss.append(s)
 
 
+        # set the STAR flag if we have matched objects
+        #if self.matchQueryCache.has_key(dataIdStr) and self.matchQueryCache[dataIdStr]:
+        matchListDict = self.getMatchListBySensor(dataIdRegex)
+        for k, matchList in matchListDict.items():
+            index = {}
+            for m in matchList:
+                sref, s, dist = m
+                sid = s.getId()
+                index[sid] = s.getFlagForDetection() & measAlg.Flags.STAR
+            for s in ssDict[k]:
+                if index.has_key(s.getId()):
+                    s.setFlagForDetection(s.getFlagForDetection() | index[s.getId()])
+
+
         # cache it
         self.queryCache[dataIdStr] = True
         for k, ss in ssDict.items():

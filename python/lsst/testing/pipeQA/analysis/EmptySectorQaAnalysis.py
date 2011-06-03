@@ -172,6 +172,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             ax.plot(x, y, "k.", ms=2.0, label="detected")
             ax.plot(xmat, ymat, "ro", ms=4.0, label="matched",
                     mfc='None', markeredgecolor='r')
+
             ax.set_xlim([0, xwid])
             ax.set_ylim([0, ywid])
             ax.legend(prop=fm.FontProperties(size ="xx-small"), ncol=2, loc="upper center")

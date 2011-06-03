@@ -146,7 +146,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         self.x.append(raft, ccd, s.getXAstrom())
                         self.y.append(raft, ccd, s.getYAstrom())
                         self.star.append(raft, ccd, star)
-
                     
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.addMetadata('magType1', self.magType1)
@@ -162,7 +161,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             dmag = self.diff.get(raft, ccd)
             mag = self.mag.get(raft, ccd)
             star = self.star.get(raft, ccd)
-            w = numpy.where((mag > 10) & (mag < self.magCut) & (star > 0) & (abs(dmag) < self.dmagMax) )[0]
+            w = numpy.where((mag > 10) & (mag < self.magCut) & (star > 0))[0] # & (abs(dmag) < self.dmagMax) )[0]
 
             mag = mag[w]
             dmag = dmag[w]
@@ -310,8 +309,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 x    = numpy.array([0.0])
                 y    = numpy.array([0.0])
                 star = numpy.array([0])
-                
-            whereCut = numpy.where((mag < self.magCut) & (star > 0) & (abs(diff) < self.dmagMax))[0]
+
+            whereCut = numpy.where((mag < self.magCut) & (star > 0))[0] # & (abs(diff) < self.dmagMax))[0]
             print "plotting ", ccd
 
             #################
@@ -333,6 +332,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 ax.set_xlabel(tag1)
 
             ax_1.plot(xTrend, numpy.lib.polyval(trendCoeffs, xTrend), "--r", lw=1.0)
+            ax_2.plot(xTrend, numpy.lib.polyval(trendCoeffs, xTrend), "--r", lw=1.0)
             ax_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
             ax_1.set_ylabel(tag)
@@ -380,13 +380,13 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         ax0_1 = fig0.fig.add_subplot(121)
         ax0_2 = fig0.fig.add_subplot(122)
 
-        w = numpy.where( (allMags < self.magCut) & (allStars > 0) & (abs(allDiffs) < self.dmagMax))[0]
+        w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
 
         if len(w) > 0:
             trendCoeffs = numpy.polyfit(allMags[w], allDiffs[w], 1)
         else:
             trendCoeffs = [0.0, 0.0]
-        
+
         ####################
         # data for all ccds
         if len(allMags) == 0:
