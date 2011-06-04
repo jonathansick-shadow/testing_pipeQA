@@ -72,39 +72,47 @@ class CompletenessQa2(qaAna.QaAnalysis):
             self.matchStarSrc.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
             self.matchGalSrc.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
 
-            # All unmatched stars/gals
-            catsql      = 'select sro.refObjectId, sro.%sMag, sro.isStar' % (filterName)
-            catsql     += ' from SimRefObject as sro, Science_Ccd_Exposure as sce'
-            catsql     += ' where (sce.visit = %s)' % (dataId['visit'])
-            catsql     += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
-            catsql     += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
-            catsql     += ' and qserv_ptInSphPoly(sro.ra, sro.decl,'
-            catsql     += ' concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
-            catsql     += ' sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl))'
-            catsql     += ' and (sro.refObjectId not in (%s))' % (','.join(map(str, sroId)))
-            catresults  = data.dbInterface.execute(catsql)
-            sroMags = num.array([x[1] for x in catresults])
-            isStar  = num.array([x[2] for x in catresults])
-            self.unmatchCatStar.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
-            self.unmatchCatGal.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
+            if len(sroId) > 0:
+                # All unmatched stars/gals
+                catsql      = 'select sro.refObjectId, sro.%sMag, sro.isStar' % (filterName)
+                catsql     += ' from SimRefObject as sro, Science_Ccd_Exposure as sce'
+                catsql     += ' where (sce.visit = %s)' % (dataId['visit'])
+                catsql     += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
+                catsql     += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
+                catsql     += ' and qserv_ptInSphPoly(sro.ra, sro.decl,'
+                catsql     += ' concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
+                catsql     += ' sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl))'
+                catsql     += ' and (sro.refObjectId not in (%s))' % (','.join(map(str, sroId)))
+                catresults  = data.dbInterface.execute(catsql)
+                sroMags = num.array([x[1] for x in catresults])
+                isStar  = num.array([x[2] for x in catresults])
+                self.unmatchCatStar.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
+                self.unmatchCatGal.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
+            else:
+                self.unmatchCatStar.set(raftId, ccdId, num.array(()))
+                self.unmatchCatGal.set(raftId, ccdId, num.array(()))
 
-            # All unmatched in image, supposedly good (flagForDetection)
-            detsql      = 'select dnToAbMag(s.%sFlux, sce.fluxMag0)' % (fluxType)
-            detsql     += ' from Source as s, Science_Ccd_Exposure as sce' 
-            detsql     += ' where ((s.flagForDetection & 0xa01) = 0)'
-            detsql     += ' and (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-            detsql     += ' and (sce.visit = %s)' % (dataId['visit'])
-            detsql     += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
-            detsql     += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
-            detsql     += ' and (s.sourceId not in (%s))' % (','.join(map(str, srcId)))
-            detresults  = data.dbInterface.execute(detsql)
-            self.unmatchImage.set(raftId, ccdId, num.array([x[0] for x in detresults]))
+            if len(srcId) > 0:
+                # All unmatched in image, supposedly good (flagForDetection)
+                detsql      = 'select dnToAbMag(s.%sFlux, sce.fluxMag0)' % (fluxType)
+                detsql     += ' from Source as s, Science_Ccd_Exposure as sce' 
+                detsql     += ' where ((s.flagForDetection & 0xa01) = 0)'
+                detsql     += ' and (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+                detsql     += ' and (sce.visit = %s)' % (dataId['visit'])
+                detsql     += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
+                detsql     += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
+                detsql     += ' and (s.sourceId not in (%s))' % (','.join(map(str, srcId)))
+                detresults  = data.dbInterface.execute(detsql)
+                self.unmatchImage.set(raftId, ccdId, num.array([x[0] for x in detresults]))
+            else:
+                self.unmatchImage.set(raftId, ccdId, num.array(()))
 
             histStarSrc     = num.histogram(self.matchStarSrc.get(raftId, ccdId), bins = self.bins)
             maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
             histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins)
             histRatio       = histStarSrc[0]/(1.0 * (histStarSrc[0]+histUnmatchStar[0]))
 
+            badDepth = 0.0
             idxLim = None
             # Start at the bin with the most source counts
             for i in range(maxSrcIdx, len(histRatio)):
@@ -112,9 +120,12 @@ class CompletenessQa2(qaAna.QaAnalysis):
                     idxLim = i
                     break
             if idxLim:
-                maxDepth = 0.5 * (histStarSrc[1][idxLim-1] + histStarSrc[1][idxLim])
+                if num.isnan(histStarSrc[1][idxLim-1]) or num.isnan(histStarSrc[1][idxLim]):
+                    maxDepth = badDepth
+                else:
+                    maxDepth = 0.5 * (histStarSrc[1][idxLim-1] + histStarSrc[1][idxLim])
             else:
-                maxDepth = None
+                maxDepth = badDepth
             self.depth.set(raftId, ccdId, maxDepth)
 
             areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
@@ -139,8 +150,12 @@ class CompletenessQa2(qaAna.QaAnalysis):
 
         blue = '#0000ff'
         red  = '#ff0000'
-        vmin = max(num.min(depths), self.limits[0])
-        vmax = min(num.max(depths), self.limits[1])
+        if len(depths) >= 2:
+            vmin = max(num.min(depths), self.limits[0])
+            vmax = min(num.max(depths), self.limits[1])
+        else:
+            vmin = self.limits[0]
+            vmax = self.limits[1]
         depthFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vmin, vmax],
                             title="Photometric Depth", cmapOver=red, cmapUnder=blue, failLimits=self.limits)
         testSet.addFigure(depthFig, "completenessDepth.png", "Estimate of photometric depth", 
