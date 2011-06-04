@@ -114,7 +114,6 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                                                 "Imgmag": mimgGmag,
                                                 "Imgerr": mimgGmerr})
 
-
             ################       need to get these values ##################
             self.unmatchedRef.set(raftId, ccdId, num.array([]))
 
@@ -132,7 +131,6 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                     else:
                         f = s.getApFlux()
                     unmatched.append(-2.5*num.log10(f))
-                
             uimgmag = num.array(unmatched)
             self.unmatchedImg.set(raftId, ccdId, uimgmag)
 
