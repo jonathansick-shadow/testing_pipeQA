@@ -25,6 +25,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         del self.calib
         del self.matchListDict
         del self.ssDict
+        del self.sroDict
         
         del self.zeroPoint
         del self.medOffset
@@ -43,6 +44,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         self.calib         = data.getCalibBySensor(dataId)
         self.matchListDict = data.getMatchListBySensor(dataId)
         self.ssDict        = data.getSourceSetBySensor(dataId)
+        self.sroDict       = data.getRefObjectSetBySensor(dataId)
 
         
         self.zeroPoint     = raftCcdData.RaftCcdData(self.detector)
@@ -114,25 +116,35 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                                                 "Imgmag": mimgGmag,
                                                 "Imgerr": mimgGmerr})
 
-            ################       need to get these values ##################
-            self.unmatchedRef.set(raftId, ccdId, num.array([]))
-
     
-            # Unmatched detections
+            # Unmatched detections (found by never inserted ... false positives)
             sids = {}
+            refIds = {}
             for m in self.matchListDict[key]:
                 sref, s, dist = m
                 sids[s.getId()] = 1
-            unmatched = []
+                refIds[sref.getId()] = 1
+                
+            unmatchedImg = []
             for s in self.ssDict[key]:
                 if not sids.has_key(s.getId()):
                     if self.fluxType == 'psf':
                         f = s.getPsfFlux()
                     else:
                         f = s.getApFlux()
-                    unmatched.append(-2.5*num.log10(f))
-            uimgmag = num.array(unmatched)
+                    unmatchedImg.append(-2.5*num.log10(f))
+            uimgmag = num.array(unmatchedImg)
             self.unmatchedImg.set(raftId, ccdId, uimgmag)
+
+            # Unmatched reference objects (inserted, but not found ... false negatives)
+            unmatchedRef = []
+            for sro in self.sroDict[key]:
+                if not refIds.has_key(sro.refObjectId):
+                    mag = sro.getMag(filterName)
+                    unmatchedRef.append(mag)
+            urefmag = num.array(unmatchedRef)
+            self.unmatchedRef.set(raftId, ccdId, urefmag)
+                        
 
             # Metrics
             numerator   = mimgSmag - mrefSmag
@@ -260,7 +272,8 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             ax2  = fig.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
             if len(urefmag) > 0:
                 nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
-                                      orientation='horizontal', facecolor = 'r', log = True, alpha = 0.5, zorder = 1)
+                                      orientation='horizontal', facecolor = 'r',
+                                      log = True, alpha = 0.5, zorder = 1)
                 legLines.append(pu[0])
                 legLabels.append("Unmatched Sources")
                 

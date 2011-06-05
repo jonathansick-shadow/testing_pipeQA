@@ -103,13 +103,16 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
             print "Running " + test + "  visit:" + str(visit)
             dataIdVisit = copy.copy(dataId)
             dataIdVisit['visit'] = visit
-            try:
-                a.test(data, dataIdVisit)
-            except Exception, e:
-                print 'WARNING:', e
-                pass
-            else:
-                a.plot(data, dataIdVisit, showUndefined=False)
+            a.test(data, dataIdVisit)
+            a.plot(data, dataIdVisit, showUndefined=False)
+            if False:
+                try:
+                    a.test(data, dataIdVisit)
+                except Exception, e:
+                    print 'WARNING:', e
+                    pass
+                else:
+                    a.plot(data, dataIdVisit, showUndefined=False)
             a.free()
             
         data.clearCache()

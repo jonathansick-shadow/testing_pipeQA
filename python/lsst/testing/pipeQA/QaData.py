@@ -53,6 +53,9 @@ class QaData(object):
 
         self.matchQueryCache = {}
         self.matchListCache = {}
+
+        self.refObjectQueryCache = {}
+        self.refObjectCache = {}
         
         # cache calexp info, but not the MaskedImage ... it's too big.
         self.calexpCache = {}
@@ -72,6 +75,8 @@ class QaData(object):
             "sourceSetColumn"  : self.sourceSetColumnCache,
             "matchQuery"    : self.matchQueryCache,
             "matchList"     : self.matchListCache,
+            "refObjectQuery": self.refObjectQueryCache,
+            "refObject"     : self.refObjectCache,
             "calexp"        : self.calexpCache, 
             "wcs"           : self.wcsCache,    
             "detector"      : self.detectorCache,
