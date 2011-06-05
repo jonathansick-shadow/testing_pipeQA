@@ -184,7 +184,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 n = stat.getValue(afwMath.NPOINT)
 
                 if len(dmag) > 1:
-                    lineCoeffs = numpy.lib.polyfit(mag, dmag, 1)
+                    lineCoeffs = qaAnaUtil.robustPolyFit(mag, dmag, 1)
 
 
             tag = self.magType1+"_vs_"+self.magType2
@@ -383,7 +383,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
 
         if len(w) > 0:
-            trendCoeffs = numpy.polyfit(allMags[w], allDiffs[w], 1)
+            trendCoeffs = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
         else:
             trendCoeffs = [0.0, 0.0]
 

@@ -1,4 +1,4 @@
-import sys, os, re
+import sys, os, re, copy
 import numpy
 
 import lsst.afw.math        as afwMath
@@ -57,3 +57,28 @@ def isStarDeltaMag(ss):
 
 def isStar(ss):
     return isStarDeltaMag(ss)
+
+
+
+def robustPolyFit(x, y, order, sigma=3.0, niter=3):
+
+    xNew, yNew = copy.copy(x), copy.copy(y)
+
+    for i in range(niter):
+
+        ret = numpy.polyfit(xNew, yNew, order)
+        p = ret[0:2]
+        residuals = yNew - numpy.polyval(p, xNew)
+
+        if i == 0:
+            mean = numpy.median(residuals)
+        else:
+            mean = numpy.mean(residuals)
+            
+        std = numpy.std(residuals)
+        
+        w = numpy.where( (numpy.abs(residuals - mean)/std) < sigma )
+        xNew = xNew[w]
+        yNew = yNew[w]
+        
+    return p

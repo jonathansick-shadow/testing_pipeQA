@@ -123,8 +123,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
                     s = traceback.format_exception(exc_type, exc_value,
                                                    exc_traceback)
                     label = "visit_%s_analysis_%s" % (visit, test)
-                    uncaughtException = "".join(s)
-                    testset.importExceptionDict({label: uncaughtException})
+                    print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
+                    testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
                 else:
                     a.plot(data, dataIdVisit, showUndefined=False)
             a.free()
