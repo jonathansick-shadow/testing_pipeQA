@@ -4,6 +4,7 @@ import numpy as num
 import lsst.testing.pipeQA.TestCode as testCode
 import QaAnalysis as qaAna
 import lsst.testing.pipeQA.figures as qaFig
+import lsst.meas.algorithms as measAlg
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 
@@ -19,97 +20,125 @@ class CompletenessQa2(qaAna.QaAnalysis):
     def test(self, data, dataId, fluxType = "psf"):
         testSet = self.getTestSet(data, dataId)
 
+        self.fluxType = fluxType
+
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)
+        self.matchListDict = data.getMatchListBySensor(dataId)
+        self.ssDict        = data.getSourceSetBySensor(dataId)
+        self.sroDict       = data.getRefObjectSetBySensor(dataId)
 
         self.matchStarObj   = raftCcdData.RaftCcdData(self.detector)
         self.matchGalObj    = raftCcdData.RaftCcdData(self.detector)
-        self.matchStarSrc   = raftCcdData.RaftCcdData(self.detector)
-        self.matchGalSrc    = raftCcdData.RaftCcdData(self.detector)
+        #self.matchStarSrc   = raftCcdData.RaftCcdData(self.detector)
+        #self.matchGalSrc    = raftCcdData.RaftCcdData(self.detector)
         self.unmatchCatStar = raftCcdData.RaftCcdData(self.detector)
         self.unmatchCatGal  = raftCcdData.RaftCcdData(self.detector)
         self.unmatchImage   = raftCcdData.RaftCcdData(self.detector)
 
         self.depth          = raftCcdData.RaftCcdData(self.detector)
+        
+        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
+        
 
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
 
-            print "Running", ccdId
+            matchList = self.matchListDict[key]
+            sroMagsStar = []
+            sroMagsGxy = []
+            
+            for m in matchList:
+                sref, s, dist = m
 
-            # All stars/gals through object association
-            matchObjSql  = 'select sro.%sMag, sro.isStar' % (filterName)
-            matchObjSql += ' from SimRefObject as sro, RefObjMatch as rom, Source as s, Science_Ccd_Exposure as sce'
-            matchObjSql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-            matchObjSql += ' and (sce.visit = %s)' % (dataId['visit'])
-            matchObjSql += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
-            matchObjSql += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
-            matchObjSql += ' and (s.objectId = rom.objectId)'
-            matchObjSql += ' and (rom.refObjectId = sro.refObjectId)'
-            matchObjSql += ' and (s.objectID is not NULL)'
-            matchObjResults = data.dbInterface.execute(matchObjSql)
-            sroMags = num.array([x[0] for x in matchObjResults])
-            isStar  = num.array([x[1] for x in matchObjResults])
-            self.matchStarObj.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
-            self.matchGalObj.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
+                #oid = sref.getId()
 
-            # All stars/gals through source association; more complete than object assoc
-            matchSrcSql  = 'select s.sourceId, sro.refObjectId, sro.%sMag, sro.isStar' % (filterName)
-            matchSrcSql += ' from SimRefObject as sro, RefSrcMatch as rsm, Source as s, Science_Ccd_Exposure as sce'
-            matchSrcSql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-            matchSrcSql += ' and (sce.visit = %s)' % (dataId['visit'])
-            matchSrcSql += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
-            matchSrcSql += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
-            matchSrcSql += ' and (s.sourceId = rsm.sourceId)'
-            matchSrcSql += ' and (rsm.refObjectId = sro.refObjectId)'
-            matchSrcResults = data.dbInterface.execute(matchSrcSql)
-            srcId   = num.array([x[0] for x in matchSrcResults])
-            sroId   = num.array([x[1] for x in matchSrcResults])
-            sroMags = num.array([x[2] for x in matchSrcResults])
-            isStar  = num.array([x[3] for x in matchSrcResults])
-            self.matchStarSrc.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
-            self.matchGalSrc.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
+                if fluxType == "psf":
+                    fref  = sref.getPsfFlux()
+                    f     = s.getPsfFlux()
+                    ferr  = s.getPsfFluxErr()
+                else:
+                    fref  = sref.getPsfFlux()
+                    f     = s.getApFlux()
+                    ferr  = s.getApFluxErr()
+                    
+                flags = s.getFlagForDetection()
 
-            if len(sroId) > 0:
-                # All unmatched stars/gals
-                catsql      = 'select sro.refObjectId, sro.%sMag, sro.isStar' % (filterName)
-                catsql     += ' from SimRefObject as sro, Science_Ccd_Exposure as sce'
-                catsql     += ' where (sce.visit = %s)' % (dataId['visit'])
-                catsql     += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
-                catsql     += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
-                catsql     += ' and qserv_ptInSphPoly(sro.ra, sro.decl,'
-                catsql     += ' concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
-                catsql     += ' sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl))'
-                catsql     += ' and (sro.refObjectId not in (%s))' % (','.join(map(str, sroId)))
-                catresults  = data.dbInterface.execute(catsql)
-                sroMags = num.array([x[1] for x in catresults])
-                isStar  = num.array([x[2] for x in catresults])
-                self.unmatchCatStar.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
-                self.unmatchCatGal.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
-            else:
-                self.unmatchCatStar.set(raftId, ccdId, num.array(()))
-                self.unmatchCatGal.set(raftId, ccdId, num.array(()))
+                if (fref > 0.0 and f > 0.0  and not flags & badFlags):
+                    mrefmag  = -2.5*num.log10(fref)
 
-            if len(srcId) > 0:
-                # All unmatched in image, supposedly good (flagForDetection)
-                detsql      = 'select dnToAbMag(s.%sFlux, sce.fluxMag0)' % (fluxType)
-                detsql     += ' from Source as s, Science_Ccd_Exposure as sce' 
-                detsql     += ' where ((s.flagForDetection & 0xa01) = 0)'
-                detsql     += ' and (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-                detsql     += ' and (sce.visit = %s)' % (dataId['visit'])
-                detsql     += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
-                detsql     += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
-                detsql     += ' and (s.sourceId not in (%s))' % (','.join(map(str, srcId)))
-                detresults  = data.dbInterface.execute(detsql)
-                self.unmatchImage.set(raftId, ccdId, num.array([x[0] for x in detresults]))
-            else:
-                self.unmatchImage.set(raftId, ccdId, num.array(()))
+                    star = flags & measAlg.Flags.STAR
 
-            histStarSrc     = num.histogram(self.matchStarSrc.get(raftId, ccdId), bins = self.bins)
+                    if num.isfinite(mrefmag):
+                        if star > 0:
+                            sroMagsStar.append(mrefmag)
+                        else:
+                            sroMagsGxy.append(mrefmag)
+            
+            self.matchStarObj.set(raftId, ccdId, num.array(sroMagsStar))
+            self.matchGalObj.set(raftId, ccdId, num.array(sroMagsGxy))
+
+
+            if False:
+                # All stars/gals through source association; more complete than object assoc
+                matchSrcSql  = 'select s.sourceId, sro.refObjectId, sro.%sMag, sro.isStar' % (filterName)
+                matchSrcSql += ' from SimRefObject as sro, RefSrcMatch as rsm, Source as s, Science_Ccd_Exposure as sce'
+                matchSrcSql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+                matchSrcSql += ' and (sce.visit = %s)' % (dataId['visit'])
+                matchSrcSql += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
+                matchSrcSql += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
+                matchSrcSql += ' and (s.sourceId = rsm.sourceId)'
+                matchSrcSql += ' and (rsm.refObjectId = sro.refObjectId)'
+                matchSrcResults = data.dbInterface.execute(matchSrcSql)
+                srcId   = num.array([x[0] for x in matchSrcResults])
+                sroId   = num.array([x[1] for x in matchSrcResults])
+                sroMags = num.array([x[2] for x in matchSrcResults])
+                isStar  = num.array([x[3] for x in matchSrcResults])
+                self.matchStarSrc.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
+                self.matchGalSrc.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
+
+            
+            # Unmatched detections (found by never inserted ... false positives)
+            sids = {}
+            refIds = {}
+            for m in self.matchListDict[key]:
+                sref, s, dist = m
+                sids[s.getId()] = 1
+                refIds[sref.getId()] = 1
+                
+            unmatchImage = []
+            for s in self.ssDict[key]:
+                if not sids.has_key(s.getId()):
+                    if self.fluxType == 'psf':
+                        f = s.getPsfFlux()
+                    else:
+                        f = s.getApFlux()
+                    unmatchImage.append(-2.5*num.log10(f))
+            uimgmag = num.array(unmatchImage)
+            self.unmatchImage.set(raftId, ccdId, uimgmag)
+
+            # Unmatched reference objects (inserted, but not found ... false negatives)
+            unmatchCatStar = []
+            unmatchCatGal = []
+            for sro in self.sroDict[key]:
+                if not refIds.has_key(sro.refObjectId):
+                    mag = sro.getMag(filterName)
+                    if sro.isStar:
+                        unmatchCatStar.append(mag)
+                    else:
+                        unmatchCatGal.append(mag)
+            self.unmatchCatStar.set(raftId, ccdId, num.array(unmatchCatStar))
+            self.unmatchCatGal.set(raftId, ccdId, num.array(unmatchCatGal))
+
+            # decide which matchStar list to use: matchStarSrc or matchStarObj (Src better?)
+            matchStarList = self.matchStarObj.get(raftId, ccdId)
+            
+            ###########################################################
+            histStarSrc     = num.histogram(matchStarList, bins = self.bins, new=True)
             maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
-            histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins)
+            histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins, new=True)
             histRatio       = histStarSrc[0]/(1.0 * (histStarSrc[0]+histUnmatchStar[0]))
 
             badDepth = 0.0
@@ -129,10 +158,13 @@ class CompletenessQa2(qaAna.QaAnalysis):
             self.depth.set(raftId, ccdId, maxDepth)
 
             areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
-            label = "photometric depth "+ areaLabel
+            label = "photometric depth "
             comment = "magnitude where completeness drops below 0.5"
             test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
+
+
+
             
     def plot(self, data, dataId, showUndefined=False):
         testSet = self.getTestSet(data, dataId)
@@ -165,8 +197,8 @@ class CompletenessQa2(qaAna.QaAnalysis):
         for raft, ccd in self.depth.raftCcdKeys():
             matchStarObjData   = self.matchStarObj.get(raft, ccd)
             matchGalObjData    = self.matchGalObj.get(raft, ccd)
-            matchStarSrcData   = self.matchStarSrc.get(raft, ccd)
-            matchGalSrcData    = self.matchGalSrc.get(raft, ccd)
+            matchStarSrcData   = num.array([]) #self.matchStarSrc.get(raft, ccd)
+            matchGalSrcData    = num.array([]) #self.matchGalSrc.get(raft, ccd)
             unmatchCatStarData = self.unmatchCatStar.get(raft, ccd)
             unmatchCatGalData  = self.unmatchCatGal.get(raft, ccd)
             unmatchImageData   = self.unmatchImage.get(raft, ccd)

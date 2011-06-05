@@ -18,6 +18,7 @@ import re
 import optparse
 import os
 import datetime
+import traceback
 import copy
 
 import lsst.testing.pipeQA as pipeQA
@@ -31,7 +32,7 @@ import lsst.pex.policy as pexPolicy
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
+def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptExit=False):
 
     data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera)
 
@@ -94,6 +95,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
                                                        policy.get("completeMaxMag")))
        
     for visit in visits:
+        testset = pipeQA.TestSet(group="", label="QA-failures")
+        
         for a in analysisList:
             
             test = str(a)
@@ -103,14 +106,25 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None):
             print "Running " + test + "  visit:" + str(visit)
             dataIdVisit = copy.copy(dataId)
             dataIdVisit['visit'] = visit
-            a.test(data, dataIdVisit)
-            a.plot(data, dataIdVisit, showUndefined=False)
-            if False:
+
+
+            # For debugging, it's useful to exit on failure, and get
+            # the full traceback
+            if exceptExit:
+                a.test(data, dataIdVisit)
+                a.plot(data, dataIdVisit, showUndefined=False)
+                
+            # otherwise, we want to continue gracefully
+            else:
                 try:
                     a.test(data, dataIdVisit)
                 except Exception, e:
-                    print 'WARNING:', e
-                    pass
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    s = traceback.format_exception(exc_type, exc_value,
+                                                   exc_traceback)
+                    label = "visit_%s_analysis_%s" % (visit, test)
+                    uncaughtException = "".join(s)
+                    testset.importExceptionDict({label: uncaughtException})
                 else:
                     a.plot(data, dataIdVisit, showUndefined=False)
             a.free()
@@ -138,6 +152,8 @@ if __name__ == '__main__':
                       help="Specify ccd as regex (default=%default)")
     parser.add_option("-C", "--camera", default=None,
 		      help="Specify a camera and override auto-detection (default=%default)")
+    parser.add_option("-e", "--exceptExit", default=False, action='store_true',
+                      help="Don't capture exceptions, fail and exit (default=%default)")
     parser.add_option("-r", "--raft", default=".*",
                       help="Specify raft as regex (default=%default)")
     parser.add_option("-R", "--rerun", default=None,
@@ -162,4 +178,4 @@ if __name__ == '__main__':
     rerun = opts.rerun
     dataset, = args
     
-    main(dataset, dataId, rerun, opts.test, opts.camera)
+    main(dataset, dataId, rerun, opts.test, opts.camera, opts.exceptExit)

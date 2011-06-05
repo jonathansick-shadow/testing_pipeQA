@@ -108,7 +108,7 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
             # add a test for acceptible psf ellipticity
             self.ellipMedians.set(raft, ccd, ellipMed)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            label = "median psf ellipticity "+areaLabel
+            label = "median psf ellipticity "
             comment = "median psf ellipticity (nstar=%d)" % (n)
             testSet.addTest( testCode.Test(label, ellipMed, self.limits, comment, areaLabel=areaLabel) )
 

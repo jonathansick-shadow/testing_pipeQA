@@ -100,7 +100,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             self.medThetaRad.set(raft, ccd, medThetaRad)
             
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            label = "median astrometry error "+ areaLabel
+            label = "median astrometry error "
             comment = "median sqrt(dRa^2+dDec^2) (arcsec, nstar=%d)" % (n)
             test = testCode.Test(label, medErrArcsec, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)

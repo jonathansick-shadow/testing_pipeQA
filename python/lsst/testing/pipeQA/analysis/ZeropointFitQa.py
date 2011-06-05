@@ -62,8 +62,6 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             ccdId      = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
             
-            print "Running", ccdId
-
             zpt = -2.5*num.log10(self.calib[key].getFluxMag0())[0]
             self.zeroPoint.set(raftId, ccdId, zpt)
 
