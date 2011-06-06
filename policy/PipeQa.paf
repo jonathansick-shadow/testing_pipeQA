@@ -5,10 +5,10 @@
 definitions: {
 
     doZptQa: {
-        type: bool
+        type: string
         description: "Photometric Zeropoint: qaAnalysis.ZeropointQaAnalysis"
-        maxOccurs: 1
-        default: false
+        maxOccurs: 4
+        default: "none"
     }
 
     zptQaMetricMin: {
@@ -28,10 +28,11 @@ definitions: {
     ###
     
     doZptFitQa: {
-        type: bool
+        type: string
         description: "Photometric Zeropoint: qaAnalysis.ZeropointFitQa"
         maxOccurs: 1
-        default: true
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
 
     zptFitQaOffsetMin: {
@@ -51,10 +52,11 @@ definitions: {
     ###
     
     doEmptySectorQa: {
-        type: bool
+        type: string
         description: "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis"
         maxOccurs: 1
-        default: true
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
 
     emptySectorMaxMissing: {
@@ -67,10 +69,11 @@ definitions: {
     ###
     
     doAstromQa: {
-        type: bool
+        type: string
         description: "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis"
         maxOccurs: 1
-        default: true
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
 
     astromQaMaxErr: {
@@ -83,10 +86,11 @@ definitions: {
     ###
        
     doPhotCompareQa: {
-        type: bool
+        type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 1
-        default: true
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
 
     photCompareTypes: {
@@ -153,10 +157,11 @@ definitions: {
     ###
 
     doPsfEllipQa: {
-        type: bool
+        type: string
         description: "Psf Ellipticity: qaAnalysis.PsfEllipticityQaAnalysis"
         maxOccurs: 1
-        default: true
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
 
     psfEllipMax: {
@@ -169,17 +174,19 @@ definitions: {
     ###
 
     doCompleteQa: {
-        type: bool
+        type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
         maxOccurs: 1
-        default: false
+        maxOccurs: 4
+        default: "None"
     }
 
     doCompleteQa2: {
-        type: bool
+        type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa2"
         maxOccurs: 1
-        default: true
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
 
     completeMinMag: {

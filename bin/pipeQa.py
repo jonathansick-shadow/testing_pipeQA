@@ -61,20 +61,20 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
     policy  = pexPolicy.Policy.createPolicy(policyFile, policyFile.getRepositoryPath(), True)
     
     analysisList = []
-    if policy.get("doZptQa"):
+    if data.cameraInfo.name in policy.getStringArray("doZptQa"):
         zptMin = policy.get("zptQaMetricMin")
         zptMax = policy.get("zptQaMetricMax")
         analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax))
-    if policy.get("doZptFitQa"):
+    if data.cameraInfo.name in policy.getStringArray("doZptFitQa"):
         offsetMin = policy.get("zptFitQaOffsetMin")
         offsetMax = policy.get("zptFitQaOffsetMax")
         analysisList.append(qaAnalysis.ZeropointFitQa(offsetMin, offsetMax))
-    if policy.get("doEmptySectorQa"):
+    if data.cameraInfo.name in policy.getStringArray("doEmptySectorQa"):
         maxMissing = policy.get("emptySectorMaxMissing")
         analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4))
-    if policy.get("doAstromQa"):
+    if data.cameraInfo.name in policy.getStringArray("doAstromQa"):
         analysisList.append(qaAnalysis.AstrometricErrorQaAnalysis(policy.get("astromQaMaxErr")))
-    if policy.get("doPhotCompareQa"):
+    if data.cameraInfo.name in policy.getStringArray("doPhotCompareQa"):
         magCut   = policy.get("photCompareMagCut")
         deltaMin = policy.get("photCompareDeltaMin")
         deltaMax = policy.get("photCompareDeltaMax")
@@ -85,12 +85,12 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
             cmp1, cmp2 = types.split()
             analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
                                                                  rmsMax, slopeMin, slopeMax))
-    if policy.get("doPsfEllipQa"):
+    if data.cameraInfo.name in policy.getStringArray("doPsfEllipQa"):
         analysisList.append(qaAnalysis.PsfEllipticityQaAnalysis(policy.get("psfEllipMax")))
-    if policy.get("doCompleteQa"):
+    if data.cameraInfo.name in policy.getStringArray("doCompleteQa"):
         analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
                                                       policy.get("completeMaxMag")))
-    if policy.get("doCompleteQa2"):
+    if data.cameraInfo.name in policy.getStringArray("doCompleteQa2"):
         analysisList.append(qaAnalysis.CompletenessQa2(policy.get("completeMinMag"),
                                                        policy.get("completeMaxMag")))
        

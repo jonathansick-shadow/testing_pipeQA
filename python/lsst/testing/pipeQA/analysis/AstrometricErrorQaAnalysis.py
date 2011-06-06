@@ -15,6 +15,7 @@ import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 from  matplotlib.ticker import MaxNLocator
 from matplotlib.collections import LineCollection
+from matplotlib.patches import Circle
 
 class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
@@ -131,6 +132,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         figsize = (6.5, 3.25)
         conv = colors.ColorConverter()
         black = conv.to_rgb('k')
+        red = conv.to_rgb('r')
+        green = conv.to_rgb('g')
 
         
         i = 0
@@ -199,10 +202,20 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             xy2 = zip(dx, dy)
             xy1 = zip(z, z)
             lines = zip(xy1, xy2)
-            p = LineCollection(lines, colors=black*len(lines))
+            p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
             ax.add_collection(p)
-            ax.scatter(dx, dy, s=1.0, color='r')
+            ax.scatter(dx, dy, s=1.0, color='k', zorder=2, label="_nolegend_")
 
+            r = numpy.sqrt(dx**2 + dy**2)
+            isort = r.argsort()
+            i50 = isort[len(r)/2]
+            r50 = r[i50]
+            c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
+            ax.add_patch(c50)
+
+            fp = fm.FontProperties(size="xx-small")
+            ax.legend(prop=fp)
+            
             ax.set_xlabel("dRa [arcsec]")
             ax.set_ylabel("dDec [arcsec]")
             ax.set_xlim([-rmax, rmax])

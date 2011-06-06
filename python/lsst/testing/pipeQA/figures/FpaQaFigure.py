@@ -28,7 +28,7 @@ class FpaQaFigure(QaFigure):
         @param map         Map areas to use.
         """
 
-        QaFigure.__init__(self)
+        QaFigure.__init__(self, size=(3.5,3.5))
         self.cameraInfo = cameraInfo
         self.camera = self.cameraInfo.camera
         self.centers, self.rectangles, self.raftBoundaries, self.ccdBoundaries = \
@@ -280,9 +280,9 @@ class FpaQaFigure(QaFigure):
             self.labelSensors(sp)
 
         if not title is None:
-            sp.set_title(title)
-        sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
-        sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
+            sp.set_title(title, fontsize=12)
+        sp.set_xlabel("Focal Plane X", fontsize = 10)
+        sp.set_ylabel("Focal Plane Y", fontsize = 10)
 
         self.adjustTickLabels(sp, cb)
 
@@ -451,9 +451,9 @@ class VectorFpaQaFigure(FpaQaFigure):
             self.labelSensors(sp)
 
         if not title is None:
-            sp.set_title(title)
-        sp.set_xlabel("Focal Plane X", fontsize = 10, weight = 'bold')
-        sp.set_ylabel("Focal Plane Y", fontsize = 10, weight = 'bold')
+            sp.set_title(title, fontsize=12)
+        sp.set_xlabel("Focal Plane X", fontsize = 10)
+        sp.set_ylabel("Focal Plane Y", fontsize = 10)
 
         if haveColors:
             self.adjustTickLabels(sp, cb)

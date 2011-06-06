@@ -203,7 +203,7 @@ class CompletenessQa2(qaAna.QaAnalysis):
             unmatchCatGalData  = self.unmatchCatGal.get(raft, ccd)
             unmatchImageData   = self.unmatchImage.get(raft, ccd)
 
-            print "Plotting", ccd
+            print "Plotting ", ccd
 
             # Just to get the histogram results
             fig = qaFig.QaFigure()

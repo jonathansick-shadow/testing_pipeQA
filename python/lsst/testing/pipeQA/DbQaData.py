@@ -100,6 +100,8 @@ class DbQaData(QaData):
         sql += '    and '+idWhere
         
 
+        print "Loading MatchList for: ", dataIdStr, "...",
+
         # run the query
         results  = self.dbInterface.execute(sql)
 
@@ -156,6 +158,7 @@ class DbQaData(QaData):
         for k, matchList in matchListDict.items():
             self.matchListCache[k] = matchListDict[k]
 
+        print "done."
         return matchListDict
 
 
@@ -208,6 +211,7 @@ class DbQaData(QaData):
                     ssDict[key] = ss
             return ssDict
 
+        print "Loading SourceSets for: ", dataIdStr, "...",
 
         # run the query
         results  = self.dbInterface.execute(sql)
@@ -264,6 +268,7 @@ class DbQaData(QaData):
         for k, ss in ssDict.items():
             self.sourceSetCache[k] = ssDict[k]
         
+        print "done."
         return ssDict
 
 
@@ -283,7 +288,6 @@ class DbQaData(QaData):
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
         sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
         sql += '  from SimRefObject as sro, Science_Ccd_Exposure as sce'
-        #sql += '  where (sro.scienceCcdExposureId = sce.scienceCcdExposureId)'
         sql += '  where (qserv_ptInSphPoly(sro.ra, sro.decl,'
         sql += '          concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
         sql += '          sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl)))'
@@ -317,6 +321,7 @@ class DbQaData(QaData):
                     sroDict[key] = sro
             return sroDict
 
+        print "Loading RefObjects for: ", dataIdStr, "...",
         # run the query
         results  = self.dbInterface.execute(sql)
 
@@ -338,6 +343,7 @@ class DbQaData(QaData):
         for k, sro in sroDict.items():
             self.refObjectCache[k] = sroDict[k]
         
+        print "done."
         return sroDict
 
 
@@ -371,7 +377,7 @@ class DbQaData(QaData):
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-        
+
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
@@ -404,10 +410,11 @@ class DbQaData(QaData):
                 return
 
         # if the dataIdRegex is identical to an earlier query, we must already have all the data
-        #dataIdStr = self._dataIdToString(dataIdRegex)
-        #if self.queryCache.has_key(dataIdStr):
-        #    return
+        dataIdStr = self._dataIdToString(dataIdRegex)
+        if self.calexpCache.has_key(dataIdStr) and self.calexpCache[dataIdStr]:
+            return
 
+        print "Loading Calexp for: ", dataIdStr, "...",
         # run the query
         results  = self.dbInterface.execute(sql)
 
@@ -450,6 +457,9 @@ class DbQaData(QaData):
                 self.calibCache[key] = calib
 
             self.calexpCache[key] = True
+        
+        self.calexpCache[dataIdStr] = True
+        print "done."
 
 
 
