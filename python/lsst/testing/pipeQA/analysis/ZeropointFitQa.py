@@ -65,42 +65,51 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             zpt = -2.5*num.log10(self.calib[key].getFluxMag0())[0]
             self.zeroPoint.set(raftId, ccdId, zpt)
 
-            matchList = self.matchListDict[key]
             mrefSmag, mimgSmag, mimgSmerr = [], [], []
             mrefGmag, mimgGmag, mimgGmerr = [], [], []
-            for m in matchList:
-                sref, s, dist = m
 
-                #oid = sref.getId()
+            # Unmatched detections (found by never inserted ... false positives)
+            sids = {}
+            refIds = {}
 
-                if fluxType == "psf":
-                    fref  = sref.getPsfFlux()
-                    f     = s.getPsfFlux()
-                    ferr  = s.getPsfFluxErr()
-                else:
-                    fref  = sref.getPsfFlux()
-                    f     = s.getApFlux()
-                    ferr  = s.getApFluxErr()
-                    
-                flags = s.getFlagForDetection()
+            if self.matchListDict.has_key(key):
+                matchList = self.matchListDict[key]
+                for m in matchList:
+                    sref, s, dist = m
 
-                if (fref > 0.0 and f > 0.0  and not flags & badFlags):
-                    mrefmag  = -2.5*num.log10(fref)
-                    mimgmag  = -2.5*num.log10(f)
-                    mimgmerr =  2.5 / num.log(10.0) * ferr / f
+                    sids[s.getId()] = 1
+                    refIds[sref.getId()] = 1
+    
+                    #oid = sref.getId()
+    
+                    if fluxType == "psf":
+                        fref  = sref.getPsfFlux()
+                        f     = s.getPsfFlux()
+                        ferr  = s.getPsfFluxErr()
+                    else:
+                        fref  = sref.getPsfFlux()
+                        f     = s.getApFlux()
+                        ferr  = s.getApFluxErr()
+                        
+                    flags = s.getFlagForDetection()
+    
+                    if (fref > 0.0 and f > 0.0  and not flags & badFlags):
+                        mrefmag  = -2.5*num.log10(fref)
+                        mimgmag  = -2.5*num.log10(f)
+                        mimgmerr =  2.5 / num.log(10.0) * ferr / f
+    
+                        star = flags & measAlg.Flags.STAR
+    
+                        if num.isfinite(mrefmag) and num.isfinite(mimgmag):
+                            if star > 0:
+                                mrefSmag.append(mrefmag)
+                                mimgSmag.append(mimgmag)
+                                mimgSmerr.append(mimgmerr)
+                            else:
+                                mrefGmag.append(mrefmag)
+                                mimgGmag.append(mimgmag)
+                                mimgGmerr.append(mimgmerr)
 
-                    star = flags & measAlg.Flags.STAR
-
-                    if num.isfinite(mrefmag) and num.isfinite(mimgmag):
-                        if star > 0:
-                            mrefSmag.append(mrefmag)
-                            mimgSmag.append(mimgmag)
-                            mimgSmerr.append(mimgmerr)
-                        else:
-                            mrefGmag.append(mrefmag)
-                            mimgGmag.append(mimgmag)
-                            mimgGmerr.append(mimgmerr)
-            
             mrefSmag = num.array(mrefSmag)
             mimgSmag = num.array(mimgSmag)
             mimgSmerr = num.array(mimgSmerr)
@@ -114,32 +123,25 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                                                 "Imgmag": mimgGmag,
                                                 "Imgerr": mimgGmerr})
 
-    
-            # Unmatched detections (found by never inserted ... false positives)
-            sids = {}
-            refIds = {}
-            for m in self.matchListDict[key]:
-                sref, s, dist = m
-                sids[s.getId()] = 1
-                refIds[sref.getId()] = 1
-                
             unmatchedImg = []
-            for s in self.ssDict[key]:
-                if not sids.has_key(s.getId()):
-                    if self.fluxType == 'psf':
-                        f = s.getPsfFlux()
-                    else:
-                        f = s.getApFlux()
-                    unmatchedImg.append(-2.5*num.log10(f))
+            if self.ssDict.has_key(key):
+                for s in self.ssDict[key]:
+                    if not sids.has_key(s.getId()):
+                        if self.fluxType == 'psf':
+                            f = s.getPsfFlux()
+                        else:
+                            f = s.getApFlux()
+                        unmatchedImg.append(-2.5*num.log10(f))
             uimgmag = num.array(unmatchedImg)
             self.unmatchedImg.set(raftId, ccdId, uimgmag)
 
             # Unmatched reference objects (inserted, but not found ... false negatives)
             unmatchedRef = []
-            for sro in self.sroDict[key]:
-                if not refIds.has_key(sro.refObjectId):
-                    mag = sro.getMag(filterName)
-                    unmatchedRef.append(mag)
+            if self.sroDict.has_key(key):
+                for sro in self.sroDict[key]:
+                    if not refIds.has_key(sro.refObjectId):
+                        mag = sro.getMag(filterName)
+                        unmatchedRef.append(mag)
             urefmag = num.array(unmatchedRef)
             self.unmatchedRef.set(raftId, ccdId, urefmag)
                         
