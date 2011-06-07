@@ -62,10 +62,10 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             ccdId      = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
 
-            fmag0 = self.calib[key].getFluxMag0()
+            fmag0 = self.calib[key].getFluxMag0()[0]
             if fmag0 <= 0.0:
                 continue
-            zpt = -2.5*num.log10(fmag0[0])
+            zpt = -2.5*num.log10(fmag0)
             self.zeroPoint.set(raftId, ccdId, zpt)
 
             mrefSmag, mimgSmag, mimgSmerr = [], [], []
@@ -93,7 +93,10 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                         fref  = sref.getPsfFlux()
                         f     = s.getApFlux()
                         ferr  = s.getApFluxErr()
-                        
+
+                    # un-calibrate the magnitudes
+                    f *= fmag0
+
                     flags = s.getFlagForDetection()
     
                     if (fref > 0.0 and f > 0.0  and not flags & badFlags):
@@ -134,8 +137,13 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                             f = s.getPsfFlux()
                         else:
                             f = s.getApFlux()
+
                         if f <= 0.0:
                             continue
+
+                        # un-calibrate the magnitudes
+                        f *= fmag0
+
                         unmatchedImg.append(-2.5*num.log10(f))
             uimgmag = num.array(unmatchedImg)
             self.unmatchedImg.set(raftId, ccdId, uimgmag)
@@ -324,13 +332,13 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             # Mag - Zpt
             ax4  = fig.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
             if len(mimgSmag):
-                mimgSeb = ax4.errorbar(mimgSmag, mimgSmag - mrefSmag,
+                mimgSeb = ax4.errorbar(mimgSmag, mimgSmag - self.zeroPoint.get(raft, ccd) - mrefSmag,
                                        yerr = mimgSmerr,
                                        fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
                 mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
     
             if len(mimgGmag):
-                mimgGeb = ax4.errorbar(mimgGmag, mimgGmag - mrefGmag,
+                mimgGeb = ax4.errorbar(mimgGmag, mimgGmag - self.zeroPoint.get(raft, ccd) - mrefGmag,
                                        yerr = mimgGmerr,
                                        fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
                 mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
