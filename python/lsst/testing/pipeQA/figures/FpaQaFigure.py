@@ -280,7 +280,7 @@ class FpaQaFigure(QaFigure):
             self.labelSensors(sp)
 
         if not title is None:
-            self.fig.text(0.5, 0.95, title, horizontalalignment="center", fontsize=12)
+            self.fig.text(0.5, 0.94, title, horizontalalignment="center", fontsize=12)
             #sp.set_title(title, fontsize=12)
         sp.set_xlabel("Focal Plane X", fontsize = 10)
         sp.set_ylabel("Focal Plane Y", fontsize = 10)
@@ -452,7 +452,7 @@ class VectorFpaQaFigure(FpaQaFigure):
             self.labelSensors(sp)
 
         if not title is None:
-            self.fig.text(0.5, 0.95, title, horizontalalignment="center", fontsize=12)
+            self.fig.text(0.5, 0.94, title, horizontalalignment="center", fontsize=12)
             #sp.set_title(title, fontsize=12)
         sp.set_xlabel("Focal Plane X", fontsize = 10)
         sp.set_ylabel("Focal Plane Y", fontsize = 10)
