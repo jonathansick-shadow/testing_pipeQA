@@ -46,36 +46,42 @@ class CompletenessQa2(qaAna.QaAnalysis):
             ccdId      = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
 
-            matchList = self.matchListDict[key]
             sroMagsStar = []
             sroMagsGxy = []
-            
-            for m in matchList:
-                sref, s, dist = m
+            # Unmatched detections (found by never inserted ... false positives)
+            sids = {}
+            refIds = {}
 
-                #oid = sref.getId()
-
-                if fluxType == "psf":
-                    fref  = sref.getPsfFlux()
-                    f     = s.getPsfFlux()
-                    ferr  = s.getPsfFluxErr()
-                else:
-                    fref  = sref.getPsfFlux()
-                    f     = s.getApFlux()
-                    ferr  = s.getApFluxErr()
-                    
-                flags = s.getFlagForDetection()
-
-                if (fref > 0.0 and f > 0.0  and not flags & badFlags):
-                    mrefmag  = -2.5*num.log10(fref)
-
-                    star = flags & measAlg.Flags.STAR
-
-                    if num.isfinite(mrefmag):
-                        if star > 0:
-                            sroMagsStar.append(mrefmag)
-                        else:
-                            sroMagsGxy.append(mrefmag)
+            if self.matchListDict.has_key(key):
+                matchList = self.matchListDict[key]
+                for m in matchList:
+                    sref, s, dist = m
+                    sids[s.getId()] = 1
+                    refIds[sref.getId()] = 1
+    
+                    #oid = sref.getId()
+    
+                    if fluxType == "psf":
+                        fref  = sref.getPsfFlux()
+                        f     = s.getPsfFlux()
+                        ferr  = s.getPsfFluxErr()
+                    else:
+                        fref  = sref.getPsfFlux()
+                        f     = s.getApFlux()
+                        ferr  = s.getApFluxErr()
+                        
+                    flags = s.getFlagForDetection()
+    
+                    if (fref > 0.0 and f > 0.0  and not flags & badFlags):
+                        mrefmag  = -2.5*num.log10(fref)
+    
+                        star = flags & measAlg.Flags.STAR
+    
+                        if num.isfinite(mrefmag):
+                            if star > 0:
+                                sroMagsStar.append(mrefmag)
+                            else:
+                                sroMagsGxy.append(mrefmag)
             
             self.matchStarObj.set(raftId, ccdId, num.array(sroMagsStar))
             self.matchGalObj.set(raftId, ccdId, num.array(sroMagsGxy))
@@ -100,35 +106,29 @@ class CompletenessQa2(qaAna.QaAnalysis):
                 self.matchGalSrc.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
 
             
-            # Unmatched detections (found by never inserted ... false positives)
-            sids = {}
-            refIds = {}
-            for m in self.matchListDict[key]:
-                sref, s, dist = m
-                sids[s.getId()] = 1
-                refIds[sref.getId()] = 1
-                
             unmatchImage = []
-            for s in self.ssDict[key]:
-                if not sids.has_key(s.getId()):
-                    if self.fluxType == 'psf':
-                        f = s.getPsfFlux()
-                    else:
-                        f = s.getApFlux()
-                    unmatchImage.append(-2.5*num.log10(f))
+            if self.ssDict.has_key(key):
+                for s in self.ssDict[key]:
+                    if not sids.has_key(s.getId()):
+                        if self.fluxType == 'psf':
+                            f = s.getPsfFlux()
+                        else:
+                            f = s.getApFlux()
+                        unmatchImage.append(-2.5*num.log10(f))
             uimgmag = num.array(unmatchImage)
             self.unmatchImage.set(raftId, ccdId, uimgmag)
 
             # Unmatched reference objects (inserted, but not found ... false negatives)
             unmatchCatStar = []
             unmatchCatGal = []
-            for sro in self.sroDict[key]:
-                if not refIds.has_key(sro.refObjectId):
-                    mag = sro.getMag(filterName)
-                    if sro.isStar:
-                        unmatchCatStar.append(mag)
-                    else:
-                        unmatchCatGal.append(mag)
+            if self.sroDict.has_key(key):
+                for sro in self.sroDict[key]:
+                    if not refIds.has_key(sro.refObjectId):
+                        mag = sro.getMag(filterName)
+                        if sro.isStar:
+                            unmatchCatStar.append(mag)
+                        else:
+                            unmatchCatGal.append(mag)
             self.unmatchCatStar.set(raftId, ccdId, num.array(unmatchCatStar))
             self.unmatchCatGal.set(raftId, ccdId, num.array(unmatchCatGal))
 
@@ -136,9 +136,9 @@ class CompletenessQa2(qaAna.QaAnalysis):
             matchStarList = self.matchStarObj.get(raftId, ccdId)
             
             ###########################################################
-            histStarSrc     = num.histogram(matchStarList, bins = self.bins, new=True)
+            histStarSrc     = num.histogram(matchStarList, bins = self.bins)
             maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
-            histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins, new=True)
+            histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins)
             histRatio       = histStarSrc[0]/(1.0 * (histStarSrc[0]+histUnmatchStar[0]))
 
             badDepth = 0.0
