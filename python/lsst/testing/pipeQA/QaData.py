@@ -35,6 +35,33 @@ class QaData(object):
 
 
         self.initCache()
+
+        self.loadDepth = 0
+        self.lastPrint = None
+
+    def printStartLoad(self, message):
+        if self.loadDepth > 0:
+            print "\n", " "*4*self.loadDepth, message,
+        else:
+            print message,
+        sys.stdout.flush()
+        self.loadDepth += 1
+        self.lastPrint = 0
+
+    def printStopLoad(self):
+        if self.loadDepth > 1:
+            if self.lastPrint == 1:
+                print "\n", " "*4*(self.loadDepth-1), "done."
+            else:
+                print "done.",
+        else:
+            if self.lastPrint == 1:
+                print "\ndone."
+            else:
+                print "done."
+        sys.stdout.flush()
+        self.loadDepth -= 1
+        self.lastPrint = 1
         
 
     def initCache(self):

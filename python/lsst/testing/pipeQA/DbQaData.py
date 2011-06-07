@@ -37,6 +37,9 @@ class DbQaData(QaData):
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
 
+        loading = False
+
+
     def getMatchListBySensor(self, dataIdRegex):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
 
@@ -100,7 +103,8 @@ class DbQaData(QaData):
         sql += '    and '+idWhere
         
 
-        print "Loading MatchList for: ", dataIdStr, "...",
+        self.printStartLoad("Loading MatchList for: " + dataIdStr + "...")
+
 
         # run the query
         results  = self.dbInterface.execute(sql)
@@ -158,7 +162,8 @@ class DbQaData(QaData):
         for k, matchList in matchListDict.items():
             self.matchListCache[k] = matchListDict[k]
 
-        print "done."
+        self.printStopLoad()
+        
         return matchListDict
 
 
@@ -211,8 +216,8 @@ class DbQaData(QaData):
                     ssDict[key] = ss
             return ssDict
 
-        print "Loading SourceSets for: ", dataIdStr, "...",
-
+        self.printStartLoad("Loading SourceSets for: " + dataIdStr + "...")
+        
         # run the query
         results  = self.dbInterface.execute(sql)
 
@@ -268,7 +273,8 @@ class DbQaData(QaData):
         for k, ss in ssDict.items():
             self.sourceSetCache[k] = ssDict[k]
         
-        print "done."
+        self.printStopLoad()
+
         return ssDict
 
 
@@ -321,7 +327,8 @@ class DbQaData(QaData):
                     sroDict[key] = sro
             return sroDict
 
-        print "Loading RefObjects for: ", dataIdStr, "...",
+        self.printStartLoad("Loading RefObjects for: " + dataIdStr + "...")
+        
         # run the query
         results  = self.dbInterface.execute(sql)
 
@@ -343,7 +350,8 @@ class DbQaData(QaData):
         for k, sro in sroDict.items():
             self.refObjectCache[k] = sroDict[k]
         
-        print "done."
+        self.printStopLoad()
+
         return sroDict
 
 
@@ -414,7 +422,8 @@ class DbQaData(QaData):
         if self.calexpCache.has_key(dataIdStr) and self.calexpCache[dataIdStr]:
             return
 
-        print "Loading Calexp for: ", dataIdStr, "...",
+        self.printStartLoad("Loading Calexp for: " + dataIdStr + "...")
+
         # run the query
         results  = self.dbInterface.execute(sql)
 
@@ -459,7 +468,8 @@ class DbQaData(QaData):
             self.calexpCache[key] = True
         
         self.calexpCache[dataIdStr] = True
-        print "done."
+        
+        self.printStopLoad()
 
 
 

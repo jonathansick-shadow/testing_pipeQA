@@ -49,10 +49,11 @@ def isStarDeltaMag(ss):
         if isinstance(s, list):
             sref, s, d = s0
         f_psf, f_mod = s.getPsfFlux(), s.getModelFlux()
-        m_psf, m_mod = -2.5*numpy.log10(f_psf), -2.5*numpy.log10(f_mod)
+        if f_psf > 0 and f_mod > 0:
+            m_psf, m_mod = -2.5*numpy.log10(f_psf), -2.5*numpy.log10(f_mod)
 
-        if abs(m_psf - m_mod) < 0.1:
-            s.setFlagForDetection(s.getFlagForDetection() | measAlg.Flags.STAR)
+            if abs(m_psf - m_mod) < 0.1:
+                s.setFlagForDetection(s.getFlagForDetection() | measAlg.Flags.STAR)
 
 
 def isStar(ss):

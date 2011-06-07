@@ -114,6 +114,8 @@ class CompletenessQa2(qaAna.QaAnalysis):
                             f = s.getPsfFlux()
                         else:
                             f = s.getApFlux()
+                        if f <= 0.0:
+                            continue
                         unmatchImage.append(-2.5*num.log10(f))
             uimgmag = num.array(unmatchImage)
             self.unmatchImage.set(raftId, ccdId, uimgmag)
@@ -139,7 +141,11 @@ class CompletenessQa2(qaAna.QaAnalysis):
             histStarSrc     = num.histogram(matchStarList, bins = self.bins)
             maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
             histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins)
-            histRatio       = histStarSrc[0]/(1.0 * (histStarSrc[0]+histUnmatchStar[0]))
+            
+            histRatio = num.zeros(len(histStarSrc[0]))
+            w = num.where( histStarSrc[0] + histUnmatchStar[0] != 0)
+            histRatio       = histStarSrc[0][w]/(1.0 * (histStarSrc[0][w]+histUnmatchStar[0][w]))
+
 
             badDepth = 0.0
             idxLim = None
@@ -230,8 +236,11 @@ class CompletenessQa2(qaAna.QaAnalysis):
             if len(unmatchImageData):
                 sp4.hist(unmatchImageData, facecolor='b', bins=self.bins, alpha=0.5, label='All', log=True)
 
-            sp1.legend(numpoints=1, prop=FontProperties(size='x-small'), loc = 'upper left')
-            sp4.legend(numpoints=1, prop=FontProperties(size='x-small'), loc = 'upper left')
+            if len(matchGalObjData) or len(matchStarObjData):
+                sp1.legend(numpoints=1, prop=FontProperties(size='x-small'), loc = 'upper left')
+            if len(unmatchImageData):
+                sp4.legend(numpoints=1, prop=FontProperties(size='x-small'), loc = 'upper left')
+                
             qaFigUtils.qaSetp(sp1.get_xticklabels()+sp2.get_xticklabels()+sp3.get_xticklabels(), visible=False)
 
             sp1.text(0.5, 1.0, 'Match to Obj (G:%d S:%s)' % (len(matchGalObjData),

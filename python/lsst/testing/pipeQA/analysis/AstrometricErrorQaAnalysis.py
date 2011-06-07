@@ -176,7 +176,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             ax.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
 
             ax.scatter(x, y, 0.5, color='r')
-            q = ax.quiver(x, y, dx, dy, color='k', scale=5.0, angles='xy')
+            q = ax.quiver(x, y, dx, dy, color='k', scale=10.0, angles='xy')
             ax.quiverkey(q, 0.9, -0.2, 1.0, "1 arcsec", coordinates='axes',
                          fontproperties={'size':"small"})
 
@@ -224,7 +224,6 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 tic.set_size("x-small")
 
             ax0.set_yticklabels([])
-
 
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)

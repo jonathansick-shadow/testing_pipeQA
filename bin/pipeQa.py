@@ -25,6 +25,7 @@ import lsst.testing.pipeQA as pipeQA
 import lsst.testing.pipeQA.analysis     as qaAnalysis
 import lsst.pex.policy as pexPolicy
 
+import numpy
 
 #############################################################
 #
@@ -34,6 +35,9 @@ import lsst.pex.policy as pexPolicy
 
 def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptExit=False):
 
+    if exceptExit:
+        numpy.seterr(all="raise")
+    
     data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera)
 
     if data.cameraInfo.name == 'lsstSim' and dataIdInput.has_key('ccd'):

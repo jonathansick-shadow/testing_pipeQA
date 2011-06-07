@@ -61,8 +61,11 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
-            
-            zpt = -2.5*num.log10(self.calib[key].getFluxMag0())[0]
+
+            fmag0 = self.calib[key].getFluxMag0()
+            if fmag0 <= 0.0:
+                continue
+            zpt = -2.5*num.log10(fmag0[0])
             self.zeroPoint.set(raftId, ccdId, zpt)
 
             mrefSmag, mimgSmag, mimgSmerr = [], [], []
@@ -131,6 +134,8 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                             f = s.getPsfFlux()
                         else:
                             f = s.getApFlux()
+                        if f <= 0.0:
+                            continue
                         unmatchedImg.append(-2.5*num.log10(f))
             uimgmag = num.array(unmatchedImg)
             self.unmatchedImg.set(raftId, ccdId, uimgmag)

@@ -221,7 +221,7 @@ class FpaQaFigure(QaFigure):
         if failLimits is None:
             failLimits = vlimits
             
-        self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
+        self.fig.subplots_adjust(left=0.195, right=0.95, bottom=0.15)
         
         sp     = self.fig.gca()
 
@@ -280,7 +280,8 @@ class FpaQaFigure(QaFigure):
             self.labelSensors(sp)
 
         if not title is None:
-            sp.set_title(title, fontsize=12)
+            self.fig.text(0.5, 0.95, title, horizontalalignment="center", fontsize=12)
+            #sp.set_title(title, fontsize=12)
         sp.set_xlabel("Focal Plane X", fontsize = 10)
         sp.set_ylabel("Focal Plane Y", fontsize = 10)
 
@@ -340,7 +341,7 @@ class VectorFpaQaFigure(FpaQaFigure):
         if failLimits is None:
             failLimits = vlimits
 
-        self.fig.subplots_adjust(left=0.175, right=0.95, bottom=0.15)
+        self.fig.subplots_adjust(left=0.195, right=0.95, bottom=0.15)
         sp     = self.fig.gca()
         colorValues = []  # needs to be synchronized with self.rectangles
         patches = []
@@ -451,7 +452,8 @@ class VectorFpaQaFigure(FpaQaFigure):
             self.labelSensors(sp)
 
         if not title is None:
-            sp.set_title(title, fontsize=12)
+            self.fig.text(0.5, 0.95, title, horizontalalignment="center", fontsize=12)
+            #sp.set_title(title, fontsize=12)
         sp.set_xlabel("Focal Plane X", fontsize = 10)
         sp.set_ylabel("Focal Plane Y", fontsize = 10)
 

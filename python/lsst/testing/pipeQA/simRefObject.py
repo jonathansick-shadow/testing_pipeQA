@@ -1,4 +1,4 @@
-
+import numpy
 
 class SimRefObject(object):
 
@@ -46,6 +46,17 @@ class SimRefObject(object):
             setattr(self, field, value)
             i += 1
 
+    def setMag(self, magNew, filter):
+        mag = getattr(self, filter+"Mag")
+        mag = magNew
+
+    def setFlux(self, fluxNew, filter):
+        mag = getattr(self, filter+"Mag")
+        if fluxNew > 0 and not numpy.isnan(fluxNew):
+            mag = -2.5*numpy.log10(fluxNew)
+        else:
+            mag = NaN
+        
     def getMag(self, filter):
         mag = getattr(self, filter+"Mag")
         return mag

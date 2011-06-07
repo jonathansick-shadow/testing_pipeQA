@@ -63,8 +63,16 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
                 iyy = s.getIyy()
                 ixy = s.getIxy()
 
-                a2 = 0.5*(ixx+iyy) + numpy.sqrt(0.25*(ixx-iyy)**2 + ixy**2)
-                b2 = 0.5*(ixx+iyy) - numpy.sqrt(0.25*(ixx-iyy)**2 + ixy**2)
+                tmp = 0.25*(ixx-iyy)**2 + ixy**2
+                if tmp < 0:
+                    continue
+
+                a2 = 0.5*(ixx+iyy) + numpy.sqrt(tmp)
+                b2 = 0.5*(ixx+iyy) - numpy.sqrt(tmp)
+
+                if b2/a2 < 0:
+                    continue
+                
                 ellip = 1.0 - numpy.sqrt(b2/a2)
                 theta = 0.5*numpy.arctan2(2.0*ixy, ixx-iyy)
 

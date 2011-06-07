@@ -131,6 +131,8 @@ class ButlerQaData(QaData):
                 matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
                 continue
 
+            self.printStartLoad("Loading MatchList for: " + dataKey + "...")
+            
             filterObj = self.getFilterBySensor(dataId)
             filterName = "unknown"
             if filterObj.has_key(dataKey):
@@ -167,6 +169,8 @@ class ButlerQaData(QaData):
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
 
+            self.printStopLoad()
+
         return matchListDict
 
 
@@ -192,6 +196,8 @@ class ButlerQaData(QaData):
                 ssDict[dataKey] = copy.copy(self.sourceSetCache[dataKey])
                 continue
 
+            self.printStartLoad("Loading SourceSets for: " + dataKey + "...")
+            
             # make sure we actually have the output file
             isWritten = self.outButler.datasetExists('icSrc', dataId)
             if isWritten:
@@ -221,6 +227,8 @@ class ButlerQaData(QaData):
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
                 
+            self.printStopLoad()
+                
         return ssDict
 
     def getSourceSet(self, dataIdRegex):
@@ -234,6 +242,61 @@ class ButlerQaData(QaData):
         for key, ss in ssDict.items():
             ssReturn += ss
         return ssReturn
+
+
+
+
+    def getRefObjectSetBySensor(self, dataIdRegex):
+        """Get a dict of all Catalog Sources matching dataId, with sensor name as dict keys.
+
+        @param dataIdRegex dataId dict of regular expressions for data to be retrieved
+        """
+        
+        # if the dataIdRegex is identical to an earlier query, we must already have all the data
+        dataIdStr = self._dataIdToString(dataIdRegex)
+        if self.refObjectQueryCache.has_key(dataIdStr):
+            sroDict = {}
+            # get only the ones that match the request
+            for key, sro in self.refObjectCache.items():
+                if re.search(dataIdStr, key):
+                    sroDict[key] = sro
+            return sroDict
+
+        self.printStartLoad("Loading RefObjects for: " + dataIdStr + "...")
+        
+        # parse results and put them in a sourceSet
+        matchListDict = self.getMatchListBySensor(dataIdRegex)
+        filter = self.getFilterBySensor(dataIdRegex)
+        
+        sroDict = {}
+        for key, matchList in matchListDict.items():
+            if not sroDict.has_key(key):
+                sroDict[key] = []
+            sros = sroDict[key]
+            
+            for m in matchList:
+                sref, s, dist = m
+
+                sro = simRefObj.SimRefObject()
+                sro.refObjectId = sref.getId()
+                sro.isStar = sref.getFlagForDetection() & measAlg.Flags.STAR
+                filterName = filter[key].getName()
+                sro.setFlux(sref.getPsfFlux(), filterName)
+
+                sros.append(sro)
+
+        self.printStopLoad()
+        
+        # cache it
+        self.refObjectQueryCache[dataIdStr] = True
+        for k, sro in sroDict.items():
+            self.refObjectCache[k] = sroDict[k]
+
+        for k,v in sroDict.items():
+            print k, len(v)
+        return sroDict
+
+
 
 
 
@@ -252,6 +315,8 @@ class ButlerQaData(QaData):
             
             if self.calexpCache.has_key(dataKey):
                 continue
+
+            self.printStartLoad("Loading Calexp for: " + dataKey + "...")
 
             if self.outButler.datasetExists('calexp_md', dataId):
                 calexp_md = self.outButler.get('calexp_md', dataId)
@@ -295,6 +360,8 @@ class ButlerQaData(QaData):
                 print str(dataTuple) + " calib output file missing.  skipping."
                 
 
+            self.printStopLoad()
+            
 
     def getCalexpEntryBySensor(self, cache, dataIdRegex):
         """Fill and return the dict for a specified calexp cache.
