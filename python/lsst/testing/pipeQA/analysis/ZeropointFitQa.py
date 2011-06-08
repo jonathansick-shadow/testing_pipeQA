@@ -160,7 +160,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                         
 
             # Metrics
-            numerator   = mimgSmag - mrefSmag
+            numerator   = mimgSmag - self.zeroPoint.get(raft, ccd) - mrefSmag
             med         = num.median(numerator) 
             self.medOffset.set(raftId, ccdId, med)
             
@@ -360,7 +360,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             label = data.cameraInfo.getDetectorName(raft, ccd)
             fig.fig.suptitle('%s' % (label), fontsize = 12)
     
-            numerator   = (mimgSmag - mrefSmag)
+            numerator   = (mimgSmag - self.zeroPoint.get(raft, ccd) - mrefSmag)
             denominator = mimgSmerr
             med         = num.median(numerator) 
             ax4.axhline(y = med, c='k', linestyle=':', alpha = 0.5)
