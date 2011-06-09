@@ -61,9 +61,21 @@ def isStar(ss):
 
 
 
-def robustPolyFit(x, y, order, sigma=3.0, niter=3):
+def robustPolyFit(x, y, order, nbin=3, sigma=3.0, niter=1):
 
     xNew, yNew = copy.copy(x), copy.copy(y)
+
+    # bin and take medians in each bin
+    xmin, xmax = xNew.min(), xNew.max()
+    step = (xmax-xmin)/(nbin)
+    xMeds, yMeds = [], []
+    for i in range(nbin):
+        w = numpy.where( (xNew > xmin + i*step) & (xNew < xmin + (i+1)*step) )
+        xMeds.append(numpy.median(xNew[w]))
+        yMeds.append(numpy.median(yNew[w]))
+
+    # use these new coords to fit the line ... with sigma clipping if requested
+    xNew, yNew = numpy.array(xMeds), numpy.array(yMeds)
 
     for i in range(niter):
 
@@ -77,9 +89,10 @@ def robustPolyFit(x, y, order, sigma=3.0, niter=3):
             mean = numpy.mean(residuals)
             
         std = numpy.std(residuals)
-        
-        w = numpy.where( (numpy.abs(residuals - mean)/std) < sigma )
-        xNew = xNew[w]
-        yNew = yNew[w]
+
+        if niter > 1:
+            w = numpy.where( (numpy.abs(residuals - mean)/std) < sigma )
+            xNew = xNew[w]
+            yNew = yNew[w]
         
     return p
