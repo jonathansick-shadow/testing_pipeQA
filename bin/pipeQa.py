@@ -89,8 +89,9 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
             cmp1, cmp2 = types.split()
             analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
                                                                  rmsMax, slopeMin, slopeMax))
-    if data.cameraInfo.name in policy.getStringArray("doPsfEllipQa"):
-        analysisList.append(qaAnalysis.PsfEllipticityQaAnalysis(policy.get("psfEllipMax")))
+    if data.cameraInfo.name in policy.getStringArray("doPsfShapeQa"):
+        analysisList.append(qaAnalysis.PsfShapeQaAnalysis(policy.get("psfEllipMax"),
+                                                          policy.get("psfFwhmMax")))
     if data.cameraInfo.name in policy.getStringArray("doCompleteQa"):
         analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
                                                       policy.get("completeMaxMag")))

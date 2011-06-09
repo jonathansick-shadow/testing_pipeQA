@@ -16,11 +16,12 @@ import matplotlib.font_manager as fm
 from matplotlib.collections import LineCollection
 
 
-class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
+class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, ellipMax):
+    def __init__(self, ellipMax, fwhmMax):
         qaAna.QaAnalysis.__init__(self)
-        self.limits = [0.0, ellipMax]
+        self.limitsEllip = [0.0, ellipMax]
+        self.limitsFwhm = [0.0, fwhmMax]
 
 
     def free(self):
@@ -35,12 +36,15 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
         del self.ellipMedians
         del self.thetaMedians
 
+        del self.calexpDict
+        
     def test(self, data, dataId):
         
         # get data
         self.ssDict        = data.getSourceSetBySensor(dataId)
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)
+        self.calexpDict    = data.getCalexpBySensor(dataId)
 
         # create containers for data in the focal plane
         self.x     = raftCcdData.RaftCcdVector(self.detector)
@@ -97,7 +101,6 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
         # gets the stats for each sensor and put the values in the raftccd container
         self.ellipMedians = raftCcdData.RaftCcdData(self.detector)
         self.thetaMedians = raftCcdData.RaftCcdData(self.detector)
-
         for raft, ccd in self.ellip.raftCcdKeys():
             ellip = self.ellip.get(raft, ccd)
             theta = self.theta.get(raft, ccd)
@@ -118,12 +121,24 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "median psf ellipticity "
             comment = "median psf ellipticity (nstar=%d)" % (n)
-            testSet.addTest( testCode.Test(label, ellipMed, self.limits, comment, areaLabel=areaLabel) )
+            testSet.addTest( testCode.Test(label, ellipMed, self.limitsEllip, comment, areaLabel=areaLabel) )
 
             # stash the angles.  We'll use them to make figures in plot()
             self.thetaMedians.set(raft, ccd, thetaMed)
             
 
+        # And the Fwhm
+        self.fwhm  = raftCcdData.RaftCcdData(self.detector)
+        for key, item in self.calexpDict.items():
+            raft = self.detector[key].getParent().getId().getName()
+            ccd  = self.detector[key].getId().getName()
+
+            self.fwhm.set(raft, ccd, item['fwhm'])
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
+            label = "psf fwhm (arcsec) "
+            comment = "psf fwhm (arcsec)"
+            testSet.addTest( testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel) )
+                          
     def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
@@ -132,8 +147,12 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
 
         figFmt = "png"
 
-        # fpa figure
+        # fpa figures
         ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo)
+        fwhmFig = qaFig.FpaQaFigure(data.cameraInfo)
+
+        fwhmMin =  1e10
+        fwhmMax = -1e10
         for raft, ccdDict in ellipFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.ellipMedians.get(raft, ccd) is None:
@@ -142,12 +161,33 @@ class PsfEllipticityQaAnalysis(qaAna.QaAnalysis):
                                                 self.ellipMedians.get(raft, ccd)]
                     ellipFig.map[raft][ccd] = "ell/theta=%.3f/%.0f" % (self.ellipMedians.get(raft, ccd),
                                                                        (180/numpy.pi)*self.thetaMedians.get(raft, ccd))
+                if not self.fwhm.get(raft, ccd) is None:
+                    fwhm = self.fwhm.get(raft, ccd)
+                    if fwhm > fwhmMax:
+                        fwhmMax = fwhm
+                    if fwhm < fwhmMin:
+                        fwhmMin = fwhm
+                    fwhmFig.data[raft][ccd] = fwhm
+                    fwhmFig.map[raft][ccd] = "fwhm=%.2f asec" % (fwhm)
+                    
                 
-        ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limits,
-                            title="Median PSF Ellipticity", failLimits=self.limits)
+        ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
+                            title="Median PSF Ellipticity", failLimits=self.limitsEllip)
         testSet.addFigure(ellipFig, "medPsfEllip."+figFmt, "Median PSF Ellipticity",
                           navMap=True)
 
+        blue = '#0000ff'
+        red = '#ff0000'
+
+        vlimMin = max(self.limitsFwhm[0], fwhmMin)
+        vlimMax = min(self.limitsFwhm[1], fwhmMax)
+        fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
+                           title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
+                           cmapUnder=blue)
+        testSet.addFigure(fwhmFig, "psfFwhm.png", "FWHM of Psf (arcsec)",
+                          navMap=True)
+
+                        
         #
         figsize = (4.0, 4.0)
         

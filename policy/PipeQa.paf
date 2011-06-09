@@ -154,9 +154,9 @@ definitions: {
 
     ###
 
-    doPsfEllipQa: {
+    doPsfShapeQa: {
         type: string
-        description: "Psf Ellipticity: qaAnalysis.PsfEllipticityQaAnalysis"
+        description: "Psf Shape: qaAnalysis.PsfShapeQaAnalysis"
         maxOccurs: 4
         default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
@@ -166,6 +166,13 @@ definitions: {
         description: "Maximum median ellipticity"
         maxOccurs: 1
         default: 0.3
+    }
+
+    psfFwhmMax: {
+        type: double
+        description: "Maximum Psf Fwhm (arcsec)"
+        maxOccurs: 1
+        default: 2.0
     }
 
     ###
