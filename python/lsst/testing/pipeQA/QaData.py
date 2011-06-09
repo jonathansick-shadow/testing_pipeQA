@@ -85,6 +85,7 @@ class QaData(object):
         self.refObjectCache = {}
         
         # cache calexp info, but not the MaskedImage ... it's too big.
+        self.calexpQueryCache = {}
         self.calexpCache = {}
         self.wcsCache = {}
         self.detectorCache = {}
@@ -104,6 +105,7 @@ class QaData(object):
             "matchList"     : self.matchListCache,
             "refObjectQuery": self.refObjectQueryCache,
             "refObject"     : self.refObjectCache,
+            "calexpQuery"   : self.calexpQueryCache,
             "calexp"        : self.calexpCache, 
             "wcs"           : self.wcsCache,    
             "detector"      : self.detectorCache,
@@ -219,8 +221,12 @@ class QaData(object):
         @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
         """
         return self.getCalexpEntryBySensor(self.calibCache, dataIdRegex)
-
-
+    def getCalexpBySensor(self, dataIdRegex):
+        """Get a dict of Calib objects with sensor ids as keys.
+        
+        @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
+        """
+        return self.getCalexpEntryBySensor(self.calexpCache, dataIdRegex)
     
 
     def verifyDataIdKeys(self, dataIdKeys, raiseOnFailure=True):

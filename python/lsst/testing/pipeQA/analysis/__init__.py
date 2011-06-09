@@ -8,3 +8,4 @@ from AstrometricErrorQaAnalysis  import *
 from CompletenessQa              import *
 from CompletenessQa2             import *
 from ZeropointFitQa              import *
+from FwhmQaAnalysis              import *

@@ -30,9 +30,8 @@ definitions: {
     doZptFitQa: {
         type: string
         description: "Photometric Zeropoint: qaAnalysis.ZeropointFitQa"
-        maxOccurs: 1
         maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        default: "lsstSim" "cfht"
     }
 
     zptFitQaOffsetMin: {
@@ -71,7 +70,6 @@ definitions: {
     doAstromQa: {
         type: string
         description: "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis"
-        maxOccurs: 1
         maxOccurs: 4
         default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
@@ -159,7 +157,6 @@ definitions: {
     doPsfEllipQa: {
         type: string
         description: "Psf Ellipticity: qaAnalysis.PsfEllipticityQaAnalysis"
-        maxOccurs: 1
         maxOccurs: 4
         default: "lsstSim" "hscSim" "suprimecam" "cfht"
     }
@@ -176,7 +173,6 @@ definitions: {
     doCompleteQa: {
         type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
-        maxOccurs: 1
         maxOccurs: 4
         default: "None"
     }
@@ -184,9 +180,8 @@ definitions: {
     doCompleteQa2: {
         type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa2"
-        maxOccurs: 1
         maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        default: "lsstSim" "cfht"
     }
 
     completeMinMag: {
@@ -201,5 +196,13 @@ definitions: {
         description: "Maximum reasonable photometric depth"
         maxOccurs: 1
         default: 25.0
+    }
+
+    ###
+    doFwhm: {
+        type: string
+        description: "Fwhm: qaANalysis.FwhmQaAnalysis"
+        maxOccurs: 4
+        default: "lsstSim" "chft"
     }
 }

@@ -200,7 +200,7 @@ def getSceNameList():
         #['gainEff',              'gainEff'              ],
         ['fluxMag0',             'fluxMag0'             ],
         ['fluxMag0Sigma',        'fluxMag0Sigma'        ],
-        #['fwhm',                 'fwhm'                 ],
+        ['fwhm',                 'fwhm'                 ],
         ]
     return nameList
 

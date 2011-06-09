@@ -36,8 +36,9 @@ class DbQaData(QaData):
         self.dbId        = DatabaseIdentity(self.label)
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
+        self.refStr = {'obj' : ('Obj', 'object'), 'src' : ('Src', 'source') }
+        self.useRef = 'src'
 
-        loading = False
 
 
     def getMatchListBySensor(self, dataIdRegex):
@@ -94,9 +95,10 @@ class DbQaData(QaData):
         sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, '%(filterName)
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
-        sql += '    RefObjMatch as rom, SimRefObject as sro'
+        sql += '    Ref%sMatch as rom, SimRefObject as sro' % (self.refStr[self.useRef][0])
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-        sql += '    and (s.objectId = rom.objectId) and (rom.refObjectId = sro.refObjectId)'
+        sql += '    and (s.%sId = rom.%sId) and (rom.refObjectId = sro.refObjectId)' % \
+               (self.refStr[self.useRef][1], self.refStr[self.useRef][1])
         #sql += '    and (sro.isStar = 1) ' #and (sro.varClass = 0)'
         sql += '    and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += '    and s.objectID is not NULL'        
@@ -407,19 +409,18 @@ class DbQaData(QaData):
                 haveAllKeys = False
         sql += " and ".join(whereList)
 
-
         # if there are no regexes (ie. actual wildcard expressions),
         #  we can check the cache, otherwise must run the query
         if not re.search("\%", sql) and haveAllKeys:
             dataIdCopy = copy.copy(dataIdRegex)
             dataIdCopy['snap'] = "0"
             key = self._dataIdToString(dataIdCopy)
-            if self.calexpCache.has_key(key):
+            if self.calexpQueryCache.has_key(key):
                 return
 
         # if the dataIdRegex is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex)
-        if self.calexpCache.has_key(dataIdStr) and self.calexpCache[dataIdStr]:
+        if self.calexpQueryCache.has_key(dataIdStr) and self.calexpQueryCache[dataIdStr]:
             return
 
         self.printStartLoad("Loading Calexp for: " + dataIdStr + "...")
@@ -465,9 +466,10 @@ class DbQaData(QaData):
                 calib.setFluxMag0(rowDict['fluxMag0'], rowDict['fluxMag0Sigma'])
                 self.calibCache[key] = calib
 
-            self.calexpCache[key] = True
+            self.calexpCache[key] = rowDict
+            self.calexpQueryCache[key] = True
         
-        self.calexpCache[dataIdStr] = True
+        self.calexpQueryCache[dataIdStr] = True
         
         self.printStopLoad()
 

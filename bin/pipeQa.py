@@ -97,6 +97,9 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
     if data.cameraInfo.name in policy.getStringArray("doCompleteQa2"):
         analysisList.append(qaAnalysis.CompletenessQa2(policy.get("completeMinMag"),
                                                        policy.get("completeMaxMag")))
+
+    if data.cameraInfo.name in policy.getStringArray("doFwhm"):
+        analysisList.append(qaAnalysis.FwhmQaAnalysis())
        
     for visit in visits:
         testset = pipeQA.TestSet(group="", label="QA-failures")

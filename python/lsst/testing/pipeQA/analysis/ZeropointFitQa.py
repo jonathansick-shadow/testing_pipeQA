@@ -64,6 +64,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
 
             fmag0 = self.calib[key].getFluxMag0()[0]
             if fmag0 <= 0.0:
+                self.zeroPoint.set(raftId, ccdId, NaN)
                 continue
             zpt = -2.5*num.log10(fmag0)
             self.zeroPoint.set(raftId, ccdId, zpt)
@@ -160,7 +161,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                         
 
             # Metrics
-            numerator   = mimgSmag - self.zeroPoint.get(raft, ccd) - mrefSmag
+            numerator   = mimgSmag - self.zeroPoint.get(raftId, ccdId) - mrefSmag
             med         = num.median(numerator) 
             self.medOffset.set(raftId, ccdId, med)
             
