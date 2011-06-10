@@ -37,11 +37,14 @@ class DbQaData(QaData):
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
         self.refStr = {'obj' : ('Obj', 'object'), 'src' : ('Src', 'source') }
-        self.useRef = 'src'
 
+        # need to intialize these differently than base class
+        # ... Db has 'object' and 'source' matching to be cached
+        self.matchListCache = { 'obj': {}, 'src': {} }
+        self.matchQueryCache = { 'obj' : {}, 'src': {} }
+        
 
-
-    def getMatchListBySensor(self, dataIdRegex):
+    def getMatchListBySensor(self, dataIdRegex, useRef='src'):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
@@ -73,15 +76,15 @@ class DbQaData(QaData):
             dataIdCopy = copy.copy(dataIdRegex)
             dataIdCopy['snap'] = "0"
             key = self._dataIdToString(dataIdCopy)
-            if self.matchListCache.has_key(key):
-                return {key : self.matchListCache[key]}
+            if self.matchListCache[useRef].has_key(key):
+                return {key : self.matchListCache[useRef][key]}
 
         # if the dataIdRegex is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex)
-        if self.matchQueryCache.has_key(dataIdStr):
+        if self.matchQueryCache[useRef].has_key(dataIdStr):
             matchListDict = {}
             # get only the ones that match the request
-            for key, matchList in self.matchListCache.items():
+            for key, matchList in self.matchListCache[useRef].items():
                 if re.search(dataIdStr, key):
                     matchListDict[key] = matchList
             return matchListDict
@@ -95,17 +98,17 @@ class DbQaData(QaData):
         sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, '%(filterName)
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
-        sql += '    Ref%sMatch as rom, SimRefObject as sro' % (self.refStr[self.useRef][0])
+        sql += '    Ref%sMatch as rom, SimRefObject as sro' % (self.refStr[useRef][0])
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         sql += '    and (s.%sId = rom.%sId) and (rom.refObjectId = sro.refObjectId)' % \
-               (self.refStr[self.useRef][1], self.refStr[self.useRef][1])
+               (self.refStr[useRef][1], self.refStr[useRef][1])
         #sql += '    and (sro.isStar = 1) ' #and (sro.varClass = 0)'
         sql += '    and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
         sql += '    and s.objectID is not NULL'        
         sql += '    and '+idWhere
         
 
-        self.printStartLoad("Loading MatchList for: " + dataIdStr + "...")
+        self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
 
 
         # run the query
@@ -160,9 +163,9 @@ class DbQaData(QaData):
             matchList.append([sref, s, dist])
         
         # cache it
-        self.matchQueryCache[dataIdStr] = True
+        self.matchQueryCache[useRef][dataIdStr] = True
         for k, matchList in matchListDict.items():
-            self.matchListCache[k] = matchListDict[k]
+            self.matchListCache[useRef][k] = matchListDict[k]
 
         self.printStopLoad()
         

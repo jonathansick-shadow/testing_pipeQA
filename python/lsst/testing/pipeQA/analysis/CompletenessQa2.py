@@ -24,14 +24,15 @@ class CompletenessQa2(qaAna.QaAnalysis):
 
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)
-        self.matchListDict = data.getMatchListBySensor(dataId)
+        self.matchListDictObj = data.getMatchListBySensor(dataId, useRef='obj')
+        self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
         self.ssDict        = data.getSourceSetBySensor(dataId)
         self.sroDict       = data.getRefObjectSetBySensor(dataId)
 
         self.matchStarObj   = raftCcdData.RaftCcdData(self.detector)
         self.matchGalObj    = raftCcdData.RaftCcdData(self.detector)
-        #self.matchStarSrc   = raftCcdData.RaftCcdData(self.detector)
-        #self.matchGalSrc    = raftCcdData.RaftCcdData(self.detector)
+        self.matchStarSrc   = raftCcdData.RaftCcdData(self.detector)
+        self.matchGalSrc    = raftCcdData.RaftCcdData(self.detector)
         self.unmatchCatStar = raftCcdData.RaftCcdData(self.detector)
         self.unmatchCatGal  = raftCcdData.RaftCcdData(self.detector)
         self.unmatchImage   = raftCcdData.RaftCcdData(self.detector)
@@ -46,64 +47,53 @@ class CompletenessQa2(qaAna.QaAnalysis):
             ccdId      = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
 
-            sroMagsStar = []
-            sroMagsGxy = []
-            # Unmatched detections (found by never inserted ... false positives)
-            sids = {}
-            refIds = {}
+            matchStuff = [
+                [self.matchListDictObj, self.matchStarObj, self.matchGalObj],
+                [self.matchListDictSrc, self.matchStarSrc, self.matchGalSrc],
+                ]
+            for ms in matchStuff:
+                matchListDict, matchStar, matchGal = ms
 
-            if self.matchListDict.has_key(key):
-                matchList = self.matchListDict[key]
-                for m in matchList:
-                    sref, s, dist = m
-                    sids[s.getId()] = 1
-                    refIds[sref.getId()] = 1
-    
-                    #oid = sref.getId()
-    
-                    if fluxType == "psf":
-                        fref  = sref.getPsfFlux()
-                        f     = s.getPsfFlux()
-                        ferr  = s.getPsfFluxErr()
-                    else:
-                        fref  = sref.getPsfFlux()
-                        f     = s.getApFlux()
-                        ferr  = s.getApFluxErr()
-                        
-                    flags = s.getFlagForDetection()
-    
-                    if (fref > 0.0 and f > 0.0  and not flags & badFlags):
-                        mrefmag  = -2.5*num.log10(fref)
-    
-                        star = flags & measAlg.Flags.STAR
-    
-                        if num.isfinite(mrefmag):
-                            if star > 0:
-                                sroMagsStar.append(mrefmag)
-                            else:
-                                sroMagsGxy.append(mrefmag)
-            
-            self.matchStarObj.set(raftId, ccdId, num.array(sroMagsStar))
-            self.matchGalObj.set(raftId, ccdId, num.array(sroMagsGxy))
+                sroMagsStar = []
+                sroMagsGxy = []
+                # Unmatched detections (found by never inserted ... false positives)
+                sids = {}
+                refIds = {}
+                
+                if matchListDict.has_key(key):
+                    matchList = matchListDict[key]
+                    for m in matchList:
+                        sref, s, dist = m
+                        sids[s.getId()] = 1
+                        refIds[sref.getId()] = 1
 
+                        #oid = sref.getId()
 
-            if False:
-                # All stars/gals through source association; more complete than object assoc
-                matchSrcSql  = 'select s.sourceId, sro.refObjectId, sro.%sMag, sro.isStar' % (filterName)
-                matchSrcSql += ' from SimRefObject as sro, RefSrcMatch as rsm, Source as s, Science_Ccd_Exposure as sce'
-                matchSrcSql += ' where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-                matchSrcSql += ' and (sce.visit = %s)' % (dataId['visit'])
-                matchSrcSql += ' and (sce.raftName = "%s")' % (re.sub("R:", "", raftId))
-                matchSrcSql += ' and (sce.ccdName = "%s")' % (ccdId[-3:])
-                matchSrcSql += ' and (s.sourceId = rsm.sourceId)'
-                matchSrcSql += ' and (rsm.refObjectId = sro.refObjectId)'
-                matchSrcResults = data.dbInterface.execute(matchSrcSql)
-                srcId   = num.array([x[0] for x in matchSrcResults])
-                sroId   = num.array([x[1] for x in matchSrcResults])
-                sroMags = num.array([x[2] for x in matchSrcResults])
-                isStar  = num.array([x[3] for x in matchSrcResults])
-                self.matchStarSrc.set(raftId, ccdId, sroMags[num.where(isStar == 1)])
-                self.matchGalSrc.set(raftId, ccdId, sroMags[num.where(isStar == 0)])
+                        if fluxType == "psf":
+                            fref  = sref.getPsfFlux()
+                            f     = s.getPsfFlux()
+                            ferr  = s.getPsfFluxErr()
+                        else:
+                            fref  = sref.getPsfFlux()
+                            f     = s.getApFlux()
+                            ferr  = s.getApFluxErr()
+
+                        flags = s.getFlagForDetection()
+
+                        if (fref > 0.0 and f > 0.0  and not flags & badFlags):
+                            mrefmag  = -2.5*num.log10(fref)
+
+                            star = flags & measAlg.Flags.STAR
+
+                            if num.isfinite(mrefmag):
+                                if star > 0:
+                                    sroMagsStar.append(mrefmag)
+                                else:
+                                    sroMagsGxy.append(mrefmag)
+
+                    matchStar.set(raftId, ccdId, num.array(sroMagsStar))
+                    matchGal.set(raftId, ccdId, num.array(sroMagsGxy))
+
 
             
             unmatchImage = []
@@ -203,8 +193,8 @@ class CompletenessQa2(qaAna.QaAnalysis):
         for raft, ccd in self.depth.raftCcdKeys():
             matchStarObjData   = self.matchStarObj.get(raft, ccd)
             matchGalObjData    = self.matchGalObj.get(raft, ccd)
-            matchStarSrcData   = num.array([]) #self.matchStarSrc.get(raft, ccd)
-            matchGalSrcData    = num.array([]) #self.matchGalSrc.get(raft, ccd)
+            matchStarSrcData   = self.matchStarSrc.get(raft, ccd)
+            matchGalSrcData    = self.matchGalSrc.get(raft, ccd)
             unmatchCatStarData = self.unmatchCatStar.get(raft, ccd)
             unmatchCatGalData  = self.unmatchCatGal.get(raft, ccd)
             unmatchImageData   = self.unmatchImage.get(raft, ccd)
