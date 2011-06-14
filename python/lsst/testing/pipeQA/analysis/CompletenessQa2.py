@@ -107,6 +107,7 @@ class CompletenessQa2(qaAna.QaAnalysis):
                         if f <= 0.0:
                             continue
                         unmatchImage.append(-2.5*num.log10(f))
+
             uimgmag = num.array(unmatchImage)
             self.unmatchImage.set(raftId, ccdId, uimgmag)
 

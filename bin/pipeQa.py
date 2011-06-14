@@ -24,6 +24,7 @@ import copy
 import lsst.testing.pipeQA as pipeQA
 import lsst.testing.pipeQA.analysis     as qaAnalysis
 import lsst.pex.policy as pexPolicy
+from lsst.pex.logging import Trace
 
 import numpy
 
@@ -170,6 +171,8 @@ if __name__ == '__main__':
                       help="Specify snap as regex (default=%default)")
     parser.add_option("-t", "--test", default=".*",
                       help="Regex specifying which QaAnalysis to run (default=%default)")
+    parser.add_option("-V", "--verbosity", default=1,
+                      help="Trace level for lsst.testing.pipeQA")
     
     opts, args = parser.parse_args()
 
@@ -185,5 +188,7 @@ if __name__ == '__main__':
         }
     rerun = opts.rerun
     dataset, = args
+
+    Trace.setVerbosity('lsst.testing.pipeQA', int(opts.verbosity))
     
     main(dataset, dataId, rerun, opts.test, opts.camera, opts.exceptExit)

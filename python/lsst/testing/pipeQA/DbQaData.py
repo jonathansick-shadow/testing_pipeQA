@@ -102,9 +102,10 @@ class DbQaData(QaData):
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         sql += '    and (s.%sId = rom.%sId) and (rom.refObjectId = sro.refObjectId)' % \
                (self.refStr[useRef][1], self.refStr[useRef][1])
-        #sql += '    and (sro.isStar = 1) ' #and (sro.varClass = 0)'
-        sql += '    and (s.filterId = %d) and ((s.flagForDetection & 0xa01) = 0)' % (filterId)
-        sql += '    and s.objectID is not NULL'        
+        if useRef == 'obj':
+            sql += '    and s.objectID is not NULL'
+        else:
+            sql += '    and (rom.closestToSrc = 1)'
         sql += '    and '+idWhere
         
 
@@ -161,7 +162,7 @@ class DbQaData(QaData):
 
             dist = 0.0
             matchList.append([sref, s, dist])
-        
+
         # cache it
         self.matchQueryCache[useRef][dataIdStr] = True
         for k, matchList in matchListDict.items():
@@ -191,7 +192,6 @@ class DbQaData(QaData):
         sql  = 'select sce.visit, sce.raftName, sce.ccdName,'+selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce'
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-
         haveAllKeys = True
 
         for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
@@ -258,16 +258,18 @@ class DbQaData(QaData):
             
             ss.append(s)
 
-
         # set the STAR flag if we have matched objects
         #if self.matchQueryCache.has_key(dataIdStr) and self.matchQueryCache[dataIdStr]:
-        matchListDict = self.getMatchListBySensor(dataIdRegex)
+
+        # Orphans defined by RefSrcMatch
+        matchListDict = self.getMatchListBySensor(dataIdRegex, useRef='src')
         for k, matchList in matchListDict.items():
             index = {}
             for m in matchList:
                 sref, s, dist = m
                 sid = s.getId()
                 index[sid] = s.getFlagForDetection() & measAlg.Flags.STAR
+
             for s in ssDict[k]:
                 if index.has_key(s.getId()):
                     s.setFlagForDetection(s.getFlagForDetection() | index[s.getId()])
