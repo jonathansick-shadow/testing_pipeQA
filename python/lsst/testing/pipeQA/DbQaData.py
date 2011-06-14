@@ -38,6 +38,11 @@ class DbQaData(QaData):
 
         self.refStr = {'obj' : ('Obj', 'object'), 'src' : ('Src', 'source') }
 
+        
+
+    def initCache(self):
+
+        QaData.initCache(self)
         # need to intialize these differently than base class
         # ... Db has 'object' and 'source' matching to be cached
         self.matchListCache = { 'obj': {}, 'src': {} }
@@ -162,7 +167,7 @@ class DbQaData(QaData):
 
             dist = 0.0
             matchList.append([sref, s, dist])
-
+            
         # cache it
         self.matchQueryCache[useRef][dataIdStr] = True
         for k, matchList in matchListDict.items():
@@ -222,7 +227,7 @@ class DbQaData(QaData):
             return ssDict
 
         self.printStartLoad("Loading SourceSets for: " + dataIdStr + "...")
-        
+
         # run the query
         results  = self.dbInterface.execute(sql)
 

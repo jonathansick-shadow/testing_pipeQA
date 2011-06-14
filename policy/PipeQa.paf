@@ -210,6 +210,6 @@ definitions: {
         type: string
         description: "Fwhm: qaANalysis.FwhmQaAnalysis"
         maxOccurs: 4
-        default: "lsstSim" "chft"
+        default: "none"
     }
 }

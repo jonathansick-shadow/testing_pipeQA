@@ -185,7 +185,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
                 if len(dmag) > 1:
                     lineCoeffs = qaAnaUtil.robustPolyFit(mag, dmag, 1)
-
+                    
 
             tag = self.magType1+"_vs_"+self.magType2
             dtag = self.magType1+"-"+self.magType2
