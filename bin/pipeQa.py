@@ -122,6 +122,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
             if exceptExit:
                 a.test(data, dataIdVisit)
                 a.plot(data, dataIdVisit, showUndefined=False)
+                a.free()
                 
             # otherwise, we want to continue gracefully
             else:
@@ -136,7 +137,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
                     testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
                 else:
                     a.plot(data, dataIdVisit, showUndefined=False)
-            a.free()
+                    a.free()
             
         data.clearCache()
 

@@ -17,6 +17,23 @@ class CompletenessQa2(qaAna.QaAnalysis):
         self.limits = [completenessMagMin, completenessMagMax]
         self.bins   = num.arange(14, 27, 0.5)
 
+    def free(self):
+        del self.detector
+        del self.filter
+        del self.matchListDictObj
+        del self.matchListDictSrc
+        del self.ssDict
+        del self.sroDict
+        del self.matchStarObj
+        del self.matchGalObj
+        del self.matchStarSrc
+        del self.matchGalSrc
+        del self.unmatchCatStar
+        del self.unmatchCatGal
+        del self.unmatchImage
+        del self.depth
+
+
     def test(self, data, dataId, fluxType = "psf"):
         testSet = self.getTestSet(data, dataId)
 

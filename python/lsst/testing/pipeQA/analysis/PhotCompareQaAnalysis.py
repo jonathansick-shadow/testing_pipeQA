@@ -216,7 +216,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
 
         xlim = [14.0, 25.0]
-        ylim = [-0.4, 0.4]
+        ylimStep = 0.4
+        ylim = [-ylimStep, ylimStep]
 	aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
 
         # fpa figure
@@ -331,8 +332,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 ax.scatter(mag, diff, size, color=clr, label=ccd)
                 ax.set_xlabel(tag1)
 
-            ax_1.plot(xTrend, numpy.lib.polyval(trendCoeffs, xTrend), "--r", lw=1.0)
-            ax_2.plot(xTrend, numpy.lib.polyval(trendCoeffs, xTrend), "--r", lw=1.0)
+            lineVals = numpy.lib.polyval(trendCoeffs, xTrend)
+            lmin, lmax = lineVals.min(), lineVals.max()
+            if lmin < ylim[0]:
+                ylim[0] = -(int(abs(lmin)/ylimStep) + 1)*ylimStep
+            if lmax > ylim[1]:
+                ylim[1] = (int(lmax/ylimStep) + 1)*ylimStep
+            
+            ax_1.plot(xTrend, lineVals, "--r", lw=1.0)
+            ax_2.plot(xTrend, lineVals, "--r", lw=1.0)
             ax_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
             ax_1.set_ylabel(tag)
