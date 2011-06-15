@@ -110,7 +110,8 @@ class DbQaData(QaData):
         if useRef == 'obj':
             sql += '    and s.objectID is not NULL'
         else:
-            sql += '    and (rom.closestToSrc = 1)'
+            #sql += '    and (rom.closestToSrc = 1) '
+            sql += '    and (rom.nSrcMatches = 1) '
         sql += '    and '+idWhere
         
 
