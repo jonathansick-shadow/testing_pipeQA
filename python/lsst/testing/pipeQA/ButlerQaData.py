@@ -6,6 +6,7 @@ import lsst.afw.image                   as afwImage
 import lsst.meas.astrom                 as measAst
 import lsst.afw.geom                    as afwGeom
 import lsst.afw.cameraGeom              as cameraGeom
+import lsst.meas.algorithms             as measAlg
 
 import numpy
 
@@ -370,6 +371,10 @@ class ButlerQaData(QaData):
 			n2 = nameLookup[n]
 			self.calexpCache[dataKey][n2] = val
 
+                # if we're missing anything in nameLookup ... put in a NaN
+                for calexpName,qaName in nameLookup.items():
+                    if not self.calexpCache[dataKey].has_key(qaName):
+                        self.calexpCache[dataKey][qaName] = numpy.NaN
                 
                 self.calexpQueryCache[dataKey] = True
                 self.dataIdLookup[dataKey] = dataId

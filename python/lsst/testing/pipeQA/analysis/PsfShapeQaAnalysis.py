@@ -179,8 +179,15 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         blue = '#0000ff'
         red = '#ff0000'
 
-        vlimMin = max(self.limitsFwhm[0], fwhmMin)
-        vlimMax = min(self.limitsFwhm[1], fwhmMax)
+        if fwhmMin < 1e10:
+            vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
+        else:
+            vlimMin = self.limitsFwhm[0]
+        if fwhmMax > -1e10:
+            vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
+        else:
+            vlimMax = self.limitsFwhm[1]
+            
         fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
                            title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
                            cmapUnder=blue)
