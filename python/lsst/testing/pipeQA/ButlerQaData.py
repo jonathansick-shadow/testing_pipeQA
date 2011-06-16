@@ -13,6 +13,7 @@ import Manifest   as manifest
 import CameraInfo as qaCamInfo
 
 import QaDataUtils as qaDataUtils
+import simRefObject as simRefObj
 
 from QaData import QaData
 

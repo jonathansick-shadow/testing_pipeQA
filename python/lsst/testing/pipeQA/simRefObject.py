@@ -42,7 +42,7 @@ class SimRefObject(object):
                 values = args[0]
                 value = values[i]
             else:
-                value = NaN
+                value = numpy.NaN
             setattr(self, field, value)
             i += 1
 
@@ -55,7 +55,7 @@ class SimRefObject(object):
         if fluxNew > 0 and not numpy.isnan(fluxNew):
             mag = -2.5*numpy.log10(fluxNew)
         else:
-            mag = NaN
+            mag = numpy.NaN
         
     def getMag(self, filter):
         mag = getattr(self, filter+"Mag")
