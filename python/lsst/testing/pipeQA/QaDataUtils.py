@@ -1,6 +1,8 @@
 import os, re
 import math
 
+import numpy
+
 import lsst.afw.image   as afwImage
 import lsst.afw.coord   as afwCoord
 import lsst.pex.logging  as pexLog
@@ -152,7 +154,29 @@ def getSourceSetAccessors():
 def getSourceSetDbNames():
     """Get a list of all database names for Source objects. """
     return zip(*getSourceSetNameList())[1]
+
+def getCalexpNameLookup():
+    """Associate calexp_md names to database names."""
     
+    nameLookup = {
+        'FILTER':           'filterName'           ,
+        'RA':                   'ra'               ,
+        'DEC':                 'decl'              ,
+        'CRPIX1':               'crpix1'           ,
+        'CRPIX2':               'crpix2'           ,
+        'CRVAL1':               'crval1'           ,
+        'CRVAL2':               'crval2'           ,
+        'CD1_1':                'cd1_1'            ,
+        'CD1_2':                'cd1_2'            ,
+        'CD2_1':                'cd2_1'            ,
+        'CD2_2':                'cd2_2'            ,
+        'FLUXMAG0':             'fluxMag0'         ,
+        'FLUXMAG0ERR':        'fluxMag0Sigma'      ,
+        'SEEING':                 'fwhm'           ,
+        }
+
+    return nameLookup
+
 
 def getSceNameList():
     """Associate SourceCcdExposure names to database columns in a list of pairs. """
@@ -281,9 +305,12 @@ def getCalibObjects(butler, filterName, dataId):
     keepref = []
     keepi = []
     for i in xrange(len(refsources)):
-        x, y = wcs.skyToPixel(refsources[i].getRa(), refsources[i].getDec())
+	ra, dec = refsources[i].getRa(), refsources[i].getDec() # ra,dec in Rads
+        x, y = wcs.skyToPixel(180/numpy.pi*ra, 180/numpy.pi*dec)
+
         if x < 0 or y < 0 or x > W or y > H:
             continue
+
         refsources[i].setXAstrom(x)
         refsources[i].setYAstrom(y)
         if stargal[i]:

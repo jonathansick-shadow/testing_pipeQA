@@ -160,6 +160,8 @@ class ButlerQaData(QaData):
                             s.setModelFlux(s.getModelFlux()/fmag0)
                             s.setRa((180.0/numpy.pi)*s.getRa())
                             s.setDec((180.0/numpy.pi)*s.getDec())
+                            sref.setRa((180.0/numpy.pi)*sref.getRa())
+                            sref.setDec((180.0/numpy.pi)*sref.getDec())
                             self.matchListCache[dataKey].append([sref, s, dist])
                             
                             
@@ -352,9 +354,26 @@ class ButlerQaData(QaData):
                 #self.detectorCache[dataKey] = cameraGeom.Detector()
                 self.filterCache[dataKey]   = afwImage.Filter(calexp_md)
                 self.calibCache[dataKey]    = afwImage.Calib(calexp_md)
+
+		# store the calexp as a dict
+		if not self.calexpCache.has_key(dataKey):
+		    self.calexpCache[dataKey] = {}
+
+		nameLookup = qaDataUtils.getCalexpNameLookup()
+		for n in calexp_md.names():
+		    val = calexp_md.get(n)
+		    self.calexpCache[dataKey][n] = val
+
+		    # assign an alias to provide the same name as the database version uses.
+		    if nameLookup.has_key(n):
+			n2 = nameLookup[n]
+			self.calexpCache[dataKey][n2] = val
+
                 
-                self.calexpCache[dataKey] = True
+                self.calexpQueryCache[dataKey] = True
                 self.dataIdLookup[dataKey] = dataId
+
+
                 
             else:
                 print str(dataTuple) + " calib output file missing.  skipping."
