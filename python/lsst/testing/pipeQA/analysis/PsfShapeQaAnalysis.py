@@ -201,6 +201,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         xmin, xmax = 1.0e99, -1.0e99
         for raft, ccd in self.ellip.raftCcdKeys():
             eLen = vLen*self.ellip.get(raft, ccd)
+            
             t = self.theta.get(raft, ccd)
             dx = eLen*numpy.cos(t)
             dy = eLen*numpy.sin(t)
@@ -223,14 +224,14 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             fig.fig.subplots_adjust(left=0.15)
             ax = fig.fig.add_subplot(111)
 
-            xy1 = zip(x, y)
-            xy2 = zip(x+dx, y+dy)
-            lines = zip(xy1, xy2)
-            p = LineCollection(lines, colors=black*len(lines))
-            ax.add_collection(p)
+            q = ax.quiver(x, y, dx, dy, color='k', scale=4.0*vLen, angles='xy', pivot='middle',
+                          headlength=1, headwidth=1)
+            ax.quiverkey(q, 0.9, -0.1, 0.5*vLen, "e=0.5", coordinates='axes',
+                         fontproperties={'size':"small"}, labelpos='E')
             
             ax.set_title("PSF ellipticity")
-            ax.set_xlabel("x [pixels]")
+            ax.set_xlabel("x [pixels]") #, position=(0.4, 0.0))
+            
             ax.set_ylabel("y [pixels]")
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)

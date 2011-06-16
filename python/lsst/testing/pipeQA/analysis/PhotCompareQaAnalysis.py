@@ -17,14 +17,14 @@ import matplotlib.font_manager as fm
 class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
     def __init__(self, magType1, magType2, magCut,
-                 deltaMin, deltaMax, rmsMax, slopeMin, slopeMax):
+                 deltaMin, deltaMax, rmsMax, slopeMinSigma, slopeMaxSigma):
         testLabel = magType1+"-"+magType2
         qaAna.QaAnalysis.__init__(self, testLabel)
 
         self.magCut = magCut
         self.deltaLimits = [deltaMin, deltaMax]
         self.rmsLimits = [0.0, rmsMax]
-        self.slopeLimits = [slopeMin, slopeMax]
+        self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
         
         def magType(mType):
             if re.search("(psf|PSF)", mType):
@@ -157,6 +157,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.trend = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0])
         
         self.dmagMax = 0.4
+        allMags = numpy.array([])
+        allDiffs = numpy.array([])
+
         for raft,  ccd in self.mag.raftCcdKeys():
             dmag = self.diff.get(raft, ccd)
             mag = self.mag.get(raft, ccd)
@@ -166,6 +169,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             mag = mag[w]
             dmag = dmag[w]
 
+            allMags = numpy.append(allMags, mag)
+            allDiffs = numpy.append(allDiffs, dmag)
              
             # already using NaN for 'no-data' for this ccd
             #  (because we can't test for 'None' in a numpy masked_array)
@@ -174,6 +179,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             median = 99.0
             std = 99.0
             n = 0
+            lineFit = [0.0, 0.0, 0.0, 0.0]
             lineCoeffs = [0.0, 0.0]
             if len(dmag) > 0:
                 stat = afwMath.makeStatistics(dmag, afwMath.NPOINT | afwMath.MEANCLIP |
@@ -184,31 +190,44 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 n = stat.getValue(afwMath.NPOINT)
 
                 if len(dmag) > 1:
-                    lineCoeffs = qaAnaUtil.robustPolyFit(mag, dmag, 1)
+                    lineFit = qaAnaUtil.robustPolyFit(mag, dmag, 1)
+                    lineCoeffs = lineFit[0], lineFit[2]
                     
 
             tag = self.magType1+"_vs_"+self.magType2
             dtag = self.magType1+"-"+self.magType2
             self.means.set(raft, ccd, mean)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            label = "mean "+tag +" " + areaLabel
+            label = "mean "+tag # +" " + areaLabel
             comment = "mean "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag),n)
-            testSet.addTest( testCode.Test(label, mean, self.deltaLimits, comment), areaLabel=areaLabel )
+            testSet.addTest( testCode.Test(label, mean, self.deltaLimits, comment, areaLabel=areaLabel))
 
             self.medians.set(raft, ccd, median)
-            label = "median "+tag+" "+areaLabel
+            label = "median "+tag #+" "+areaLabel
             comment = "median "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
-            testSet.addTest( testCode.Test(label, median, self.deltaLimits, comment), areaLabel=areaLabel )
+            testSet.addTest( testCode.Test(label, median, self.deltaLimits, comment, areaLabel=areaLabel))
 
             self.stds.set(raft, ccd, std)
-            label = "stdev "+tag+" " + areaLabel
+            label = "stdev "+tag #+" " + areaLabel
             comment = "stdev of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
-            testSet.addTest( testCode.Test(label, std, self.rmsLimits, comment), areaLabel=areaLabel )
+            testSet.addTest( testCode.Test(label, std, self.rmsLimits, comment, areaLabel=areaLabel))
 
-            self.trend.set(raft, ccd, lineCoeffs)
-            label = "slope "+tag+" " + areaLabel
-            comment = "slope of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
-            testSet.addTest( testCode.Test(label, lineCoeffs[0], self.slopeLimits, comment), areaLabel=areaLabel)
+            self.trend.set(raft, ccd, lineFit)
+            label = "slope "+tag #+" " + areaLabel
+            slopeLimits = self.slopeLimits[0]*lineFit[1], self.slopeLimits[1]*lineFit[1]
+            comment = "slope of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d) limits=(%.1f,%.1f)sigma" % (self.magCut, len(dmag), n, self.slopeLimits[0], self.slopeLimits[1])
+            testSet.addTest( testCode.Test(label, lineCoeffs[0], slopeLimits, comment, areaLabel=areaLabel))
+
+
+        # do a test of all CCDs for the slope ... suffering small number problems
+        #  on indiv ccds and could miss a problem
+        if len(allDiffs) > 1:
+            lineFit = qaAnaUtil.robustPolyFit(allMags, allDiffs, 1)
+            lineCoeffs = lineFit[0], lineFit[2]
+        label = "slope"
+        slopeLimits = self.slopeLimits[0]*lineFit[1], self.slopeLimits[1]*lineFit[1]
+        comment = "slope for all ccds (mag lt %.1f, nstar=%d) limits=(%.1f,%.1f sigma)" % (self.magCut, len(allDiffs), self.slopeLimits[0], self.slopeLimits[1])
+        testSet.addTest( testCode.Test(label, lineCoeffs[0], slopeLimits, comment, areaLabel="all"))
 
 
     def plot(self, data, dataId, showUndefined=False):
@@ -233,14 +252,17 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
                 if not slope is None:
 		    # aspRatio will make the vector have the same angle as the line in the figure
-                    slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slope[0]]
+                    slopeSigma = slope[0]/slope[1]
+                    slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slopeSigma]
                 else:
+                    slopeSigma = None
                     slopeFig.data[raft][ccd] = [None, None, None]
                     
                 if not self.means.get(raft, ccd) is None:
                     meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
                     stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
-                    slopeFig.map[raft][ccd] = "slope=%.4f" % (self.trend.get(raft, ccd)[0])
+                    slopeFig.map[raft][ccd] = "slope=%.4f+/-%.4f(%.1fsig)" % (slope[0], slope[1], slopeSigma)
+
                     
         tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
         tag = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
@@ -302,7 +324,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             x    = self.x.get(raft, ccd)
             y    = self.y.get(raft, ccd)
             star = self.star.get(raft, ccd)
-            trendCoeffs = self.trend.get(raft, ccd)
+            lineFit = self.trend.get(raft, ccd)
+            trendCoeffs = lineFit[0], lineFit[2]
+            trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
+            trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
             
             if len(mag) == 0:
                 mag = numpy.array([xmax])
@@ -333,14 +358,22 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 ax.set_xlabel(tag1)
 
             lineVals = numpy.lib.polyval(trendCoeffs, xTrend)
+            lineValsLo = numpy.lib.polyval(trendCoeffsLo, xTrend)
+            lineValsHi = numpy.lib.polyval(trendCoeffsHi, xTrend)
+            
             lmin, lmax = lineVals.min(), lineVals.max()
             if lmin < ylim[0]:
                 ylim[0] = -(int(abs(lmin)/ylimStep) + 1)*ylimStep
             if lmax > ylim[1]:
                 ylim[1] = (int(lmax/ylimStep) + 1)*ylimStep
             
-            ax_1.plot(xTrend, lineVals, "--r", lw=1.0)
-            ax_2.plot(xTrend, lineVals, "--r", lw=1.0)
+            ax_1.plot(xTrend, lineVals, "-r", lw=1.0)
+            ax_1.plot(xTrend, lineValsLo, "--r", lw=1.0)
+            ax_1.plot(xTrend, lineValsHi, "--r", lw=1.0)
+            ax_2.plot(xTrend, lineVals, "-r", lw=1.0)
+            ax_2.plot(xTrend, lineValsLo, "--r", lw=1.0)
+            ax_2.plot(xTrend, lineValsHi, "--r", lw=1.0)
+            
             ax_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
             ax_1.set_ylabel(tag)
@@ -391,9 +424,14 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
 
         if len(w) > 0:
-            trendCoeffs = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
+            lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
+            trendCoeffs = lineFit[0], lineFit[2]
+            trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
+            trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
         else:
             trendCoeffs = [0.0, 0.0]
+            trendCoeffsLo = [0.0, 0.0]
+            trendCoeffsHi = [0.0, 0.0]
 
         ####################
         # data for all ccds
@@ -403,19 +441,23 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             allColor = [black]
             allLabels = ["no_valid_data"]
             trendCoeffs = [0.0, 0.0]
+            trendCoeffsLo = [0.0, 0.0]
+            trendCoeffsHi = [0.0, 0.0]
 
         allColor = numpy.array(allColor)
         for ax in [ax0_1, ax0_2]:
             ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)
             ax.scatter(allMags, allDiffs, size, color=allColor)
-            ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "--k", lw=1.0)
+            ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
+            ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
+            ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
         ax0_1.set_xlim(xlim)
         ax0_2.set_xlim(xlim2)
         ax0_1.set_ylim(ylim)
         ax0_2.set_ylim(ylim2)
 
         dmag = 0.1
-        ddiff1 = 0.02
+        ddiff1 = 0.01
         ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
         for j in xrange(len(allMags)):
             area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)

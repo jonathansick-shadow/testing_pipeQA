@@ -138,18 +138,18 @@ definitions: {
         default:  0.02
     }
 
-    photCompareSlopeMin: {
+    photCompareSlopeMinSigma: {
         type: double
-        description: "Minimum allowed slope"
+        description: "Minimum (positive valued) std.devs. of slope below slope=0"
         maxOccurs: 1
-        default: -0.0015
+        default: 3.0
     }
 
-    photCompareSlopeMax: {
+    photCompareSlopeMaxSigma: {
         type: double
-        description: "Maximum allowed slope"
+        description: "Maximum std.dev. of slope above slope=0"
         maxOccurs: 1
-        default:  0.0015
+        default:  3.0
     }
 
     ###

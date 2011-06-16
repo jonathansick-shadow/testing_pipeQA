@@ -84,8 +84,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
         deltaMin = policy.get("photCompareDeltaMin")
         deltaMax = policy.get("photCompareDeltaMax")
         rmsMax   = policy.get("photCompareRmsMax")
-        slopeMin = policy.get("photCompareSlopeMin")
-        slopeMax = policy.get("photCompareSlopeMax")
+        slopeMin = policy.get("photCompareSlopeMinSigma")
+        slopeMax = policy.get("photCompareSlopeMaxSigma")
         for types in policy.getStringArray("photCompareTypes"):
             cmp1, cmp2 = types.split()
             analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
