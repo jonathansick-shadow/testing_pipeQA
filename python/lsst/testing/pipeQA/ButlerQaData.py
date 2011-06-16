@@ -9,6 +9,7 @@ import lsst.afw.cameraGeom              as cameraGeom
 import lsst.meas.algorithms             as measAlg
 
 import numpy
+import math
 
 import Manifest   as manifest
 import CameraInfo as qaCamInfo
@@ -115,7 +116,7 @@ class ButlerQaData(QaData):
     
 
 
-    def getMatchListBySensor(self, dataIdRegex):
+    def getMatchListBySensor(self, dataIdRegex, useRef=None):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
@@ -375,6 +376,20 @@ class ButlerQaData(QaData):
                 for calexpName,qaName in nameLookup.items():
                     if not self.calexpCache[dataKey].has_key(qaName):
                         self.calexpCache[dataKey][qaName] = numpy.NaN
+
+
+                # check the fwhm ... we know we need it
+                sigmaToFwhm = 2.0*math.sqrt(2.0*math.log(2.0))
+                width = calexp_md.get('NAXIS1')
+                height = calexp_md.get('NAXIS2')
+                psf = self.outButler.get("psf", visit=dataId['visit'],
+                                         raft=dataId['raft'], sensor=dataId['sensor'])
+                attr = measAlg.PsfAttributes(psf, width // 2, height // 2)
+                fwhm = attr.computeGaussianWidth() * self.wcsCache[dataKey].pixelScale() * sigmaToFwhm
+
+                if (self.calexpCache[dataKey].has_key('fwhm') and
+                    numpy.isnan(self.calexpCache[dataKey]['fwhm'])):
+                    self.calexpCache[dataKey]['fwhm'] = fwhm
                 
                 self.calexpQueryCache[dataKey] = True
                 self.dataIdLookup[dataKey] = dataId

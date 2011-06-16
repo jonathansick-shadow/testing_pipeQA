@@ -244,9 +244,11 @@ class CompletenessQa2(qaAna.QaAnalysis):
             if len(matchStarSrcData):
                 sp2.hist(matchStarSrcData, facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
 
-            if len(unmatchCatGalData):
+            w = num.isfinite(unmatchCatGalData)
+            if len(unmatchCatGalData[w]):
                 sp3.hist(unmatchCatGalData, facecolor='r', bins=self.bins, alpha=0.5, label='Galaxies', log=True)
-            if len(unmatchCatStarData):
+            w = num.isfinite(unmatchCatStarData)
+            if len(unmatchCatStarData[w]):
                 sp3.hist(unmatchCatStarData, facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
 
             if len(unmatchImageData):
