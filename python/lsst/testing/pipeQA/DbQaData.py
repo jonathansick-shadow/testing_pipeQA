@@ -304,66 +304,140 @@ class DbQaData(QaData):
         sroFields = simRefObj.SimRefObject.fields
         sroFieldStr = ",".join(["sro."+field for field in sroFields])
 
-        # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
-        sql += '  from SimRefObject as sro, Science_Ccd_Exposure as sce'
-        sql += '  where (qserv_ptInSphPoly(sro.ra, sro.decl,'
-        sql += '          concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
-        sql += '          sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl)))'
+        oldWay = False
 
-        haveAllKeys = True
-
-        for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
-            key, sqlName = keyNames
-            if dataIdRegex.has_key(key):
-                sql += '    and '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
-            else:
-                haveAllKeys = False
-
-        # if there are no regexes (ie. actual wildcard expressions),
-        #  we can check the cache, otherwise must run the query
-        
-        if not re.search("\%", sql) and haveAllKeys:
-            dataIdCopy = copy.copy(dataIdRegex)
-            dataIdCopy['snap'] = "0"
-            key = self._dataIdToString(dataIdCopy)
-            if self.refObjectCache.has_key(key):
-                return {key : self.refObjectCache[key]}
-
-        # if the dataIdRegex is identical to an earlier query, we must already have all the data
+        # if the dataIdEntry is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex)
         if self.refObjectQueryCache.has_key(dataIdStr):
-            sroDict = {}
             # get only the ones that match the request
+            sroDict = {}
             for key, sro in self.refObjectCache.items():
                 if re.search(dataIdStr, key):
                     sroDict[key] = sro
             return sroDict
 
-        self.printStartLoad("Loading RefObjects for: " + dataIdStr + "...")
-        
-        # run the query
-        results  = self.dbInterface.execute(sql)
 
-        # parse results and put them in a sourceSet
+        # get a list of matching dataIds 
+        if oldWay:
+            dataIdList = [dataIdRegex]
+        else:
+            haveAllKeys = True
+            sqlDataId = []
+            for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+                key, sqlName = keyNames
+                if dataIdRegex.has_key(key):
+                    sqlDataId.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+                else:
+                    haveAllKeys = False
+            sqlDataId = " and ".join(sqlDataId)
+
+            sql  = "select sce.visit, sce.raftName, sce.ccdName"
+            sql += "  from Science_Ccd_Exposure as sce "
+            sql += "  where " + sqlDataId
+
+            dataIdList = []
+            results  = self.dbInterface.execute(sql)
+            for r in results:
+                visit, raft, ccd = map(str, r[0:3])
+                dataIdList.append({'visit':visit, 'raft':raft, 'sensor':ccd, 'snap':'0'})
+
+
+        # Load each of the dataIds
         sroDict = {}
-        for row in results:
-            visit, raft, sensor = row[0:3]
-            dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
-            key = self._dataIdToString(dataIdTmp)
-            self.dataIdLookup[key] = dataIdTmp
+        for dataIdEntry in dataIdList:
 
-            if not sroDict.has_key(key):
-                sroDict[key] = []
-            sros = sroDict[key]
-            sros.append(simRefObj.SimRefObject(row[3:]))
+            dataIdEntryStr = self._dataIdToString(dataIdEntry)
 
+            haveAllKeys = True
+            sqlDataId = []
+            for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+                key, sqlName = keyNames
+                if dataIdEntry.has_key(key):
+                    sqlDataId.append(self._sqlLikeEqual(sqlName, dataIdEntry[key]))
+                else:
+                    haveAllKeys = False
+            sqlDataId = " and ".join(sqlDataId)
+            
+            # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
+            if oldWay:
+                sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
+                sql += '  from SimRefObject as sro, RefSrcMatch as rsm, Science_Ccd_Exposure as sce'
+                sql += '  where (qserv_ptInSphPoly(sro.ra, sro.decl,'
+                sql += '          concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
+                sql += '          sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl)) = 1) '
+                sql += '        and (rsm.refObjectId = sro.refObjectId) '
+                sql += '        and ' + sqlDataId
+
+            else:
+
+                sql  = 'SELECT concat_ws(" ", '
+                sql += '   sce.llcRa, sce.llcDecl, '
+                sql += '   sce.lrcRa, sce.lrcDecl, '
+                sql += '   sce.urcRa, sce.urcDecl, '
+                sql += '   sce.ulcRa, sce.ulcDecl) '
+                sql += 'FROM Science_Ccd_Exposure as sce '
+                sql += 'WHERE %s ' % (sqlDataId)
+                #sq += '   (sce.visit = 887252941) AND'
+                #sq += '   (sce.raftName = \'2,2\') AND'
+                #sq += '   (sce.ccdName = \'1,1\');'
+                sql += 'INTO @poly; '
+
+                sql2 = 'SELECT %s ' % (sroFieldStr)
+                sql2 += 'FROM '
+                sql2 += '    SimRefObject AS sro, '
+                sql2 += '    RefSrcMatch AS rsm '
+                sql2 += 'WHERE '
+                sql2 += '    (qserv_ptInSphPoly(sro.ra, sro.decl, @poly) = 1) AND '
+                sql2 += '    (rsm.refObjectId = sro.refObjectId); '
+
+
+            # if there are no regexes (ie. actual wildcard expressions),
+            #  we can check the cache, otherwise must run the query
+
+            if not re.search("\%", sql) and haveAllKeys:
+                dataIdCopy = copy.copy(dataIdEntry)
+                dataIdCopy['snap'] = "0"
+                key = self._dataIdToString(dataIdCopy)
+                if self.refObjectCache.has_key(key):
+                    sroDict[key] = self.refObjectCache[key]
+                    continue
+
+                        
+            self.printStartLoad("Loading RefObjects for: " + dataIdEntryStr + "...")
+
+            # run the query
+            if oldWay:
+                results  = self.dbInterface.execute(sql)
+            else:
+                self.dbInterface.execute(sql)
+                results = self.dbInterface.execute(sql2)
+
+            # parse results and put them in a sourceSet
+            for row in results:
+                if oldWay:
+                    visit, raft, sensor = row[0:3]
+                    sroStuff = row[3:]
+                else:
+                    visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
+                    sroStuff = row[:] #row[3:]
+                    
+                dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
+                key = self._dataIdToString(dataIdTmp)
+                self.dataIdLookup[key] = dataIdTmp
+
+                if not sroDict.has_key(key):
+                    sroDict[key] = []
+                sros = sroDict[key]
+                sros.append(simRefObj.SimRefObject(sroStuff))
+
+            self.refObjectQueryCache[dataIdStr] = True
+            
+            self.printStopLoad()
+
+            
         # cache it
-        self.refObjectQueryCache[dataIdStr] = True
         for k, sro in sroDict.items():
             self.refObjectCache[k] = sroDict[k]
-        
-        self.printStopLoad()
 
         return sroDict
 
