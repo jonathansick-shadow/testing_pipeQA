@@ -190,12 +190,64 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             for tic in ax.get_xticklabels() + ax.get_yticklabels():
                 tic.set_size("x-small")
 
+            if False:
+                ################
+                # rose view
+                ax0 = fig.fig.add_subplot(122)
+                box = ax0.get_position()
+                ax0.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
+                ax = ax0.twinx()
+
+                # this is much faster than calling plot() in a loop, and quiver() scale length buggy
+                z = numpy.zeros(len(dx))
+                xy2 = zip(dx, dy)
+                xy1 = zip(z, z)
+                lines = zip(xy1, xy2)
+                p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
+                ax.add_collection(p)
+                ax.scatter(dx, dy, s=1.0, color='k', zorder=2, label="_nolegend_")
+
+                r = numpy.sqrt(dx**2 + dy**2)
+                isort = r.argsort()
+                i50 = isort[len(r)/2]
+                r50 = r[i50]
+                c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
+                ax.add_patch(c50)
+
+                fp = fm.FontProperties(size="xx-small")
+                ax.legend(prop=fp)
+
+                ax.set_xlabel("dRa [arcsec]")
+                ax.set_ylabel("dDec [arcsec]")
+                ax.set_xlim([-rmax, rmax])
+                ax.set_ylim([-rmax, rmax])
+                for tic in ax.get_xticklabels() + ax.get_yticklabels() + ax0.get_xticklabels():
+                    tic.set_size("x-small")
+
+                ax0.set_yticklabels([])
+
+                label = data.cameraInfo.getDetectorName(raft, ccd)
+                testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)
+
+                i += 1
+
+
+
+
             ################
             # rose view
-            ax0 = fig.fig.add_subplot(122)
-            box = ax0.get_position()
-            ax0.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
-            ax = ax0.twinx()
+            xmargin = 0.07
+            ymargin = 0.12
+            spacer = 0.03
+            left, bottom, width, height = 0.5+spacer, 0.35+spacer, 0.5-2*xmargin, 0.65-ymargin-spacer
+            ax = fig.fig.add_axes([left, bottom, width, height])
+            #ax0 = fig.fig.add_subplot(122)
+            #box = ax0.get_position()
+            #ylo, yhi = 0.35, 0.9
+            #ax0.set_position([box.x0, box.y0 + ylo*box.height,box.width, (yhi-ylo)*box.height])
+
+            #axtmp = ax0.twinx()
+            #ax = axtmp.twiny()
 
             # this is much faster than calling plot() in a loop, and quiver() scale length buggy
             z = numpy.zeros(len(dx))
@@ -204,9 +256,10 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             lines = zip(xy1, xy2)
             p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
             ax.add_collection(p)
-            ax.scatter(dx, dy, s=1.0, color='k', zorder=2, label="_nolegend_")
+            ax.scatter(dx, dy, s=1.0, color='k', zorder=2,label="_nolegend_")
 
             r = numpy.sqrt(dx**2 + dy**2)
+            rmax = r.max()
             isort = r.argsort()
             i50 = isort[len(r)/2]
             r50 = r[i50]
@@ -215,18 +268,55 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
             fp = fm.FontProperties(size="xx-small")
             ax.legend(prop=fp)
-            
-            ax.set_xlabel("dRa [arcsec]")
-            ax.set_ylabel("dDec [arcsec]")
-            ax.set_xlim([-rmax, rmax])
+
+            ax.xaxis.set_label_position('top')
+            ax.yaxis.set_label_position('right')
+            ax.xaxis.set_ticks_position('top')
+            ax.yaxis.set_ticks_position('right')
+
+            #get the figure width/heigh in inches to correct
+            #aspect ratio
+            f_w, f_h = fig.fig.get_size_inches()
+            ax.set_xlabel("dRa [arcsec]", size='x-small')
+            ax.set_ylabel("dDec [arcsec]", size='x-small')
+            ax.set_xlim([-width*f_w/(height*f_h)*rmax, f_w*width/(f_h*height)*rmax])
             ax.set_ylim([-rmax, rmax])
-            for tic in ax.get_xticklabels() + ax.get_yticklabels() + ax0.get_xticklabels():
+            for tic in ax.get_xticklabels() + ax.get_yticklabels():
                 tic.set_size("x-small")
 
-            ax0.set_yticklabels([])
+
+            #label = data.cameraInfo.getDetectorName(raft, ccd)
+            #testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)
+
+
+
+            ################
+            # hist view
+            left, bottom, width, height = 0.5+spacer, 0.0+ymargin, 0.5-2*xmargin, 0.35-ymargin
+            ax0 = fig.fig.add_axes([left, bottom, width, height])
+            #box = ax0.get_position()
+            #ax0.set_position([box.x0, box.y0 + 0.1*box.height,box.width, (ylo-0.1)*box.height])
+
+            #ax0 = ax.twinx()
+
+            binWidth = numpy.std(r)*(20.0/len(r))**0.2
+            nBin = (r.max() - r.min())/binWidth
+            rN, rBin, xx = ax0.hist(r, bins=nBin)
+
+            ax0.yaxis.set_ticks_position('right')
+            ax0.yaxis.set_label_position('right')
+
+            ax0.set_xlabel("r [arcsec]", size='x-small')
+            ax0.set_ylabel("N", size='x-small')
+            ax0.set_xlim([0, rmax])
+            ax0.set_ylim([0, numpy.max(rN)])
+
+
+
+            for tic in ax0.get_xticklabels() + ax0.get_yticklabels(): # + ax.get_xticklabels():
+                tic.set_size("x-small")
 
             label = data.cameraInfo.getDetectorName(raft, ccd)
-            testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)
-            
-            i += 1
+            testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
 
+            i += 1

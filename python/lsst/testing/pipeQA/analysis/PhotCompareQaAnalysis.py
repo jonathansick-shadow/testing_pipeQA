@@ -250,7 +250,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
                 slope = self.trend.get(raft, ccd)
 
-                if not slope is None:
+                if not slope is None and not slope[1] == 0:
 		    # aspRatio will make the vector have the same angle as the line in the figure
                     slopeSigma = slope[0]/slope[1]
                     slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slopeSigma]
@@ -261,7 +261,16 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 if not self.means.get(raft, ccd) is None:
                     meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
                     stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
-                    slopeFig.map[raft][ccd] = "slope=%.4f+/-%.4f(%.1fsig)" % (slope[0], slope[1], slopeSigma)
+                    fmt0, fmt1, fmtS = "%.4f", "%.4f", "%.1f"
+                    if slope[0] is None:
+                        fmt0 = "%s"
+                    if slope[1] is None:
+                        fmt1 = "%s"
+                    if slopeSigma is None:
+                        fmtS = "%s"
+                    fmt = "slope="+fmt0+"+/-"+fmt1+"("+fmtS+"sig)"
+                    slopeFig.map[raft][ccd] = fmt % (slope[0], slope[1], slopeSigma)
+
 
                     
         tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"

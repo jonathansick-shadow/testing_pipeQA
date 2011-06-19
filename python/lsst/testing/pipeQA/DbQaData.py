@@ -108,10 +108,12 @@ class DbQaData(QaData):
         sql += '    and (s.%sId = rom.%sId) and (rom.refObjectId = sro.refObjectId)' % \
                (self.refStr[useRef][1], self.refStr[useRef][1])
         if useRef == 'obj':
-            sql += '    and s.objectID is not NULL'
+            sql += '    and (s.objectID is not NULL) '
+            #sql += '    and (rom.nRefMatches = 1) '
+            sql += '    and (rom.nObjMatches = 1) '
         else:
-            #sql += '    and (rom.closestToSrc = 1) '
             sql += '    and (rom.nSrcMatches = 1) '
+            #sql += '    and (rom.nRefMatches = 1) '
         sql += '    and '+idWhere
         
 
@@ -366,6 +368,7 @@ class DbQaData(QaData):
                 sql += '          concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
                 sql += '          sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl)) = 1) '
                 sql += '        and (rsm.refObjectId = sro.refObjectId) '
+                #sql += '        ans (rsm.nSrcMatches = 0) '
                 sql += '        and ' + sqlDataId
 
             else:
@@ -388,6 +391,7 @@ class DbQaData(QaData):
                 sql2 += '    RefSrcMatch AS rsm '
                 sql2 += 'WHERE '
                 sql2 += '    (qserv_ptInSphPoly(sro.ra, sro.decl, @poly) = 1) AND '
+                #sql2 += '    (rsm.nSrcMatches = 0) and '
                 sql2 += '    (rsm.refObjectId = sro.refObjectId); '
 
 

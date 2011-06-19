@@ -170,6 +170,7 @@ class CompletenessQa2(qaAna.QaAnalysis):
                 if histRatio[i-2] > 0.5 and histRatio[i-1] > 0.5 and histRatio[i] <= 0.5:
                     idxLim = i
                     break
+            
             if idxLim:
                 if num.isnan(histStarSrc[1][idxLim-1]) or num.isnan(histStarSrc[1][idxLim]):
                     maxDepth = badDepth
@@ -210,6 +211,11 @@ class CompletenessQa2(qaAna.QaAnalysis):
         else:
             vmin = self.limits[0]
             vmax = self.limits[1]
+
+        if vmax <= vmin:
+            vmin = self.limits[0]
+            vmax = self.limits[1]
+            
         depthFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vmin, vmax],
                             title="Photometric Depth", cmapOver=red, cmapUnder=blue, failLimits=self.limits)
         testSet.addFigure(depthFig, "completenessDepth.png", "Estimate of photometric depth", 
@@ -246,10 +252,10 @@ class CompletenessQa2(qaAna.QaAnalysis):
 
             w = num.isfinite(unmatchCatGalData)
             if len(unmatchCatGalData[w]):
-                sp3.hist(unmatchCatGalData, facecolor='r', bins=self.bins, alpha=0.5, label='Galaxies', log=True)
+                sp3.hist(unmatchCatGalData[w], facecolor='r', bins=self.bins, alpha=0.5, label='Galaxies', log=True)
             w = num.isfinite(unmatchCatStarData)
             if len(unmatchCatStarData[w]):
-                sp3.hist(unmatchCatStarData, facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
+                sp3.hist(unmatchCatStarData[w], facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
 
             if len(unmatchImageData):
                 sp4.hist(unmatchImageData, facecolor='b', bins=self.bins, alpha=0.5, label='All', log=True)
