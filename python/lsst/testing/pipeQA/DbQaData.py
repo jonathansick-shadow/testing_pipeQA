@@ -266,6 +266,7 @@ class DbQaData(QaData):
             
             ss.append(s)
 
+
         # set the STAR flag if we have matched objects
         #if self.matchQueryCache.has_key(dataIdStr) and self.matchQueryCache[dataIdStr]:
 
@@ -276,8 +277,9 @@ class DbQaData(QaData):
             for m in matchList:
                 sref, s, dist = m
                 sid = s.getId()
-                index[sid] = s.getFlagForDetection() & measAlg.Flags.STAR
-
+                isStar = s.getFlagForDetection() & measAlg.Flags.STAR
+                index[sid] = isStar
+                
             for s in ssDict[k]:
                 if index.has_key(s.getId()):
                     s.setFlagForDetection(s.getFlagForDetection() | index[s.getId()])

@@ -46,13 +46,13 @@ class CompletenessQa(qaAna.QaAnalysis):
         self.ssDict        = data.getSourceSetBySensor(dataId)
         self.sroDict       = data.getRefObjectSetBySensor(dataId)
 
-        self.matchStarObj   = raftCcdData.RaftCcdData(self.detector)
-        self.matchGalObj    = raftCcdData.RaftCcdData(self.detector)
-        self.matchStarSrc   = raftCcdData.RaftCcdData(self.detector)
-        self.matchGalSrc    = raftCcdData.RaftCcdData(self.detector)
-        self.unmatchCatStar = raftCcdData.RaftCcdData(self.detector)
-        self.unmatchCatGal  = raftCcdData.RaftCcdData(self.detector)
-        self.unmatchImage   = raftCcdData.RaftCcdData(self.detector)
+        self.matchStarObj   = raftCcdData.RaftCcdVector(self.detector)
+        self.matchGalObj    = raftCcdData.RaftCcdVector(self.detector)
+        self.matchStarSrc   = raftCcdData.RaftCcdVector(self.detector)
+        self.matchGalSrc    = raftCcdData.RaftCcdVector(self.detector)
+        self.unmatchCatStar = raftCcdData.RaftCcdVector(self.detector)
+        self.unmatchCatGal  = raftCcdData.RaftCcdVector(self.detector)
+        self.unmatchImage   = raftCcdData.RaftCcdVector(self.detector)
 
         self.depth          = raftCcdData.RaftCcdData(self.detector)
         

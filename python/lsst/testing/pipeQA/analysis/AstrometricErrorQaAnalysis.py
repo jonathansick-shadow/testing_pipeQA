@@ -128,13 +128,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 
                           navMap=True)
 
-        #
-        figsize = (6.5, 3.25)
-        conv = colors.ColorConverter()
-        black = conv.to_rgb('k')
-        red = conv.to_rgb('r')
-        green = conv.to_rgb('g')
 
+        xAll = numpy.array([])
+        yAll = numpy.array([])
+        dxAll = numpy.array([])
+        dyAll = numpy.array([])
         
         i = 0
         for raft, ccd in self.dRa.raftCcdKeys():
@@ -149,174 +147,178 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             x = self.x.get(raft, ccd)
             y = self.y.get(raft, ccd)
 
-            # if there's no data, dump a single point at 0,0
-            if not len(x) > 0:
-                x = numpy.array([0.0])
-                y = numpy.array([0.0])
-                dx = numpy.array([0.0])
-                dy = numpy.array([0.0])
-                
-            # round up to nearest 1024 for limits
-            xmax, ymax = x.max(), y.max()
-            xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
-            ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
-
-            r = numpy.sqrt(dx**2 + dy**2)
-            rmax = r.max()
-            
             print "plotting ", ccd
-            
-            fig = qaFig.QaFigure(size=figsize)
-            fig.fig.subplots_adjust(left=0.1)
 
-            ################
-            # ccd view
-            ax = fig.fig.add_subplot(121)
-            box = ax.get_position()
-            ax.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
+            fig = self.standardFigure(x, y, dx, dy)
+            label = data.cameraInfo.getDetectorName(raft, ccd)
+            testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
 
+            i += 1
+
+            xAll = numpy.append(xAll, x)
+            yAll = numpy.append(yAll, y)
+            dxAll = numpy.append(dxAll, dx)
+            dyAll = numpy.append(dyAll, dy)
+
+        allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, gridVectors=True)
+        label = "all"
+        testSet.addFigure(allFig, "astromError.png", "Astrometric error"+label, areaLabel=label)
+
+
+
+    def standardFigure(self, x, y, dx, dy, gridVectors=False):
+
+
+        #
+        figsize = (6.5, 3.25)
+        conv = colors.ColorConverter()
+        black = conv.to_rgb('k')
+        red = conv.to_rgb('r')
+        green = conv.to_rgb('g')
+
+        # if there's no data, dump a single point at 0,0
+        if not len(x) > 0:
+            x = numpy.array([0.0])
+            y = numpy.array([0.0])
+            dx = numpy.array([0.0])
+            dy = numpy.array([0.0])
+
+        # round up to nearest 1024 for limits
+        xmax, ymax = x.max(), y.max()
+        xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
+        ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
+
+        r = numpy.sqrt(dx**2 + dy**2)
+        rmax = 2.0 # r.max()
+
+        fig = qaFig.QaFigure(size=figsize)
+        fig.fig.subplots_adjust(left=0.1)
+
+        ################
+        # ccd view
+        ax = fig.fig.add_subplot(121)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
+
+        # for the 'all' plot, just show avg vectors in grid cells
+        if gridVectors:
+            nx, ny = 8, 8
+            xstep, ystep = xlim[1]/nx, ylim[1]/ny
+            xgrid = [[0.0]*nx for i in range(ny)]
+            ygrid = [[0.0]*nx for i in range(ny)]
+            ngrid = [[0]*nx for i in range(ny)]
+            for i in range(len(x)):
+                ix, iy = int(x[i]/xstep), int(y[i]/ystep)
+                xgrid[ix][iy] += dx[i]
+                ygrid[ix][iy] += dy[i]
+                ngrid[ix][iy] += 1
+
+            xt, yt, dxt, dyt = [],[],[],[]
+            for ix in range(nx):
+                for iy in range(ny):
+                    xt.append(xstep*(ix+0.5))
+                    yt.append(ystep*(iy+0.5))
+                    xval = xgrid[ix][iy]/ngrid[ix][iy]
+                    yval = ygrid[ix][iy]/ngrid[ix][iy]
+                    dxt.append(xval)
+                    dyt.append(yval)
+
+            #for i in range(len(xt)):
+            #    print xt[i], yt[i], dxt[i], dyt[i]
+            q = ax.quiver(numpy.array(xt), numpy.array(yt), numpy.array(dxt), numpy.array(dyt),
+                          color='k', scale=1.0, angles='xy', pivot='middle', width=0.004)
+            ax.quiverkey(q, 0.9, -0.2, 0.1, "100 mas", coordinates='axes',
+                         fontproperties={'size':'small'})
+        else:
             ax.scatter(x, y, 0.5, color='r')
             q = ax.quiver(x, y, dx, dy, color='k', scale=10.0, angles='xy')
             ax.quiverkey(q, 0.9, -0.2, 1.0, "1 arcsec", coordinates='axes',
                          fontproperties={'size':"small"})
 
-            ax.xaxis.set_major_locator(MaxNLocator(8))
-            ax.yaxis.set_major_locator(MaxNLocator(8))
-            #ax.set_title(label)
-            ax.set_xlabel("x [pixels]")
-            ax.set_ylabel("y [pixels]")
-            ax.set_xlim(xlim)
-            ax.set_ylim(ylim)
-            for tic in ax.get_xticklabels() + ax.get_yticklabels():
-                tic.set_size("x-small")
+        ax.xaxis.set_major_locator(MaxNLocator(8))
+        ax.yaxis.set_major_locator(MaxNLocator(8))
 
-            if False:
-                ################
-                # rose view
-                ax0 = fig.fig.add_subplot(122)
-                box = ax0.get_position()
-                ax0.set_position([box.x0, box.y0 + 0.1*box.height, box.width, 0.9*box.height])
-                ax = ax0.twinx()
-
-                # this is much faster than calling plot() in a loop, and quiver() scale length buggy
-                z = numpy.zeros(len(dx))
-                xy2 = zip(dx, dy)
-                xy1 = zip(z, z)
-                lines = zip(xy1, xy2)
-                p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
-                ax.add_collection(p)
-                ax.scatter(dx, dy, s=1.0, color='k', zorder=2, label="_nolegend_")
-
-                r = numpy.sqrt(dx**2 + dy**2)
-                isort = r.argsort()
-                i50 = isort[len(r)/2]
-                r50 = r[i50]
-                c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
-                ax.add_patch(c50)
-
-                fp = fm.FontProperties(size="xx-small")
-                ax.legend(prop=fp)
-
-                ax.set_xlabel("dRa [arcsec]")
-                ax.set_ylabel("dDec [arcsec]")
-                ax.set_xlim([-rmax, rmax])
-                ax.set_ylim([-rmax, rmax])
-                for tic in ax.get_xticklabels() + ax.get_yticklabels() + ax0.get_xticklabels():
-                    tic.set_size("x-small")
-
-                ax0.set_yticklabels([])
-
-                label = data.cameraInfo.getDetectorName(raft, ccd)
-                testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)
-
-                i += 1
+        ax.set_xlabel("x [pixels]")
+        ax.set_ylabel("y [pixels]")
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        for tic in ax.get_xticklabels() + ax.get_yticklabels():
+            tic.set_size("x-small")
 
 
+        ################
+        # rose view
+        xmargin = 0.07
+        ymargin = 0.12
+        spacer = 0.03
+        left, bottom, width, height = 0.5+spacer, 0.35+spacer, 0.5-2*xmargin, 0.65-ymargin-spacer
+        ax = fig.fig.add_axes([left, bottom, width, height])
+
+        # this is much faster than calling plot() in a loop, and quiver() scale length buggy
+        z = numpy.zeros(len(dx))
+        xy2 = zip(dx, dy)
+        xy1 = zip(z, z)
+        lines = zip(xy1, xy2)
+        p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
+        ax.add_collection(p)
+        ax.scatter(dx, dy, s=1.0, color='k', zorder=2,label="_nolegend_")
+
+        r = numpy.sqrt(dx**2 + dy**2)
+        #rmax = r.max()
+        isort = r.argsort()
+        i50 = isort[len(r)/2]
+        r50 = r[i50]
+        c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
+        ax.add_patch(c50)
+
+        fp = fm.FontProperties(size="xx-small")
+        ax.legend(prop=fp)
+
+        ax.xaxis.set_label_position('top')
+        ax.yaxis.set_label_position('right')
+        ax.xaxis.set_ticks_position('top')
+        ax.yaxis.set_ticks_position('right')
+
+        #get the figure width/heigh in inches to correct
+        #aspect ratio
+        f_w, f_h = fig.fig.get_size_inches()
+        ax.set_xlabel("dRa [arcsec]", size='x-small')
+        ax.set_ylabel("dDec [arcsec]", size='x-small')
+        ax.set_xlim([-width*f_w/(height*f_h)*rmax, f_w*width/(f_h*height)*rmax])
+        ax.set_ylim([-rmax, rmax])
+        for tic in ax.get_xticklabels() + ax.get_yticklabels():
+            tic.set_size("x-small")
 
 
-            ################
-            # rose view
-            xmargin = 0.07
-            ymargin = 0.12
-            spacer = 0.03
-            left, bottom, width, height = 0.5+spacer, 0.35+spacer, 0.5-2*xmargin, 0.65-ymargin-spacer
-            ax = fig.fig.add_axes([left, bottom, width, height])
-            #ax0 = fig.fig.add_subplot(122)
-            #box = ax0.get_position()
-            #ylo, yhi = 0.35, 0.9
-            #ax0.set_position([box.x0, box.y0 + ylo*box.height,box.width, (yhi-ylo)*box.height])
+        ################
+        # hist view
+        left, bottom, width, height = 0.5+spacer, 0.0+ymargin, 0.5-2*xmargin, 0.35-ymargin
+        ax0 = fig.fig.add_axes([left, bottom, width, height])
 
-            #axtmp = ax0.twinx()
-            #ax = axtmp.twiny()
+        binWidth = 0.5*numpy.std(r)*(20.0/len(r))**0.2
+        nBin = (r.max() - r.min())/binWidth
+        rN, rBin, xx = ax0.hist(r, bins=nBin)
 
-            # this is much faster than calling plot() in a loop, and quiver() scale length buggy
-            z = numpy.zeros(len(dx))
-            xy2 = zip(dx, dy)
-            xy1 = zip(z, z)
-            lines = zip(xy1, xy2)
-            p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
-            ax.add_collection(p)
-            ax.scatter(dx, dy, s=1.0, color='k', zorder=2,label="_nolegend_")
+        rmed = numpy.median(r)
+        w = numpy.where(rBin > rmed)[0]
+        histMed = 1.0*rN[w[0]]
+        rNmax = rN.max()
+        ax0.arrow(rmed, rNmax, 0.0, histMed-rNmax, facecolor='r', edgecolor='r', lw=0.5)
+        ax0.text(1.2*rmed, 0.5*(histMed+rNmax), "median", verticalalignment="center", color='k', size='x-small')
+        #ax0.legend(prop=fp)
 
-            r = numpy.sqrt(dx**2 + dy**2)
-            rmax = r.max()
-            isort = r.argsort()
-            i50 = isort[len(r)/2]
-            r50 = r[i50]
-            c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
-            ax.add_patch(c50)
+        ax0.yaxis.set_ticks_position('right')
+        ax0.yaxis.set_label_position('right')
 
-            fp = fm.FontProperties(size="xx-small")
-            ax.legend(prop=fp)
-
-            ax.xaxis.set_label_position('top')
-            ax.yaxis.set_label_position('right')
-            ax.xaxis.set_ticks_position('top')
-            ax.yaxis.set_ticks_position('right')
-
-            #get the figure width/heigh in inches to correct
-            #aspect ratio
-            f_w, f_h = fig.fig.get_size_inches()
-            ax.set_xlabel("dRa [arcsec]", size='x-small')
-            ax.set_ylabel("dDec [arcsec]", size='x-small')
-            ax.set_xlim([-width*f_w/(height*f_h)*rmax, f_w*width/(f_h*height)*rmax])
-            ax.set_ylim([-rmax, rmax])
-            for tic in ax.get_xticklabels() + ax.get_yticklabels():
-                tic.set_size("x-small")
-
-
-            #label = data.cameraInfo.getDetectorName(raft, ccd)
-            #testSet.addFigure(fig, "astromError.png", "Astrometric error "+label, areaLabel=label)
+        ax0.set_xlabel("r [arcsec]", size='x-small')
+        ax0.set_ylabel("N", size='x-small')
+        ax0.set_xlim([0, 0.5*rmax])
+        ax0.set_ylim([0, 1.2*numpy.max(rN)])
 
 
 
-            ################
-            # hist view
-            left, bottom, width, height = 0.5+spacer, 0.0+ymargin, 0.5-2*xmargin, 0.35-ymargin
-            ax0 = fig.fig.add_axes([left, bottom, width, height])
-            #box = ax0.get_position()
-            #ax0.set_position([box.x0, box.y0 + 0.1*box.height,box.width, (ylo-0.1)*box.height])
+        for tic in ax0.get_xticklabels() + ax0.get_yticklabels(): # + ax.get_xticklabels():
+            tic.set_size("xx-small")
 
-            #ax0 = ax.twinx()
+        return fig
 
-            binWidth = numpy.std(r)*(20.0/len(r))**0.2
-            nBin = (r.max() - r.min())/binWidth
-            rN, rBin, xx = ax0.hist(r, bins=nBin)
-
-            ax0.yaxis.set_ticks_position('right')
-            ax0.yaxis.set_label_position('right')
-
-            ax0.set_xlabel("r [arcsec]", size='x-small')
-            ax0.set_ylabel("N", size='x-small')
-            ax0.set_xlim([0, rmax])
-            ax0.set_ylim([0, numpy.max(rN)])
-
-
-
-            for tic in ax0.get_xticklabels() + ax0.get_yticklabels(): # + ax.get_xticklabels():
-                tic.set_size("x-small")
-
-            label = data.cameraInfo.getDetectorName(raft, ccd)
-            testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
-
-            i += 1

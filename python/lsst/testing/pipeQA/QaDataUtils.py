@@ -74,7 +74,7 @@ def getSourceSetNameList():
     """Associate Source accessor names to database columns in a list of pairs. """
     
     accessors = [
-        ["Id",                           "objectId"                      ],
+        ["Id",                           "sourceId" ], #"objectId"                      ],
         ["Ra",                           "ra",                           ],
         ["Dec",                          "decl",                         ],
         #["RaErrForWcs",                  "raSigmaForWcs",                ],
@@ -109,8 +109,8 @@ def getSourceSetNameList():
         ["ApFluxErr",                    "apFluxSigma",                  ],
         ["ModelFlux",                    "modelFlux",                    ],
         ["ModelFluxErr",                 "modelFluxSigma",               ],
-        #["InstFlux",                     "instFlux",                     ],
-        #["InstFluxErr",                  "instFluxSigma",                ],
+        ["InstFlux",                     "instFlux",                     ],
+        ["InstFluxErr",                  "instFluxSigma",                ],
         #["NonGrayCorrFlux",              "nonGrayCorrFlux",              ],
         #["NonGrayCorrFluxErr",           "nonGrayCorrFluxSigma",         ],
         #["AtmCorrFlux",                  "atmCorrFlux",                  ],

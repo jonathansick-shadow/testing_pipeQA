@@ -35,7 +35,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 return "mod"
             elif re.search("^cat", mType):
                 return "cat"
-
+            elif re.search("^inst", mType):
+                return "inst"
+            
         self.magType1 = magType(magType1)
         self.magType2 = magType(magType2)
 
@@ -55,6 +57,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             return s.getModelFlux()
         elif mType=="cat":
             return sref.getPsfFlux()
+        elif mType=="inst":
+            return s.getInstFlux()
 
     def free(self):
         del self.x
@@ -140,6 +144,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
 
                         star = flags & measAlg.Flags.STAR
+                        #if star:
+                        #    print "isStar: ", star
                         
                         self.diff.append(raft, ccd, m1 - m2)
                         self.mag.append(raft, ccd, m1)
