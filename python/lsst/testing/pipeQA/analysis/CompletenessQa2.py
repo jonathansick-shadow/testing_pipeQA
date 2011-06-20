@@ -245,21 +245,53 @@ class CompletenessQa2(qaAna.QaAnalysis):
             if len(matchStarObjData):
                 sp1.hist(matchStarObjData, facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
 
+            nmss = []
             if len(matchGalSrcData):
                 sp2.hist(matchGalSrcData, facecolor='r', bins=self.bins, alpha=0.5, label='Galaxies', log=True)
             if len(matchStarSrcData):
-                sp2.hist(matchStarSrcData, facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
+                nmss, bmss, pmss = sp2.hist(matchStarSrcData, facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
 
+            nuss = []
             w = num.isfinite(unmatchCatGalData)
-            if len(unmatchCatGalData[w]):
+            if len(unmatchCatGalData):
                 sp3.hist(unmatchCatGalData[w], facecolor='r', bins=self.bins, alpha=0.5, label='Galaxies', log=True)
             w = num.isfinite(unmatchCatStarData)
-            if len(unmatchCatStarData[w]):
-                sp3.hist(unmatchCatStarData[w], facecolor='g', bins=self.bins, alpha=0.5, label='Stars', log=True)
+            if len(unmatchCatStarData):
+                nuss, buss, puss = sp3.hist(unmatchCatStarData[w], facecolor='g', 
+                                            bins=self.bins, alpha=0.5, label='Stars', log=True)
 
+            noss = []
             if len(unmatchImageData):
-                sp4.hist(unmatchImageData, facecolor='b', bins=self.bins, alpha=0.5, label='All', log=True)
+                noss, boss, poss = sp4.hist(unmatchImageData, facecolor='b', bins=self.bins, alpha=0.5, label='All', log=True)
 
+            # completeness lines
+            nmss = num.array(nmss)
+            nuss = num.array(nuss)
+            noss = num.array(noss)
+            if len(nmss) and len(nuss):
+                fracDet = 1.0 * nmss / (nmss + nuss)
+                sp2x2   = sp2.twinx()
+                sp2x2.plot(0.5 * (self.bins[1:] + self.bins[:-1]), fracDet)
+                sp2x2.set_ylabel('Match/Tot', fontsize = 8)
+                qaFigUtils.qaSetp(sp2x2.get_xticklabels(), visible=False)
+                qaFigUtils.qaSetp(sp2x2.get_yticklabels(), fontsize = 6)
+
+                fracuDet = 1.0 * nuss / (nmss + nuss)
+                sp3x2    = sp3.twinx()
+                sp3x2.plot(0.5 * (self.bins[1:] + self.bins[:-1]), fracuDet)
+                sp3x2.set_ylabel('UnDet/Tot', fontsize = 8)
+                qaFigUtils.qaSetp(sp3x2.get_xticklabels(), visible=False)
+                qaFigUtils.qaSetp(sp3x2.get_yticklabels(), fontsize = 6)
+
+            if len(noss) and len(nmss):
+                fracOrph = 1.0 * noss / (noss + nmss)
+                sp4x2   = sp4.twinx()
+                sp4x2.plot(0.5 * (self.bins[1:] + self.bins[:-1]), fracOrph)
+                sp4x2.set_ylabel('Orph/Det', fontsize = 8)
+                qaFigUtils.qaSetp(sp4x2.get_xticklabels(), visible=False)
+                qaFigUtils.qaSetp(sp4x2.get_yticklabels(), fontsize = 6)
+                
+                
             if len(matchGalObjData) or len(matchStarObjData):
                 sp1.legend(numpoints=1, prop=FontProperties(size='x-small'), loc = 'upper left')
             if len(unmatchImageData):
