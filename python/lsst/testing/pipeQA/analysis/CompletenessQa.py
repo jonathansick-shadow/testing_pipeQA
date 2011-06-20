@@ -11,7 +11,7 @@ import RaftCcdData as raftCcdData
 from matplotlib.font_manager import FontProperties
 
 
-class CompletenessQa2(qaAna.QaAnalysis):
+class CompletenessQa(qaAna.QaAnalysis):
     def __init__(self, completenessMagMin, completenessMagMax):
         qaAna.QaAnalysis.__init__(self)
         self.limits = [completenessMagMin, completenessMagMax]
