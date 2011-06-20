@@ -158,24 +158,27 @@ class CompletenessQa(qaAna.QaAnalysis):
             maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
             histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins)
             
+            magbins   = 0.5 * (histStarSrc[1][1:] + histStarSrc[1][:-1])
             histRatio = num.zeros(len(histStarSrc[0]))
-            w = num.where( histStarSrc[0] + histUnmatchStar[0] != 0)
-            histRatio       = histStarSrc[0][w]/(1.0 * (histStarSrc[0][w]+histUnmatchStar[0][w]))
 
+            w         = num.where((histStarSrc[0] + histUnmatchStar[0]) != 0)
+            magbins   = magbins[w]
+            histRatio = histStarSrc[0][w]/(1.0 * (histStarSrc[0][w]+histUnmatchStar[0][w]))
 
             badDepth = 0.0
             idxLim = None
             # Start at the bin with the most source counts
             for i in range(maxSrcIdx, len(histRatio)):
-                if histRatio[i-2] > 0.5 and histRatio[i-1] > 0.5 and histRatio[i] <= 0.5:
+                # Too many failures if there are fluctuations around the 50% region
+                # if histRatio[i-2] > 0.5 and histRatio[i-1] > 0.5 and histRatio[i] <= 0.5:
+                if histRatio[i-1] > 0.5 and histRatio[i] <= 0.5:
                     idxLim = i
-                    break
             
             if idxLim:
                 if num.isnan(histStarSrc[1][idxLim-1]) or num.isnan(histStarSrc[1][idxLim]):
                     maxDepth = badDepth
                 else:
-                    maxDepth = 0.5 * (histStarSrc[1][idxLim-1] + histStarSrc[1][idxLim])
+                    maxDepth = magbins[idxLim]
             else:
                 maxDepth = badDepth
             self.depth.set(raftId, ccdId, maxDepth)
@@ -268,25 +271,28 @@ class CompletenessQa(qaAna.QaAnalysis):
             nmss = num.array(nmss)
             nuss = num.array(nuss)
             noss = num.array(noss)
+            magbins = 0.5 * (self.bins[1:] + self.bins[:-1])
             if len(nmss) and len(nuss):
-                fracDet = 1.0 * nmss / (nmss + nuss)
+                idx = num.where((nmss + nuss) != 0)
+                fracDet = 1.0 * nmss[idx] / (nmss[idx] + nuss[idx])
                 sp2x2   = sp2.twinx()
-                sp2x2.plot(0.5 * (self.bins[1:] + self.bins[:-1]), fracDet)
+                sp2x2.plot(magbins[idx], fracDet)
                 sp2x2.set_ylabel('Match/Tot', fontsize = 8)
                 qaFigUtils.qaSetp(sp2x2.get_xticklabels(), visible=False)
                 qaFigUtils.qaSetp(sp2x2.get_yticklabels(), fontsize = 6)
 
-                fracuDet = 1.0 * nuss / (nmss + nuss)
+                fracuDet = 1.0 * nuss[idx] / (nmss[idx] + nuss[idx])
                 sp3x2    = sp3.twinx()
-                sp3x2.plot(0.5 * (self.bins[1:] + self.bins[:-1]), fracuDet)
+                sp3x2.plot(magbins[idx], fracuDet)
                 sp3x2.set_ylabel('UnDet/Tot', fontsize = 8)
                 qaFigUtils.qaSetp(sp3x2.get_xticklabels(), visible=False)
                 qaFigUtils.qaSetp(sp3x2.get_yticklabels(), fontsize = 6)
 
             if len(noss) and len(nmss):
-                fracOrph = 1.0 * noss / (noss + nmss)
+                idx = num.where((noss + nmss) != 0)
+                fracOrph = 1.0 * noss[idx] / (noss[idx] + nmss[idx])
                 sp4x2   = sp4.twinx()
-                sp4x2.plot(0.5 * (self.bins[1:] + self.bins[:-1]), fracOrph)
+                sp4x2.plot(magbins[idx], fracOrph)
                 sp4x2.set_ylabel('Orph/Det', fontsize = 8)
                 qaFigUtils.qaSetp(sp4x2.get_xticklabels(), visible=False)
                 qaFigUtils.qaSetp(sp4x2.get_yticklabels(), fontsize = 6)
