@@ -34,6 +34,13 @@ class CompletenessQa(qaAna.QaAnalysis):
         del self.depth
 
     def limitingMag(self, raftId, ccdId):
+        try:
+            import minuit2
+        except:
+            pass
+        else:
+            return self.limitingMagMinuit(raftId, ccdId)
+        
         matchStarList   = self.matchStarSrc.get(raftId, ccdId)
         unmatchStarList = self.unmatchCatStar.get(raftId, ccdId)
         
@@ -79,6 +86,11 @@ class CompletenessQa(qaAna.QaAnalysis):
         y     = d / n
         dy    = dd / n
 
+        idx = num.where(dy != 0)
+        x   = x[idx]
+        y   = y[idx]
+        dy  = dy[idx]
+              
         def fcn(A, B):
             model  = 0.5 + -1.0 / num.pi * num.arctan(A * x + B)
             chi    = (model - y) / dy
@@ -92,7 +104,7 @@ class CompletenessQa(qaAna.QaAnalysis):
         mx = num.arange(min(x), max(x), 0.1)
         my = 0.5 + -1.0 / num.pi * num.arctan(m.values['A'] * mx + m.values['B'])
         mindx = num.argsort((num.abs(my-0.5)))[0]
-        return mx[idx]
+        return mx[mindx]
 
     def test(self, data, dataId, fluxType = "psf"):
         testSet = self.getTestSet(data, dataId)
@@ -208,7 +220,7 @@ class CompletenessQa(qaAna.QaAnalysis):
             self.unmatchCatStar.set(raftId, ccdId, num.array(unmatchCatStar))
             self.unmatchCatGal.set(raftId, ccdId, num.array(unmatchCatGal))
 
-            maxDepth = self.limitingMag(raftId, ccdId)
+            maxDepth = self.limitingMagMinuit(raftId, ccdId)
             self.depth.set(raftId, ccdId, maxDepth)
 
             areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
