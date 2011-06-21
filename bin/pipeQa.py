@@ -20,6 +20,7 @@ import os
 import datetime
 import traceback
 import copy
+import time
 
 import lsst.testing.pipeQA as pipeQA
 import lsst.testing.pipeQA.analysis     as qaAnalysis
@@ -27,6 +28,10 @@ import lsst.pex.policy as pexPolicy
 from lsst.pex.logging import Trace
 
 import numpy
+
+def mem(size="rss"):
+    """Generalization; memory sizes: rss, rsz, vsz."""
+    return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
 
 #############################################################
 #
@@ -99,11 +104,18 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
 
     if data.cameraInfo.name in policy.getStringArray("doFwhm"):
         analysisList.append(qaAnalysis.FwhmQaAnalysis())
-       
+
+    useFp = open("runtimePerformance.dat", 'w')
+    useFp.write("#%-11s %-32s t_elapsed  resident-memory\n" % ("", ""))
     for visit in visits:
+
+        visit_t0 = time.clock()
+        
         testset = pipeQA.TestSet(group="", label="QA-failures")
         
         for a in analysisList:
+
+            test_t0 = time.clock()
             
             test = str(a)
             if not re.search(testRegex, test):
@@ -116,9 +128,11 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
 
             # For debugging, it's useful to exit on failure, and get
             # the full traceback
+            memory = 0
             if exceptExit:
                 a.test(data, dataIdVisit)
                 a.plot(data, dataIdVisit, showUndefined=False)
+                memory = mem()
                 a.free()
                 
             # otherwise, we want to continue gracefully
@@ -134,10 +148,16 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
                     testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
                 else:
                     a.plot(data, dataIdVisit, showUndefined=False)
+                    memory = mem()
                     a.free()
+                    
+            test_tf = time.clock()
+            useFp.write("%-12s %-32s %9.2fs %7dk %7.2fM\n" %
+                        (str(visit), test, test_tf-test_t0, memory, memory/1024.0))
+            useFp.flush()
             
         data.clearCache()
-
+    useFp.close()
 
 #############################################################
 # end

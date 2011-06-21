@@ -14,9 +14,6 @@ from QaData        import QaData
 import QaDataUtils as qaDataUtils
 import simRefObject as simRefObj
 
-def mem(size="rss"):
-    """Generalization; memory sizes: rss, rsz, vsz."""
-    return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
 
 #########################################################################
 #
