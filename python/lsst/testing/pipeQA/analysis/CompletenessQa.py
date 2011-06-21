@@ -38,6 +38,8 @@ class CompletenessQa(qaAna.QaAnalysis):
         del self.unmatchCatGal
         del self.unmatchImage
         del self.depth
+        if hasMinuit:
+            del self.fit
 
     def limitingMag(self, raftId, ccdId):
         if hasMinuit:
@@ -45,7 +47,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                 return self.limitingMagMinuit(raftId, ccdId)
             except:
                 pass
-        
+
         matchStarList   = self.matchStarSrc.get(raftId, ccdId)
         unmatchStarList = self.unmatchCatStar.get(raftId, ccdId)
         
@@ -64,11 +66,14 @@ class CompletenessQa(qaAna.QaAnalysis):
         y     = d / n
 
         for i in num.arange(len(y) - 1, 1, -1):
-            if y[i] < 0.5 and y[i-1] > 0.5:
+            if y[i] <= 0.5 and y[i-1] > 0.5:
                 return 0.5 * (x[i] + x[i-1])
         return 0.0
         
     def limitingMagMinuit(self, raftId, ccdId):
+        # Model is of the form:
+        # 0.5 + -1.0 / num.pi * num.arctan(A * x + B)
+        
         import minuit2
         matchStarList   = self.matchStarSrc.get(raftId, ccdId)
         unmatchStarList = self.unmatchCatStar.get(raftId, ccdId)
@@ -109,6 +114,8 @@ class CompletenessQa(qaAna.QaAnalysis):
         mx = num.arange(min(x), max(x), 0.1)
         my = 0.5 + -1.0 / num.pi * num.arctan(m.values['A'] * mx + m.values['B'])
         mindx = num.argsort((num.abs(my-0.5)))[0]
+
+        self.fit.set(raftId, ccdId, [m.values['A'], m.values['B']])
         return mx[mindx]
 
     def test(self, data, dataId, fluxType = "psf"):
@@ -132,6 +139,9 @@ class CompletenessQa(qaAna.QaAnalysis):
         self.unmatchImage   = raftCcdData.RaftCcdVector(self.detector)
 
         self.depth          = raftCcdData.RaftCcdData(self.detector)
+
+        if hasMinuit:
+            self.fit = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0]) 
         
         badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
         
@@ -225,7 +235,7 @@ class CompletenessQa(qaAna.QaAnalysis):
             self.unmatchCatStar.set(raftId, ccdId, num.array(unmatchCatStar))
             self.unmatchCatGal.set(raftId, ccdId, num.array(unmatchCatGal))
 
-            maxDepth = self.limitingMagMinuit(raftId, ccdId)
+            maxDepth = self.limitingMag(raftId, ccdId)
             self.depth.set(raftId, ccdId, maxDepth)
 
             areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
@@ -333,6 +343,12 @@ class CompletenessQa(qaAna.QaAnalysis):
                 qaFigUtils.qaSetp(sp3x2.get_xticklabels(), visible=False)
                 qaFigUtils.qaSetp(sp3x2.get_yticklabels(), fontsize = 6)
 
+                if hasMinuit:
+                    A, B = self.fit.get(raft, ccd)
+                    curve_x = num.arange(self.bins[0], self.bins[-1], 0.1)
+                    curve_y = 0.5 + -1.0 / num.pi * num.arctan(A * curve_x + B)
+                    sp2x2.plot(curve_x, curve_y, 'k-', alpha = 0.25)
+
             if len(noss) and len(nmss):
                 idx = num.where((noss + nmss) != 0)
                 fracOrph = 1.0 * noss[idx] / (noss[idx] + nmss[idx])
@@ -341,6 +357,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                 sp4x2.set_ylabel('Orph/Det', fontsize = 8)
                 qaFigUtils.qaSetp(sp4x2.get_xticklabels(), visible=False)
                 qaFigUtils.qaSetp(sp4x2.get_yticklabels(), fontsize = 6)
+
                 
                 
             if len(matchGalObjData) or len(matchStarObjData):
