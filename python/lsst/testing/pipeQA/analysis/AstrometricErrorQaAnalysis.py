@@ -129,8 +129,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                           navMap=True)
 
 
-        xAll = numpy.array([])
-        yAll = numpy.array([])
+        xAll  = numpy.array([])
+        yAll  = numpy.array([])
         dxAll = numpy.array([])
         dyAll = numpy.array([])
         
@@ -143,9 +143,12 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             t = numpy.arctan2(dec, ra)
             
             dx = eLen*numpy.cos(t)
-            dy = eLen*numpy.sin(t)
-            x = self.x.get(raft, ccd)
-            y = self.y.get(raft, ccd)
+            w = numpy.where(numpy.abs(dx) < 10.0)
+            
+            dx = dx[w]
+            dy = (eLen*numpy.sin(t))[w]
+            x = (self.x.get(raft, ccd))[w]
+            y = (self.y.get(raft, ccd))[w]
 
             print "plotting ", ccd
 
@@ -155,10 +158,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
             i += 1
 
-            xAll = numpy.append(xAll, x)
-            yAll = numpy.append(yAll, y)
-            dxAll = numpy.append(dxAll, dx)
-            dyAll = numpy.append(dyAll, dy)
+            if len(x) > 0:
+                xAll = numpy.append(xAll, x)
+                yAll = numpy.append(yAll, y)
+                dxAll = numpy.append(dxAll, dx)
+                dyAll = numpy.append(dyAll, dy)
 
         allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, gridVectors=True)
         label = "all"
@@ -263,7 +267,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         ax.add_collection(p)
         ax.scatter(dx, dy, s=1.0, color='k', zorder=2,label="_nolegend_")
 
-        r = numpy.sqrt(dx**2 + dy**2)
+        #r = numpy.sqrt(dx**2 + dy**2)
         #rmax = r.max()
         isort = r.argsort()
         i50 = isort[len(r)/2]
@@ -299,13 +303,18 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         nBin = (r.max() - r.min())/binWidth
         rN, rBin, xx = ax0.hist(r, bins=nBin)
 
+        # add a median arrow
         rmed = numpy.median(r)
         w = numpy.where(rBin > rmed)[0]
-        histMed = 1.0*rN[w[0]]
+        if len(w) > 0 and len(rN) > w[0]-1:
+            histMed = 1.1*rN[w[0]-1]
+        else:
+            histMed = 0.0
         rNmax = rN.max()
-        ax0.arrow(rmed, rNmax, 0.0, histMed-rNmax, facecolor='r', edgecolor='r', lw=0.5)
-        ax0.text(1.2*rmed, 0.5*(histMed+rNmax), "median", verticalalignment="center", color='k', size='x-small')
-        #ax0.legend(prop=fp)
+        ax0.arrow(rmed, 1.2*rNmax, 0.0, histMed-1.2*rNmax, facecolor='r', edgecolor='r', lw=0.5)
+        ax0.text(1.2*rmed, 0.5*(histMed+1.2*rNmax), "median",
+                 verticalalignment="center", color='k', size='x-small')
+
 
         ax0.yaxis.set_ticks_position('right')
         ax0.yaxis.set_label_position('right')
@@ -313,7 +322,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         ax0.set_xlabel("r [arcsec]", size='x-small')
         ax0.set_ylabel("N", size='x-small')
         ax0.set_xlim([0, 0.5*rmax])
-        ax0.set_ylim([0, 1.2*numpy.max(rN)])
+        ax0.set_ylim([0, 1.4*rNmax])
 
 
 
