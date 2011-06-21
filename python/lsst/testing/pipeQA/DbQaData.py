@@ -123,6 +123,8 @@ class DbQaData(QaData):
         # run the query
         results  = self.dbInterface.execute(sql)
 
+        calib = self.getCalibBySensor(dataIdRegex)
+
         # parse results and put them in a sourceSet
         matchListDict = {}
         for row in results:
@@ -162,7 +164,6 @@ class DbQaData(QaData):
                     sss.setFlagForDetection(sss.getFlagForDetection() & ~measAlg.Flags.STAR)
 
             # calibrate it
-            calib = self.getCalibBySensor(dataIdTmp)
             fmag0, fmag0Err = calib[key].getFluxMag0()
             s.setPsfFlux(s.getPsfFlux()/fmag0)
             s.setApFlux(s.getApFlux()/fmag0)
