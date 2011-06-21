@@ -10,6 +10,12 @@ import RaftCcdData as raftCcdData
 
 from matplotlib.font_manager import FontProperties
 
+hasMinuit = True
+try:
+    import minuit2
+except:
+    hasMinuit = False
+    
 
 class CompletenessQa(qaAna.QaAnalysis):
     def __init__(self, completenessMagMin, completenessMagMax):
@@ -34,12 +40,11 @@ class CompletenessQa(qaAna.QaAnalysis):
         del self.depth
 
     def limitingMag(self, raftId, ccdId):
-        try:
-            import minuit2
-        except:
-            pass
-        else:
-            return self.limitingMagMinuit(raftId, ccdId)
+        if hasMinuit:
+            try:
+                return self.limitingMagMinuit(raftId, ccdId)
+            except:
+                pass
         
         matchStarList   = self.matchStarSrc.get(raftId, ccdId)
         unmatchStarList = self.unmatchCatStar.get(raftId, ccdId)
