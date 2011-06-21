@@ -33,6 +33,66 @@ class CompletenessQa(qaAna.QaAnalysis):
         del self.unmatchImage
         del self.depth
 
+    def limitingMag(self, raftId, ccdId):
+        matchStarList   = self.matchStarSrc.get(raftId, ccdId)
+        unmatchStarList = self.unmatchCatStar.get(raftId, ccdId)
+        
+        histStarSrc     = num.histogram(matchStarList, bins = self.bins)
+        maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
+        histUnmatchStar = num.histogram(unmatchStarList, bins = self.bins)
+
+        magbins   = 0.5 * (histStarSrc[1][1:] + histStarSrc[1][:-1])
+        histRatio = num.zeros(len(histStarSrc[0]))
+
+        w     = num.where((histStarSrc[0] + histUnmatchStar[0]) != 0)
+        x     = magbins[w]
+        d     = 1.0 * histStarSrc[0][w]
+        u     = 1.0 * histUnmatchStar[0][w]
+        n     = d + u
+        y     = d / n
+
+        for i in num.arange(len(y) - 1, 1, -1):
+            if y[i] < 0.5 and y[i-1] > 0.5:
+                return 0.5 * (x[i] + x[i-1])
+        return 0.0
+        
+    def limitingMagMinuit(self, raftId, ccdId):
+        import minuit2
+        matchStarList   = self.matchStarSrc.get(raftId, ccdId)
+        unmatchStarList = self.unmatchCatStar.get(raftId, ccdId)
+        
+        histStarSrc     = num.histogram(matchStarList, bins = self.bins)
+        maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
+        histUnmatchStar = num.histogram(unmatchStarList, bins = self.bins)
+
+        magbins   = 0.5 * (histStarSrc[1][1:] + histStarSrc[1][:-1])
+        histRatio = num.zeros(len(histStarSrc[0]))
+
+        w     = num.where((histStarSrc[0] + histUnmatchStar[0]) != 0)
+        x     = magbins[w]
+
+        # approximate
+        d     = 1.0 * histStarSrc[0][w]
+        u     = 1.0 * histUnmatchStar[0][w]
+        dd    = num.sqrt(d)
+        n     = d + u
+        y     = d / n
+        dy    = dd / n
+
+        def fcn(A, B):
+            model  = 0.5 + -1.0 / num.pi * num.arctan(A * x + B)
+            chi    = (model - y) / dy
+            return num.sum(chi**2)
+        
+        m = minuit2.Minuit2(fcn)
+        m.values['A'] = 1
+        m.values['B'] = -10
+        m.migrad()
+
+        mx = num.arange(min(x), max(x), 0.1)
+        my = 0.5 + -1.0 / num.pi * num.arctan(m.values['A'] * mx + m.values['B'])
+        mindx = num.argsort((num.abs(my-0.5)))[0]
+        return mx[idx]
 
     def test(self, data, dataId, fluxType = "psf"):
         testSet = self.getTestSet(data, dataId)
@@ -115,8 +175,6 @@ class CompletenessQa(qaAna.QaAnalysis):
                     matchStar.set(raftId, ccdId, num.array(sroMagsStar))
                     matchGal.set(raftId, ccdId, num.array(sroMagsGxy))
 
-
-            
             unmatchImage = []
             q = 0
             if self.ssDict.has_key(key):
@@ -150,42 +208,12 @@ class CompletenessQa(qaAna.QaAnalysis):
             self.unmatchCatStar.set(raftId, ccdId, num.array(unmatchCatStar))
             self.unmatchCatGal.set(raftId, ccdId, num.array(unmatchCatGal))
 
-            # decide which matchStar list to use: matchStarSrc or matchStarObj (Src better?)
-            matchStarList = self.matchStarObj.get(raftId, ccdId)
-            
-            ###########################################################
-            histStarSrc     = num.histogram(matchStarList, bins = self.bins)
-            maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
-            histUnmatchStar = num.histogram(self.unmatchCatStar.get(raftId, ccdId), bins = self.bins)
-            
-            magbins   = 0.5 * (histStarSrc[1][1:] + histStarSrc[1][:-1])
-            histRatio = num.zeros(len(histStarSrc[0]))
-
-            w         = num.where((histStarSrc[0] + histUnmatchStar[0]) != 0)
-            magbins   = magbins[w]
-            histRatio = histStarSrc[0][w]/(1.0 * (histStarSrc[0][w]+histUnmatchStar[0][w]))
-
-            badDepth = 0.0
-            idxLim = None
-            # Start at the bin with the most source counts
-            for i in range(maxSrcIdx, len(histRatio)):
-                # Too many failures if there are fluctuations around the 50% region
-                # if histRatio[i-2] > 0.5 and histRatio[i-1] > 0.5 and histRatio[i] <= 0.5:
-                if histRatio[i-1] > 0.5 and histRatio[i] <= 0.5:
-                    idxLim = i
-            
-            if idxLim:
-                if num.isnan(histStarSrc[1][idxLim-1]) or num.isnan(histStarSrc[1][idxLim]):
-                    maxDepth = badDepth
-                else:
-                    maxDepth = magbins[idxLim]
-            else:
-                maxDepth = badDepth
+            maxDepth = self.limitingMag(raftId, ccdId)
             self.depth.set(raftId, ccdId, maxDepth)
 
             areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
             label = "photometric depth "
-            comment = "magnitude where completeness drops below 0.5"
+            comment = "magnitude where star completeness drops below 0.5"
             test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
 
@@ -319,7 +347,8 @@ class CompletenessQa(qaAna.QaAnalysis):
 
             sp4.text(0.5, 1.0, 'Unmatched Image (N:%d)' % (len(unmatchImageData)),
                      fontsize=8, transform=sp4.transAxes, ha='center')
-            
+
+            sp1.set_xlim(14, 28)
             sp1.set_ylim(0.75, 999)
             sp2.set_ylim(0.75, 999)
             sp3.set_ylim(0.75, 999)
