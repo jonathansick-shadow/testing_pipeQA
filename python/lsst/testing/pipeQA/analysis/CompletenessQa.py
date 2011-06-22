@@ -10,7 +10,8 @@ import RaftCcdData as raftCcdData
 
 from matplotlib.font_manager import FontProperties
 
-hasMinuit = True
+# Until we can make it more robust
+hasMinuit = False
 try:
     import minuit2
 except:
@@ -67,7 +68,7 @@ class CompletenessQa(qaAna.QaAnalysis):
 
         for i in num.arange(len(y) - 1, 1, -1):
             if y[i] <= 0.5 and y[i-1] > 0.5:
-                return 0.5 * (x[i] + x[i-1])
+                return (0.5 - y[i-1]) / (y[i] - y[i-1]) * (x[i] - x[i-1]) + x[i-1]
         return 0.0
         
     def limitingMagMinuit(self, raftId, ccdId):
@@ -348,6 +349,9 @@ class CompletenessQa(qaAna.QaAnalysis):
                     curve_x = num.arange(self.bins[0], self.bins[-1], 0.1)
                     curve_y = 0.5 + -1.0 / num.pi * num.arctan(A * curve_x + B)
                     sp2x2.plot(curve_x, curve_y, 'k-', alpha = 0.25)
+                else:
+                    sp2x2.axhline(y = 0.5, c='k', linestyle='-', alpha = 0.25)
+                    sp2x2.axvline(x = self.depth.get(raft, ccd), c='k', linestyle='-', alpha = 0.25)
 
             if len(noss) and len(nmss):
                 idx = num.where((noss + nmss) != 0)
