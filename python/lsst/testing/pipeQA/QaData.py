@@ -1,4 +1,4 @@
-import sys, os, re, copy
+import sys, os, re, copy, time
 import numpy
 
 import lsst.ap.cluster as apCluster
@@ -38,6 +38,7 @@ class QaData(object):
 
         self.loadDepth = 0
         self.lastPrint = None
+        self.t0 = []
 
     def printStartLoad(self, message):
         if self.loadDepth > 0:
@@ -47,18 +48,28 @@ class QaData(object):
         sys.stdout.flush()
         self.loadDepth += 1
         self.lastPrint = 0
+        self.t0.append(time.clock())
+
+    def printMidLoad(self, message):
+        print message,
+        sys.stdout.flush()
 
     def printStopLoad(self):
+        t0 = self.t0[-1]
+        self.t0 = self.t0[:-1]
+        t_final = time.clock()
+        t_elapsed = t_final - t0
+        done = "done (%.2fs)." % t_elapsed
         if self.loadDepth > 1:
             if self.lastPrint == 1:
-                print "\n", " "*4*(self.loadDepth-1), "done."
+                print "\n", " "*4*(self.loadDepth-1), done
             else:
-                print "done.",
+                print done,
         else:
             if self.lastPrint == 1:
-                print "\ndone."
+                print "\n"+done
             else:
-                print "done."
+                print done
         sys.stdout.flush()
         self.loadDepth -= 1
         self.lastPrint = 1

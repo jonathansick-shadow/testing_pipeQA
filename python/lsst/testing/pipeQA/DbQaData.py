@@ -179,7 +179,6 @@ class DbQaData(QaData):
         return matchListDict
 
 
-
     def getSourceSetBySensor(self, dataIdRegex):
         """Get a dict of all Sources matching dataId, with sensor name as dict keys.
 
@@ -293,6 +292,30 @@ class DbQaData(QaData):
         return ssDict
 
 
+    def getDataIdsFromRegex(self, dataIdRegex):
+        
+        haveAllKeys = True
+        sqlDataId = []
+        for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+            key, sqlName = keyNames
+            if dataIdRegex.has_key(key):
+                sqlDataId.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+            else:
+                haveAllKeys = False
+        sqlDataId = " and ".join(sqlDataId)
+
+        sql  = "select sce.visit, sce.raftName, sce.ccdName"
+        sql += "  from Science_Ccd_Exposure as sce "
+        sql += "  where " + sqlDataId
+
+        dataIdList = []
+        results  = self.dbInterface.execute(sql)
+        for r in results:
+            visit, raft, ccd = map(str, r[0:3])
+            dataIdList.append({'visit':visit, 'raft':raft, 'sensor':ccd, 'snap':'0'})
+            
+        return dataIdList
+
 
     def getRefObjectSetBySensor(self, dataIdRegex):
         """Get a dict of all Catalog Sources matching dataId, with sensor name as dict keys.
@@ -306,7 +329,7 @@ class DbQaData(QaData):
         sroFields = simRefObj.SimRefObject.fields
         sroFieldStr = ",".join(["sro."+field for field in sroFields])
 
-        oldWay = False
+        oldWay = True
 
         # if the dataIdEntry is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex)
@@ -323,26 +346,8 @@ class DbQaData(QaData):
         if oldWay:
             dataIdList = [dataIdRegex]
         else:
-            haveAllKeys = True
-            sqlDataId = []
-            for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
-                key, sqlName = keyNames
-                if dataIdRegex.has_key(key):
-                    sqlDataId.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
-                else:
-                    haveAllKeys = False
-            sqlDataId = " and ".join(sqlDataId)
-
-            sql  = "select sce.visit, sce.raftName, sce.ccdName"
-            sql += "  from Science_Ccd_Exposure as sce "
-            sql += "  where " + sqlDataId
-
-            dataIdList = []
-            results  = self.dbInterface.execute(sql)
-            for r in results:
-                visit, raft, ccd = map(str, r[0:3])
-                dataIdList.append({'visit':visit, 'raft':raft, 'sensor':ccd, 'snap':'0'})
-
+            dataIdList = self.getDataIdsFromRegex(dataIdRegex)
+            
 
         # Load each of the dataIds
         sroDict = {}
@@ -364,16 +369,18 @@ class DbQaData(QaData):
             if oldWay:
                 sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
                 sql += '  from SimRefObject as sro, RefSrcMatch as rsm, Science_Ccd_Exposure as sce'
-                sql += '  where (qserv_ptInSphPoly(sro.ra, sro.decl,'
-                sql += '          concat_ws(" ", sce.llcRa, sce.llcDecl, sce.lrcRa, sce.lrcDecl, '
-                sql += '          sce.urcRa, sce.urcDecl, sce.ulcRa, sce.ulcDecl)) = 1) '
+                sql += '  where (scisql_s2PtInCPoly(sro.ra, sro.decl,'
+                sql += '         scisql_s2CPolyToBin('
+                sql += '          sce.llcRa, sce.llcDecl, '
+                sql += '          sce.ulcRa, sce.ulcDecl, '
+                sql += '          sce.urcRa, sce.urcDecl, '
+                sql += '          sce.lrcRa, sce.lrcDecl)) = 1) '
                 sql += '        and (rsm.refObjectId = sro.refObjectId) '
                 #sql += '        ans (rsm.nSrcMatches = 0) '
                 sql += '        and ' + sqlDataId
 
             else:
-
-                sql  = 'SELECT concat_ws(" ", '
+                sql  = 'SELECT scisql_s2CPolyToBin('
                 sql += '   sce.llcRa, sce.llcDecl, '
                 sql += '   sce.lrcRa, sce.lrcDecl, '
                 sql += '   sce.urcRa, sce.urcDecl, '
@@ -390,7 +397,7 @@ class DbQaData(QaData):
                 sql2 += '    SimRefObject AS sro, '
                 sql2 += '    RefSrcMatch AS rsm '
                 sql2 += 'WHERE '
-                sql2 += '    (qserv_ptInSphPoly(sro.ra, sro.decl, @poly) = 1) AND '
+                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) AND '
                 #sql2 += '    (rsm.nSrcMatches = 0) and '
                 sql2 += '    (rsm.refObjectId = sro.refObjectId); '
 

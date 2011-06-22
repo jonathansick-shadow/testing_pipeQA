@@ -106,7 +106,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
         analysisList.append(qaAnalysis.FwhmQaAnalysis())
 
     useFp = open("runtimePerformance.dat", 'w')
-    useFp.write("#%-11s %-32s t_elapsed  resident-memory\n" % ("", ""))
+    useFp.write("# %-10s %-32s %10s  %16s\n" %
+                ("visit", "testname", "t-elapsed", "resident-memory"))
     for visit in visits:
 
         visit_t0 = time.clock()
