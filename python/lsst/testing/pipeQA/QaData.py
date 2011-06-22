@@ -48,7 +48,9 @@ class QaData(object):
         sys.stdout.flush()
         self.loadDepth += 1
         self.lastPrint = 0
-        self.t0.append(time.clock())
+        t0 = time.time()
+        self.t0.append(t0)
+        
 
     def printMidLoad(self, message):
         print message,
@@ -57,9 +59,9 @@ class QaData(object):
     def printStopLoad(self):
         t0 = self.t0[-1]
         self.t0 = self.t0[:-1]
-        t_final = time.clock()
+        t_final = time.time()
         t_elapsed = t_final - t0
-        done = "done (%.2fs)." % t_elapsed
+        done =  "done (%.2fs)." % t_elapsed
         if self.loadDepth > 1:
             if self.lastPrint == 1:
                 print "\n", " "*4*(self.loadDepth-1), done

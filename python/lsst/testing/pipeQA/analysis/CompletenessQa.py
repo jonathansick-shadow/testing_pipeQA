@@ -264,19 +264,24 @@ class CompletenessQa(qaAna.QaAnalysis):
 
         blue = '#0000ff'
         red  = '#ff0000'
-        if len(depths) >= 2:
-            vmin = max(num.min(depths), self.limits[0])
-            vmax = min(num.max(depths), self.limits[1])
-        else:
-            vmin = self.limits[0]
-            vmax = self.limits[1]
 
-        if vmax <= vmin:
-            vmin = self.limits[0]
-            vmax = self.limits[1]
+        if False:
+            if len(depths) >= 2:
+                vmin = max(num.min(depths), self.limits[0])
+                vmax = min(num.max(depths), self.limits[1])
+            else:
+                vmin = self.limits[0]
+                vmax = self.limits[1]
+
+            if vmax <= vmin:
+                vmin = self.limits[0]
+                vmax = self.limits[1]
+        else:
+            vmin, vmax = 1.0*self.limits[0], 1.0*self.limits[1]
             
-        depthFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vmin, vmax],
-                            title="Photometric Depth", cmapOver=red, cmapUnder=blue, failLimits=self.limits)
+        depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
+                            title="Photometric Depth", cmapOver=red, cmapUnder=blue,
+                            failLimits=self.limits)
         testSet.addFigure(depthFig, "completenessDepth.png", "Estimate of photometric depth", 
                           navMap=True)
 

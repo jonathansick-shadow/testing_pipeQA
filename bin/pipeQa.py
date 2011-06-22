@@ -110,13 +110,13 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
                 ("visit", "testname", "t-elapsed", "resident-memory"))
     for visit in visits:
 
-        visit_t0 = time.clock()
+        visit_t0 = time.time()
         
         testset = pipeQA.TestSet(group="", label="QA-failures")
         
         for a in analysisList:
 
-            test_t0 = time.clock()
+            test_t0 = time.time()
             
             test = str(a)
             if not re.search(testRegex, test):
@@ -152,7 +152,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
                     memory = mem()
                     a.free()
                     
-            test_tf = time.clock()
+            test_tf = time.time()
             useFp.write("%-12s %-32s %9.2fs %7dk %7.2fM\n" %
                         (str(visit), test, test_tf-test_t0, memory, memory/1024.0))
             useFp.flush()
