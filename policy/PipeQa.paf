@@ -4,6 +4,14 @@
 #
 definitions: {
 
+
+    doMultiEpochAstrom: {
+        type: string
+        description: "Multi-epoch astrometry: qaAnalysis.MultiEpochAstromQa"
+        maxOccurs: 4
+        default: "lsstSim"
+    }
+
     doZptQa: {
         type: string
         description: "Photometric Zeropoint: qaAnalysis.ZeropointQaAnalysis"

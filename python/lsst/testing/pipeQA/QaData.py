@@ -1,7 +1,8 @@
 import sys, os, re, copy, time
 import numpy
 
-import lsst.ap.cluster as apCluster
+import lsst.pex.policy          as pexPolicy
+import lsst.ap.cluster          as apCluster
 
 #######################################################################
 #
@@ -261,19 +262,18 @@ class QaData(object):
 
 
 
-    def getSourceClusters(self, dataIdRegex,
-                          epsilonArcsec = 0.5,
-                          minNeighbors = 1,
-                          pointsPerLeaf = 100,
-                          leafExtentThresholdArcsec = 0.5):
-        """Get apClusters for all Sources matching dataIdRegex.
+    def getSourceClusters(self, dataIdRegex, minClusterSize=2):
+        """Get apClusters for all Sources matching dataIdRegex."""
 
-        @param epsilonArcsec Matching distance
-        @param minNeighbors Fewest neighbors to accept
-        @param pointsPerLeaf who knows?
-        @param leafExtentThresholdArcsec Drawing a blank here too.
-        """
-        
+        #@param epsilonArcsec Matching distance
+        epsilonArcsec = 0.5
+        #@param minNeighbors Fewest neighbors to accept
+        minNeighbors = 2
+        #@param pointsPerLeaf who knows?
+        pointsPerLeaf = 100
+        #@param leafExtentThresholdArcsec Drawing a blank here too.
+        leafExtentThresholdArcsec = 0.5
+
         policy = pexPolicy.Policy()
         policy.set("epsilonArcsec", epsilonArcsec)
         policy.set("minNeighbors", minNeighbors)
@@ -281,9 +281,15 @@ class QaData(object):
         policy.set("leafExtentThresholdArcsec", leafExtentThresholdArcsec)
 
         sources = self.getSourceSet(dataIdRegex)
-        sourceClusters = apCluster.cluster(sources, policy)
-        
+        sourceClustersAll = apCluster.cluster(sources, policy)
+
+        sourceClusters = []
+        for sc in sourceClustersAll:
+            if len(sc) >= minClusterSize:
+                sourceClusters.append(sc)
+                
         return sourceClusters
+
 
     #######################################################################
     #

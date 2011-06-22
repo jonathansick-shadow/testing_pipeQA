@@ -1,3 +1,4 @@
+import re
 import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
@@ -23,7 +24,6 @@ class QaAnalysis(object):
         @param label   a label for particular TestSet
         """
         
-        group = dataId['visit']
         filter = data.getFilterBySensor(dataId)
         # all sensors have the same filter, so just grab one
         key = filter.keys()[0]
@@ -34,7 +34,11 @@ class QaAnalysis(object):
         else:
             label = self.__class__.__name__
 
-        tsId = group + "-" + filterName
+        if re.search("\*", dataId['visit']):
+            tsId = "cluster"
+        else:
+            tsId = dataId['visit'] + "-" + filterName
+            
         if not self.testSets.has_key(tsId):
             self.testSets[tsId] = testCode.TestSet(label, group=tsId)
             self.testSets[tsId].addMetadata('dataset', data.getDataName())

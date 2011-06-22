@@ -6,6 +6,6 @@ from PsfShapeQaAnalysis          import *
 from AstrometricErrorQaAnalysis  import *
 
 from CompletenessQa              import *
-from CompletenessQa2             import *
 from ZeropointFitQa              import *
-from FwhmQaAnalysis              import *
+
+from MultiEpochAstrometryQa      import *
