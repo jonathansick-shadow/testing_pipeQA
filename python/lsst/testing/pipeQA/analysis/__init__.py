@@ -7,4 +7,3 @@ from AstrometricErrorQaAnalysis  import *
 
 from CompletenessQa              import *
 from ZeropointFitQa              import *
-from FwhmQaAnalysis              import *
