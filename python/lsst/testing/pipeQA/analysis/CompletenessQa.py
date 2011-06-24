@@ -227,9 +227,9 @@ class CompletenessQa(qaAna.QaAnalysis):
             unmatchCatGal = []
             if self.sroDict.has_key(key):
                 for sro in self.sroDict[key]:
-                    if not matchSourceRefIds.has_key(sro.refObjectId):
+                    if not matchSourceRefIds.has_key(sro.getId()):
                         mag = sro.getMag(filterName)
-                        if sro.isStar:
+                        if sro.getIsStar():
                             unmatchCatStar.append(mag)
                         else:
                             unmatchCatGal.append(mag)

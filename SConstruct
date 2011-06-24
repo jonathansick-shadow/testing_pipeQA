@@ -5,24 +5,44 @@
 import glob, os.path, re
 import lsst.SConsUtils as scons
 
+thisPkg    = "testing_pipeQA"
+pythonPkg  = "pipeQaLib"
+pythonPath = os.path.join("python", "lsst", "testing", "pipeQA")
+
+
+###############################################################################
+# Boilerplate below here
+try:
+    scons.ConfigureDependentProducts
+except AttributeError:
+    import lsst.afw.SconsUtils
+    scons.ConfigureDependentProducts = lsst.afw.SconsUtils.ConfigureDependentProducts
+
+
 dependencies = ["pipette"]
 
-env = scons.makeEnv("pipetest",
+#libs = "meas_algorithms ndarray afw daf_base daf_data daf_persistence "
+#libs += "pex_logging pex_exceptions pex_policy security boost minuit2 utils wcslib"
+
+env = scons.makeEnv(thisPkg,
                     r"$HeadURL: $",
-                    [
-                    ])
+                    scons.ConfigureDependentProducts(thisPkg))
+
+#env.libs[thisPkg] += env.getlibs(libs) #" ".join(dependencies))
+
+env.thisPkg    = thisPkg
+env.pythonPkg  = pythonPkg
+env.pythonPath = pythonPath
+
 env.Help("""
 Pipeline output testing package
 """)
 
-###############################################################################
-# Boilerplate below here
-
-pkg = env["eups_product"]
-env.libs[pkg] += env.getlibs(" ".join(dependencies))
 
 # Build/install things
-SConscript(os.path.join("tests", "SConscript"))
+#SConscript(os.path.join("tests", "SConscript"))
+SConscript(os.path.join(pythonPath, "SConscript"))
+SConscript(os.path.join("lib", "SConscript"))
 
 env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
 Alias("install", [])

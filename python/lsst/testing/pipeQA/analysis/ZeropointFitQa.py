@@ -153,7 +153,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             unmatchedRef = []
             if self.sroDict.has_key(key):
                 for sro in self.sroDict[key]:
-                    if not refIds.has_key(sro.refObjectId):
+                    if not refIds.has_key(sro.getId()):
                         mag = sro.getMag(filterName)
                         unmatchedRef.append(mag)
             urefmag = num.array(unmatchedRef)

@@ -31,6 +31,7 @@ import numpy
 
 def mem(size="rss"):
     """Generalization; memory sizes: rss, rsz, vsz."""
+    #return 1.0
     return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
 
 #############################################################

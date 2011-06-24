@@ -13,7 +13,7 @@ from QaData        import QaData
 
 import QaDataUtils as qaDataUtils
 import simRefObject as simRefObj
-
+import source       as pqaSource
 
 #########################################################################
 #
@@ -125,9 +125,9 @@ class DbQaData(QaData):
         # parse results and put them in a sourceSet
         matchListDict = {}
         for row in results:
-            s = afwDet.Source()
+            s = pqaSource.Source()
             qaDataUtils.setSourceBlobsNone(s)
-            sref = afwDet.Source()
+            sref = pqaSource.RefSource()
             qaDataUtils.setSourceBlobsNone(sref)
             
             visit, raft, sensor, mag, ra, dec, isStar, refObjId = row[0:8]
@@ -146,6 +146,7 @@ class DbQaData(QaData):
             sref.setPsfFlux(flux)
             sref.setApFlux(flux)
             sref.setModelFlux(flux)
+            sref.setInstFlux(flux)
             
             i = 0
             for value in row[8:]:
@@ -165,6 +166,7 @@ class DbQaData(QaData):
             s.setPsfFlux(s.getPsfFlux()/fmag0)
             s.setApFlux(s.getApFlux()/fmag0)
             s.setModelFlux(s.getModelFlux()/fmag0)
+            s.setInstFlux(s.getInstFlux()/fmag0)
 
             dist = 0.0
             matchList.append([sref, s, dist])
@@ -234,7 +236,7 @@ class DbQaData(QaData):
         # parse results and put them in a sourceSet
         ssDict = {}
         for row in results:
-            s = afwDet.Source()
+            s = pqaSource.Source()
             qaDataUtils.setSourceBlobsNone(s)
 
             visit, raft, sensor = row[0:3]
@@ -243,7 +245,7 @@ class DbQaData(QaData):
             self.dataIdLookup[key] = dataIdTmp
 
             if not ssDict.has_key(key):
-                ssDict[key] = []
+                ssDict[key] = [] #pqaSource.SourceSet()
             ss = ssDict[key]
                 
             i = 0
@@ -260,6 +262,7 @@ class DbQaData(QaData):
             s.setPsfFlux(s.getPsfFlux()/fmag0)
             s.setApFlux(s.getApFlux()/fmag0)
             s.setModelFlux(s.getModelFlux()/fmag0)
+            s.setInstFlux(s.getInstFlux()/fmag0)
             
             ss.append(s)
 
@@ -326,7 +329,7 @@ class DbQaData(QaData):
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        sroFields = simRefObj.SimRefObject.fields
+        sroFields = simRefObj.fields
         sroFieldStr = ",".join(["sro."+field for field in sroFields])
 
         oldWay = True
@@ -437,9 +440,9 @@ class DbQaData(QaData):
                 self.dataIdLookup[key] = dataIdTmp
 
                 if not sroDict.has_key(key):
-                    sroDict[key] = []
+                    sroDict[key] = simRefObj.SimRefObjectSet()
                 sros = sroDict[key]
-                sros.append(simRefObj.SimRefObject(sroStuff))
+                sros.push_back(simRefObj.SimRefObject(*sroStuff))
 
             self.refObjectQueryCache[dataIdStr] = True
             

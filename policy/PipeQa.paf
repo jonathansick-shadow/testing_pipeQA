@@ -95,7 +95,7 @@ definitions: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 5
-        default: "psf cat" "psf ap" "psf mod" "ap cat" # "psf inst"
+        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst"
         allowed: {
             value:        "psf cat"
             description:  "Compare Psf magnitudes to catalog magnitudes"
@@ -151,14 +151,14 @@ definitions: {
         type: double
         description: "Minimum (positive valued) std.devs. of slope below slope=0"
         maxOccurs: 1
-        default: 3.0
+        default: 3.5
     }
 
     photCompareSlopeMaxSigma: {
         type: double
         description: "Maximum std.dev. of slope above slope=0"
         maxOccurs: 1
-        default:  3.0
+        default:  3.5
     }
 
     ###

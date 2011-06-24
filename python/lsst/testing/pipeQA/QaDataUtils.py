@@ -69,6 +69,17 @@ def setMatchListBlobsNone(matchList):
         setSourceBlobsNone(s2)
 
 
+
+
+
+
+
+
+
+
+
+
+
         
 def getSourceSetNameList():
     """Associate Source accessor names to database columns in a list of pairs. """
@@ -108,20 +119,20 @@ def getSourceSetNameList():
         ["ApFlux",                       "apFlux",                       ],
         ["ApFluxErr",                    "apFluxSigma",                  ],
         ["ModelFlux",                    "modelFlux",                    ],
-        ["ModelFluxErr",                 "modelFluxSigma",               ],
+        #["ModelFluxErr",                 "modelFluxSigma",               ],
         ["InstFlux",                     "instFlux",                     ],
-        ["InstFluxErr",                  "instFluxSigma",                ],
+        #["InstFluxErr",                  "instFluxSigma",                ],
         #["NonGrayCorrFlux",              "nonGrayCorrFlux",              ],
         #["NonGrayCorrFluxErr",           "nonGrayCorrFluxSigma",         ],
         #["AtmCorrFlux",                  "atmCorrFlux",                  ],
         #["AtmCorrFluxErr",               "atmCorrFluxSigma",             ],
         #["ApDia",                        "apDia",                        ],
         ["Ixx",                          "ixx",                          ],
-        ["IxxErr",                       "ixxSigma",                     ],
+        #["IxxErr",                       "ixxSigma",                     ],
         ["Iyy",                          "iyy",                          ],
-        ["IyyErr",                       "iyySigma",                     ],
+        #["IyyErr",                       "iyySigma",                     ],
         ["Ixy",                          "ixy",                          ],
-        ["IxyErr",                       "ixySigma",                     ],
+        #["IxyErr",                       "ixySigma",                     ],
         ["PsfIxx",                       "psfIxx",                       ],
         ["PsfIxxErr",                    "psfIxxSigma",                  ],
         ["PsfIyy",                       "psfIyy",                       ],
