@@ -1,12 +1,26 @@
+import os, re
 import numpy
 
-useSource = False
-useRefSource = False
-useSource = True
-useRefSource = True
+sourceClass = 'python'
+if os.environ.has_key('SOURCECLASS'):
+    if re.search('afw', os.environ['SOURCECLASS']):
+        sourceClass = 'afw'
+    elif re.search('c\+\+', os.environ['SOURCECLASS']):
+        sourceClass = 'c++'
+    else:
+        sourceClass = 'python'
+        
+        
+useSource = sourceClass
+useRefSource = sourceClass
 
-if useRefSource:
-    #from lsst.afw.detection import Source as RefSource
+
+#################################################################
+# RefSource
+
+if useRefSource == 'afw':
+    from lsst.afw.detection import Source as RefSource
+elif useRefSource == 'c++':
     import pipeQaLib as pipeQaLib
     RefSource = pipeQaLib.Source
     RefSourceSet = pipeQaLib.SourceSet
@@ -53,11 +67,17 @@ else:
 
 
 
-if useSource:
+
+################################################################
+# Source
+
+if useSource == 'afw':
+    from lsst.afw.detection import Source
+    
+elif useSource == 'c++':
     import pipeQaLib as pipeQaLib
     Source = pipeQaLib.Source
     SourceSet = pipeQaLib.SourceSet
-    #from lsst.afw.detection import Source
     
 else:
     class Source(object):

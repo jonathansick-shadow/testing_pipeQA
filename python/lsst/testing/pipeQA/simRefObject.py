@@ -1,3 +1,4 @@
+import os, re
 import numpy
 
 fields = [
@@ -7,8 +8,13 @@ fields = [
     "uMag", "gMag", "rMag", "iMag", "zMag"
     ]
 
-useCpp = True
 
+useCpp = False
+if os.environ.has_key('SOURCECLASS'):
+    if re.search('c\+\+', os.environ['SOURCECLASS']):
+        useCpp = True
+
+        
 if useCpp:
     import pipeQaLib as pipeQaLib
     SimRefObject = pipeQaLib.SimRefObject
