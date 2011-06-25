@@ -371,14 +371,16 @@ class DbQaData(QaData):
             # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
             if oldWay:
                 sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
-                sql += '  from SimRefObject as sro, RefSrcMatch as rsm, Science_Ccd_Exposure as sce'
+                sql += '  from SimRefObject as sro, '
+                #sql += '       RefSrcMatch as rsm, '
+                sql += '       Science_Ccd_Exposure as sce '
                 sql += '  where (scisql_s2PtInCPoly(sro.ra, sro.decl,'
                 sql += '         scisql_s2CPolyToBin('
                 sql += '          sce.llcRa, sce.llcDecl, '
                 sql += '          sce.ulcRa, sce.ulcDecl, '
                 sql += '          sce.urcRa, sce.urcDecl, '
                 sql += '          sce.lrcRa, sce.lrcDecl)) = 1) '
-                sql += '        and (rsm.refObjectId = sro.refObjectId) '
+                #sql += '        and (rsm.refObjectId = sro.refObjectId) '
                 #sql += '        ans (rsm.nSrcMatches = 0) '
                 sql += '        and ' + sqlDataId
 
@@ -398,11 +400,11 @@ class DbQaData(QaData):
                 sql2 = 'SELECT %s ' % (sroFieldStr)
                 sql2 += 'FROM '
                 sql2 += '    SimRefObject AS sro, '
-                sql2 += '    RefSrcMatch AS rsm '
+                #sql2 += '    RefSrcMatch AS rsm '
                 sql2 += 'WHERE '
-                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) AND '
-                #sql2 += '    (rsm.nSrcMatches = 0) and '
-                sql2 += '    (rsm.refObjectId = sro.refObjectId); '
+                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
+                #sql2 += '    and (rsm.nSrcMatches = 0) '
+                #sql2 += '    and (rsm.refObjectId = sro.refObjectId); '
 
 
             # if there are no regexes (ie. actual wildcard expressions),

@@ -87,7 +87,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                 counts = numpy.zeros([self.nx, self.ny])
                 for i in range(len(x)):
                     xi, yi = int(self.nx*x[i]/xwid), int(self.ny*y[i]/ywid)
-                    counts[xi,yi] += 1
+                    if xi >= 0 and xi < self.nx and yi >= 0 and yi < self.ny:
+                        counts[xi,yi] += 1
                 whereEmpty = numpy.where(counts.flatten() == 0)[0]
                 nEmpty = len(whereEmpty)
                 return nEmpty

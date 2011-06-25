@@ -213,9 +213,10 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             ngrid = [[0]*nx for i in range(ny)]
             for i in range(len(x)):
                 ix, iy = int(x[i]/xstep), int(y[i]/ystep)
-                xgrid[ix][iy] += dx[i]
-                ygrid[ix][iy] += dy[i]
-                ngrid[ix][iy] += 1
+                if ix >= 0 and ix < nx and iy >= 0 and iy < ny:
+                    xgrid[ix][iy] += dx[i]
+                    ygrid[ix][iy] += dy[i]
+                    ngrid[ix][iy] += 1
 
             xt, yt, dxt, dyt = [],[],[],[]
             for ix in range(nx):
