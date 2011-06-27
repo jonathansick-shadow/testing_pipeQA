@@ -18,8 +18,8 @@ from matplotlib.collections import LineCollection
 
 class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, ellipMax, fwhmMax):
-        qaAna.QaAnalysis.__init__(self)
+    def __init__(self, ellipMax, fwhmMax, **kwargs):
+        qaAna.QaAnalysis.__init__(self, **kwargs)
         self.limitsEllip = [0.0, ellipMax]
         self.limitsFwhm = [0.0, fwhmMax]
 
@@ -142,14 +142,18 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
 
         vLen = 1000.0  # for e=1.0
 
-        figFmt = "png"
-
         # fpa figures
-        ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo)
-        fwhmFig = qaFig.FpaQaFigure(data.cameraInfo)
+        ellipBase = "medPsfEllip"
+        ellipData, ellipMap = testSet.unpickle(ellipBase, default=[None, None])
+        ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=ellipData, map=ellipMap)
+
+        fwhmBase = "psfFwhm"
+        fwhmData, fwhmMap = testSet.unpickle(fwhmBase, default=[None, None])
+        fwhmFig = qaFig.FpaQaFigure(data.cameraInfo, data=fwhmData, map=fwhmMap)
 
         fwhmMin =  1e10
         fwhmMax = -1e10
@@ -173,8 +177,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                 
         ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
                             title="Median PSF Ellipticity", failLimits=self.limitsEllip)
-        testSet.addFigure(ellipFig, "medPsfEllip."+figFmt, "Median PSF Ellipticity",
-                          navMap=True)
+        testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
+        testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
 
         blue = '#0000ff'
         red = '#ff0000'
@@ -191,8 +195,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
                            title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
                            cmapUnder=blue)
-        testSet.addFigure(fwhmFig, "psfFwhm.png", "FWHM of Psf (arcsec)",
-                          navMap=True)
+        testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
+        testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
 
                         
         #

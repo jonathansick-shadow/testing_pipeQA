@@ -19,8 +19,8 @@ except:
     
 
 class CompletenessQa(qaAna.QaAnalysis):
-    def __init__(self, completenessMagMin, completenessMagMax):
-        qaAna.QaAnalysis.__init__(self)
+    def __init__(self, completenessMagMin, completenessMagMax, **kwargs):
+        qaAna.QaAnalysis.__init__(self, **kwargs)
         self.limits = [completenessMagMin, completenessMagMax]
         self.bins   = num.arange(14, 27, 0.5)
 
@@ -250,10 +250,14 @@ class CompletenessQa(qaAna.QaAnalysis):
             
     def plot(self, data, dataId, showUndefined=False):
         testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
 
         # fpa figure
+        filebase = "completenessDepth"
+        depthData, depthMap = testSet.unpickle(filebase, default=[None, None])
         depths = []
-        depthFig = qaFig.FpaQaFigure(data.cameraInfo)
+        depthFig = qaFig.FpaQaFigure(data.cameraInfo, data=depthData, map=depthMap)
+
         for raft, ccdDict in depthFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.depth.get(raft, ccd) is None:
@@ -282,8 +286,8 @@ class CompletenessQa(qaAna.QaAnalysis):
         depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
                             title="Photometric Depth", cmapOver=red, cmapUnder=blue,
                             failLimits=self.limits)
-        testSet.addFigure(depthFig, "completenessDepth.png", "Estimate of photometric depth", 
-                          navMap=True)
+        testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
+        testSet.pickle(filebase, [depthFig.data, depthFig.map])
 
         # Each CCD
         for raft, ccd in self.depth.raftCcdKeys():

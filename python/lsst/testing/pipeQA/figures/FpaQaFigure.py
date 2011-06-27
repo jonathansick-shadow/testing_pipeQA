@@ -4,7 +4,6 @@ import lsst.afw.cameraGeom.utils as cameraGeomUtils
 import numpy
 import numpy.ma as numpyMa
 
-#import pylab
 import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 from matplotlib import font_manager as fm
@@ -35,21 +34,25 @@ class FpaQaFigure(QaFigure):
                       qaFigUtils.cameraToRectangles(self.camera)
 
         self.idByName = {}
+        self.raftCcdByAreaLabel = {}
 
-        # To be filled in by child class
+        self.data = {}
+        self.reset()
+        self.reset(data=self.map)
+
+            
+        # Fill the data/map values if they were provided.
         if not data is None:
             if not self.validate():
                 raise Exception("Data did not pass validation.")
-            self.data = data
-        else:
-            self.data = {}
-            self.reset()
-
+            for raft, ccdDict in data.items():
+                for ccd, value in ccdDict.items():
+                    self.data[raft][ccd] = data[raft][ccd]
+                    
         if not map is None:
-            self.map = map
-        else:
-            self.reset(data=self.map)
-
+            for raft, ccdDict in data.items():
+                for ccd, value in ccdDict.items():
+                    self.map[raft][ccd] = map[raft][ccd]
 
         
     def reset(self, data=None):
@@ -67,6 +70,9 @@ class FpaQaFigure(QaFigure):
                 clabel = ccd.getId().getName()
                 self.idByName[clabel] = ccd.getId()
                 data[rlabel][clabel] = None
+                areaLabel = self.getAreaLabel(rlabel, clabel)
+                self.raftCcdByAreaLabel[areaLabel] = [rlabel, clabel]
+                
                 
     def validate(self):
         # Since we establish the structure of data in __init__, it
@@ -84,6 +90,11 @@ class FpaQaFigure(QaFigure):
                     return False
         return True
 
+            
+
+    ###################################################################
+    # map related methods
+    ###################################################################
 
     def getAreaLabel(self, raft, ccd):
         """Get the area label to use for this raft,ccd."""
@@ -112,7 +123,12 @@ class FpaQaFigure(QaFigure):
                     y0, y1 = bound[1]
                     label = self.getAreaLabel(rlabel, clabel)
                     self.addMapArea(label, [x0, y0, x1, y1], info)
+
                     
+        
+    ###################################################################
+    # plot related methods
+    ###################################################################
 
 
     def plotRaftBoundaries(self, sp, boundaryColors):
@@ -297,8 +313,8 @@ class FpaQaFigure(QaFigure):
 
 class VectorFpaQaFigure(FpaQaFigure):
 
-    def __init__(self, cameraInfo, data=None):
-        FpaQaFigure.__init__(self, cameraInfo)
+    def __init__(self, cameraInfo, data=None, map=None):
+        FpaQaFigure.__init__(self, cameraInfo, data=data, map=map)
 
 
     def getDataArray(self):

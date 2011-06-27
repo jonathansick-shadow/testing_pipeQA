@@ -1,12 +1,14 @@
+import os
 import lsst.testing.pipeQA.figures as qaFig
 import numpy
+import cPickle as pickle
 
 import lsst.testing.pipeQA.TestCode as testCode
 
 class QaAnalysis(object):
     """Baseclass for analysis classes."""
 
-    def __init__(self, testLabel=None):
+    def __init__(self, testLabel=None, useCache=False):
         """
         @param testLabel   A name for this kind of analysis test.
         """
@@ -14,7 +16,12 @@ class QaAnalysis(object):
         self.testSets = {}
         self.testLabel = testLabel
 
-
+        # if we're not going to use the cached values
+        # we'll have to clean the output directory on our first call
+        self.useCache = useCache
+        self.clean    = not useCache
+        
+    
     def getTestSet(self, data, dataId, label=None):
         """Get a TestSet object in the correct group.
 
@@ -36,7 +43,7 @@ class QaAnalysis(object):
 
         tsId = group + "-" + filterName
         if not self.testSets.has_key(tsId):
-            self.testSets[tsId] = testCode.TestSet(label, group=tsId)
+            self.testSets[tsId] = testCode.TestSet(label, group=tsId, clean=self.clean)
             self.testSets[tsId].addMetadata('dataset', data.getDataName())
             self.testSets[tsId].addMetadata('visit-filter', tsId)
 

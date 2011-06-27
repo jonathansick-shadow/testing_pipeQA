@@ -29,7 +29,7 @@ from lsst.pex.logging import Trace
 
 import numpy
 
-def mem(size="rss"):
+def getMemUsageThisPid(size="rss"):
     """Generalization; memory sizes: rss, rsz, vsz."""
     #return 1.0
     return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
@@ -40,7 +40,8 @@ def mem(size="rss"):
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptExit=False):
+def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
+         exceptExit=False, keep=False):
 
     if exceptExit:
         numpy.seterr(all="raise")
@@ -75,16 +76,17 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
     if data.cameraInfo.name in policy.getStringArray("doZptQa"):
         zptMin = policy.get("zptQaMetricMin")
         zptMax = policy.get("zptQaMetricMax")
-        analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax))
+        analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax, useCache=keep))
     if data.cameraInfo.name in policy.getStringArray("doZptFitQa"):
         offsetMin = policy.get("zptFitQaOffsetMin")
         offsetMax = policy.get("zptFitQaOffsetMax")
-        analysisList.append(qaAnalysis.ZeropointFitQa(offsetMin, offsetMax))
+        analysisList.append(qaAnalysis.ZeropointFitQa(offsetMin, offsetMax, useCache=keep))
     if data.cameraInfo.name in policy.getStringArray("doEmptySectorQa"):
         maxMissing = policy.get("emptySectorMaxMissing")
-        analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4))
+        analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4, useCache=keep))
     if data.cameraInfo.name in policy.getStringArray("doAstromQa"):
-        analysisList.append(qaAnalysis.AstrometricErrorQaAnalysis(policy.get("astromQaMaxErr")))
+        analysisList.append(qaAnalysis.AstrometricErrorQaAnalysis(policy.get("astromQaMaxErr"),
+                                                                  useCache=keep))
     if data.cameraInfo.name in policy.getStringArray("doPhotCompareQa"):
         magCut   = policy.get("photCompareMagCut")
         deltaMin = policy.get("photCompareDeltaMin")
@@ -95,16 +97,14 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
         for types in policy.getStringArray("photCompareTypes"):
             cmp1, cmp2 = types.split()
             analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
-                                                                 rmsMax, slopeMin, slopeMax))
+                                                                 rmsMax, slopeMin, slopeMax, useCache=keep))
     if data.cameraInfo.name in policy.getStringArray("doPsfShapeQa"):
         analysisList.append(qaAnalysis.PsfShapeQaAnalysis(policy.get("psfEllipMax"),
-                                                          policy.get("psfFwhmMax")))
+                                                          policy.get("psfFwhmMax"), useCache=keep))
     if data.cameraInfo.name in policy.getStringArray("doCompleteQa"):
         analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
-                                                      policy.get("completeMaxMag")))
+                                                      policy.get("completeMaxMag"), useCache=keep))
 
-    if data.cameraInfo.name in policy.getStringArray("doFwhm"):
-        analysisList.append(qaAnalysis.FwhmQaAnalysis())
 
     useFp = open("runtimePerformance.dat", 'w')
     useFp.write("# %-10s %-32s %10s  %16s\n" %
@@ -133,8 +133,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
             memory = 0
             if exceptExit:
                 a.test(data, dataIdVisit)
-                a.plot(data, dataIdVisit, showUndefined=False)
-                memory = mem()
+                a.plot(data, dataIdVisit)
+                memory = getMemUsageThisPid()
                 a.free()
                 
             # otherwise, we want to continue gracefully
@@ -149,8 +149,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None, exceptEx
                     print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
                     testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
                 else:
-                    a.plot(data, dataIdVisit, showUndefined=False)
-                    memory = mem()
+                    a.plot(data, dataIdVisit)
+                    memory = getMemUsageThisPid()
                     a.free()
                     
             test_tf = time.time()
@@ -183,6 +183,8 @@ if __name__ == '__main__':
 		      help="Specify a camera and override auto-detection (default=%default)")
     parser.add_option("-e", "--exceptExit", default=False, action='store_true',
                       help="Don't capture exceptions, fail and exit (default=%default)")
+    parser.add_option("-k", "--keep", default=False, action="store_true",
+                      help="Keep existing outputs (default=%default)")
     parser.add_option("-r", "--raft", default=".*",
                       help="Specify raft as regex (default=%default)")
     parser.add_option("-R", "--rerun", default=None,
@@ -211,4 +213,4 @@ if __name__ == '__main__':
 
     Trace.setVerbosity('lsst.testing.pipeQA', int(opts.verbosity))
     
-    main(dataset, dataId, rerun, opts.test, opts.camera, opts.exceptExit)
+    main(dataset, dataId, rerun, opts.test, opts.camera, opts.exceptExit, opts.keep)

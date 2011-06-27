@@ -152,3 +152,12 @@ def robustPolyFit(x, y, order, nbin=3, sigma=3.0, niter=1):
             
     return b, db, a, da
 
+
+
+def dictToList(d, withDelete=False):
+    out = numpy.array([])
+    for k,v in d.items():
+        out = numpy.append(out, numpy.array(v))
+        if withDelete:
+            del d[k]
+    return out

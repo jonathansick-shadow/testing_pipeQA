@@ -19,8 +19,8 @@ from matplotlib.patches import Circle
 
 class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, maxErr):
-        qaAna.QaAnalysis.__init__(self)
+    def __init__(self, maxErr, **kwargs):
+        qaAna.QaAnalysis.__init__(self, **kwargs)
         self.limits = [0.0, maxErr]
 
     def free(self):
@@ -110,9 +110,14 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
+
+        medAstBase = "medAstError"
+        medAstData, medAstMap = testSet.unpickle(medAstBase, default=[None, None])
 
         # fpa figure
-        astFig = qaFig.VectorFpaQaFigure(data.cameraInfo)
+        astFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=medAstData, map=medAstMap)
+
         vLen = 5000 # length in pixels for 1 arcsec error vector
         for raft, ccdDict in astFig.data.items():
             for ccd, value in ccdDict.items():
@@ -125,16 +130,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
                           title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
                           cmapUnder="#ff0000")
-        testSet.addFigure(astFig, "medAstError.png", "Median astrometric error", 
-                          navMap=True)
+        testSet.addFigure(astFig, medAstBase+".png", "Median astrometric error",  navMap=True)
+        testSet.pickle(medAstBase, [astFig.data, astFig.map])
 
 
-        xAll  = numpy.array([])
-        yAll  = numpy.array([])
-        dxAll = numpy.array([])
-        dyAll = numpy.array([])
+        cacheLabel = "astromError"
+        xAll, yAll, dxAll, dyAll = testSet.unpickle(cacheLabel, default=[{},{},{},{}])
         
-        i = 0
         for raft, ccd in self.dRa.raftCcdKeys():
             ra = self.dRa.get(raft, ccd)
             dec = self.dDec.get(raft, ccd)
@@ -156,14 +158,19 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
 
-            i += 1
+            xAll[ccd]  = x
+            yAll[ccd]  = y
+            dxAll[ccd] = dx
+            dyAll[ccd] = dy
 
-            if len(x) > 0:
-                xAll = numpy.append(xAll, x)
-                yAll = numpy.append(yAll, y)
-                dxAll = numpy.append(dxAll, dx)
-                dyAll = numpy.append(dyAll, dy)
+        testSet.pickle(cacheLabel, [xAll, yAll, dxAll, dyAll])
 
+        withDelete = True
+        xAll  = qaAnaUtil.dictToList(xAll,  withDelete=withDelete)
+        yAll  = qaAnaUtil.dictToList(yAll,  withDelete=withDelete)
+        dxAll = qaAnaUtil.dictToList(dxAll, withDelete=withDelete)
+        dyAll = qaAnaUtil.dictToList(dyAll, withDelete=withDelete)
+        
         allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, gridVectors=True)
         label = "all"
         testSet.addFigure(allFig, "astromError.png", "Astrometric error"+label, areaLabel=label)

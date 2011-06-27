@@ -18,8 +18,8 @@ from matplotlib.collections import LineCollection
 
 class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, maxMissing, nx=4, ny=4):
-        qaAna.QaAnalysis.__init__(self)
+    def __init__(self, maxMissing, nx=4, ny=4, **kwargs):
+        qaAna.QaAnalysis.__init__(self, **kwargs)
         self.limits = [0, maxMissing]
         self.nx = nx
         self.ny = ny
@@ -113,10 +113,18 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
+        
+        # make fpa figures - for all detections, and for matched detections
+        emptyBase = "emptySectors"
+        emptyMatBase = "aa_emptySectorsMat"
 
-        # make fpa figures
-        emptyFig    = qaFig.FpaQaFigure(data.cameraInfo)  # one for all detections
-        emptyFigMat = qaFig.FpaQaFigure(data.cameraInfo)  # one for matched detections
+        emptyData, emptyMap       = testSet.unpickle(emptyBase, [None, None])
+        emptyMatData, emptyMatMap = testSet.unpickle(emptyMatBase, [None, None])
+        
+        emptyFig    = qaFig.FpaQaFigure(data.cameraInfo, data=emptyData, map=emptyMap)
+        emptyFigMat = qaFig.FpaQaFigure(data.cameraInfo, data=emptyMatData, map=emptyMatMap)
+
         for raft, ccdDict in emptyFig.data.items():
             for ccd, value in ccdDict.items():
 
@@ -136,15 +144,16 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r", vlimits=[0, self.nx*self.ny],
                             title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
                             failLimits=self.limits)
-        testSet.addFigure(emptyFig, "emptySectors.png", "Empty Sectors in %dx%d grid." % (self.nx, self.ny),
+        testSet.addFigure(emptyFig, emptyBase+".png", "Empty Sectors in %dx%d grid." % (self.nx, self.ny),
                           navMap=True)
+        testSet.pickle(emptyBase, [emptyFig.data, emptyFig.map])
 
         emptyFigMat.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r", vlimits=[0, self.nx*self.ny],
                                title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny),
                                failLimits=self.limits)
-        testSet.addFigure(emptyFigMat,
-                          "aa_emptySectorsMat.png", "Empty Sectors in %dx%d grid." % (self.nx, self.ny),
-                          navMap=True)
+        testSet.addFigure(emptyFigMat, emptyMatBase+".png",
+                          "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
+        testSet.pickle(emptyMatBase, [emptyFigMat.data, emptyFigMat.map])
 
 
         # make any individual (ie. per sensor) plots

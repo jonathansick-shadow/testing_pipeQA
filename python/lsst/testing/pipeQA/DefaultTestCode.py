@@ -48,7 +48,7 @@ class Test(object):
 class TestSet(object):
     """A container for Test objects and associated matplotlib figures."""
 
-    def __init__(self, label=None, group=""):
+    def __init__(self, label=None, group="", clean=False):
         """
         @param label  A name for this testSet
         @param group  A category this testSet belongs to

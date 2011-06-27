@@ -13,8 +13,8 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 
 class ZeropointFitQa(qaAna.QaAnalysis):
-    def __init__(self, medOffsetMin, medOffsetMax, figsize=(5.0,5.0)):
-        qaAna.QaAnalysis.__init__(self)
+    def __init__(self, medOffsetMin, medOffsetMax, figsize=(5.0,5.0), **kwargs):
+        qaAna.QaAnalysis.__init__(self, **kwargs)
         self.figsize = figsize
         self.limits = [medOffsetMin, medOffsetMax]
 
@@ -174,11 +174,18 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             
     def plot(self, data, dataId, showUndefined=False):
         testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
 
         # fpa figure
         zpts = []
-        zptFig = qaFig.FpaQaFigure(data.cameraInfo)
-        offsetFig = qaFig.FpaQaFigure(data.cameraInfo)
+        zptBase = "zeropoing"
+        zptData, zptMap = testSet.unpickle(zptBase, default=[None, None])
+        zptFig = qaFig.FpaQaFigure(data.cameraInfo, data=zptData, map=zptMap)
+
+        offsetBase = "medZeropointOffset"
+        offsetData, offsetMap = testSet.unpickle(offsetBase, default=[None, None])
+        offsetFig = qaFig.FpaQaFigure(data.cameraInfo, data=offsetData, map=offsetMap)
+
         for raft, ccdDict in zptFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.zeroPoint.get(raft, ccd) is None:
@@ -197,14 +204,17 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         zptFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[num.min(zpts), num.max(zpts)],
                           title="Zeropoint", cmapOver=red, 
                           cmapUnder=blue)
-        testSet.addFigure(zptFig, "zeropoint.png", "Photometric zeropoint", 
+        testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", 
                           navMap=True)
+        testSet.pickle(zptBase, [zptFig.data, zptFig.map])
         
         offsetFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
                              title="Med offset from Zpt Fit", cmapOver=red, failLimits=self.limits,
                              cmapUnder=blue)
-        testSet.addFigure(offsetFig, "medZeropointOffset.png", "Median offset from photometric zeropoint", 
+        testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint", 
                           navMap=True)
+        testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
+        
 
         # Each CCD
         for raft, ccd in self.zeroPoint.raftCcdKeys():

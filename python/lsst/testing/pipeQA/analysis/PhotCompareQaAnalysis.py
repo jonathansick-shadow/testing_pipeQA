@@ -17,9 +17,10 @@ import matplotlib.font_manager as fm
 class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
     def __init__(self, magType1, magType2, magCut,
-                 deltaMin, deltaMax, rmsMax, slopeMinSigma, slopeMaxSigma):
+                 deltaMin, deltaMax, rmsMax, slopeMinSigma, slopeMaxSigma,
+                 **kwargs):
         testLabel = magType1+"-"+magType2
-        qaAna.QaAnalysis.__init__(self, testLabel)
+        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
 
         self.magCut = magCut
         self.deltaLimits = [deltaMin, deltaMax]
@@ -239,100 +240,110 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
+        testSet.setUseCache(self.useCache)
 
         xlim = [14.0, 25.0]
         ylimStep = 0.4
         ylim = [-ylimStep, ylimStep]
 	aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
 
-        # fpa figure
-        meanFig = qaFig.FpaQaFigure(data.cameraInfo)
-        stdFig = qaFig.FpaQaFigure(data.cameraInfo)
-        slopeFig = qaFig.VectorFpaQaFigure(data.cameraInfo)
-        
-        for raft, ccdDict in meanFig.data.items():
-            for ccd, value in ccdDict.items():
-                meanFig.data[raft][ccd] = self.means.get(raft, ccd)
-                stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
-                slope = self.trend.get(raft, ccd)
-
-                if not slope is None and not slope[1] == 0:
-		    # aspRatio will make the vector have the same angle as the line in the figure
-                    slopeSigma = slope[0]/slope[1]
-                    slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slopeSigma]
-                else:
-                    slopeSigma = None
-                    slopeFig.data[raft][ccd] = [None, None, None]
-                    
-                if not self.means.get(raft, ccd) is None:
-                    meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
-                    stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
-                    fmt0, fmt1, fmtS = "%.4f", "%.4f", "%.1f"
-                    if slope[0] is None:
-                        fmt0 = "%s"
-                    if slope[1] is None:
-                        fmt1 = "%s"
-                    if slopeSigma is None:
-                        fmtS = "%s"
-                    fmt = "slope="+fmt0+"+/-"+fmt1+"("+fmtS+"sig)"
-                    slopeFig.map[raft][ccd] = fmt % (slope[0], slope[1], slopeSigma)
-
-
-                    
         tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
         tag = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
         dtag = self.magType1+"-"+self.magType2
         wtag = self.magType1+"minus"+self.magType2
-        deepPink = '#ff1493'
-        darkViolet = '#9400d3'
-        blue = '#0000ff'
-        red = '#ff0000'
+
+        # fpa figure
+        meanFilebase = "mean" + wtag
+        stdFilebase  = "std"+wtag
+        slopeFilebase  = "slope"+wtag
+        meanData, meanMap   = testSet.unpickle(meanFilebase, default=[None, None])
+        stdData, stdMap     = testSet.unpickle(stdFilebase, default=[None, None])
+        slopeData, slopeMap = testSet.unpickle(slopeFilebase, default=[None, None])
+
+        meanFig  = qaFig.FpaQaFigure(data.cameraInfo, data=meanData, map=meanMap)
+        stdFig   = qaFig.FpaQaFigure(data.cameraInfo, data=stdData, map=stdMap)
+        slopeFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=slopeData, map=slopeMap)
+
+        for raft, ccd in self.means.raftCcdKeys():
+
+            meanFig.data[raft][ccd] = self.means.get(raft, ccd)
+            stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
+            slope = self.trend.get(raft, ccd)
+
+            if not slope is None and not slope[1] == 0:
+                # aspRatio will make the vector have the same angle as the line in the figure
+                slopeSigma = slope[0]/slope[1]
+                slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slopeSigma]
+            else:
+                slopeSigma = None
+                slopeFig.data[raft][ccd] = [None, None, None]
+
+            if not self.means.get(raft, ccd) is None:
+                meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
+                stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
+                fmt0, fmt1, fmtS = "%.4f", "%.4f", "%.1f"
+                if slope[0] is None:
+                    fmt0 = "%s"
+                if slope[1] is None:
+                    fmt1 = "%s"
+                if slopeSigma is None:
+                    fmtS = "%s"
+                fmt = "slope="+fmt0+"+/-"+fmt1+"("+fmtS+"sig)"
+                slopeFig.map[raft][ccd] = fmt % (slope[0], slope[1], slopeSigma)
+
+        blue, red = '#0000ff', '#ff0000'
+
         meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                            title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
-        testSet.addFigure(meanFig, "mean"+wtag+".png", "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut),
-                          navMap=True)
+        testSet.addFigure(meanFig, meanFilebase+".png",
+                          "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
+        testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
+        
         stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
                           title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
-        testSet.addFigure(stdFig, "std"+wtag+".png", "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut),
-                          navMap=True)
+        testSet.addFigure(stdFig, stdFilebase+".png",
+                          "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
+        testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
         
 
         cScale = 2.0
         slopeFig.makeFigure(cmap="RdBu_r", vlimits=[cScale*self.slopeLimits[0], cScale*self.slopeLimits[1]],
                             title="Slope "+tag, failLimits=self.slopeLimits)
-        testSet.addFigure(slopeFig, "slope"+wtag+".png",
-                          "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut),
-                          navMap=True)
+        testSet.addFigure(slopeFig, slopeFilebase+".png",
+                          "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
+        testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
 
 
         #############################################
         #
         figsize = (6.5, 3.75)
-        nKeys = len(self.mag.raftCcdKeys())
-        norm = colors.Normalize(vmin=0, vmax=nKeys)
-        sm = cm.ScalarMappable(norm, cmap=cm.jet)
-
 
         conv = colors.ColorConverter()
         red = conv.to_rgba('r')
         black = conv.to_rgba('k')
         size = 1.0
         
-        i = 0
         xmin, xmax = self.mag.summarize('min', default=0.0), self.mag.summarize('max', default=25.0)
         ymin, ymax = self.diff.summarize('min', default=-1.0), self.diff.summarize('max', default=1.0)
         xrang = xmax-xmin
-        xmin, xmax = xmin-0.05*xrang, xmax+0.05*xrang
+        xmin, xmax = int(xmin-0.05*xrang), int(xmax+0.05*xrang)+1
         yrang = ymax-ymin
         ymin, ymax = ymin-0.05*yrang, ymax+0.05*yrang
-        xlim2 = [xmin, xmax]
-        ylim2 = [ymin, ymax]
+        xlim2 = xlim        #[xmin, xmax]
+        ylim2 = [-2.0, 2.0] #[ymin, ymax]
 
-        allMags = numpy.array([])
-        allDiffs = numpy.array([])
-        allStars = numpy.array([])
-        allColor = [] #numpy.array([])
-        allLabels = []
+        # grab any cached values
+        figbase = "diff_" + dtag
+        allMags, allDiffs, allStars, allColor, allLabels = \
+                 testSet.unpickle(figbase, default=[{},{},{},{},{}])
+
+        ccdKeysThisRun = list(zip(*self.mag.raftCcdKeys())[1])
+        ccdKeysCache   = allMags.keys()
+        nKeys = len( set(ccdKeysCache + ccdKeysThisRun))
+        norm = colors.Normalize(vmin=0, vmax=nKeys)
+        sm = cm.ScalarMappable(norm, cmap=cm.jet)
+        i = len(ccdKeysCache)
+            
         for raft, ccd in self.mag.raftCcdKeys():
             mag  = self.mag.get(raft, ccd)
             diff = self.diff.get(raft, ccd)
@@ -398,10 +409,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             ax_2.set_ylim(ylim2)
 
             # move the y axis on right panel
-            ax_2dummy = ax_2.twinx()
-            ax_2dummy.set_ylim(ax_2.get_ylim())
-            ax_2.set_yticks([])
-            ax_2dummy.set_ylabel(tag)
+            ax_2.yaxis.set_label_position('right')
+            ax_2.yaxis.set_ticks_position('right')
 
             dmag = 0.1
             ddiff1 = 0.02
@@ -415,21 +424,31 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 fig.addMapArea(areaLabel, area, info, axes=ax_2)
                 
 
-            testSet.addFigure(fig, "diff_"+dtag+".png",
+            testSet.addFigure(fig, figbase+".png",
                               dtag+" vs. "+self.magType1 + ". Point used for statistics shown in red.",
                               areaLabel=areaLabel)
 
 
             # append values to arrays for a plot showing all data
-            allMags = numpy.append(allMags, mag)
-            allDiffs = numpy.append(allDiffs, diff)
-            allStars = numpy.append(allStars, star)
-            color = [sm.to_rgba(i)] * len(mag)
-            allColor += color
-            allLabels += [areaLabel] * len(mag)
+            allMags[ccd] = mag  
+            allDiffs[ccd] = diff
+            allStars[ccd] = star
+            allColor[ccd] = i*numpy.ones(len(mag))
+            allLabels[ccd] = [areaLabel] * len(mag)
             i += 1
 
+        # stash values
+        testSet.pickle(figbase, [allMags, allDiffs, allStars, allColor, allLabels])
 
+        withDelete = True
+        allMags   = qaAnaUtil.dictToList(allMags, withDelete=withDelete)
+        allDiffs  = qaAnaUtil.dictToList(allDiffs, withDelete=withDelete)
+        allStars  = qaAnaUtil.dictToList(allStars, withDelete=withDelete)
+        allColor  = qaAnaUtil.dictToList(allColor, withDelete=withDelete)
+        allLabels = qaAnaUtil.dictToList(allLabels, withDelete=withDelete)
+
+        allColor = sm.to_rgba(allColor)
+        
         # dmag vs mag
         fig0 = qaFig.QaFigure(size=figsize)
         fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
@@ -483,20 +502,18 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 
         # move the yaxis ticks/labels to the other side
-        ax0_2dummy = ax0_2.twinx()
-        ax0_2dummy.set_ylim(ax0_2.get_ylim())
-        ax0_2.set_yticks([])
+        ax0_2.yaxis.set_label_position('right')
+        ax0_2.yaxis.set_ticks_position('right')
 
         ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                    [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
         ax0_2.set_xlim(xlim2)
         ax0_2.set_ylim(ylim2)
 
-        for ax in [ax0_1, ax0_2dummy]:
+        for ax in [ax0_1, ax0_2]:
             ax.set_xlabel(tag1)
             ax.set_ylabel(tag)
 
-            
-        testSet.addFigure(fig0, "diff_"+dtag+".png", dtag+" vs. "+self.magType1, areaLabel="all")
+        testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
 
-            
+        
