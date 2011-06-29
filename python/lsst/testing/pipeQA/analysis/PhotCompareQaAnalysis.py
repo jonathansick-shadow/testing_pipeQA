@@ -387,18 +387,20 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             lineValsLo = numpy.lib.polyval(trendCoeffsLo, xTrend)
             lineValsHi = numpy.lib.polyval(trendCoeffsHi, xTrend)
             
-            lmin, lmax = lineVals.min(), lineVals.max()
-            if lmin < ylim[0]:
-                ylim[0] = -(int(abs(lmin)/ylimStep) + 1)*ylimStep
-            if lmax > ylim[1]:
-                ylim[1] = (int(lmax/ylimStep) + 1)*ylimStep
-            
-            ax_1.plot(xTrend, lineVals, "-r", lw=1.0)
-            ax_1.plot(xTrend, lineValsLo, "--r", lw=1.0)
-            ax_1.plot(xTrend, lineValsHi, "--r", lw=1.0)
-            ax_2.plot(xTrend, lineVals, "-r", lw=1.0)
-            ax_2.plot(xTrend, lineValsLo, "--r", lw=1.0)
-            ax_2.plot(xTrend, lineValsHi, "--r", lw=1.0)
+
+            if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
+                lmin, lmax = lineVals.min(), lineVals.max()
+                if lmin < ylim[0]:
+                    ylim[0] = -(int(abs(lmin)/ylimStep) + 1)*ylimStep
+                if lmax > ylim[1]:
+                    ylim[1] = (int(lmax/ylimStep) + 1)*ylimStep
+
+                ax_1.plot(xTrend, lineVals, "-r", lw=1.0)
+                ax_1.plot(xTrend, lineValsLo, "--r", lw=1.0)
+                ax_1.plot(xTrend, lineValsHi, "--r", lw=1.0)
+                ax_2.plot(xTrend, lineVals, "-r", lw=1.0)
+                ax_2.plot(xTrend, lineValsLo, "--r", lw=1.0)
+                ax_2.plot(xTrend, lineValsHi, "--r", lw=1.0)
             
             ax_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
@@ -480,11 +482,13 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         allColor = numpy.array(allColor)
         for ax in [ax0_1, ax0_2]:
-            ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)
+            ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
             ax.scatter(allMags, allDiffs, size, color=allColor)
-            ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
-            ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
-            ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
+            # 99 is the 'no-data' values
+            if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
+                ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
+                ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
+                ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
         ax0_1.set_xlim(xlim)
         ax0_2.set_xlim(xlim2)
         ax0_1.set_ylim(ylim)

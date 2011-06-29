@@ -27,7 +27,7 @@ class FpaQaFigure(QaFigure):
         @param map         Map areas to use.
         """
 
-        QaFigure.__init__(self, size=(3.5,3.5))
+        QaFigure.__init__(self, size=(3.6,3.3))
         self.cameraInfo = cameraInfo
         self.camera = self.cameraInfo.camera
         self.centers, self.rectangles, self.raftBoundaries, self.ccdBoundaries = \
@@ -175,9 +175,10 @@ class FpaQaFigure(QaFigure):
             yplot = bbox.y0 + 0.8*(bbox.y1 - bbox.y0)
             sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8)
         
-    def adjustTickLabels(self, sp, cb):
-        for tic in cb.ax.get_yticklabels():
-            tic.set_size("x-small")
+    def adjustTickLabels(self, sp, cb=None):
+        if not cb is None:
+            for tic in cb.ax.get_yticklabels():
+                tic.set_size("x-small")
         for tic in sp.get_xticklabels():
             tic.set_size("x-small")
             tic.set_rotation(22)
@@ -445,7 +446,7 @@ class VectorFpaQaFigure(FpaQaFigure):
             value_array = numpy.array(colorValues)
             masked_value_array = numpyMa.masked_where(numpy.isnan(value_array), value_array)
             p.set_array(masked_value_array)
-            if haveColors:
+            if haveColors or (not vlimits is None):
                 cb = self.fig.colorbar(p)
             sp.add_collection(p)
 
@@ -458,7 +459,6 @@ class VectorFpaQaFigure(FpaQaFigure):
             dx = arrowLen*numpy.cos(angle)
             dy = arrowLen*numpy.sin(angle)
             sp.arrow(x, y, dx, dy) #, ec="k", lw=3)
-
 
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
@@ -473,8 +473,9 @@ class VectorFpaQaFigure(FpaQaFigure):
         sp.set_xlabel("Focal Plane X", fontsize = 10)
         sp.set_ylabel("Focal Plane Y", fontsize = 10)
 
-        if haveColors:
-            self.adjustTickLabels(sp, cb)
+        if (not haveColors) and (vlimits is None):
+            cb = None
+        self.adjustTickLabels(sp, cb)
 
         x0, y0, x1, y1 = self.getFpaLimits()
         sp.set_xlim((x0 - borderPix, x1 + borderPix))
