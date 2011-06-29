@@ -58,7 +58,6 @@ class LsstSimDbInterface(DatabaseInterface):
 
         @param sql Command to be executed.
         """
-
         Trace("lsst.testing.pipeQA.LsstSimDbInterface", 3, "Executing: %s" % (sql))
         t0 = time.time()
         self.cursor.execute(sql)

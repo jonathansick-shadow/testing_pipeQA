@@ -36,16 +36,16 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         del self.filter
         del self.detector
         del self.ssDict
-        del self.matchListDict
+        del self.matchListDictSrc
 
         
     def test(self, data, dataId):
         
         # get data
-        self.ssDict        = data.getSourceSetBySensor(dataId)
-        self.matchListDict = data.getMatchListBySensor(dataId)
-        self.detector      = data.getDetectorBySensor(dataId)
-        self.filter        = data.getFilterBySensor(dataId)
+        self.ssDict           = data.getSourceSetBySensor(dataId)
+        self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
+        self.detector         = data.getDetectorBySensor(dataId)
+        self.filter           = data.getFilterBySensor(dataId)
 
         # create containers for data we're interested in
         self.x     = raftCcdData.RaftCcdVector(self.detector)
@@ -66,8 +66,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             for s in ss:
                 self.x.append(raft, ccd, s.getXAstrom())
                 self.y.append(raft, ccd, s.getYAstrom())
-            if self.matchListDict.has_key(key):
-                for m in self.matchListDict[key]:
+            if self.matchListDictSrc.has_key(key):
+                for m in self.matchListDictSrc[key]['matched']:
                     sref, s, dist = m
                     self.xmat.append(raft, ccd, s.getXAstrom())
                     self.ymat.append(raft, ccd, s.getYAstrom())

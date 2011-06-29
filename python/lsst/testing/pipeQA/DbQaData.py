@@ -56,7 +56,7 @@ class DbQaData(QaData):
 
         setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
-        selectStr = ",".join(selectList)
+        selectStr  = ",".join(selectList)
         
         sql  = 'select sce.filterId, sce.filterName from Science_Ccd_Exposure as sce'
         sql += ' where '
@@ -98,6 +98,7 @@ class DbQaData(QaData):
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
         sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, '%(filterName)
+        sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
         sql += '    Ref%sMatch as rom, SimRefObject as sro' % (self.refStr[useRef][0])
@@ -106,16 +107,9 @@ class DbQaData(QaData):
                (self.refStr[useRef][1], self.refStr[useRef][1])
         if useRef == 'obj':
             sql += '    and (s.objectID is not NULL) '
-            #sql += '    and (rom.nRefMatches = 1) '
-            sql += '    and (rom.nObjMatches = 1) '
-        else:
-            sql += '    and (rom.nSrcMatches = 1) '
-            #sql += '    and (rom.nRefMatches = 1) '
         sql += '    and '+idWhere
         
-
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
-
 
         # run the query
         results  = self.dbInterface.execute(sql)
@@ -123,14 +117,16 @@ class DbQaData(QaData):
         calib = self.getCalibBySensor(dataIdRegex)
 
         # parse results and put them in a sourceSet
+        multiplicity = {}
         matchListDict = {}
         for row in results:
             s = pqaSource.Source()
             qaDataUtils.setSourceBlobsNone(s)
             sref = pqaSource.RefSource()
             qaDataUtils.setSourceBlobsNone(sref)
-            
-            visit, raft, sensor, mag, ra, dec, isStar, refObjId = row[0:8]
+
+            nFields = 9
+            visit, raft, sensor, mag, ra, dec, isStar, refObjId, nMatches = row[0:nFields]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
             key = self._dataIdToString(dataIdTmp)
             self.dataIdLookup[key] = dataIdTmp
@@ -149,7 +145,7 @@ class DbQaData(QaData):
             sref.setInstFlux(flux)
             
             i = 0
-            for value in row[8:]:
+            for value in row[nFields:]:
                 method = getattr(s, setMethods[i])
                 if not value is None:
                     method(value)
@@ -170,15 +166,89 @@ class DbQaData(QaData):
 
             dist = 0.0
             matchList.append([sref, s, dist])
+            multiplicity[s.getId()] = nMatches
+
+        ######
+        ######
+        ######
+        # Determine which are orphans, blends, straight matches, and non-detections
+        # WARNING - CIRCULAR DEPENDENCY IN getSourceSetBySensor; COMMENT OUT FOR NOW
+        typeDict = {}
+        for key in matchListDict.keys():
+            matchList = matchListDict[key]
             
+            typeDict[key] = {}
+            
+            sources    = self.getSourceSetBySensor(dataIdRegex)[key]
+            refObjects = self.getRefObjectSetBySensor(dataIdRegex)[key]
+                
+            refIds     = []
+            for ro in refObjects:
+                refIds.append(ro.getId())
+                    
+            srcIds     = []
+            for so in sources:
+                srcIds.append(so.getId())
+                    
+            matRef     = []
+            matSrc     = []
+            for ma in matchList:
+                matRef.append(ma[0].getId())
+                matSrc.append(ma[1].getId())
+                
+            refIds = set(refIds)
+            srcIds = set(srcIds)
+            matRef = set(matRef)
+            matSrc = set(matSrc)
+            
+            undetectedIds = refIds - matRef
+            orphanIds     = srcIds - matSrc
+            matchedIds    = srcIds & matSrc   # Does not know about duplicates
+            #print 'Undet, orphan, matched:', len(undetectedIds), len(orphanIds), len(matchedIds)
+    
+            undetected = []
+            orphans    = []
+            matched    = []
+            blended    = []
+            for ro in refObjects:
+                if ro.getId() in undetectedIds:
+                    undetected.append(ro)
+            matchIds = [x[1].getId() for x in matchList]
+            for so in sources:
+                soid = so.getId()
+                if soid in orphanIds:
+                    orphans.append(so)
+                if soid in matchedIds:
+                    if multiplicity[soid] == 1:
+                        if soid in matchIds:
+                            matched.append(matchList[matchIds.index(soid)])
+                    else:
+                        if soid in matchIds:
+                            blended.append(matchList[matchIds.index(soid)])
+                        
+            self.printMidLoad('\n        %s: Undet, orphan, matched, blended = %d %d %d %d' % (
+                key, len(undetected), len(orphans), len(matched), len(blended))
+                              )
+
+            typeDict[key]['orphan'] = orphans
+            typeDict[key]['matched'] = matched
+            typeDict[key]['blended'] = blended
+            typeDict[key]['undetected'] = undetected
+
+            # cache it
+            self.matchListCache[useRef][key] = typeDict[key]
+            
+            # Determine which are orphans, blends, straight matches, and non-detections
+            ######
+            ######
+            ######
+        
         # cache it
         self.matchQueryCache[useRef][dataIdStr] = True
-        for k, matchList in matchListDict.items():
-            self.matchListCache[useRef][k] = matchListDict[k]
 
         self.printStopLoad()
         
-        return matchListDict
+        return typeDict
 
 
     def getSourceSetBySensor(self, dataIdRegex):
@@ -265,24 +335,6 @@ class DbQaData(QaData):
             s.setInstFlux(s.getInstFlux()/fmag0)
             
             ss.append(s)
-
-
-        # set the STAR flag if we have matched objects
-        #if self.matchQueryCache.has_key(dataIdStr) and self.matchQueryCache[dataIdStr]:
-
-        # Orphans defined by RefSrcMatch
-        matchListDict = self.getMatchListBySensor(dataIdRegex, useRef='src')
-        for k, matchList in matchListDict.items():
-            index = {}
-            for m in matchList:
-                sref, s, dist = m
-                sid = s.getId()
-                isStar = s.getFlagForDetection() & measAlg.Flags.STAR
-                index[sid] = isStar
-                
-            for s in ssDict[k]:
-                if index.has_key(s.getId()):
-                    s.setFlagForDetection(s.getFlagForDetection() | index[s.getId()])
 
 
         # cache it
@@ -372,7 +424,6 @@ class DbQaData(QaData):
             if oldWay:
                 sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
                 sql += '  from SimRefObject as sro, '
-                #sql += '       RefSrcMatch as rsm, '
                 sql += '       Science_Ccd_Exposure as sce '
                 sql += '  where (scisql_s2PtInCPoly(sro.ra, sro.decl,'
                 sql += '         scisql_s2CPolyToBin('
@@ -380,8 +431,6 @@ class DbQaData(QaData):
                 sql += '          sce.ulcRa, sce.ulcDecl, '
                 sql += '          sce.urcRa, sce.urcDecl, '
                 sql += '          sce.lrcRa, sce.lrcDecl)) = 1) '
-                #sql += '        and (rsm.refObjectId = sro.refObjectId) '
-                #sql += '        ans (rsm.nSrcMatches = 0) '
                 sql += '        and ' + sqlDataId
 
             else:
@@ -400,11 +449,8 @@ class DbQaData(QaData):
                 sql2 = 'SELECT %s ' % (sroFieldStr)
                 sql2 += 'FROM '
                 sql2 += '    SimRefObject AS sro, '
-                #sql2 += '    RefSrcMatch AS rsm '
                 sql2 += 'WHERE '
                 sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
-                #sql2 += '    and (rsm.nSrcMatches = 0) '
-                #sql2 += '    and (rsm.refObjectId = sro.refObjectId); '
 
 
             # if there are no regexes (ie. actual wildcard expressions),

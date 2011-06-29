@@ -23,37 +23,35 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         del self.detector
         del self.filter
         del self.calib
-        del self.matchListDict
-        del self.ssDict
-        del self.sroDict
+        del self.matchListDictSrc
+
+        del self.orphan
+        del self.matchedStar
+        del self.undetectedStar
+        del self.matchedGalaxy
+        del self.undetectedGalaxy
         
         del self.zeroPoint
         del self.medOffset
         
-        del self.matchedGal
-        del self.matchedStar
-        del self.unmatchedRef
-        del self.unmatchedImg
-
-
     def test(self, data, dataId, fluxType = "psf"):
         testSet = self.getTestSet(data, dataId)
-        self.fluxType      = fluxType
-        self.detector      = data.getDetectorBySensor(dataId)
-        self.filter        = data.getFilterBySensor(dataId)
-        self.calib         = data.getCalibBySensor(dataId)
-        self.matchListDict = data.getMatchListBySensor(dataId)
-        self.ssDict        = data.getSourceSetBySensor(dataId)
-        self.sroDict       = data.getRefObjectSetBySensor(dataId)
+        self.fluxType         = fluxType
+        self.detector         = data.getDetectorBySensor(dataId)
+        self.filter           = data.getFilterBySensor(dataId)
+        self.calib            = data.getCalibBySensor(dataId)
+        self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
 
-        
-        self.zeroPoint     = raftCcdData.RaftCcdData(self.detector)
-        self.medOffset     = raftCcdData.RaftCcdData(self.detector)
+        # Ignore blends in this analysis
+        self.orphan           = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedStar      = raftCcdData.RaftCcdVector(self.detector)
+        self.undetectedStar   = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedGalaxy    = raftCcdData.RaftCcdVector(self.detector)
+        self.undetectedGalaxy = raftCcdData.RaftCcdVector(self.detector)
 
-        self.matchedGal    = raftCcdData.RaftCcdData(self.detector)
-        self.matchedStar   = raftCcdData.RaftCcdData(self.detector)
-        self.unmatchedRef  = raftCcdData.RaftCcdData(self.detector)
-        self.unmatchedImg  = raftCcdData.RaftCcdData(self.detector)
+        # Results
+        self.zeroPoint        = raftCcdData.RaftCcdData(self.detector)
+        self.medOffset        = raftCcdData.RaftCcdData(self.detector)
 
         badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
 
@@ -69,23 +67,14 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             zpt = -2.5*num.log10(fmag0)
             self.zeroPoint.set(raftId, ccdId, zpt)
 
-            mrefSmag, mimgSmag, mimgSmerr = [], [], []
-            mrefGmag, mimgGmag, mimgGmerr = [], [], []
+            if self.matchListDictSrc.has_key(key):
+                # Matched
+                mdict    = self.matchListDictSrc[key]['matched']
+                stars    = []
+                galaxies = []
 
-            # Unmatched detections (found by never inserted ... false positives)
-            sids = {}
-            refIds = {}
-
-            if self.matchListDict.has_key(key):
-                matchList = self.matchListDict[key]
-                for m in matchList:
+                for m in mdict:
                     sref, s, dist = m
-
-                    sids[s.getId()] = 1
-                    refIds[sref.getId()] = 1
-    
-                    #oid = sref.getId()
-    
                     if fluxType == "psf":
                         fref  = sref.getPsfFlux()
                         f     = s.getPsfFlux()
@@ -97,79 +86,66 @@ class ZeropointFitQa(qaAna.QaAnalysis):
 
                     # un-calibrate the magnitudes
                     f *= fmag0
-
+                    
                     flags = s.getFlagForDetection()
-    
-                    if (fref > 0.0 and f > 0.0  and not flags & badFlags):
+                    if (fref > 0.0 and f > 0.0 and not flags & badFlags):
                         mrefmag  = -2.5*num.log10(fref)
                         mimgmag  = -2.5*num.log10(f)
                         mimgmerr =  2.5 / num.log(10.0) * ferr / f
     
                         star = flags & measAlg.Flags.STAR
-    
+                        
                         if num.isfinite(mrefmag) and num.isfinite(mimgmag):
                             if star > 0:
-                                mrefSmag.append(mrefmag)
-                                mimgSmag.append(mimgmag)
-                                mimgSmerr.append(mimgmerr)
+                                stars.append((mrefmag, mimgmag, mimgmerr))
                             else:
-                                mrefGmag.append(mrefmag)
-                                mimgGmag.append(mimgmag)
-                                mimgGmerr.append(mimgmerr)
+                                galaxies.append((mrefmag, mimgmag, mimgmerr))
+                self.matchedStar.set(raftId, ccdId, {"Refmag": num.array([x[0] for x in stars]),
+                                                     "Imgmag": num.array([x[1] for x in stars]),
+                                                     "Imgerr": num.array([x[2] for x in stars])})
+                self.matchedGalaxy.set(raftId, ccdId, {"Refmag": num.array([x[0] for x in galaxies]),
+                                                       "Imgmag": num.array([x[1] for x in galaxies]),
+                                                       "Imgerr": num.array([x[2] for x in galaxies])})
+            
+                # Non-detections
+                undetectedStars = []
+                undetectedGalaxies = []
+                for nondet in self.matchListDictSrc[key]['undetected']:
+                    mag = nondet.getMag(filterName)
+                    if nondet.getIsStar():
+                        undetectedStars.append(mag)
+                    else:
+                        undetectedGalaxies.append(mag)
+                self.undetectedStar.set(raftId, ccdId, num.array(undetectedStars))
+                self.undetectedGalaxy.set(raftId, ccdId, num.array(undetectedGalaxies))
 
-            mrefSmag = num.array(mrefSmag)
-            mimgSmag = num.array(mimgSmag)
-            mimgSmerr = num.array(mimgSmerr)
-            self.matchedStar.set(raftId, ccdId, {"Refmag": mrefSmag,
-                                                 "Imgmag": mimgSmag,
-                                                 "Imgerr": mimgSmerr})
-            mrefGmag = num.array(mrefGmag)
-            mimgGmag = num.array(mimgGmag)
-            mimgGmerr = num.array(mimgGmerr)
-            self.matchedGal.set(raftId, ccdId, {"Refmag": mrefGmag,
-                                                "Imgmag": mimgGmag,
-                                                "Imgerr": mimgGmerr})
-
-            unmatchedImg = []
-            if self.ssDict.has_key(key):
-                for s in self.ssDict[key]:
-                    if not sids.has_key(s.getId()):
-                        if self.fluxType == 'psf':
-                            f = s.getPsfFlux()
-                        else:
-                            f = s.getApFlux()
-
-                        if f <= 0.0:
-                            continue
-
+                # Orphans
+                orphans = []
+                for orphan in self.matchListDictSrc[key]['orphan']:
+                    if self.fluxType == "psf":
+                        f = orphan.getPsfFlux()
+                    else:
+                        f = orphan.getApFlux()
+                    if f > 0.0:
                         # un-calibrate the magnitudes
                         f *= fmag0
-
-                        unmatchedImg.append(-2.5*num.log10(f))
-            uimgmag = num.array(unmatchedImg)
-            self.unmatchedImg.set(raftId, ccdId, uimgmag)
-
-            # Unmatched reference objects (inserted, but not found ... false negatives)
-            unmatchedRef = []
-            if self.sroDict.has_key(key):
-                for sro in self.sroDict[key]:
-                    if not refIds.has_key(sro.getId()):
-                        mag = sro.getMag(filterName)
-                        unmatchedRef.append(mag)
-            urefmag = num.array(unmatchedRef)
-            self.unmatchedRef.set(raftId, ccdId, urefmag)
                         
+                        orphans.append(-2.5 * num.log10(f))
+                        
+                self.orphan.set(raftId, ccdId, num.array(orphans))
 
-            # Metrics
-            numerator   = mimgSmag - self.zeroPoint.get(raftId, ccdId) - mrefSmag
-            med         = num.median(numerator) 
-            self.medOffset.set(raftId, ccdId, med)
-            
-            areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
-            label = "median offset from zeropoint"
-            comment = "Median offset of calibrated stellar magnitude to zeropoint fit"
-            test = testCode.Test(label, med, self.limits, comment, areaLabel=areaLabel)
-            testSet.addTest(test)
+                # Metrics
+                offset      = num.array(self.matchedStar.get(raftId, ccdId)["Imgmag"]) # make a copy
+                offset     -= self.zeroPoint.get(raftId, ccdId)
+                offset     -= self.matchedStar.get(raftId, ccdId)["Refmag"]
+                med         = num.median(offset) 
+                self.medOffset.set(raftId, ccdId, med)
+                
+                areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
+                label = "median offset from zeropoint"
+                comment = "Median offset of calibrated stellar magnitude to zeropoint fit"
+                test = testCode.Test(label, med, self.limits, comment, areaLabel=areaLabel)
+                testSet.addTest(test)
 
             
     def plot(self, data, dataId, showUndefined=False):
@@ -232,9 +208,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             axis = fig.fig.add_axes([0.225, 0.225, 0.675, 0.550])
     
             # Plot all matched galaxies
-            mrefGmag  = self.matchedGal.get(raft, ccd)["Refmag"]
-            mimgGmag  = self.matchedGal.get(raft, ccd)["Imgmag"]
-            mimgGmerr = self.matchedGal.get(raft, ccd)["Imgerr"]
+            mrefGmag  = self.matchedGalaxy.get(raft, ccd)["Refmag"]
+            mimgGmag  = self.matchedGalaxy.get(raft, ccd)["Imgmag"]
+            mimgGmerr = self.matchedGalaxy.get(raft, ccd)["Imgerr"]
             mimgGplot = axis.plot(mimgGmag, mrefGmag, '.', color='g', mfc='g', mec='g',
                                   alpha=0.5, zorder=10, label = 'Matched Galaxies')
 
@@ -242,7 +218,6 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             # can't fig.savefig() with this Ellipse stuff ??? ... i love matplotlib
             if False:
                 for i in range(len(mrefGmag)):
-                    print mimgGmag[i], mrefGmag[i]
                     a = Ellipse(xy=num.array([mimgGmag[i], mrefGmag[i]]),
                                 width=mimgGmerr[i]/2., height=mimgGmerr[i]/2.,
                                 alpha=0.5, fill=True, ec='g', fc='g', zorder=10)
@@ -289,8 +264,8 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             legLabels.append("Zeropoint")
     
             # Unmatched objects
-            urefmag     = self.unmatchedRef.get(raft, ccd)
-            uimgmag     = self.unmatchedImg.get(raft, ccd)
+            urefmag     = num.concatenate((self.undetectedStar.get(raft, ccd), self.undetectedGalaxy.get(raft, ccd)))
+            uimgmag     = self.orphan.get(raft, ccd)
 
             # Unmatched & matched reference objects
             ax2  = fig.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
@@ -380,7 +355,10 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             ax2.set_xlim(0.75, 999)
             ax3.set_ylim(0.75, 999)
             ax4.set_ylim(-0.24, 0.24)
-            axis.axis((xmax, xmin, ymax, ymin))
+
+            #axis.axis((xmax, xmin, ymax, ymin))
+            axis.set_ylim(26, 14)
+            axis.set_xlim(26 + self.zeroPoint.get(raft, ccd), 14 + self.zeroPoint.get(raft, ccd))
     
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "zeropointFit.png", "Zeropoint fit "+label, areaLabel=label)

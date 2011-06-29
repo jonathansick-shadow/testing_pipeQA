@@ -208,6 +208,37 @@ definitions: {
     }
 
     ###
+
+    doVignettingQa: {
+        type: string
+        description: "Vignetting testing: qaAnalysis.VignettingQa"
+        maxOccurs: 4
+        default: "lsstSim" "cfht"
+    }
+
+    vigMaxMedian: {
+        type: double
+        description: "Maximum median magnitude offset"
+        maxOccurs: 1
+        default: 0.02
+    }
+
+    vigMagRms: {
+        type: double
+        description: "Maximum magnitude offset RMS"
+        maxOccurs: 1
+        default: 0.02
+    }
+
+    vigMaxMag: {
+        type: double
+        description: "Maximum magnitude star to use in VignettingQa test"
+        maxOccurs: 1
+        default: 19.0
+    }
+
+    ###
+
     doFwhm: {
         type: string
         description: "Fwhm: qaANalysis.FwhmQaAnalysis"

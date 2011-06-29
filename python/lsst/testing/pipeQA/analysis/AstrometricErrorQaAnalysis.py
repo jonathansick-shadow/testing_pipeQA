@@ -31,7 +31,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         del self.filter
         
         del self.detector
-        del self.matchListDict
+        del self.matchListDictSrc
 
         del self.medErrArcsec
         del self.medThetaRad
@@ -39,9 +39,9 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
     def test(self, data, dataId):
         
         # get data
-        self.matchListDict = data.getMatchListBySensor(dataId)
-        self.detector      = data.getDetectorBySensor(dataId)
-        self.filter        = data.getFilterBySensor(dataId)
+        self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
+        self.detector         = data.getDetectorBySensor(dataId)
+        self.filter           = data.getFilterBySensor(dataId)
         
         #self.clusters = data.getSourceClusters(dataId)
 
@@ -53,11 +53,12 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.y    = raftCcdData.RaftCcdVector(self.detector)
 
         filter = None
-        for key, matchList in self.matchListDict.items():
+        for key in self.matchListDictSrc.keys():
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
             filter = self.filter[key].getName()
 
+            matchList = self.matchListDictSrc[key]['matched']
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \

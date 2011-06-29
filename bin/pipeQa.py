@@ -105,6 +105,10 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
                                                       policy.get("completeMaxMag"), useCache=keep,
                                                       wwwCache=wwwCache))
+    if data.cameraInfo.name in policy.getStringArray("doVignettingQa"):
+        analysisList.append(qaAnalysis.VignettingQa(policy.get("vigMaxMedian"),
+                                                    policy.get("vigMagRms"),
+                                                    policy.get("vigMaxMag")))
 
 
     useFp = open("runtimePerformance.dat", 'w')
@@ -131,7 +135,6 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
             for a in analysisList:
 
                 test_t0 = time.time()
-
                 test = str(a)
                 if not re.search(testRegex, test):
                     continue
@@ -158,6 +161,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                                                        exc_traceback)
                         label = "visit_%s_analysis_%s" % (visit, test)
                         print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
+                        #print "       :", "".join(s)
                         testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
                     else:
                         a.plot(data, thisDataId)
