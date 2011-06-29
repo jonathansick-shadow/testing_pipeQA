@@ -28,6 +28,10 @@ class CameraInfo(object):
         
         self.detectors   = {}
         self.nSensor     = 0
+
+        if self.camera is None:
+            return
+        
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
 	    raftName = raft.getId().getName().strip()
@@ -115,10 +119,13 @@ class LsstSimCameraInfo(CameraInfo):
         dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
 
         #simdir        = eups.productDir("obs_lsstSim")
-        simdir        = os.environ['OBS_LSSTSIM_DIR']
-        cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
-        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+        if os.environ.has_key('OBS_LSSTSIM_DIR'):
+            simdir        = os.environ['OBS_LSSTSIM_DIR']
+            cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
+            cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+        else:
+            camera = None
         
         CameraInfo.__init__(self, "lsstSim", dataInfo, mapper, camera)
 
@@ -172,13 +179,15 @@ class CfhtCameraInfo(CameraInfo):
         dataInfo       = [['visit',1], ['ccd', 0]]
         
         #simdir        = eups.productDir("obs_cfht")
-        simdir         = os.environ['OBS_CFHT_DIR']
-        cameraGeomPaf = os.path.join(simdir, "megacam", "description", "Full_Megacam_geom.paf")
-        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+        if os.environ.has_key('OBS_CFHT_DIR'):
+            simdir         = os.environ['OBS_CFHT_DIR']
+            cameraGeomPaf = os.path.join(simdir, "megacam", "description", "Full_Megacam_geom.paf")
+            cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+        else:
+            camera = None
 
         CameraInfo.__init__(self, "cfht", dataInfo, mapper, camera)
-
         self.doLabel = True
         
     def getRoots(self, baseDir, output=None):
@@ -217,15 +226,19 @@ class HscCameraInfo(CameraInfo):
             mapper = obsHsc.HscSimMapper
         except Exception, e:
             print "Failed to import lsst.obs.hscSim", e
+            print "  Did you setup obs_subaru?"
             mapper = None
         dataInfo       = [['visit',1], ['ccd', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
-        simdir         = os.environ['OBS_SUBARU_DIR']
-        cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
-        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
-
+        if os.environ.has_key('OBS_SUBARU_DIR'):
+            simdir         = os.environ['OBS_SUBARU_DIR']
+            cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
+            cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+        else:
+            camera = None
+            
         CameraInfo.__init__(self, "hscSim", dataInfo, mapper, camera)
 
         self.doLabel = False
@@ -272,10 +285,13 @@ class SuprimecamCameraInfo(CameraInfo):
         dataInfo       = [['visit',1], ['ccd', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
-        simdir         = os.environ['OBS_SUBARU_DIR']
-        cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
-        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+        if os.environ.has_key('OBS_SUBARU_DIR'):
+            simdir         = os.environ['OBS_SUBARU_DIR']
+            cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
+            cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+        else:
+            camera           = None
 
         CameraInfo.__init__(self, "suprimecam", dataInfo, mapper, camera)
 
