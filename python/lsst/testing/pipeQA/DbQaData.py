@@ -172,7 +172,6 @@ class DbQaData(QaData):
         ######
         ######
         # Determine which are orphans, blends, straight matches, and non-detections
-        # WARNING - CIRCULAR DEPENDENCY IN getSourceSetBySensor; COMMENT OUT FOR NOW
         typeDict = {}
         for key in matchListDict.keys():
             matchList = matchListDict[key]
