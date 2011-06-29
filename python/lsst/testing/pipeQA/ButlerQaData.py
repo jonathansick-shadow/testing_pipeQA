@@ -116,6 +116,52 @@ class ButlerQaData(QaData):
     
 
 
+    def breakDataId(self, dataIdRegex, breakBy):
+        """Take a dataId with regexes and return a list of dataId regexes
+        which break the dataId by raft, or ccd.
+
+        @param dataId    ... to be broken
+        @param breakBy   'visit', 'raft', or 'ccd'
+        """
+
+        if not re.search("(visit|raft|ccd)", breakBy):
+            raise Exception("breakBy must be 'visit','raft', or 'ccd'")
+
+        if breakBy == 'visit':
+            return [dataIdRegex]
+
+
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
+
+
+        dataIdDict = {}
+        # handle lsst/hsc different naming conventions
+        ccdConvention = 'ccd'
+        if not dataIdRegex.has_key('ccd'):
+            ccdConvention = 'sensor'
+
+        for dataTuple in dataTuplesToFetch:
+            thisDataId = self._dataTupleToDataId(dataTuple)
+            visit, raft, ccd = thisDataId['visit'], thisDataId['raft'], thisDataId[ccdConvention]
+            
+            if breakBy == 'raft':
+                ccd = dataIdRegex[ccdConvention]
+
+            key = str(visit) + str(raft) + str(ccd)
+            dataIdDict[key] = {
+                'visit': str(visit),
+                'raft' : raft,
+                ccdConvention : ccd,
+                'snap': '0'
+                }
+            
+        dataIdList = []
+        for key in sorted(dataIdDict.keys()):
+            dataIdList.append(dataIdDict[key])
+        return dataIdList
+
+
+
     def getMatchListBySensor(self, dataIdRegex, useRef=None):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
 
@@ -145,7 +191,7 @@ class ButlerQaData(QaData):
             isWritten = self.outButler.datasetExists('icMatch', dataId)
             if isWritten:
                 #persistableMatchVector = self.outButler.get('icMatch', dataId)
-                
+
                 matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
                 self.matchListCache[dataKey] = [] # matches #persistableMatchVector.getSourceMatches()
 

@@ -127,7 +127,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         brokenDownDataIdList = data.breakDataId(dataIdVisit, breakBy)
         
         for thisDataId in brokenDownDataIdList:
-        
+
             for a in analysisList:
 
                 test_t0 = time.time()

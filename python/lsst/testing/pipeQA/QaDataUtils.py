@@ -254,7 +254,6 @@ def getCalibObjects(butler, filterName, dataId):
     """
 
     log = pexLog.Log.getDefaultLog()
-    
     psources = butler.get('icSrc', dataId)
     pmatches = butler.get('icMatch', dataId)
     calexp_md = butler.get('calexp_md', dataId)
@@ -265,7 +264,7 @@ def getCalibObjects(butler, filterName, dataId):
 
     matches = pmatches.getSourceMatches()
     setMatchListBlobsNone(matches)
-    sources = psources.getSources()
+    sources = psources.getSources() ## fails
     setSourceSetBlobsNone(sources)
 
     anid = pmatches.getSourceMatchMetadata().getInt('ANINDID')
