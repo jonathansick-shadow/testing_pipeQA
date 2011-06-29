@@ -186,8 +186,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             median = 99.0
             std = 99.0
             n = 0
-            lineFit = [0.0, 0.0, 0.0, 0.0]
-            lineCoeffs = [0.0, 0.0]
+            lineFit = [99.0, 0.0, 0.0, 0.0]
+            lineCoeffs = [99.0, 0.0]
             if len(dmag) > 0:
                 stat = afwMath.makeStatistics(dmag, afwMath.NPOINT | afwMath.MEANCLIP |
                                               afwMath.STDEVCLIP | afwMath.MEDIAN)
