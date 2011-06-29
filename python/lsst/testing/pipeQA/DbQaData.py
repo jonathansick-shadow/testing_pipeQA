@@ -483,6 +483,58 @@ class DbQaData(QaData):
         return visits
 
 
+    def breakDataId(self, dataIdRegex, breakBy):
+        """Take a dataId with regexes and return a list of dataId regexes
+        which break the dataId by raft, or ccd.
+
+        @param dataId    ... to be broken
+        @param breakBy   'visit', 'raft', or 'ccd'
+        """
+
+        if not re.search("(visit|raft|ccd)", breakBy):
+            raise Exception("breakBy must be 'visit','raft', or 'ccd'")
+
+        if breakBy == 'visit':
+            return [dataIdRegex]
+
+
+        sql = "select visit, raftName, ccdName from Science_Ccd_Exposure"
+        sql += "   where "
+        whereList = []
+        for keyNames in [['visit', 'visit'], ['raft', 'raftName'], ['sensor', 'ccdName']]:
+            key, sqlName = keyNames
+            if dataIdRegex.has_key(key):
+                whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+        sql += " and ".join(whereList)
+
+        results = self.dbInterface.execute(sql)
+
+        dataIdDict = {}
+        ccdConvention = 'ccd'
+        for r in results:
+            visit, raft, ccd = r
+            if breakBy == 'raft':
+                # handle lsst/hsc different naming conventions
+                if dataIdRegex.has_key('ccd'):
+                    ccd = dataIdRegex['ccd']
+                else:
+                    ccdConvention = 'sensor'
+                    ccd = dataIdRegex['sensor']
+            key = str(visit) + str(raft) + str(ccd)
+            dataIdDict[key] = {
+                'visit': str(visit),
+                'raft' : raft,
+                ccdConvention : ccd,
+                'snap': '0'
+                }
+            
+        dataIdList = []
+        for key in sorted(dataIdDict.keys()):
+            dataIdList.append(dataIdDict[key])
+        return dataIdList
+
+
+
     def loadCalexp(self, dataIdRegex):
         """Load the calexp data for data matching dataIdRegex.
 

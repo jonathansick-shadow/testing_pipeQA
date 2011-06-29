@@ -41,7 +41,7 @@ def getMemUsageThisPid(size="rss"):
 #############################################################
 
 def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
-         exceptExit=False, keep=False, wwwCache=True):
+         exceptExit=False, keep=False, wwwCache=True, breakBy='visit'):
 
     if exceptExit:
         numpy.seterr(all="raise")
@@ -63,9 +63,6 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         if (not k in data.dataIdNames) and (v != '.*'):
             raise Exception("Key "+k+" not available for this dataset (camera="+data.cameraInfo.name+")")
 
-
-    # split by visit for now
-    visits = data.getVisits(dataId)
 
     # Policy for which plots to make and value of quality metrics
     policyDictName = "PipeQa.paf"
@@ -113,57 +110,71 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
     useFp = open("runtimePerformance.dat", 'w')
     useFp.write("# %-10s %-32s %10s  %16s\n" %
                 ("visit", "testname", "t-elapsed", "resident-memory"))
+    
+    # split by visit
+    visits = data.getVisits(dataId)
     for visit in visits:
 
         visit_t0 = time.time()
         
         testset = pipeQA.TestSet(group="", label="QA-failures", wwwCache=wwwCache)
+
+        dataIdVisit = copy.copy(dataId)
+        dataIdVisit['visit'] = visit
+
+        # now break up the run into eg. rafts or ccds
+        #  ... if we only run one raft or ccd at a time, we use less memory
+        brokenDownDataIdList = data.breakDataId(dataIdVisit, breakBy)
         
-        for a in analysisList:
+        for thisDataId in brokenDownDataIdList:
+        
+            for a in analysisList:
 
-            test_t0 = time.time()
-            
-            test = str(a)
-            if not re.search(testRegex, test):
-                continue
-            
-            print "Running " + test + "  visit:" + str(visit)
-            dataIdVisit = copy.copy(dataId)
-            dataIdVisit['visit'] = visit
+                test_t0 = time.time()
+
+                test = str(a)
+                if not re.search(testRegex, test):
+                    continue
+
+                print "Running " + test + "  visit:" + str(visit)
 
 
-            # For debugging, it's useful to exit on failure, and get
-            # the full traceback
-            memory = 0
-            if exceptExit:
-                a.test(data, dataIdVisit)
-                a.plot(data, dataIdVisit)
-                memory = getMemUsageThisPid()
-                a.free()
-                
-            # otherwise, we want to continue gracefully
-            else:
-                try:
-                    a.test(data, dataIdVisit)
-                except Exception, e:
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    s = traceback.format_exception(exc_type, exc_value,
-                                                   exc_traceback)
-                    label = "visit_%s_analysis_%s" % (visit, test)
-                    print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
-                    testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
-                else:
-                    a.plot(data, dataIdVisit)
+                # For debugging, it's useful to exit on failure, and get
+                # the full traceback
+                memory = 0
+                if exceptExit:
+                    a.test(data, thisDataId)
+                    a.plot(data, thisDataId)
                     memory = getMemUsageThisPid()
                     a.free()
-                    
-            test_tf = time.time()
-            useFp.write("%-12s %-32s %9.2fs %7dk %7.2fM\n" %
-                        (str(visit), test, test_tf-test_t0, memory, memory/1024.0))
-            useFp.flush()
+
+                # otherwise, we want to continue gracefully
+                else:
+                    try:
+                        a.test(data, thisDataId)
+                    except Exception, e:
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        s = traceback.format_exception(exc_type, exc_value,
+                                                       exc_traceback)
+                        label = "visit_%s_analysis_%s" % (visit, test)
+                        print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
+                        testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
+                    else:
+                        a.plot(data, thisDataId)
+                        memory = getMemUsageThisPid()
+                        a.free()
+
+
+                test_tf = time.time()
+                useFp.write("%-12s %-32s %9.2fs %7dk %7.2fM\n" %
+                            (str(visit), test, test_tf-test_t0, memory, memory/1024.0))
+                useFp.flush()
+
+            # we're now done this dataId ... can clear the cache
+            data.clearCache()
             
-        data.clearCache()
     useFp.close()
+
 
 #############################################################
 # end
@@ -179,6 +190,8 @@ if __name__ == '__main__':
     ########################################################################
     
     parser = optparse.OptionParser(usage=__doc__)
+    parser.add_option("-b", "--breakBy", default="visit",
+                      help="Break the run by 'visit','raft', or 'ccd' (default=%default)")
     parser.add_option("-v", "--visit", default="-1",
                       help="Specify visit as regex. Use neg. number for last 'n' visits. (default=%default)")
     parser.add_option("-c", "--ccd", default=".*",
@@ -220,7 +233,15 @@ if __name__ == '__main__':
 
     Trace.setVerbosity('lsst.testing.pipeQA', int(opts.verbosity))
 
+    if not re.search("^(visit|raft|ccd)$", opts.breakBy):
+        print "breakBy (-b) must be 'visit', 'raft', or 'ccd'"
+        sys.exit()
+
+
     wwwCache = not opts.noWwwCache
+
     main(dataset, dataId, rerun=rerun,
          testRegex=opts.test,          camera=opts.camera,
-         exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache)
+         exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
+         breakBy=opts.breakBy)
+        

@@ -337,13 +337,24 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         allMags, allDiffs, allStars, allColor, allLabels = \
                  testSet.unpickle(figbase, default=[{},{},{},{},{}])
 
+        colorId = {}
+        i = 0
+        for k in data.cameraInfo.detectors.keys():
+            colorId[k] = i
+            i += 1
+
         ccdKeysThisRun = list(zip(*self.mag.raftCcdKeys())[1])
         ccdKeysCache   = allMags.keys()
-        nKeys = len( set(ccdKeysCache + ccdKeysThisRun))
-        norm = colors.Normalize(vmin=0, vmax=nKeys)
+        allCcds = set(ccdKeysCache + ccdKeysThisRun)
+        colorIdList = []
+        for ccd in allCcds:
+            colorIdList.append(colorId[ccd])
+        minColorId = numpy.min(colorIdList)
+        maxColorId = numpy.max(colorIdList)
+        #nKeys = len(colorId.keys())
+        norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
         sm = cm.ScalarMappable(norm, cmap=cm.jet)
-        i = len(ccdKeysCache)
-            
+
         for raft, ccd in self.mag.raftCcdKeys():
             mag  = self.mag.get(raft, ccd)
             diff = self.diff.get(raft, ccd)
@@ -435,9 +446,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             allMags[ccd] = mag  
             allDiffs[ccd] = diff
             allStars[ccd] = star
-            allColor[ccd] = i*numpy.ones(len(mag))
+            allColor[ccd] = colorId[ccd]*numpy.ones(len(mag))
             allLabels[ccd] = [areaLabel] * len(mag)
-            i += 1
+
 
         # stash values
         testSet.pickle(figbase, [allMags, allDiffs, allStars, allColor, allLabels])

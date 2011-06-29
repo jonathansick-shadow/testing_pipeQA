@@ -400,4 +400,9 @@ class QaData(object):
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
         pass
-    
+    def breakDataId(self, dataId, breakBy):
+        """Take a dataId with regexes and return a list of dataId regexes
+        which break the dataId by raft, or ccd.
+
+        @param breakBy   'visit', 'raft', or 'ccd'
+        """
