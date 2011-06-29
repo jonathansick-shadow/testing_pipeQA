@@ -196,8 +196,12 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
         # round up to nearest 1024 for limits
         xmax, ymax = x.max(), y.max()
-        xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
-        ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
+        if len(x) > 1:
+            xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
+            ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
+        else:
+            xlim = [0, 1.0]
+            ylim = [0, 1.0]
 
         r = numpy.sqrt(dx**2 + dy**2)
         rmax = 2.0 # r.max()
@@ -230,11 +234,15 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 for iy in range(ny):
                     xt.append(xstep*(ix+0.5))
                     yt.append(ystep*(iy+0.5))
-                    xval = xgrid[ix][iy]/ngrid[ix][iy]
-                    yval = ygrid[ix][iy]/ngrid[ix][iy]
-                    dxt.append(xval)
-                    dyt.append(yval)
-
+                    if ngrid[ix][iy] > 0:
+                        xval = xgrid[ix][iy]/ngrid[ix][iy]
+                        yval = ygrid[ix][iy]/ngrid[ix][iy]
+                        dxt.append(xval)
+                        dyt.append(yval)
+                    else:
+                        dxt.append(0.0)
+                        dyt.append(0.0)
+                        
             #for i in range(len(xt)):
             #    print xt[i], yt[i], dxt[i], dyt[i]
             q = ax.quiver(numpy.array(xt), numpy.array(yt), numpy.array(dxt), numpy.array(dyt),
@@ -307,21 +315,23 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         left, bottom, width, height = 0.5+spacer, 0.0+ymargin, 0.5-2*xmargin, 0.35-ymargin
         ax0 = fig.fig.add_axes([left, bottom, width, height])
 
-        binWidth = 0.5*numpy.std(r)*(20.0/len(r))**0.2
-        nBin = (r.max() - r.min())/binWidth
-        rN, rBin, xx = ax0.hist(r, bins=nBin)
+        rNmax = 1.0
+        if len(r) > 1:
+            binWidth = 0.5*numpy.std(r)*(20.0/len(r))**0.2
+            nBin = (r.max() - r.min())/binWidth
+            rN, rBin, xx = ax0.hist(r, bins=nBin)
 
-        # add a median arrow
-        rmed = numpy.median(r)
-        w = numpy.where(rBin > rmed)[0]
-        if len(w) > 0 and len(rN) > w[0]-1:
-            histMed = 1.1*rN[w[0]-1]
-        else:
-            histMed = 0.0
-        rNmax = rN.max()
-        ax0.arrow(rmed, 1.2*rNmax, 0.0, histMed-1.2*rNmax, facecolor='r', edgecolor='r', lw=0.5)
-        ax0.text(1.2*rmed, 0.5*(histMed+1.2*rNmax), "median",
-                 verticalalignment="center", color='k', size='x-small')
+            # add a median arrow
+            rmed = numpy.median(r)
+            w = numpy.where(rBin > rmed)[0]
+            if len(w) > 0 and len(rN) > w[0]-1:
+                histMed = 1.1*rN[w[0]-1]
+            else:
+                histMed = 0.0
+            rNmax = rN.max()
+            ax0.arrow(rmed, 1.2*rNmax, 0.0, histMed-1.2*rNmax, facecolor='r', edgecolor='r', lw=0.5)
+            ax0.text(1.2*rmed, 0.5*(histMed+1.2*rNmax), "median",
+                     verticalalignment="center", color='k', size='x-small')
 
 
         ax0.yaxis.set_ticks_position('right')
