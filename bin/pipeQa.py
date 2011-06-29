@@ -41,7 +41,7 @@ def getMemUsageThisPid(size="rss"):
 #############################################################
 
 def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
-         exceptExit=False, keep=False):
+         exceptExit=False, keep=False, wwwCache=True):
 
     if exceptExit:
         numpy.seterr(all="raise")
@@ -76,17 +76,18 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
     if data.cameraInfo.name in policy.getStringArray("doZptQa"):
         zptMin = policy.get("zptQaMetricMin")
         zptMax = policy.get("zptQaMetricMax")
-        analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax, useCache=keep))
+        analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax, useCache=keep, wwwCache=wwwCache))
     if data.cameraInfo.name in policy.getStringArray("doZptFitQa"):
         offsetMin = policy.get("zptFitQaOffsetMin")
         offsetMax = policy.get("zptFitQaOffsetMax")
-        analysisList.append(qaAnalysis.ZeropointFitQa(offsetMin, offsetMax, useCache=keep))
+        analysisList.append(qaAnalysis.ZeropointFitQa(offsetMin, offsetMax, useCache=keep, wwwCache=wwwCache))
     if data.cameraInfo.name in policy.getStringArray("doEmptySectorQa"):
         maxMissing = policy.get("emptySectorMaxMissing")
-        analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4, useCache=keep))
+        analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4, useCache=keep,
+                                                             wwwCache=wwwCache))
     if data.cameraInfo.name in policy.getStringArray("doAstromQa"):
         analysisList.append(qaAnalysis.AstrometricErrorQaAnalysis(policy.get("astromQaMaxErr"),
-                                                                  useCache=keep))
+                                                                  useCache=keep, wwwCache=wwwCache))
     if data.cameraInfo.name in policy.getStringArray("doPhotCompareQa"):
         magCut   = policy.get("photCompareMagCut")
         deltaMin = policy.get("photCompareDeltaMin")
@@ -97,13 +98,16 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         for types in policy.getStringArray("photCompareTypes"):
             cmp1, cmp2 = types.split()
             analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
-                                                                 rmsMax, slopeMin, slopeMax, useCache=keep))
+                                                                 rmsMax, slopeMin, slopeMax, useCache=keep,
+                                                                 wwwCache=wwwCache))
     if data.cameraInfo.name in policy.getStringArray("doPsfShapeQa"):
         analysisList.append(qaAnalysis.PsfShapeQaAnalysis(policy.get("psfEllipMax"),
-                                                          policy.get("psfFwhmMax"), useCache=keep))
+                                                          policy.get("psfFwhmMax"), useCache=keep,
+                                                          wwwCache=wwwCache))
     if data.cameraInfo.name in policy.getStringArray("doCompleteQa"):
         analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
-                                                      policy.get("completeMaxMag"), useCache=keep))
+                                                      policy.get("completeMaxMag"), useCache=keep,
+                                                      wwwCache=wwwCache))
 
 
     useFp = open("runtimePerformance.dat", 'w')
@@ -113,7 +117,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
 
         visit_t0 = time.time()
         
-        testset = pipeQA.TestSet(group="", label="QA-failures")
+        testset = pipeQA.TestSet(group="", label="QA-failures", wwwCache=wwwCache)
         
         for a in analysisList:
 
@@ -195,6 +199,9 @@ if __name__ == '__main__':
                       help="Regex specifying which QaAnalysis to run (default=%default)")
     parser.add_option("-V", "--verbosity", default=1,
                       help="Trace level for lsst.testing.pipeQA")
+
+    parser.add_option("--noWwwCache", default=False, action="store_true",
+                      help="Disable caching of pass/fail (needed to run in parallel) (default=%default)")
     
     opts, args = parser.parse_args()
 
@@ -212,5 +219,8 @@ if __name__ == '__main__':
     dataset, = args
 
     Trace.setVerbosity('lsst.testing.pipeQA', int(opts.verbosity))
-    
-    main(dataset, dataId, rerun, opts.test, opts.camera, opts.exceptExit, opts.keep)
+
+    wwwCache = not opts.noWwwCache
+    main(dataset, dataId, rerun=rerun,
+         testRegex=opts.test,          camera=opts.camera,
+         exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache)
