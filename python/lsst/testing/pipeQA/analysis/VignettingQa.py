@@ -173,32 +173,53 @@ class VignettingQa(qaAna.QaAnalysis):
 
 
         cacheLabel = "vignetting_dmag" #cache
-        dmagsAll, radiiAll = testSet.unpickle(cacheLabel, default=[{},{}]) #cache
+        dmagsAll, radiiAll, labelsAll, idsAll = \
+                  testSet.unpickle(cacheLabel, default=[{},{},{},{}]) #cache
+
+        
+        xlim = [-30000, 30000]
+        ylim = [-0.05, 0.05]
+        xmax, xmin = xlim
+        ymax, ymin = ylim
+        
+        for raft, ccd in self.dmag.raftCcdKeys():
+            dmags = self.dmag.get(raft, ccd)
+            ymin = num.min([dmags.min(), ymin])
+            ymax = num.max([dmags.max(), ymax])
+            radii = self.radius.get(raft, ccd)
+            xmin = num.min([radii.min(), xmin])
+            xmax = num.max([radii.max(), xmax])
+        xlim = [xmin, xmax]
+        ylim = [ymin, ymax]
 
         for raft, ccd in self.dmag.raftCcdKeys():
             dmags = self.dmag.get(raft, ccd)
             radii = self.radius.get(raft, ccd)
+
             ids   = self.ids.get(raft, ccd)
             
             print "Plotting ", ccd
-            fig = qaFig.QaFigure()
+            fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
-            sp1.plot(radii, dmags, 'ro')
+            sp1.plot(radii, dmags, 'ro', ms=2.0)
+            sp1.set_xlim(xlim)
+            sp1.set_ylim(ylim)
 
-            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            ddmag = 0.05
-            drad  = 0.05 * (max(radii) - min(radii))
+            ddmag = 0.001
+            drad  = 0.01 * (max(radii) - min(radii))
             for i in range(len(dmags)):
                 info = "nolink:sourceId=%s" % (ids[i])
                 area = (radii[i]-drad, dmags[i]-ddmag, radii[i]+drad, dmags[i]+ddmag)
-                fig.addMapArea(areaLabel, area, info, axes=sp1)
+                fig.addMapArea("no_label_info", area, info, axes=sp1)
 
             dmagsAll[ccd] = num.array(dmags) #cache
             radiiAll[ccd] = num.array(radii) #cache
+            idsAll[ccd]   = num.array(ids)   #cache
                 
             sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
             sp1.axhline(y=num.median(dmags), c = 'b', linestyle = '-')
-            sp1.axhspan(ymin = num.median(dmags)-num.std(dmags), ymax = num.median(dmags)+num.std(dmags), fc = 'b', alpha = 0.15)
+            sp1.axhspan(ymin = num.median(dmags)-num.std(dmags), ymax = \
+                        num.median(dmags)+num.std(dmags), fc = 'b', alpha = 0.15)
             sp1x2 = sp1.twinx()
             ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
             ylab.set_rotation(-90)
@@ -206,17 +227,26 @@ class VignettingQa(qaAna.QaAnalysis):
             qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
             qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
                         
-            label = data.cameraInfo.getDetectorName(raft, ccd)
-            testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+label, areaLabel=label)
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
+            testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+areaLabel,
+                              areaLabel=areaLabel)
 
-        testSet.pickle(cacheLabel, [dmagsAll, radiiAll]) #cache
+            labelsAll[ccd] = num.array([areaLabel]*len(dmags))
+
+
+        testSet.pickle(cacheLabel, [dmagsAll, radiiAll, labelsAll, idsAll]) #cache
         withDelete = True #cache
         dmagsAll  = qaAnaUtil.dictToList(dmagsAll,  withDelete=withDelete) #cache
         radiiAll  = qaAnaUtil.dictToList(radiiAll,  withDelete=withDelete) #cache
+        labelsAll = qaAnaUtil.dictToList(labelsAll,  withDelete=withDelete) #cache
+        idsAll    = qaAnaUtil.dictToList(idsAll,  withDelete=withDelete) #cache
 
-        fig = qaFig.QaFigure()
+        fig = qaFig.QaFigure(size=(4.0,4.0))
         sp1 = fig.fig.add_subplot(111)
         sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
+        sp1.set_xlim(xlim)
+        sp1.set_ylim(ylim)
+        
         sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
         sp1x2 = sp1.twinx()
         ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
@@ -224,7 +254,16 @@ class VignettingQa(qaAna.QaAnalysis):
         sp1.set_xlabel('Dist from focal plane center (pixels)', fontsize=10)
         qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
         qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
+        
         label = "all"
+
+        ddmag = 0.0005
+        drad  = 0.005 * (max(radiiAll) - min(radiiAll))
+        for i in range(len(dmagsAll)):
+            info = "sourceId=%s" % (idsAll[i])
+            area = (radiiAll[i]-drad, dmagsAll[i]-ddmag, radiiAll[i]+drad, dmagsAll[i]+ddmag)
+            fig.addMapArea(labelsAll[i], area, info, axes=sp1)
+        
         testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+label, areaLabel=label)
 
         
