@@ -108,7 +108,7 @@ class DbQaData(QaData):
         if useRef == 'obj':
             sql += '    and (s.objectID is not NULL) '
         sql += '    and '+idWhere
-        
+
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
 
         # run the query
