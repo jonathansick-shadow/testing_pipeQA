@@ -96,7 +96,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.ssDict = None
 
         # if we're asked to compare catalog fluxes ... we need a matchlist
-        if  self.magType1=="cat" or self.magType2=="cat":
+        #if  self.magType1=="cat" or self.magType2=="cat":
+        if True:
             self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
             for key in self.matchListDictSrc.keys():
                 raft = self.detector[key].getParent().getId().getName()
@@ -104,7 +105,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 filter = self.filter[key].getName()
 
                 matchList = self.matchListDictSrc[key]['matched']
-                qaAnaUtil.isStar(matchList)
+                #qaAnaUtil.isStar(matchList)
 
                 for m in matchList:
                     sref, s, dist = m

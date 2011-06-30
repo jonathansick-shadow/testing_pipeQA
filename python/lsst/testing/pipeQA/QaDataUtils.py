@@ -118,9 +118,11 @@ def getSourceSetNameList():
         ["PsfFluxErr",                   "psfFluxSigma",                 ],
         ["ApFlux",                       "apFlux",                       ],
         ["ApFluxErr",                    "apFluxSigma",                  ],
-        ["ModelFlux",                    "modelFlux",                    ],
+        #["ModelFlux",                    "modelFlux",                    ],
+        ["ModelFlux",                    "flux_Gaussian",                 ], # ACB
         #["ModelFluxErr",                 "modelFluxSigma",               ],
-        ["InstFlux",                     "instFlux",                     ],
+        #["InstFlux",                     "instFlux",                     ],
+        ["InstFlux",                      "flux_ESG",                     ], # ACB
         #["InstFluxErr",                  "instFluxSigma",                ],
         #["NonGrayCorrFlux",              "nonGrayCorrFlux",              ],
         #["NonGrayCorrFluxErr",           "nonGrayCorrFluxSigma",         ],
