@@ -48,9 +48,12 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
     
     data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera)
 
-    if data.cameraInfo.name == 'lsstSim' and dataIdInput.has_key('ccd'):
-        dataIdInput['sensor'] = dataIdInput['ccd']
-        del dataIdInput['ccd']
+    ccdConvention = 'ccd'
+    if data.cameraInfo.name == 'lsstSim':
+        ccdConvention = 'sensor'
+        if dataIdInput.has_key('ccd'):
+            dataIdInput['sensor'] = dataIdInput['ccd']
+            del dataIdInput['ccd']
 
     # take what we need for this camera, ignore the rest
     dataId = {}
@@ -112,8 +115,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
 
 
     useFp = open("runtimePerformance.dat", 'w')
-    useFp.write("# %-10s %-32s %10s  %16s\n" %
-                ("visit", "testname", "t-elapsed", "resident-memory"))
+    useFp.write("#%-11s %-24s %-32s %10s  %16s\n" %
+                ("timestamp", "dataId", "testname", "t-elapsed", "resident-memory-kb-Mb"))
     
     # split by visit
     visits = data.getVisits(dataId)
@@ -170,8 +173,10 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
 
 
                 test_tf = time.time()
-                useFp.write("%-12s %-32s %9.2fs %7dk %7.2fM\n" %
-                            (str(visit), test, test_tf-test_t0, memory, memory/1024.0))
+                tstamp = time.mktime(datetime.datetime.now().timetuple())
+                idstamp = "v"+str(visit)+"r"+thisDataId['raft']+"s"+thisDataId[ccdConvention]
+                useFp.write("%-12.1f %-24s %-32s %9.2fs %7d %7.2f\n" %
+                            (tstamp, str(idstamp), test, test_tf-test_t0, memory, memory/1024.0))
                 useFp.flush()
 
             # we're now done this dataId ... can clear the cache

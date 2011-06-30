@@ -161,13 +161,19 @@ def getSourceSetNameList():
         ]
     return accessors
 
+
 def getSourceSetAccessors():
     """Get a list of all accessor names for Source objects. """
     return zip(*getSourceSetNameList())[0]
-def getSourceSetDbNames():
+def getSourceSetDbNames(replacementDict):
     """Get a list of all database names for Source objects. """
-    return zip(*getSourceSetNameList())[1]
-
+    rawList = list(zip(*getSourceSetNameList())[1])
+    for k,v in replacementDict.items():
+        matches = [i for i,x in enumerate(rawList) if x == k]
+        arg = matches[0]
+        rawList[arg] = v
+    return rawList
+        
 def getCalexpNameLookup():
     """Associate calexp_md names to database names."""
     

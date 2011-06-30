@@ -35,6 +35,24 @@ class DbQaData(QaData):
 
         self.refStr = {'obj' : ('Obj', 'object'), 'src' : ('Src', 'source') }
 
+
+
+        # handle backward compatibility of database names
+        keyList = []
+        sql = "show columns from Source;"
+        results = self.dbInterface.execute(sql)
+        for r in results:
+            keyList.append(r[0])
+
+        # default to new names
+        self.dbAliases = {
+            "flux_Gaussian" : "modelFlux",
+            "flux_ESG"      : "instFlux",
+            }
+        # reset to old names if new names not present
+        for k,v in self.dbAliases.items():
+            if k in keyList:
+                self.dbAliases[k] = k
         
 
     def initCache(self):
@@ -55,7 +73,7 @@ class DbQaData(QaData):
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
         setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
-        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
+        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr  = ",".join(selectList)
 
         sql  = 'select sce.filterId, sce.filterName from Science_Ccd_Exposure as sce'
@@ -260,7 +278,7 @@ class DbQaData(QaData):
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
         setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
-        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
+        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr = ",".join(selectList)
 
         

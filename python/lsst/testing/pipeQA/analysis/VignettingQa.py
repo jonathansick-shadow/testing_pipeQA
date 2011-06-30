@@ -5,6 +5,7 @@ import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 import lsst.meas.algorithms as measAlg
+import QaAnalysisUtils as qaAnaUtil
 
 class VignettingQa(qaAna.QaAnalysis):
     def __init__(self, maxMedian, maxRms, maxMag):
@@ -19,7 +20,7 @@ class VignettingQa(qaAna.QaAnalysis):
     def _getFlux(self, mType, s, sref):
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
-            return numpy.NaN
+            return num.NaN
         if mType=="psf":
             return s.getPsfFlux()
         elif mType=="ap":
@@ -128,9 +129,12 @@ class VignettingQa(qaAna.QaAnalysis):
 
     def plot(self, data, dataId, showUndefined = False):
         testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache) #cache
 
         # fpa figures
-        medFig = qaFig.FpaQaFigure(data.cameraInfo)
+        medFigbase = "vignettingMedianPhotOffset" #cache
+        medFigData, medFigMap = testSet.unpickle(medFigbase, [None, None]) #cache
+        medFig = qaFig.FpaQaFigure(data.cameraInfo, data=medFigData, map=medFigMap) #cache
         for raft, ccdDict in medFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.medianOffset.get(raft, ccd) is None:
@@ -138,7 +142,9 @@ class VignettingQa(qaAna.QaAnalysis):
                     medFig.data[raft][ccd] = med
                     medFig.map[raft][ccd] = 'med=%.2f'%(med) 
 
-        stdFig = qaFig.FpaQaFigure(data.cameraInfo)
+        stdFigbase = "vignettingRmsPhotOffset" #cache
+        stdFigData, stdFigMap = testSet.unpickle(stdFigbase, [None, None]) #cache
+        stdFig = qaFig.FpaQaFigure(data.cameraInfo, data=stdFigData, map=stdFigMap) #cache
         for raft, ccdDict in stdFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.rmsOffset.get(raft, ccd) is None:
@@ -152,17 +158,23 @@ class VignettingQa(qaAna.QaAnalysis):
         medFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.medLimits,
                           title="Median offset", cmapOver=red, cmapUnder=blue,
                           failLimits=self.medLimits)
-        testSet.addFigure(medFig, "vignettingMedianPhotOffset.png", "Median offset of bright (m < %d) stars as a function of radius" % (self.maxMag), 
+        testSet.addFigure(medFig, medFigbase+".png",
+                          "Median offset of bright (m < %d) stars as a function of radius" % (self.maxMag), 
                           navMap=True)
+        testSet.pickle(medFigbase, [medFig.data, medFig.map]) #cache
 
         stdFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.rmsLimits,
                           title="Stddev offset", cmapOver=red, cmapUnder=blue,
                           failLimits=self.rmsLimits)
-        testSet.addFigure(stdFig, "vignettingRmsPhotOffset.png", "Stddev of bright (m < %d) stars as a function of radius" % (self.maxMag), 
+        testSet.addFigure(stdFig, stdFigbase+".png",
+                          "Stddev of bright (m < %d) stars as a function of radius" % (self.maxMag), 
                           navMap=True)
+        testSet.pickle(stdFigbase, [stdFig.data, stdFig.map]) #cache 
 
-        dmagsAll = []
-        radiiAll = []
+
+        cacheLabel = "vignetting_dmag" #cache
+        dmagsAll, radiiAll = testSet.unpickle(cacheLabel, default=[{},{}]) #cache
+
         for raft, ccd in self.dmag.raftCcdKeys():
             dmags = self.dmag.get(raft, ccd)
             radii = self.radius.get(raft, ccd)
@@ -181,8 +193,8 @@ class VignettingQa(qaAna.QaAnalysis):
                 area = (radii[i]-drad, dmags[i]-ddmag, radii[i]+drad, dmags[i]+ddmag)
                 fig.addMapArea(areaLabel, area, info, axes=sp1)
 
-                dmagsAll.append(dmags[i])
-                radiiAll.append(radii[i])
+            dmagsAll[ccd] = num.array(dmags) #cache
+            radiiAll[ccd] = num.array(radii) #cache
                 
             sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
             sp1.axhline(y=num.median(dmags), c = 'b', linestyle = '-')
@@ -196,6 +208,11 @@ class VignettingQa(qaAna.QaAnalysis):
                         
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+label, areaLabel=label)
+
+        testSet.pickle(cacheLabel, [dmagsAll, radiiAll]) #cache
+        withDelete = True #cache
+        dmagsAll  = qaAnaUtil.dictToList(dmagsAll,  withDelete=withDelete) #cache
+        radiiAll  = qaAnaUtil.dictToList(radiiAll,  withDelete=withDelete) #cache
 
         fig = qaFig.QaFigure()
         sp1 = fig.fig.add_subplot(111)
