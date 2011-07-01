@@ -60,9 +60,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
 
         # Ignore blends in this analysis
         self.orphan           = raftCcdData.RaftCcdVector(self.detector)
-        self.matchedStar      = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedStar      = raftCcdData.RaftCcdData(self.detector)
         self.undetectedStar   = raftCcdData.RaftCcdVector(self.detector)
-        self.matchedGalaxy    = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedGalaxy    = raftCcdData.RaftCcdData(self.detector)
         self.undetectedGalaxy = raftCcdData.RaftCcdVector(self.detector)
 
         # Results
@@ -75,6 +75,18 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
+
+
+            self.matchedStar.set(raftId, ccdId, {"Refmag": num.array([]),
+                                                 "Imgmag": num.array([]),
+                                                 "Imgerr": num.array([]),})
+            self.matchedGalaxy.set(raftId, ccdId, {"Refmag": num.array([]),
+                                                   "Imgmag": num.array([]),
+                                                   "Imgerr": num.array([])})
+            self.undetectedStar.set(raftId, ccdId, num.array([]))
+            self.undetectedGalaxy.set(raftId, ccdId, num.array([]))
+            self.orphan.set(raftId, ccdId, num.array([]))
+
 
             fmag0 = self.calib[key].getFluxMag0()[0]
             if fmag0 <= 0.0:

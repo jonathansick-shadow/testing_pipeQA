@@ -63,8 +63,8 @@ class VignettingQa(qaAna.QaAnalysis):
         self.ids     = raftCcdData.RaftCcdVector(self.detector)
         self.radius  = raftCcdData.RaftCcdVector(self.detector)
 
-        self.medianOffset = raftCcdData.RaftCcdVector(self.detector)
-        self.rmsOffset    = raftCcdData.RaftCcdVector(self.detector)
+        self.medianOffset = raftCcdData.RaftCcdData(self.detector)
+        self.rmsOffset    = raftCcdData.RaftCcdData(self.detector)
         
         badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
         
@@ -148,7 +148,10 @@ class VignettingQa(qaAna.QaAnalysis):
                 if not self.medianOffset.get(raft, ccd) is None:
                     med = self.medianOffset.get(raft, ccd)
                     medFig.data[raft][ccd] = med
-                    medFig.map[raft][ccd] = 'med=%.2f'%(med) 
+                    if num.isfinite(med):
+                        medFig.map[raft][ccd] = 'med=%.2f'%(med)
+                    else:
+                        medFig.map[raft][ccd] = 'med=nan'
 
         stdFigbase = "vignettingRmsPhotOffset" #cache
         stdFigData, stdFigMap = testSet.unpickle(stdFigbase, [None, None]) #cache
@@ -158,7 +161,11 @@ class VignettingQa(qaAna.QaAnalysis):
                 if not self.rmsOffset.get(raft, ccd) is None:
                     std = self.rmsOffset.get(raft, ccd)
                     stdFig.data[raft][ccd] = std
-                    stdFig.map[raft][ccd] = 'stddev=%.2f'%(std) 
+                    if num.isfinite(std):
+                        stdFig.map[raft][ccd] = 'stddev=%.2f'%(std)
+                    else:
+                        stdFig.map[raft][ccd] = 'stddev=nan'
+                        
 
         blue = '#0000ff'
         red  = '#ff0000'

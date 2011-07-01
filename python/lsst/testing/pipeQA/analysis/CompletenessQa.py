@@ -149,7 +149,7 @@ class CompletenessQa(qaAna.QaAnalysis):
         self.matchedGalaxy    = raftCcdData.RaftCcdVector(self.detector)
         self.blendedGalaxy    = raftCcdData.RaftCcdVector(self.detector)
         self.undetectedGalaxy = raftCcdData.RaftCcdVector(self.detector)
-        self.depth            = raftCcdData.RaftCcdVector(self.detector)
+        self.depth            = raftCcdData.RaftCcdData(self.detector)
 
         if hasMinuit:
             self.fit = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0]) 
@@ -228,19 +228,27 @@ class CompletenessQa(qaAna.QaAnalysis):
                 test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
 
+
     def plot(self, data, dataId, showUndefined = False):
         testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
 
         # fpa figure
+        filebase = "completenessDepth"
+        depthData, depthMap = testSet.unpickle(filebase, default=[None, None])
         depths = []
-        depthFig = qaFig.FpaQaFigure(data.cameraInfo)
+        depthFig = qaFig.FpaQaFigure(data.cameraInfo, data=depthData, map=depthMap)
         for raft, ccdDict in depthFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.depth.get(raft, ccd) is None:
                     depth = self.depth.get(raft, ccd)
                     depths.append(depth)
                     depthFig.data[raft][ccd] = depth
-                    depthFig.map[raft][ccd] = 'mag=%.2f'%(depth) 
+                    if num.isfinite(depth):
+                        depthFig.map[raft][ccd] = 'mag=%.2f'%(depth)
+                    else:
+                        depthFig.map[raft][ccd] = 'mag=nan'
+                        
 
         blue = '#0000ff'
         red  = '#ff0000'
@@ -262,8 +270,8 @@ class CompletenessQa(qaAna.QaAnalysis):
         depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
                             title="Photometric Depth", cmapOver=red, cmapUnder=blue,
                             failLimits=self.limits)
-        testSet.addFigure(depthFig, "completenessDepth.png", "Estimate of photometric depth", 
-                          navMap=True)
+        testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
+        testSet.pickle(filebase, [depthFig.data, depthFig.map])
 
         # Each CCD
         for raft, ccd in self.depth.raftCcdKeys():
