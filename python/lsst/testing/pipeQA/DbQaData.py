@@ -574,15 +574,15 @@ class DbQaData(QaData):
 
         dataIdDict = {}
         ccdConvention = 'ccd'
+        if not dataIdRegex.has_key('ccd'):
+            ccdConvention = 'sensor'
+            
         for r in results:
             visit, raft, ccd = r
             if breakBy == 'raft':
                 # handle lsst/hsc different naming conventions
-                if dataIdRegex.has_key('ccd'):
-                    ccd = dataIdRegex['ccd']
-                else:
-                    ccdConvention = 'sensor'
-                    ccd = dataIdRegex['sensor']
+                ccd = dataIdRegex[ccdConvention]
+
             key = str(visit) + str(raft) + str(ccd)
             dataIdDict[key] = {
                 'visit': str(visit),

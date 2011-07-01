@@ -35,6 +35,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
         del self.ellipMedians
         del self.thetaMedians
+        del self.fwhm
 
         del self.calexpDict
         

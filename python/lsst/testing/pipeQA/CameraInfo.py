@@ -82,7 +82,7 @@ class CameraInfo(object):
 
 
     def __str__(self):
-        return name
+        return self.name
     
     # some butler's use a 'rerun', others don't ... base class should default to None
     def getDefaultRerun(self):

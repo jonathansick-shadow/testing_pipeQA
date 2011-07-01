@@ -38,6 +38,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         del self.ssDict
         del self.matchListDictSrc
 
+        del self.emptySectors
+        del self.emptySectorsMat
         
     def test(self, data, dataId):
         
