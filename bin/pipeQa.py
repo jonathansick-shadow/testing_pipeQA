@@ -41,19 +41,17 @@ def getMemUsageThisPid(size="rss"):
 #############################################################
 
 def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
-         exceptExit=False, keep=False, wwwCache=True, breakBy='visit'):
+         exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
+	 groupInfo=None):
 
     if exceptExit:
         numpy.seterr(all="raise")
-    
+
     data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera)
 
-    ccdConvention = 'ccd'
-    if data.cameraInfo.name == 'lsstSim':
-        ccdConvention = 'sensor'
-        if dataIdInput.has_key('ccd'):
-            dataIdInput['sensor'] = dataIdInput['ccd']
-            del dataIdInput['ccd']
+    if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
+	dataIdInput['sensor'] = dataIdInput['ccd']
+	del dataIdInput['ccd']
 
     # take what we need for this camera, ignore the rest
     dataId = {}
@@ -120,6 +118,23 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
     
     # split by visit
     visits = data.getVisits(dataId)
+    
+    if not groupInfo is None:
+	groupSize, whichGroup = map(int, groupInfo.split(":"))
+	lo, hi = whichGroup*groupSize, (whichGroup+1)*groupSize
+
+	nvisit = len(visits)
+	if lo >= nvisit:
+	    print "Can't run visits %d to %d as there are only %d visits" % (lo, hi, nvisit)
+	    sys.exit()
+	if hi > nvisit:
+	    hi = nvisit
+	visits = visits[lo:hi]
+
+	print "Total of %d visits grouped by %d.  Running group %d with visits:\n%s\n" % \
+	      (nvisit, groupSize, whichGroup, "\n".join(visits))
+
+
     for visit in visits:
 
         visit_t0 = time.time()
@@ -174,9 +189,11 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
 
                 test_tf = time.time()
                 tstamp = time.mktime(datetime.datetime.now().timetuple())
-                idstamp = "v"+str(visit)+"r"+thisDataId['raft']+"s"+thisDataId[ccdConvention]
+                idstamp = ""
+		for k,v in thisDataId.items():
+		    idstamp += k[0]+str(v)
                 useFp.write("%-12.1f %-24s %-32s %9.2fs %7d %7.2f\n" %
-                            (tstamp, str(idstamp), test, test_tf-test_t0, memory, memory/1024.0))
+                            (tstamp, idstamp, test, test_tf-test_t0, memory, memory/1024.0))
                 useFp.flush()
 
             # we're now done this dataId ... can clear the cache
@@ -209,6 +226,8 @@ if __name__ == '__main__':
 		      help="Specify a camera and override auto-detection (default=%default)")
     parser.add_option("-e", "--exceptExit", default=False, action='store_true',
                       help="Don't capture exceptions, fail and exit (default=%default)")
+    parser.add_option("-g", "--group", default=None,
+		      help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%default)")
     parser.add_option("-k", "--keep", default=False, action="store_true",
                       help="Keep existing outputs (default=%default)")
     parser.add_option("-r", "--raft", default=".*",
@@ -252,5 +271,5 @@ if __name__ == '__main__':
     main(dataset, dataId, rerun=rerun,
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
-         breakBy=opts.breakBy)
+         breakBy=opts.breakBy, groupInfo=opts.group)
         
