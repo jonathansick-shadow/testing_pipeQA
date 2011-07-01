@@ -5,7 +5,7 @@ fields = [
     "refObjectId",
     "isStar",
     "ra", "decl",
-    "uMag", "gMag", "rMag", "iMag", "zMag"
+    "uMag", "gMag", "rMag", "iMag", "zMag", "yMag"
     ]
 
 
@@ -29,14 +29,14 @@ else:
 
     class SimRefObject(object):
 
-        flookup = {"u":0, "g": 1, "r":2, "i":3, "z":4}
+        flookup = {"u":0, "g": 1, "r":2, "i":3, "z":4, "y":5}
 
         def __init__(self, *sroStuff):
 
             self.refObjectId = sroStuff[0]
             self.isStar = sroStuff[1]
             self.radec = numpy.array(sroStuff[2:4])
-            self.mag = numpy.array(sroStuff[4:9], dtype=numpy.float32)
+            self.mag = numpy.array(sroStuff[4:10], dtype=numpy.float32)
 
             #self.refObjectId = 0
             #self.isStar      = 0
