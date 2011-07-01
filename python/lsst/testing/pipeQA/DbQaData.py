@@ -46,8 +46,8 @@ class DbQaData(QaData):
 
         # default to new names
         self.dbAliases = {
-            "flux_Gaussian" : "modelFlux",
-            "flux_ESG"      : "instFlux",
+            "flux_Gaussian" : "instFlux",
+            "flux_ESG"      : "modelFlux",
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
