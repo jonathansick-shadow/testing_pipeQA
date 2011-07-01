@@ -543,7 +543,7 @@ class DbQaData(QaData):
 
         results = self.dbInterface.execute(sql)
         visits = map(str, zip(*results)[0])
-        return visits
+        return sorted(visits)
 
 
     def breakDataId(self, dataIdRegex, breakBy):

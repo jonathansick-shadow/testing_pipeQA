@@ -8,8 +8,8 @@ import lsst.meas.algorithms as measAlg
 import QaAnalysisUtils as qaAnaUtil
 
 class VignettingQa(qaAna.QaAnalysis):
-    def __init__(self, maxMedian, maxRms, maxMag):
-        qaAna.QaAnalysis.__init__(self)
+    def __init__(self, maxMedian, maxRms, maxMag, **kwargs):
+        qaAna.QaAnalysis.__init__(self, **kwargs)
         self.medLimits = [-1 * maxMedian, maxMedian]
         self.rmsLimits = [0, maxRms]
         self.maxMag    = maxMag

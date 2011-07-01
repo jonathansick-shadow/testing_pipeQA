@@ -109,16 +109,14 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
     if data.cameraInfo.name in policy.getStringArray("doVignettingQa"):
         analysisList.append(qaAnalysis.VignettingQa(policy.get("vigMaxMedian"),
                                                     policy.get("vigMagRms"),
-                                                    policy.get("vigMaxMag")))
+                                                    policy.get("vigMaxMag"), useCache=keep,
+                                                    wwwCache=wwwCache))
 
 
-    useFp = open("runtimePerformance.dat", 'w')
-    useFp.write("#%-11s %-24s %-32s %10s  %16s\n" %
-                ("timestamp", "dataId", "testname", "t-elapsed", "resident-memory-kb-Mb"))
-    
     # split by visit
     visits = data.getVisits(dataId)
-    
+
+    groupTag = ""
     if not groupInfo is None:
 	groupSize, whichGroup = map(int, groupInfo.split(":"))
 	lo, hi = whichGroup*groupSize, (whichGroup+1)*groupSize
@@ -131,9 +129,15 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
 	    hi = nvisit
 	visits = visits[lo:hi]
 
-	print "Total of %d visits grouped by %d.  Running group %d with visits:\n%s\n" % \
-	      (nvisit, groupSize, whichGroup, "\n".join(visits))
+	print "Total of %d visits grouped by %d.  Running group %d with visits %d - %d:\n%s\n" % \
+	      (nvisit, groupSize, whichGroup, lo, hi-1, "\n".join(visits))
+        groupTag = "%02d-%02d" % (groupSize, whichGroup)
 
+
+    useFp = open("runtimePerformance%s.dat" % (groupTag), 'w')
+    useFp.write("#%-11s %-24s %-32s %10s  %16s\n" %
+                ("timestamp", "dataId", "testname", "t-elapsed", "resident-memory-kb-Mb"))
+    
 
     for visit in visits:
 
@@ -268,6 +272,10 @@ if __name__ == '__main__':
 
     wwwCache = not opts.noWwwCache
 
+    if re.search("(raft|ccd)", opts.breakBy) and not opts.keep:
+        print "You've specified breakBy=%s, which requires 'keep' (-k). I'll set it for you."
+        opts.keep = True
+        
     main(dataset, dataId, rerun=rerun,
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,

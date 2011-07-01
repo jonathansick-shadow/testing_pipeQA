@@ -112,7 +112,7 @@ class ButlerQaData(QaData):
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
             visits.append(str(dataId['visit']))
-        return set(visits)
+        return sorted(set(visits))
     
 
 
