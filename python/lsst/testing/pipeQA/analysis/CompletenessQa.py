@@ -135,6 +135,8 @@ class CompletenessQa(qaAna.QaAnalysis):
 
     def test(self, data, dataId, fluxType = "psf"):
         testSet = self.getTestSet(data, dataId)
+        testSet.addMetadata({"Description": self.description})
+        
         self.fluxType = fluxType
         self.detector         = data.getDetectorBySensor(dataId)
         self.filter           = data.getFilterBySensor(dataId)

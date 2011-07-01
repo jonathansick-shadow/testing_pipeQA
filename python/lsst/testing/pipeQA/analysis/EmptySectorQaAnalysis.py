@@ -83,6 +83,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
         # create a testset
         testSet = self.getTestSet(data, dataId)
+        testSet.addMetadata({"Description": self.description})
 
         # analyse each sensor and put the values in a raftccd container
         self.emptySectors    = raftCcdData.RaftCcdData(self.detector, initValue=self.nx*self.ny)

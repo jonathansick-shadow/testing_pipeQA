@@ -174,6 +174,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.addMetadata('magType1', self.magType1)
         testSet.addMetadata('magType2', self.magType2)
+        testSet.addMetadata({"Description": self.description})
 
         self.means = raftCcdData.RaftCcdData(self.detector)
         self.medians = raftCcdData.RaftCcdData(self.detector)

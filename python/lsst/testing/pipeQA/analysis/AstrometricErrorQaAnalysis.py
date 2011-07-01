@@ -86,6 +86,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                     
                     
         testSet = self.getTestSet(data, dataId)
+        testSet.addMetadata({"Description": self.description})
 
         self.medErrArcsec = raftCcdData.RaftCcdData(self.detector)
         self.medThetaRad  = raftCcdData.RaftCcdData(self.detector)

@@ -53,6 +53,7 @@ class VignettingQa(qaAna.QaAnalysis):
 
     def test(self, data, dataId):
         testSet = self.getTestSet(data, dataId)
+        testSet.addMetadata({"Description": self.description})
 
         self.detector         = data.getDetectorBySensor(dataId)
         self.filter           = data.getFilterBySensor(dataId)

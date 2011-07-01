@@ -105,6 +105,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                 
         # create a testset and add values
         testSet = self.getTestSet(data, dataId)
+        testSet.addMetadata({"Description": self.description})
 
         # gets the stats for each sensor and put the values in the raftccd container
         self.ellipMedians = raftCcdData.RaftCcdData(self.detector)
