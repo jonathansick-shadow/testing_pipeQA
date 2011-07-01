@@ -23,6 +23,17 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         qaAna.QaAnalysis.__init__(self, **kwargs)
         self.limits = [0.0, maxErr]
 
+        self.description = """
+         For each CCD, the left figure shows the distance offset between the
+         measured centroid of matched objects and the catalog position of these
+         objects, represented as an arrow.  The top right panel provides the
+         view of these vectors stacked at the position of the reference object,
+         with the green circle representing the radius that contains 50% of the
+         matches.  The bottom panel provides a histogram of the astrometric
+         offsets, with the median indicated.  The summary FPA figure provides
+         the median vector (offset and angle) for each chip.
+        """
+        
     def free(self):
         del self.x
         del self.y

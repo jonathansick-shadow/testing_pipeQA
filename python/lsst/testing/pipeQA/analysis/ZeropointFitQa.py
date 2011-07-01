@@ -18,6 +18,20 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         self.figsize = figsize
         self.limits = [medOffsetMin, medOffsetMax]
 
+        self.description = """
+         For each CCD, the central panel shows the instrumental magnitude of
+         matched stars and galaxies, plotted as a function of the catalog
+         magnitude of the reference objects they were matched to.  The fitted
+         zeropoint is shown as the dashed line.  The bottom panel shows a
+         histogram of the "matched" and "orphan" source as a function of
+         instrumental magnitude, while the left panel shows a histogram of the
+         "matched" and "unmatched" entries in the reference catalog.  The top
+         panel shows the scatter of the matched stars and galaxies around the
+         zeropoint fit (similar to pipeQa.PhotCompareQaAnalysis.psf-cat) with
+         the median offset of star from the zeropoint indicated with the dotted
+         line.  The summary FPA figures show the median offset of stars from
+         the zeropoint across the focal plane, as well as the fitted zeropoint.
+        """
 
     def free(self):
         del self.detector

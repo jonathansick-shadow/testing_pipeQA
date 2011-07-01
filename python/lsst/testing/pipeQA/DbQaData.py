@@ -75,7 +75,7 @@ class DbQaData(QaData):
         setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr  = ",".join(selectList)
-
+        
         sql  = 'select sce.filterId, sce.filterName from Science_Ccd_Exposure as sce'
         sql += ' where '
         haveAllKeys = True

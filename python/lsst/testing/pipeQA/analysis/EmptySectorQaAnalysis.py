@@ -24,6 +24,13 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         self.nx = nx
         self.ny = ny
 
+        self.description = """
+         For each CCD, the 1-to-1 matches between the reference catalog and
+         sources are plotted as a function of position in the focal plane.
+         Portions of each CCD where there are no matches are considered "empty
+         sectors" and suggest a problem with the reference catalog matching.
+         The summary FPA figure shows the number of empty sectors per CCD.
+        """
 
     def free(self):
 

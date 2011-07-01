@@ -17,6 +17,13 @@ class VignettingQa(qaAna.QaAnalysis):
         self.magType1 = "psf"
         self.magType2 = "cat"
 
+        self.description = """
+         For each CCD, the difference in psf and reference catalog magnitudes
+         is plotted as a function of radial location from the center of the
+         focal plane.  The summary FPA figures show the median offset, as well
+         as the standard deviation of this offset, for each chip.
+        """
+        
     def _getFlux(self, mType, s, sref):
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):

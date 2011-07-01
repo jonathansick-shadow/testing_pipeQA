@@ -42,6 +42,20 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.magType1 = magType(magType1)
         self.magType2 = magType(magType2)
 
+        self.description = """
+         For each CCD, the difference between magnitude1 and magnitude2 are
+         plotted as a function of magnitude1.  We make comparisons between
+         aperture magnitudes and reference catalog magnitudes (ap-cat), psf and
+         aperture magnitudes (psf-ap), psf and reference catalog magnitudes
+         (psf-cat), psf and multifit model magnitudes (psf-inst), and psf and
+         gaussian model magnitudes (psf-mod).  The width of the bright end of
+         this distribution (stars plotted in red) reflects the systematic floor
+         in these measurement comparisons.  For psf magnitudes, this is
+         typically 1-2% for PT1.2 measurements.  The summary FPA figures show
+         the mean magnitude offset, slope in this offset as a function of
+         magnitude, and width (standard deviation) of this distribution for the
+         bright stars.
+        """
 
     def _getFlux(self, mType, s, sref):
 

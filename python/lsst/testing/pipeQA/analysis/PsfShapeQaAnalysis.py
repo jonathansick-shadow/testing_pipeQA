@@ -23,6 +23,13 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         self.limitsEllip = [0.0, ellipMax]
         self.limitsFwhm = [0.0, fwhmMax]
 
+        self.description = """
+         For each CCD, the ellipticity of stars used in the Psf model are
+         plotted as a function of position in the focal plane.  The summary FPA
+         figures show the median vector (offset and angle) of this ellipticity
+         for each chip, as well as the effective FWHM in arcsec for the final
+         Psf model.
+        """
 
     def free(self):
         del self.theta

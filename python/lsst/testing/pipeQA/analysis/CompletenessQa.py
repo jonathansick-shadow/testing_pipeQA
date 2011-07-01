@@ -24,6 +24,23 @@ class CompletenessQa(qaAna.QaAnalysis):
         self.limits = [completenessMagMin, completenessMagMax]
         self.bins   = num.arange(14, 27, 0.5)
 
+        self.description = """
+         For each CCD, the top figure shows the counts of 4 classes of
+         objects, plotted in histograms as a function of magnitude, for stars
+         only.  "Matched" objects are detections that match 1-to-1 with with
+         reference catalog (through Source Association); "Blended" objects
+         match N-to-1 with the reference catalog; "Orphan" objects do not match
+         any entry in the reference catalog, and may include false positives
+         and asteroids; while "Unmatched" stars are those present in the
+         reference catalog but not detected in the science image.  The measure
+         of completeness is represented by (matched + blended) / (matched +
+         blended + unmatched), which is the blue line.  The magnitude below
+         which the completeness is < 50% is indicated with the crosshairs.  The
+         bottom panel shows the same for galaxies only.  Orphans are included
+         in both plots.  The summary FPA figure provides a visual
+         representation of this photometric depth.
+        """
+         
     def free(self):
         del self.detector
         del self.filter
