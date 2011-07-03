@@ -201,6 +201,10 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                     offset = self.medOffset.get(raft, ccd)
                     offsetFig.data[raft][ccd] = offset
                     offsetFig.map[raft][ccd] = 'offset=%.2f' % (offset)
+                else:
+                    if not zptFig.data[raft][ccd] is None:
+                        zpts.append(zptFig.data[raft][ccd])
+                    
                     
         blue = '#0000ff'
         red = '#ff0000'
