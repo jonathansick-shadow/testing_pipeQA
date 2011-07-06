@@ -193,7 +193,13 @@ class ButlerQaData(QaData):
                 #persistableMatchVector = self.outButler.get('icMatch', dataId)
 
                 matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
-                self.matchListCache[dataKey] = [] # matches #persistableMatchVector.getSourceMatches()
+                self.matchListCache[dataKey] = {
+                    'orphan' : [],
+                    'matched' : [],
+                    'blended' : [],
+                    'undetected' : [],
+                    }
+                # matches #persistableMatchVector.getSourceMatches()
 
                 if self.outButler.datasetExists('calexp', dataId):
 
@@ -211,7 +217,7 @@ class ButlerQaData(QaData):
                             s.setDec((180.0/numpy.pi)*s.getDec())
                             sref.setRa((180.0/numpy.pi)*sref.getRa())
                             sref.setDec((180.0/numpy.pi)*sref.getDec())
-                            self.matchListCache[dataKey].append([sref, s, dist])
+                            self.matchListCache[dataKey]['matched'].append([sref, s, dist])
                             
                             
                 matchListDict[dataKey] = copy.copy(self.matchListCache[dataKey])
@@ -428,10 +434,13 @@ class ButlerQaData(QaData):
                 sigmaToFwhm = 2.0*math.sqrt(2.0*math.log(2.0))
                 width = calexp_md.get('NAXIS1')
                 height = calexp_md.get('NAXIS2')
-                psf = self.outButler.get("psf", visit=dataId['visit'],
-                                         raft=dataId['raft'], sensor=dataId['sensor'])
-                attr = measAlg.PsfAttributes(psf, width // 2, height // 2)
-                fwhm = attr.computeGaussianWidth() * self.wcsCache[dataKey].pixelScale() * sigmaToFwhm
+                try:
+                    psf = self.outButler.get("psf", visit=dataId['visit'],
+                                             raft=dataId['raft'], sensor=dataId['sensor'])
+                    attr = measAlg.PsfAttributes(psf, width // 2, height // 2)
+                    fwhm = attr.computeGaussianWidth() * self.wcsCache[dataKey].pixelScale() * sigmaToFwhm
+                except Exception, e:
+                    fwhm = -1.0
 
                 if (self.calexpCache[dataKey].has_key('fwhm') and
                     numpy.isnan(self.calexpCache[dataKey]['fwhm'])):

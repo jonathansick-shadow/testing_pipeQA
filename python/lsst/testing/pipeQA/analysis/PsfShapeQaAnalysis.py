@@ -166,6 +166,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
         fwhmMin =  1e10
         fwhmMax = -1e10
+        fwhm = None
         for raft, ccdDict in ellipFig.data.items():
             for ccd, value in ccdDict.items():
                 if not self.ellipMedians.get(raft, ccd) is None:
@@ -176,13 +177,18 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                                                                        (180/numpy.pi)*self.thetaMedians.get(raft, ccd))
                 if not self.fwhm.get(raft, ccd) is None:
                     fwhm = self.fwhm.get(raft, ccd)
+                    fwhmFig.data[raft][ccd] = fwhm
+                    fwhmFig.map[raft][ccd] = "fwhm=%.2f asec" % (fwhm)
+                else:
+                    if not fwhmFig.data[raft][ccd] is None:
+                        fwhm = fwhmFig.data[raft][ccd]
+
+                if not fwhm is None:
                     if fwhm > fwhmMax:
                         fwhmMax = fwhm
                     if fwhm < fwhmMin:
                         fwhmMin = fwhm
-                    fwhmFig.data[raft][ccd] = fwhm
-                    fwhmFig.map[raft][ccd] = "fwhm=%.2f asec" % (fwhm)
-                    
+
                 
         ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
                             title="Median PSF Ellipticity", failLimits=self.limitsEllip)
