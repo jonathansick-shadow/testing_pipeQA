@@ -138,6 +138,9 @@ class VignettingQa(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined = False):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache) #cache
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
 
         # fpa figures
         medFigbase = "vignettingMedianPhotOffset" #cache
@@ -170,42 +173,45 @@ class VignettingQa(qaAna.QaAnalysis):
         blue = '#0000ff'
         red  = '#ff0000'
         
-        medFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.medLimits,
-                          title="Median offset", cmapOver=red, cmapUnder=blue,
-                          failLimits=self.medLimits)
-        testSet.addFigure(medFig, medFigbase+".png",
-                          "Median offset of bright (m < %d) stars as a function of radius" % (self.maxMag), 
-                          navMap=True)
-        testSet.pickle(medFigbase, [medFig.data, medFig.map]) #cache
+        if not self.delaySummary or isFinalDataId:
+            print "plotting FPAs"
+            medFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.medLimits,
+                              title="Median offset", cmapOver=red, cmapUnder=blue,
+                              failLimits=self.medLimits)
+            testSet.addFigure(medFig, medFigbase+".png",
+                              "Median offset of bright (m<%d) stars versus radius" % (self.maxMag), 
+                              navMap=True)
 
-        stdFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.rmsLimits,
-                          title="Stddev offset", cmapOver=red, cmapUnder=blue,
-                          failLimits=self.rmsLimits)
-        testSet.addFigure(stdFig, stdFigbase+".png",
-                          "Stddev of bright (m < %d) stars as a function of radius" % (self.maxMag), 
-                          navMap=True)
+            stdFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.rmsLimits,
+                              title="Stddev offset", cmapOver=red, cmapUnder=blue,
+                              failLimits=self.rmsLimits)
+            testSet.addFigure(stdFig, stdFigbase+".png",
+                              "Stddev of bright (m < %d) stars as a function of radius" % (self.maxMag), 
+                              navMap=True)
+            
+        testSet.pickle(medFigbase, [medFig.data, medFig.map]) #cache
         testSet.pickle(stdFigbase, [stdFig.data, stdFig.map]) #cache 
 
 
         cacheLabel = "vignetting_dmag" #cache
-        dmagsAll, radiiAll, labelsAll, idsAll = \
-                  testSet.unpickle(cacheLabel, default=[{},{},{},{}]) #cache
-
+        shelfData = {}
         
-        xlim = [-30000, 30000]
+        xlim = [0, 40000]
         ylim = [-0.05, 0.05]
         xmax, xmin = xlim
         ymax, ymin = ylim
-        
-        for raft, ccd in self.dmag.raftCcdKeys():
-            dmags = self.dmag.get(raft, ccd)
-            ymin = num.min([dmags.min(), ymin])
-            ymax = num.max([dmags.max(), ymax])
-            radii = self.radius.get(raft, ccd)
-            xmin = num.min([radii.min(), xmin])
-            xmax = num.max([radii.max(), xmax])
-        xlim = [xmin, xmax]
-        ylim = [ymin, ymax]
+
+        if False:
+            for raft, ccd in self.dmag.raftCcdKeys():
+                dmags = self.dmag.get(raft, ccd)
+                ymin = num.min([dmags.min(), ymin])
+                ymax = num.max([dmags.max(), ymax])
+                radii = self.radius.get(raft, ccd)
+                xmin = num.min([radii.min(), xmin])
+                xmax = num.max([radii.max(), xmax])
+            xlim = [xmin, xmax]
+            ylim = [ymin, ymax]
+
 
         for raft, ccd in self.dmag.raftCcdKeys():
             dmags = self.dmag.get(raft, ccd)
@@ -227,9 +233,6 @@ class VignettingQa(qaAna.QaAnalysis):
                 area = (radii[i]-drad, dmags[i]-ddmag, radii[i]+drad, dmags[i]+ddmag)
                 fig.addMapArea("no_label_info", area, info, axes=sp1)
 
-            dmagsAll[ccd] = num.array(dmags) #cache
-            radiiAll[ccd] = num.array(radii) #cache
-            idsAll[ccd]   = num.array(ids)   #cache
                 
             sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
             sp1.axhline(y=num.median(dmags), c = 'b', linestyle = '-')
@@ -246,40 +249,54 @@ class VignettingQa(qaAna.QaAnalysis):
             testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+areaLabel,
                               areaLabel=areaLabel)
 
-            labelsAll[ccd] = num.array([areaLabel]*len(dmags))
+            shelfData[ccd] = [dmags, radii, ids, num.array([areaLabel]*len(dmags))]
 
-
-        testSet.pickle(cacheLabel, [dmagsAll, radiiAll, labelsAll, idsAll]) #cache
-        withDelete = True #cache
-        dmagsAll  = qaAnaUtil.dictToList(dmagsAll,  withDelete=withDelete) #cache
-        radiiAll  = qaAnaUtil.dictToList(radiiAll,  withDelete=withDelete) #cache
-        labelsAll = qaAnaUtil.dictToList(labelsAll,  withDelete=withDelete) #cache
-        idsAll    = qaAnaUtil.dictToList(idsAll,  withDelete=withDelete) #cache
-
-        fig = qaFig.QaFigure(size=(4.0,4.0))
-        sp1 = fig.fig.add_subplot(111)
-        sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
-        sp1.set_xlim(xlim)
-        sp1.set_ylim(ylim)
+        if self.useCache:
+            testSet.shelve(cacheLabel, shelfData)
         
-        sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
-        sp1x2 = sp1.twinx()
-        ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
-        ylab.set_rotation(-90)
-        sp1.set_xlabel('Dist from focal plane center (pixels)', fontsize=10)
-        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
-        qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
-        
-        label = "all"
+        if not self.delaySummary or isFinalDataId:
+            print "plotting Summary figure"
 
-        ddmag = 0.0005
-        drad  = 0.005 * (max(radiiAll) - min(radiiAll))
-        for i in range(len(dmagsAll)):
-            info = "sourceId=%s" % (idsAll[i])
-            area = (radiiAll[i]-drad, dmagsAll[i]-ddmag, radiiAll[i]+drad, dmagsAll[i]+ddmag)
-            fig.addMapArea(labelsAll[i], area, info, axes=sp1)
-        
-        testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+label, areaLabel=label)
+            # unstash the values
+            if self.useCache:
+                shelfData = testSet.unshelve(cacheLabel, default={})
+
+            dmagsAll  = num.array([])
+            radiiAll  = num.array([])
+            idsAll    = num.array([])
+            labelsAll = num.array([])
+            for k,v in shelfData.items():
+                dmags, radii, ids, labels = v
+                dmagsAll  = num.append(dmagsAll  , dmags)
+                radiiAll  = num.append(radiiAll  , radii)
+                idsAll    = num.append(idsAll    , ids)
+                labelsAll = num.append(labelsAll , labels)
+            
+            
+            fig = qaFig.QaFigure(size=(4.0,4.0))
+            sp1 = fig.fig.add_subplot(111)
+            sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
+            sp1.set_xlim(xlim)
+            sp1.set_ylim(ylim)
+            
+            sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
+            sp1x2 = sp1.twinx()
+            ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
+            ylab.set_rotation(-90)
+            sp1.set_xlabel('Dist from focal plane center (pixels)', fontsize=10)
+            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
+            qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
+
+            label = "all"
+
+            ddmag = 0.0005
+            drad  = 0.005 * (max(radiiAll) - min(radiiAll))
+            for i in range(len(dmagsAll)):
+                info = "sourceId=%s" % (idsAll[i])
+                area = (radiiAll[i]-drad, dmagsAll[i]-ddmag, radiiAll[i]+drad, dmagsAll[i]+ddmag)
+                fig.addMapArea(labelsAll[i], area, info, axes=sp1)
+
+            testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+label, areaLabel=label)
 
         
                 

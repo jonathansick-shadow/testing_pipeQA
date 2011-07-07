@@ -25,7 +25,9 @@ class CameraInfo(object):
         self.dataInfo    = dataInfo
         self.mapperClass = mapperClass
         self.camera      = camera
-        
+
+        self.rafts       = {}
+        self.sensors     = {}
         self.detectors   = {}
         self.nSensor     = 0
 
@@ -36,10 +38,12 @@ class CameraInfo(object):
             raft = cameraGeom.cast_Raft(r)
 	    raftName = raft.getId().getName().strip()
             self.detectors[raftName] = raft
+            self.rafts[raftName] = raft
             for c in raft:
                 ccd = cameraGeom.cast_Ccd(c)
 		ccdName = ccd.getId().getName().strip()
                 self.detectors[ccdName] = ccd
+                self.sensors[ccdName] = ccd
                 self.nSensor += 1
 
     def getDetectorName(self, raft, ccd):

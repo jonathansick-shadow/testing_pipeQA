@@ -94,8 +94,8 @@ definitions: {
     photCompareTypes: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
-        maxOccurs: 5
-        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst"
+        maxOccurs: 7
+        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst" "inst cat" "mod cat"
         allowed: {
             value:        "psf cat"
             description:  "Compare Psf magnitudes to catalog magnitudes"
@@ -115,6 +115,14 @@ definitions: {
         allowed: {
             value:        "psf inst"
             description:  "Compare PSF and instrument magnitudes"
+        }
+	allowed: {
+            value:        "inst cat"
+            description:  "Compare Inst (Gaussian) and catalog magnitudes"
+        }
+	allowed: {
+            value:        "mod cat"
+            description:  "Compare model and catalog magnitudes"
         }
 
     }

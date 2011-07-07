@@ -179,6 +179,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined=False):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
 
         # fpa figure
         zpts = []
@@ -206,21 +209,23 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                         zpts.append(zptFig.data[raft][ccd])
                     
                     
-        blue = '#0000ff'
-        red = '#ff0000'
         
-        zptFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[num.min(zpts), num.max(zpts)],
-                          title="Zeropoint", cmapOver=red, 
-                          cmapUnder=blue)
-        testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", 
-                          navMap=True)
+        if not self.delaySummary or isFinalDataId:
+            print "plotting FPAs"
+            
+            blue = '#0000ff'
+            red = '#ff0000'
+            zptFig.makeFigure(showUndefined=showUndefined, cmap="jet",
+                              vlimits=[num.min(zpts), num.max(zpts)],
+                              title="Zeropoint", cmapOver=red, cmapUnder=blue)
+            testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", navMap=True)
+        
+            offsetFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
+                                 title="Med offset from Zpt Fit", cmapOver=red, failLimits=self.limits,
+                                 cmapUnder=blue)
+            testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint", 
+                              navMap=True)
         testSet.pickle(zptBase, [zptFig.data, zptFig.map])
-        
-        offsetFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
-                             title="Med offset from Zpt Fit", cmapOver=red, failLimits=self.limits,
-                             cmapUnder=blue)
-        testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint", 
-                          navMap=True)
         testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
         
 

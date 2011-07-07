@@ -125,6 +125,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
 
+
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
+
         medAstBase = "medAstError"
         medAstData, medAstMap = testSet.unpickle(medAstBase, default=[None, None])
 
@@ -140,15 +145,17 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                     astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
                     astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
                 
-        astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
-                          title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
-                          cmapUnder="#ff0000")
-        testSet.addFigure(astFig, medAstBase+".png", "Median astrometric error",  navMap=True)
+        if not self.delaySummary or isFinalDataId:
+            print "plotting FPAs"
+            astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
+                              title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
+                              cmapUnder="#ff0000")
+            testSet.addFigure(astFig, medAstBase+".png", "Median astrometric error",  navMap=True)
         testSet.pickle(medAstBase, [astFig.data, astFig.map])
 
 
         cacheLabel = "astromError"
-        xAll, yAll, dxAll, dyAll = testSet.unpickle(cacheLabel, default=[{},{},{},{}])
+        shelfData = {}
         
         for raft, ccd in self.dRa.raftCcdKeys():
             ra = self.dRa.get(raft, ccd)
@@ -171,23 +178,33 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
 
-            xAll[ccd]  = x
-            yAll[ccd]  = y
-            dxAll[ccd] = dx
-            dyAll[ccd] = dy
+            shelfData[ccd] = [x, y, dx, dy]
 
-        testSet.pickle(cacheLabel, [xAll, yAll, dxAll, dyAll])
+        if self.useCache:
+            testSet.shelve(cacheLabel, shelfData)
 
-        withDelete = True
-        xAll  = qaAnaUtil.dictToList(xAll,  withDelete=withDelete)
-        yAll  = qaAnaUtil.dictToList(yAll,  withDelete=withDelete)
-        dxAll = qaAnaUtil.dictToList(dxAll, withDelete=withDelete)
-        dyAll = qaAnaUtil.dictToList(dyAll, withDelete=withDelete)
-        
-        allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, gridVectors=True)
-        label = "all"
-        testSet.addFigure(allFig, "astromError.png", "Astrometric error"+label, areaLabel=label)
+        if not self.delaySummary or isFinalDataId:
+            print "plotting Summary figure"
 
+            # unstash the values
+            if self.useCache:
+                shelfData = testSet.unshelve(cacheLabel, default={})
+
+            xAll  = numpy.array([])
+            yAll  = numpy.array([])
+            dxAll = numpy.array([])
+            dyAll = numpy.array([])
+            for k,v in shelfData.items():
+                #allCcds.append(k)
+                x, y, dx, dy = v
+                xAll   = numpy.append(xAll  , x )
+                yAll   = numpy.append(yAll  , y )
+                dxAll  = numpy.append(dxAll , dx)
+                dyAll  = numpy.append(dyAll , dy)
+
+            allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, gridVectors=True)
+            label = "all"
+            testSet.addFigure(allFig, "astromError.png", "Astrometric error"+label, areaLabel=label)
 
 
     def standardFigure(self, x, y, dx, dy, gridVectors=False):

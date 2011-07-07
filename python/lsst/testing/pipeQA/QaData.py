@@ -40,11 +40,13 @@ class QaData(object):
         self.lastPrint = None
         self.t0 = []
 
+        self.brokenDataIdList = []
+
 	self.ccdConvention = 'ccd'
 	if self.cameraInfo.name == 'lsstSim':
 	    self.ccdConvention = 'sensor'
-	
 
+	
     def printStartLoad(self, message):
         if self.loadDepth > 0:
             print "\n", " "*4*self.loadDepth, message,

@@ -8,7 +8,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 class QaAnalysis(object):
     """Baseclass for analysis classes."""
 
-    def __init__(self, testLabel=None, useCache=False, wwwCache=True):
+    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False):
         """
         @param testLabel   A name for this kind of analysis test.
         """
@@ -21,6 +21,8 @@ class QaAnalysis(object):
         self.useCache = useCache
         self.clean    = not useCache
         self.wwwCache = wwwCache
+        self.delaySummary = delaySummary
+        
     
     def getTestSet(self, data, dataId, label=None):
         """Get a TestSet object in the correct group.

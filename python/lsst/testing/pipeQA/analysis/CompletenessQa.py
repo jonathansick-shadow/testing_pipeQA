@@ -232,6 +232,9 @@ class CompletenessQa(qaAna.QaAnalysis):
     def plot(self, data, dataId, showUndefined = False):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
 
         # fpa figure
         filebase = "completenessDepth"
@@ -267,10 +270,12 @@ class CompletenessQa(qaAna.QaAnalysis):
         else:
             vmin, vmax = 1.0*self.limits[0], 1.0*self.limits[1]
 
-        depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
-                            title="Photometric Depth", cmapOver=red, cmapUnder=blue,
-                            failLimits=self.limits)
-        testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
+        if not self.delaySummary or isFinalDataId:
+            print "plotting FPAs"
+            depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
+                                title="Photometric Depth", cmapOver=red, cmapUnder=blue,
+                                failLimits=self.limits)
+            testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
         testSet.pickle(filebase, [depthFig.data, depthFig.map])
 
         # Each CCD

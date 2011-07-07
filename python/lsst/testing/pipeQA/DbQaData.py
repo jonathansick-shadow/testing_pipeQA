@@ -590,11 +590,13 @@ class DbQaData(QaData):
                 ccdConvention : ccd,
                 'snap': '0'
                 }
-            
-        dataIdList = []
+
+        # store the list of broken dataIds 
+        self.brokenDataIdList = []
         for key in sorted(dataIdDict.keys()):
-            dataIdList.append(dataIdDict[key])
-        return dataIdList
+            self.brokenDataIdList.append(dataIdDict[key])
+        
+        return copy.copy(self.brokenDataIdList)
 
 
 

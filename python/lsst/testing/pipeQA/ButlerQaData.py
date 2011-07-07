@@ -155,12 +155,13 @@ class ButlerQaData(QaData):
                 'snap': '0'
                 }
             
-        dataIdList = []
+        # store the list of broken dataIds 
+        self.brokenDataIdList = []
         for key in sorted(dataIdDict.keys()):
-            dataIdList.append(dataIdDict[key])
-        return dataIdList
-
-
+            self.brokenDataIdList.append(dataIdDict[key])
+        
+        return copy.copy(self.brokenDataIdList)
+    
 
     def getMatchListBySensor(self, dataIdRegex, useRef=None):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.

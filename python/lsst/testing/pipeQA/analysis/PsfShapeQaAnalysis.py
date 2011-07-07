@@ -152,6 +152,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
 
         vLen = 1000.0  # for e=1.0
 
@@ -190,27 +193,30 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                         fwhmMin = fwhm
 
                 
-        ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
-                            title="Median PSF Ellipticity", failLimits=self.limitsEllip)
-        testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
-        testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
+        if not self.delaySummary or isFinalDataId:
+            print "plotting FPAs"
+            ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
+                                title="Median PSF Ellipticity", failLimits=self.limitsEllip)
+            testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
 
-        blue = '#0000ff'
-        red = '#ff0000'
-
-        if fwhmMin < 1e10:
-            vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
-        else:
-            vlimMin = self.limitsFwhm[0]
-        if fwhmMax > -1e10:
-            vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
-        else:
-            vlimMax = self.limitsFwhm[1]
+            blue = '#0000ff'
+            red = '#ff0000'
             
-        fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
-                           title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
-                           cmapUnder=blue)
-        testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
+            if fwhmMin < 1e10:
+                vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
+            else:
+                vlimMin = self.limitsFwhm[0]
+            if fwhmMax > -1e10:
+                vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
+            else:
+                vlimMax = self.limitsFwhm[1]
+            
+                fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
+                                   title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
+                                   cmapUnder=blue)
+                testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
+                
+        testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
         testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
 
                         

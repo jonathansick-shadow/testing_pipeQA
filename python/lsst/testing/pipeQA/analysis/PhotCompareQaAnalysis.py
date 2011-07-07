@@ -47,8 +47,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
          plotted as a function of magnitude1.  We make comparisons between
          aperture magnitudes and reference catalog magnitudes (ap-cat), psf and
          aperture magnitudes (psf-ap), psf and reference catalog magnitudes
-         (psf-cat), psf and multifit model magnitudes (psf-inst), and psf and
-         gaussian model magnitudes (psf-mod).  The width of the bright end of
+         (psf-cat), psf and multifit model magnitudes (psf-model), and psf and
+         gaussian model magnitudes (psf-inst).  The width of the bright end of
          this distribution (stars plotted in red) reflects the systematic floor
          in these measurement comparisons.  For psf magnitudes, this is
          typically 1-2% for PT1.2 measurements.  The summary FPA figures show
@@ -260,6 +260,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.setUseCache(self.useCache)
 
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
+
         xlim = [14.0, 25.0]
         ylimStep = 0.4
         ylim = [-ylimStep, ylimStep]
@@ -311,24 +315,27 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         blue, red = '#0000ff', '#ff0000'
 
-        meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
-                           title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
-        testSet.addFigure(meanFig, meanFilebase+".png",
-                          "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
-        testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
-        
-        stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
-                          title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
-        testSet.addFigure(stdFig, stdFilebase+".png",
-                          "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
-        testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
-        
 
-        cScale = 2.0
-        slopeFig.makeFigure(cmap="RdBu_r", vlimits=[cScale*self.slopeLimits[0], cScale*self.slopeLimits[1]],
-                            title="Slope "+tag, failLimits=self.slopeLimits)
-        testSet.addFigure(slopeFig, slopeFilebase+".png",
-                          "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
+        if not self.delaySummary or isFinalDataId:
+            print "plotting FPAs"
+            meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
+                               title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
+            testSet.addFigure(meanFig, meanFilebase+".png",
+                              "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
+            stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
+                              title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
+            testSet.addFigure(stdFig, stdFilebase+".png",
+                              "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
+            
+            cScale = 2.0
+            slopeFig.makeFigure(cmap="RdBu_r",
+                                vlimits=[cScale*self.slopeLimits[0], cScale*self.slopeLimits[1]],
+                                title="Slope "+tag, failLimits=self.slopeLimits)
+            testSet.addFigure(slopeFig, slopeFilebase+".png",
+                              "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
+            
+        testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
+        testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
         testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
 
 
@@ -350,28 +357,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         xlim2 = xlim        #[xmin, xmax]
         ylim2 = [-2.0, 2.0] #[ymin, ymax]
 
-        # grab any cached values
+
         figbase = "diff_" + dtag
-        allMags, allDiffs, allStars, allColor, allLabels = \
-                 testSet.unpickle(figbase, default=[{},{},{},{},{}])
 
-        colorId = {}
-        i = 0
-        for k in data.cameraInfo.detectors.keys():
-            colorId[k] = i
-            i += 1
-
-        ccdKeysThisRun = list(zip(*self.mag.raftCcdKeys())[1])
-        ccdKeysCache   = allMags.keys()
-        allCcds = set(ccdKeysCache + ccdKeysThisRun)
-        colorIdList = []
-        for ccd in allCcds:
-            colorIdList.append(colorId[ccd])
-        minColorId = numpy.min(colorIdList)
-        maxColorId = numpy.max(colorIdList)
-        #nKeys = len(colorId.keys())
-        norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
-        sm = cm.ScalarMappable(norm, cmap=cm.jet)
+        shelfData = {}
 
         for raft, ccd in self.mag.raftCcdKeys():
             mag  = self.mag.get(raft, ccd)
@@ -461,92 +450,120 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 
             # append values to arrays for a plot showing all data
-            allMags[ccd] = mag  
-            allDiffs[ccd] = diff
-            allStars[ccd] = star
-            allColor[ccd] = colorId[ccd]*numpy.ones(len(mag))
-            allLabels[ccd] = [areaLabel] * len(mag)
-
+            shelfData[ccd] = [mag, diff, star, [areaLabel]*len(mag)]
+            
 
         # stash values
-        testSet.pickle(figbase, [allMags, allDiffs, allStars, allColor, allLabels])
-
-        withDelete = True
-        allMags   = qaAnaUtil.dictToList(allMags, withDelete=withDelete)
-        allDiffs  = qaAnaUtil.dictToList(allDiffs, withDelete=withDelete)
-        allStars  = qaAnaUtil.dictToList(allStars, withDelete=withDelete)
-        allColor  = qaAnaUtil.dictToList(allColor, withDelete=withDelete)
-        allLabels = qaAnaUtil.dictToList(allLabels, withDelete=withDelete)
-
-        allColor = sm.to_rgba(allColor)
-        
-        # dmag vs mag
-        fig0 = qaFig.QaFigure(size=figsize)
-        fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
-        ax0_1 = fig0.fig.add_subplot(121)
-        ax0_2 = fig0.fig.add_subplot(122)
-
-        w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
-
-        if len(w) > 0:
-            lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
-            trendCoeffs = lineFit[0], lineFit[2]
-            trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
-            trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
-        else:
-            trendCoeffs = [0.0, 0.0]
-            trendCoeffsLo = [0.0, 0.0]
-            trendCoeffsHi = [0.0, 0.0]
-
-        ####################
-        # data for all ccds
-        if len(allMags) == 0:
-            allMags = numpy.array([xmax])
-            allDiffs = numpy.array([0.0])
-            allColor = [black]
-            allLabels = ["no_valid_data"]
-            trendCoeffs = [0.0, 0.0]
-            trendCoeffsLo = [0.0, 0.0]
-            trendCoeffsHi = [0.0, 0.0]
-
-        allColor = numpy.array(allColor)
-        for ax in [ax0_1, ax0_2]:
-            ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
-            ax.scatter(allMags, allDiffs, size, color=allColor)
-            # 99 is the 'no-data' values
-            if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
-                ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
-                ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
-                ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
-        ax0_1.set_xlim(xlim)
-        ax0_2.set_xlim(xlim2)
-        ax0_1.set_ylim(ylim)
-        ax0_2.set_ylim(ylim2)
-
-        dmag = 0.1
-        ddiff1 = 0.01
-        ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
-        for j in xrange(len(allMags)):
-            area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
-            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
-            area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
-            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
+        if self.useCache:
+            testSet.shelve(figbase, shelfData)
 
 
+        if not self.delaySummary or isFinalDataId:
+            print "plotting Summary figure"
 
-        # move the yaxis ticks/labels to the other side
-        ax0_2.yaxis.set_label_position('right')
-        ax0_2.yaxis.set_ticks_position('right')
+            # unstash the values
+            if self.useCache:
+                shelfData = testSet.unshelve(figbase, default={})
 
-        ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
-                   [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
-        ax0_2.set_xlim(xlim2)
-        ax0_2.set_ylim(ylim2)
+            colorId = {}
+            i = 0
+            for k in sorted(data.cameraInfo.sensors.keys()):
+                colorId[k] = i
+                i += 1
 
-        for ax in [ax0_1, ax0_2]:
-            ax.set_xlabel(tag1)
-            ax.set_ylabel(tag)
+            allMags = numpy.array([])
+            allDiffs = numpy.array([])
+            allStars = numpy.array([])
+            allColor = numpy.array([])
+            allLabels = numpy.array([])
+            allCcds = []
+            for k,v in shelfData.items():
+                allCcds.append(k)
+                mags, diffs, stars, arealabels = v
+                allMags = numpy.append(allMags, mags)
+                allDiffs = numpy.append(allDiffs, diffs)
+                allStars = numpy.append(allStars, stars)
+                allColor = numpy.append(allColor, colorId[k]*numpy.ones(len(mags)))
+                allLabels = numpy.append(allLabels, arealabels)
+                
+            # figure out the color map
+            colorIdList = []
+            for ccd in allCcds:
+                clr = colorId[ccd]
+                colorIdList.append(clr)
+            minColorId = numpy.min(colorIdList)
+            maxColorId = numpy.max(colorIdList)
+            norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
+            sm = cm.ScalarMappable(norm, cmap=cm.jet)
+            allColor = sm.to_rgba(allColor)
 
-        testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
+            # dmag vs mag
+            fig0 = qaFig.QaFigure(size=figsize)
+            fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
+            ax0_1 = fig0.fig.add_subplot(121)
+            ax0_2 = fig0.fig.add_subplot(122)
+
+            w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
+
+            if len(w) > 0:
+                lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
+                trendCoeffs = lineFit[0], lineFit[2]
+                trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
+                trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
+            else:
+                trendCoeffs = [0.0, 0.0]
+                trendCoeffsLo = [0.0, 0.0]
+                trendCoeffsHi = [0.0, 0.0]
+
+            ####################
+            # data for all ccds
+            if len(allMags) == 0:
+                allMags = numpy.array([xmax])
+                allDiffs = numpy.array([0.0])
+                allColor = [black]
+                allLabels = ["no_valid_data"]
+                trendCoeffs = [0.0, 0.0]
+                trendCoeffsLo = [0.0, 0.0]
+                trendCoeffsHi = [0.0, 0.0]
+
+            allColor = numpy.array(allColor)
+            for ax in [ax0_1, ax0_2]:
+                ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
+                ax.scatter(allMags, allDiffs, size, color=allColor)
+                # 99 is the 'no-data' values
+                if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
+                    ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
+                    ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
+                    ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
+            ax0_1.set_xlim(xlim)
+            ax0_2.set_xlim(xlim2)
+            ax0_1.set_ylim(ylim)
+            ax0_2.set_ylim(ylim2)
+
+            dmag = 0.1
+            ddiff1 = 0.01
+            ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
+            for j in xrange(len(allMags)):
+                area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
+                fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
+                area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
+                fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
+
+
+
+            # move the yaxis ticks/labels to the other side
+            ax0_2.yaxis.set_label_position('right')
+            ax0_2.yaxis.set_ticks_position('right')
+
+            ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
+                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
+            ax0_2.set_xlim(xlim2)
+            ax0_2.set_ylim(ylim2)
+
+            for ax in [ax0_1, ax0_2]:
+                ax.set_xlabel(tag1)
+                ax.set_ylabel(tag)
+
+            testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
 
         

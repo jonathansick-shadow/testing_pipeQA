@@ -124,6 +124,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
         
         # make fpa figures - for all detections, and for matched detections
         emptyBase = "emptySectors"
@@ -151,18 +154,22 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
         # make the figures and add them to the testSet
         # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
-        emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r", vlimits=[0, self.nx*self.ny],
-                            title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
-                            failLimits=self.limits)
-        testSet.addFigure(emptyFig, emptyBase+".png", "Empty Sectors in %dx%d grid." % (self.nx, self.ny),
-                          navMap=True)
-        testSet.pickle(emptyBase, [emptyFig.data, emptyFig.map])
+        if not self.delaySummary or isFinalDataId:
+            print "plotting FPAs"
+            emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
+                                vlimits=[0, self.nx*self.ny],
+                                title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
+                                failLimits=self.limits)
+            testSet.addFigure(emptyFig, emptyBase+".png",
+                              "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
 
-        emptyFigMat.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r", vlimits=[0, self.nx*self.ny],
-                               title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny),
-                               failLimits=self.limits)
-        testSet.addFigure(emptyFigMat, emptyMatBase+".png",
-                          "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
+            emptyFigMat.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
+                                   vlimits=[0, self.nx*self.ny],
+                                   title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny),
+                                   failLimits=self.limits)
+            testSet.addFigure(emptyFigMat, emptyMatBase+".png",
+                              "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
+        testSet.pickle(emptyBase, [emptyFig.data, emptyFig.map])
         testSet.pickle(emptyMatBase, [emptyFigMat.data, emptyFigMat.map])
 
 
