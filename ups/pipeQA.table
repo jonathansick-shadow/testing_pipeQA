@@ -1,0 +1,12 @@
+# The following is provided as an example EUPS table file
+# for conveniently setting up PipeQA as a whole.
+#
+# N.B.: Be sure to set TESTBED_PATH, WWW_ROOT and WWW_RERUN
+# to appropriate values for your own use.
+
+setupRequired(testing_pipeQA)
+setupRequired(testing_displayQA)
+
+envSet(TESTBED_PATH, ${SUPRIME_DATA_DIR}) # Location of input data
+envSet(WWW_ROOT, /home/sbickert/var/www/html/testfarm) # Location of online display
+envSet(WWW_RERUN, rerun) # Name to use for site
