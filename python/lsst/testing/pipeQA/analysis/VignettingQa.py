@@ -220,7 +220,12 @@ class VignettingQa(qaAna.QaAnalysis):
             radii = self.radius.get(raft, ccd)
 
             ids   = self.ids.get(raft, ccd)
-            
+
+	    if len(dmags) == 0:
+		dmags = numpy.array([0.0])
+		radii = numpy.array([0.0])
+		ids   = numpy.array([0])
+
             print "Plotting ", ccd
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
