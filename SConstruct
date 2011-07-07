@@ -18,17 +18,9 @@ except AttributeError:
     import lsst.afw.SconsUtils
     scons.ConfigureDependentProducts = lsst.afw.SconsUtils.ConfigureDependentProducts
 
-
-dependencies = ["pipette"]
-
-#libs = "meas_algorithms ndarray afw daf_base daf_data daf_persistence "
-#libs += "pex_logging pex_exceptions pex_policy security boost minuit2 utils wcslib"
-
 env = scons.makeEnv(thisPkg,
                     r"$HeadURL$",
                     scons.ConfigureDependentProducts(thisPkg))
-
-#env.libs[thisPkg] += env.getlibs(libs) #" ".join(dependencies))
 
 env.thisPkg    = thisPkg
 env.pythonPkg  = pythonPkg
@@ -45,6 +37,19 @@ SConscript(os.path.join(pythonPath, "SConscript"))
 SConscript(os.path.join("lib", "SConscript"))
 
 env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
-Alias("install", [])
+Alias("install", [
+    env.Install(env['prefix'], "bin"),
+    env.Install(env['prefix'], "doc"),
+    env.Install(env['prefix'], "etc"),
+    env.Install(env['prefix'], "examples"),
+    env.Install(env['prefix'], "include"),
+    env.Install(env['prefix'], "lib"),
+    env.Install(env['prefix'], "policy"),
+    env.Install(env['prefix'], "python"),
+    env.Install(env['prefix'], "src"),
+    env.Install(env['prefix'], "tests"),
+    env.InstallEups(os.path.join(env['prefix'], "ups")),
+])
+env.Declare()
 scons.CleanTree(r"*~ core *.so *.os *.o")
 
