@@ -25,7 +25,7 @@ dependencies = ["pipette"]
 #libs += "pex_logging pex_exceptions pex_policy security boost minuit2 utils wcslib"
 
 env = scons.makeEnv(thisPkg,
-                    r"$HeadURL: $",
+                    r"$HeadURL$",
                     scons.ConfigureDependentProducts(thisPkg))
 
 #env.libs[thisPkg] += env.getlibs(libs) #" ".join(dependencies))
