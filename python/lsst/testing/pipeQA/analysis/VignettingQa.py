@@ -222,9 +222,9 @@ class VignettingQa(qaAna.QaAnalysis):
             ids   = self.ids.get(raft, ccd)
 
 	    if len(dmags) == 0:
-		dmags = numpy.array([0.0])
-		radii = numpy.array([0.0])
-		ids   = numpy.array([0])
+		dmags = num.array([0.0])
+		radii = num.array([0.0])
+		ids   = num.array([0])
 
             print "Plotting ", ccd
             fig = qaFig.QaFigure(size=(4.0,4.0))
