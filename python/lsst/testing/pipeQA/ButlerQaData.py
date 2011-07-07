@@ -178,6 +178,12 @@ class ButlerQaData(QaData):
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
+
+        flookup = {
+	    "u":"u", "g": "g", "r":"r", "i":"i", "z":"z", "y":"z",
+	    "B":"g", 'V':"r", 'R':"r", 'I':"i",
+	    }
+	
         
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
         
@@ -197,7 +203,8 @@ class ButlerQaData(QaData):
             filterName = "unknown"
             if filterObj.has_key(dataKey) and hasattr(filterObj[dataKey], 'getName'):
                 filterName = filterObj[dataKey].getName()
-
+		filterName = flookup[filterName]
+		
             # make sure we actually have the output file
             isWritten = self.outButler.datasetExists('icMatch', dataId)
             if isWritten:
@@ -225,7 +232,7 @@ class ButlerQaData(QaData):
                             s.setPsfFlux(s.getPsfFlux()/fmag0)
                             s.setModelFlux(s.getModelFlux()/fmag0)
 			    s.setInstFlux(s.getInstFlux()/fmag0)
-			    if re.search("lsst", self.cameraInfo.name):
+			    if True: #re.search("lsst", self.cameraInfo.name):
 				s.setRa((180.0/numpy.pi)*s.getRa())
 				s.setDec((180.0/numpy.pi)*s.getDec())
 				sref.setRa((180.0/numpy.pi)*sref.getRa())
