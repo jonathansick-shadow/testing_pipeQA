@@ -221,7 +221,7 @@ definitions: {
         type: string
         description: "Vignetting testing: qaAnalysis.VignettingQa"
         maxOccurs: 4
-        default: "lsstSim" "cfht"
+        default: "lsstSim" "cfht" "suprimecam" "hscSim"
     }
 
     vigMaxMedian: {

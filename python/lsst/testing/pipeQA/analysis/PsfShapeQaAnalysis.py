@@ -63,10 +63,12 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         # compute values of interest
         filter = None
         for key, ss in self.ssDict.items():
-            raft = self.detector[key].getParent().getId().getName()
-            ccd  = self.detector[key].getId().getName()
 
-            filter = self.filter[key].getName()
+	    if self.detector.has_key(key):
+		raft = self.detector[key].getParent().getId().getName()
+		ccd  = self.detector[key].getId().getName()
+	    else:
+		continue
 
             qaAnaUtil.isStar(ss)
             
@@ -139,8 +141,12 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         # And the Fwhm
         self.fwhm  = raftCcdData.RaftCcdData(self.detector)
         for key, item in self.calexpDict.items():
-            raft = self.detector[key].getParent().getId().getName()
-            ccd  = self.detector[key].getId().getName()
+	    if (self.detector.has_key(key) and hasattr(self.detector[key], 'getParent') and
+		hasattr(self.detector[key], 'getId')):
+		raft = self.detector[key].getParent().getId().getName()
+		ccd  = self.detector[key].getId().getName()
+	    else:
+		continue
 
             self.fwhm.set(raft, ccd, item['fwhm'])
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)

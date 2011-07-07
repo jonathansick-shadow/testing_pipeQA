@@ -68,7 +68,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         for key, ss in self.ssDict.items():
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
-            bbox = self.detector[key].getAllPixels()
+            bbox = self.detector[key].getAllPixels(True)
             size = [bbox.getMaxX() - bbox.getMinX(), bbox.getMaxY() - bbox.getMinY()]
             self.size.set(raft, ccd, size)
             filter = self.filter[key].getName()

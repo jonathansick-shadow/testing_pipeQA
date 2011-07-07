@@ -70,9 +70,11 @@ class VignettingQa(qaAna.QaAnalysis):
         
         for key in self.detector.keys():
 
+	    if self.detector[key] is None:
+		continue
+	    
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
-            filterName = self.filter[key].getName()
 
             # We have a trimmed detector
             self.detector[key].setTrimmed(True)

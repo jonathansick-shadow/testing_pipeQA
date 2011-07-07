@@ -8,6 +8,16 @@ import lsst.afw.geom                    as afwGeom
 import lsst.afw.cameraGeom              as cameraGeom
 import lsst.meas.algorithms             as measAlg
 
+# we need these for meas_extensions
+# ... they are never explicitly used
+try: import lsst.meas.extensions.shapeHSM
+except: pass
+try: import lsst.meas.extensions.rotAngle
+except: pass
+try: import lsst.meas.extensions.photometryKron
+except: pass
+
+
 import numpy
 import math
 
@@ -185,7 +195,7 @@ class ButlerQaData(QaData):
             
             filterObj = self.getFilterBySensor(dataId)
             filterName = "unknown"
-            if filterObj.has_key(dataKey):
+            if filterObj.has_key(dataKey) and hasattr(filterObj[dataKey], 'getName'):
                 filterName = filterObj[dataKey].getName()
 
             # make sure we actually have the output file
@@ -214,10 +224,12 @@ class ButlerQaData(QaData):
                             s.setApFlux(s.getApFlux()/fmag0)
                             s.setPsfFlux(s.getPsfFlux()/fmag0)
                             s.setModelFlux(s.getModelFlux()/fmag0)
-                            s.setRa((180.0/numpy.pi)*s.getRa())
-                            s.setDec((180.0/numpy.pi)*s.getDec())
-                            sref.setRa((180.0/numpy.pi)*sref.getRa())
-                            sref.setDec((180.0/numpy.pi)*sref.getDec())
+			    s.setInstFlux(s.getInstFlux()/fmag0)
+			    if re.search("lsst", self.cameraInfo.name):
+				s.setRa((180.0/numpy.pi)*s.getRa())
+				s.setDec((180.0/numpy.pi)*s.getDec())
+				sref.setRa((180.0/numpy.pi)*sref.getRa())
+				sref.setDec((180.0/numpy.pi)*sref.getDec())
                             self.matchListCache[dataKey]['matched'].append([sref, s, dist])
                             
                             
@@ -277,6 +289,7 @@ class ButlerQaData(QaData):
 		    s.setApFlux(s.getApFlux()/fmag0)
 		    s.setPsfFlux(s.getPsfFlux()/fmag0)
 		    s.setModelFlux(s.getModelFlux()/fmag0)
+		    s.setInstFlux(s.getInstFlux()/fmag0)
 
                 self.sourceSetCache[dataKey] = sourceSetTmp
                 ssDict[dataKey] = copy.copy(sourceSetTmp)

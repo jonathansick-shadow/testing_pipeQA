@@ -133,6 +133,13 @@ def robustPolyFit(x, y, order, nbin=3, sigma=3.0, niter=1):
     # use these new coords to fit the line ... with sigma clipping if requested
     xNew, yNew, dyNew = numpy.array(xMeds), numpy.array(yMeds), numpy.array(yErrs)
 
+    # if there's only one piont in a bit, dy=0 ... use the average error instead
+    w0 = numpy.where(dyNew == 0)
+    wnot0 = numpy.where(dyNew > 0)
+    if len(w0) > 0:
+	meanError = numpy.mean(dyNew[wnot0])
+	dyNew[w0] = meanError
+
     for i in range(niter):
 
         #ret = numpy.polyfit(xNew, yNew, order)

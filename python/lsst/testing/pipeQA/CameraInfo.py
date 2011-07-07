@@ -270,7 +270,8 @@ class HscCameraInfo(CameraInfo):
        
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(rerun=rerun, root=roots['output'], calibRoot=roots['calib'],
+				registry=registry)
 
 
 ####################################################################
@@ -319,14 +320,15 @@ class SuprimecamCameraInfo(CameraInfo):
 
     def getMapper(self, baseDir, rerun=None):
         """Get a mapper for data in specified directory
-
+	
         @param baseDir  Directory where the registry files are to be found.
         @param rerun    The rerun of the data we want
         """
-       
+
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun, root=roots['output'], calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(rerun=rerun, root=roots['output'],
+				calibRoot=roots['calib'], registry=registry)
     
 
 
