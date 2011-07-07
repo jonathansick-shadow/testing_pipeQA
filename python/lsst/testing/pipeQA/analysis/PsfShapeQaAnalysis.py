@@ -217,10 +217,10 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             else:
                 vlimMax = self.limitsFwhm[1]
             
-                fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
-                                   title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
-                                   cmapUnder=blue)
-                testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
+            fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
+                               title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
+                               cmapUnder=blue)
+            testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
                 
         testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
         testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
