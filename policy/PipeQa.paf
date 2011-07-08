@@ -182,7 +182,7 @@ definitions: {
         type: double
         description: "Maximum median ellipticity"
         maxOccurs: 1
-        default: 0.3
+        default: 0.15
     }
 
     psfFwhmMax: {

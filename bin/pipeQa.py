@@ -44,6 +44,11 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
 	 groupInfo=None, delaySummary=False):
 
+    visitList = []
+    if isinstance(dataIdInput['visit'], list):
+        visitList = dataIdInput['visit']
+        dataIdInput['visit'] = ".*"
+        
     if exceptExit:
         numpy.seterr(all="raise")
 
@@ -117,8 +122,17 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                                                     wwwCache=wwwCache, delaySummary=delaySummary))
 
 
-    # split by visit
-    visits = data.getVisits(dataId)
+    # split by visit, and handle specific requests
+    visitsTmp = data.getVisits(dataId)
+
+    visits = []
+    if len(visitList) > 0:
+        for v in visitsTmp:
+            if v in visitList:
+                visits.append(v)
+    else:
+        visits = visitsTmp
+
 
     groupTag = ""
     if not groupInfo is None:
@@ -248,8 +262,8 @@ if __name__ == '__main__':
                       help="Regex specifying which QaAnalysis to run (default=%default)")
     parser.add_option("-V", "--verbosity", default=1,
                       help="Trace level for lsst.testing.pipeQA")
-    parser.add_option("-v", "--visit", default="-1",
-                      help="Specify visit as regex. Use neg. number for last 'n' visits. (default=%default)")
+    parser.add_option("-v", "--visit", default=".*",
+                      help="Specify visit as regex OR color separated list. (default=%default)")
 
     parser.add_option("--noWwwCache", default=False, action="store_true",
                       help="Disable caching of pass/fail (needed to run in parallel) (default=%default)")
@@ -260,8 +274,16 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
+
+    #### handle visits
+
+    # split by :
+    visits = opts.visit
+    if re.search(":", opts.visit):
+        visits = opts.visit.split(":")
+
     dataId = {
-        'visit': opts.visit,
+        'visit': visits,
         'ccd': opts.ccd,
         'raft': opts.raft,
         'snap': opts.snap,

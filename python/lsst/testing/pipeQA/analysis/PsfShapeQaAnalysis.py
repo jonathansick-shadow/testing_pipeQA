@@ -98,8 +98,12 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     
                 #print ixx, iyy, ixy, a2, b2, ellip, theta
                 isStar = s.getFlagForDetection() & measAlg.Flags.STAR
-                
-                if numpy.isfinite(ellip) and numpy.isfinite(theta) and isStar:
+
+                flux = s.getPsfFlux()
+                mag = 99.0
+                if flux > 0:
+                    mag = -2.5*numpy.log10(s.getPsfFlux())
+                if numpy.isfinite(ellip) and numpy.isfinite(theta) and isStar and mag < 20:
                     self.ellip.append(raft, ccd, ellip)
                     self.theta.append(raft, ccd, theta)
                     self.x.append(raft, ccd, s.getXAstrom())
@@ -162,7 +166,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
-        vLen = 1000.0  # for e=1.0
+        vLen = 3000.0  # for e=1.0
 
         # fpa figures
         ellipBase = "medPsfEllip"
@@ -266,9 +270,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             fig.fig.subplots_adjust(left=0.15)
             ax = fig.fig.add_subplot(111)
 
-            q = ax.quiver(x, y, dx, dy, color='k', scale=4.0*vLen, angles='xy', pivot='middle',
+            q = ax.quiver(x, y, dx, dy, color='k', scale=2.0*vLen, angles='xy', pivot='middle',
                           headlength=1, headwidth=1)
-            ax.quiverkey(q, 0.9, -0.1, 0.5*vLen, "e=0.5", coordinates='axes',
+            ax.quiverkey(q, 0.9, -0.1, 0.1*vLen, "e=0.1", coordinates='axes',
                          fontproperties={'size':"small"}, labelpos='E')
             
             ax.set_title("PSF ellipticity")
