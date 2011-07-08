@@ -316,16 +316,23 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         blue, red = '#0000ff', '#ff0000'
 
 
+        testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
+        testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
+        testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
+
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                                title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
             testSet.addFigure(meanFig, meanFilebase+".png",
                               "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
+            del meanFig
+            
             stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
                               title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
             testSet.addFigure(stdFig, stdFilebase+".png",
                               "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
+            del stdFig
             
             cScale = 2.0
             slopeFig.makeFigure(cmap="RdBu_r",
@@ -333,10 +340,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                 title="Slope "+tag, failLimits=self.slopeLimits)
             testSet.addFigure(slopeFig, slopeFilebase+".png",
                               "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
-            
-        testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
-        testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
-        testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
+            del slopeFig
+        else:
+            del meanFig
+            del stdFig
+            del slopeFig
 
 
         #############################################
@@ -448,7 +456,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                               dtag+" vs. "+self.magType1 + ". Point used for statistics shown in red.",
                               areaLabel=areaLabel)
 
-
             # append values to arrays for a plot showing all data
             shelfData[ccd] = [mag, diff, star, [areaLabel]*len(mag)]
             
@@ -550,6 +557,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
 
 
+            del allMags
+            del allDiffs
+            del allColor
+            del allLabels
 
             # move the yaxis ticks/labels to the other side
             ax0_2.yaxis.set_label_position('right')
@@ -566,4 +577,5 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
             testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
 
+            del fig0
         

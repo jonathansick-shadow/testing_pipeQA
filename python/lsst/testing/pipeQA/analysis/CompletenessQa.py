@@ -252,6 +252,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                     else:
                         depthFig.map[raft][ccd] = 'mag=nan'
                         
+        testSet.pickle(filebase, [depthFig.data, depthFig.map])
 
         blue = '#0000ff'
         red  = '#ff0000'
@@ -276,7 +277,9 @@ class CompletenessQa(qaAna.QaAnalysis):
                                 title="Photometric Depth", cmapOver=red, cmapUnder=blue,
                                 failLimits=self.limits)
             testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
-        testSet.pickle(filebase, [depthFig.data, depthFig.map])
+
+        del depthFig
+
 
         # Each CCD
         for raft, ccd in self.depth.raftCcdKeys():
@@ -363,7 +366,7 @@ class CompletenessQa(qaAna.QaAnalysis):
             label = data.cameraInfo.getDetectorName(raft, ccd)
             fig.fig.suptitle('%s Stacked histogram' % (label), fontsize = 12)
             testSet.addFigure(fig, "completeness.png", "Photometric detections "+label, areaLabel=label)
-            
+            del fig
 
 
 ###########

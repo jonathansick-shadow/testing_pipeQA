@@ -209,6 +209,8 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                         zpts.append(zptFig.data[raft][ccd])
                     
                     
+        testSet.pickle(zptBase, [zptFig.data, zptFig.map])
+        testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
         
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
@@ -219,15 +221,16 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                               vlimits=[num.min(zpts), num.max(zpts)],
                               title="Zeropoint", cmapOver=red, cmapUnder=blue)
             testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", navMap=True)
+            del zptFig
         
             offsetFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
                                  title="Med offset from Zpt Fit", cmapOver=red, failLimits=self.limits,
                                  cmapUnder=blue)
             testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint", 
                               navMap=True)
-        testSet.pickle(zptBase, [zptFig.data, zptFig.map])
-        testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
-        
+            del offsetFig
+        else:
+            del zptFig, offsetFig
 
         # Each CCD
         for raft, ccd in self.zeroPoint.raftCcdKeys():

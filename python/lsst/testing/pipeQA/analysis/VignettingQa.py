@@ -172,6 +172,8 @@ class VignettingQa(qaAna.QaAnalysis):
                         stdFig.map[raft][ccd] = 'stddev=nan'
                         
 
+        testSet.pickle(medFigbase, [medFig.data, medFig.map]) #cache
+        testSet.pickle(stdFigbase, [stdFig.data, stdFig.map]) #cache 
         blue = '#0000ff'
         red  = '#ff0000'
         
@@ -183,17 +185,17 @@ class VignettingQa(qaAna.QaAnalysis):
             testSet.addFigure(medFig, medFigbase+".png",
                               "Median offset of bright (m<%d) stars versus radius" % (self.maxMag), 
                               navMap=True)
-
+            del medFig
             stdFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.rmsLimits,
                               title="Stddev offset", cmapOver=red, cmapUnder=blue,
                               failLimits=self.rmsLimits)
             testSet.addFigure(stdFig, stdFigbase+".png",
                               "Stddev of bright (m < %d) stars as a function of radius" % (self.maxMag), 
                               navMap=True)
-            
-        testSet.pickle(medFigbase, [medFig.data, medFig.map]) #cache
-        testSet.pickle(stdFigbase, [stdFig.data, stdFig.map]) #cache 
-
+            del stdFig
+        else:
+            del medFig
+            del stdFig
 
         cacheLabel = "vignetting_dmag" #cache
         shelfData = {}
@@ -255,7 +257,8 @@ class VignettingQa(qaAna.QaAnalysis):
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+areaLabel,
                               areaLabel=areaLabel)
-
+            del fig
+            
             shelfData[ccd] = [dmags, radii, ids, num.array([areaLabel]*len(dmags))]
 
         if self.useCache:
@@ -283,6 +286,7 @@ class VignettingQa(qaAna.QaAnalysis):
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
+            
             sp1.set_xlim(xlim)
             sp1.set_ylim(ylim)
             
@@ -303,7 +307,9 @@ class VignettingQa(qaAna.QaAnalysis):
                 area = (radiiAll[i]-drad, dmagsAll[i]-ddmag, radiiAll[i]+drad, dmagsAll[i]+ddmag)
                 fig.addMapArea(labelsAll[i], area, info, axes=sp1)
 
+            del radiiAll, dmagsAll, idsAll, labelsAll, shelfData
             testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+label, areaLabel=label)
+            del fig
 
         
                 

@@ -199,11 +199,15 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                         fwhmMin = fwhm
 
                 
+        testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
+        testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
+        
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
             ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
                                 title="Median PSF Ellipticity", failLimits=self.limitsEllip)
             testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
+            del ellipFig
 
             blue = '#0000ff'
             red = '#ff0000'
@@ -221,9 +225,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                                title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
                                cmapUnder=blue)
             testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
-                
-        testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
-        testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
+            del fwhmFig
+        else:
+            del ellipFig, fwhmFig
 
                         
         #
@@ -280,6 +284,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             testSet.addFigure(fig, "psfEllip.png",
                               "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen),
                               areaLabel=areaLabel)
+            
+            del fig
             
             i += 1
 

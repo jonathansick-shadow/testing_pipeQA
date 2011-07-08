@@ -73,7 +73,7 @@ class RaftCcdData(object):
 class RaftCcdVector(RaftCcdData):
 
     def __init__(self, detector):
-        RaftCcdData.__init__(self, detector, initValue=numpy.array([]))
+        RaftCcdData.__init__(self, detector, initValue=numpy.array([], dtype=numpy.float))
 
     def xxxlistKeysAndValues(self, methodName=None, nHighest=None, nLowest=None):
         kvList = []

@@ -145,13 +145,16 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                     astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
                     astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
                 
+        testSet.pickle(medAstBase, [astFig.data, astFig.map])
+        
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
             astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
                               title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
                               cmapUnder="#ff0000")
             testSet.addFigure(astFig, medAstBase+".png", "Median astrometric error",  navMap=True)
-        testSet.pickle(medAstBase, [astFig.data, astFig.map])
+            
+        del astFig
 
 
         cacheLabel = "astromError"
@@ -177,6 +180,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             fig = self.standardFigure(x, y, dx, dy)
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
+            del fig
 
             shelfData[ccd] = [x, y, dx, dy]
 
@@ -203,9 +207,12 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 dyAll  = numpy.append(dyAll , dy)
 
             allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, gridVectors=True)
+            del xAll, yAll, dxAll, dyAll
+            
             label = "all"
             testSet.addFigure(allFig, "astromError.png", "Astrometric error"+label, areaLabel=label)
-
+            del allFig
+            
 
     def standardFigure(self, x, y, dx, dy, gridVectors=False):
 

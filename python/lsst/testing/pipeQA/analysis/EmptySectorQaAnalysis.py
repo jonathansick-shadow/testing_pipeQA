@@ -152,6 +152,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                     emptyFigMat.data[raft][ccd] = nEmptyMat
                     emptyFigMat.map[raft][ccd] = "%dx%d,empty=%d" % (self.nx, self.ny, nEmptyMat)
 
+        testSet.pickle(emptyBase, [emptyFig.data, emptyFig.map])
+        testSet.pickle(emptyMatBase, [emptyFigMat.data, emptyFigMat.map])
+
         # make the figures and add them to the testSet
         # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
         if not self.delaySummary or isFinalDataId:
@@ -162,16 +165,17 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                                 failLimits=self.limits)
             testSet.addFigure(emptyFig, emptyBase+".png",
                               "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
-
+            del emptyFig
+            
             emptyFigMat.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
                                    vlimits=[0, self.nx*self.ny],
                                    title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny),
                                    failLimits=self.limits)
             testSet.addFigure(emptyFigMat, emptyMatBase+".png",
                               "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
-        testSet.pickle(emptyBase, [emptyFig.data, emptyFig.map])
-        testSet.pickle(emptyMatBase, [emptyFigMat.data, emptyFigMat.map])
-
+            del emptyFigMat
+        else:
+            del emptyFig, emptyFigMat
 
         # make any individual (ie. per sensor) plots
         figsize = (4.0, 4.0)
@@ -221,9 +225,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                 fig.addMapArea("no_label_info", area, "nolink:%.1f_%.1f"%(x[i],y[i]))
 
             # add the plot to the testSet
-            areaLabel = emptyFig.getAreaLabel(raft, ccd)
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "pointPositions.png",
                               "Pixel coordinates of all (black) and matched (red) detections.",
                               areaLabel=areaLabel)
-            
+            del fig
             
