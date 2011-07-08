@@ -241,7 +241,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             ylim = [0, 1.0]
 
         r = numpy.sqrt(dx**2 + dy**2)
-        rmax = 2.0 # r.max()
+        rmax = 1.2 # r.max()
 
         fig = qaFig.QaFigure(size=figsize)
         fig.fig.subplots_adjust(left=0.1)
