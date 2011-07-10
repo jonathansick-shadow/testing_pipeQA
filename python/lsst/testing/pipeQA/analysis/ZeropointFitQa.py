@@ -350,8 +350,11 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 legLabels.append("Matched Sources")
 
             if len(uimgmag) > 0:
-                ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
-                         log = True, facecolor = 'r', alpha = 0.5, zorder = 1)
+                try:
+                    ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
+                             log = True, facecolor = 'r', alpha = 0.5, zorder = 1)
+                except:
+                    pass
             ax3.set_xlabel('Image instrumental %s mag' % (self.fluxType), fontsize = 10)
             ax3.set_ylabel('N', rotation = 180, fontsize = 10)
     
