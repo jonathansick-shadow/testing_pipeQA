@@ -66,7 +66,7 @@ class VignettingQa(qaAna.QaAnalysis):
         self.medianOffset = raftCcdData.RaftCcdData(self.detector)
         self.rmsOffset    = raftCcdData.RaftCcdData(self.detector)
         
-        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
+        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
         
         for key in self.detector.keys():
 

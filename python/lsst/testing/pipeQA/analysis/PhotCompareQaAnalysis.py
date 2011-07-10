@@ -106,7 +106,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.star = raftCcdData.RaftCcdVector(self.detector)
 
         filter = None
-        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER
+        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
 
         self.matchListDictSrc = None
         self.ssDict = None
