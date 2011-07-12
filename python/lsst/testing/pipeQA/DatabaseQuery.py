@@ -45,13 +45,21 @@ class LsstSimDbInterface(DatabaseInterface):
         """
         @param dbId  A databaseIdentity object contain connection information
         """
+        self.dbId = dbId
         DatabaseInterface.__init__(self)
-        
-        self.db     = MySQLdb.connect(host = dbId.mySqlHost,
-                                      db = dbId.mySqlDb,
-                                      user = dbId.mySqlUser,
-                                      passwd = dbId.mySqlPasswd)
+
+        self.connect()
+
+
+    def connect(self):
+        self.db     = MySQLdb.connect(
+            host   = self.dbId.mySqlHost,
+            db     = self.dbId.mySqlDb,
+            user   = self.dbId.mySqlUser,
+            passwd = self.dbId.mySqlPasswd
+            )
         self.cursor = self.db.cursor()
+
 
     def execute(self, sql):
         """Execute an sql command
@@ -60,7 +68,20 @@ class LsstSimDbInterface(DatabaseInterface):
         """
         Trace("lsst.testing.pipeQA.LsstSimDbInterface", 3, "Executing: %s" % (sql))
         t0 = time.time()
-        self.cursor.execute(sql)
+
+        # forking to handle plotting the summary figures causes (i think)
+        # a disconnection when the child exits.  Need to reconnect when
+        connected = True
+        try:
+            self.cursor.execute(sql)
+        except Exception, e:
+            connected = False
+
+        if not connected:
+            #print "Mysql connection broken.  Reconnecting."
+            self.connect()
+            self.cursor.execute(sql)
+            
         results = self.cursor.fetchall()
         t1 = time.time()
         Trace("lsst.testing.pipeQA.LsstSimDbInterface", 2, "Time for SQL query: %.1f s" % (t1-t0))

@@ -175,6 +175,11 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 test = testCode.Test(label, med, self.limits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
 
+                label = "median zeropoint"
+                comment = "Median zeropoint measured for sensor"
+                test = testCode.Test(label, zpt, [None, 0], comment, areaLabel=areaLabel)
+                testSet.addTest(test)
+                
             
     def plot(self, data, dataId, showUndefined=False):
         testSet = self.getTestSet(data, dataId)

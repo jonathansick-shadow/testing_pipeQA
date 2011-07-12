@@ -9,6 +9,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -311,22 +312,38 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         left, bottom, width, height = 0.5+spacer, 0.35+spacer, 0.5-2*xmargin, 0.65-ymargin-spacer
         ax = fig.fig.add_axes([left, bottom, width, height])
 
+        #get the figure width/heigh in inches to correct
+        #aspect ratio
+        f_w, f_h = fig.fig.get_size_inches()
+        xlimRose = [-width*f_w/(height*f_h)*rmax, f_w*width/(f_h*height)*rmax]
+        ylimRose = [-rmax, rmax]
         # this is much faster than calling plot() in a loop, and quiver() scale length buggy
-        z = numpy.zeros(len(dx))
-        xy2 = zip(dx, dy)
-        xy1 = zip(z, z)
-        lines = zip(xy1, xy2)
-        p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
-        ax.add_collection(p)
-        ax.scatter(dx, dy, s=1.0, color='k', zorder=2,label="_nolegend_")
+        if gridVectors:
+            ybin = 50
+            xbin = int(1.0*ybin*f_w*width/(f_h*height))
+            qaFigUtil.make_densityplot(ax, dx, dy, xlims=xlimRose, ylims=ylimRose, bins=(xbin,ybin),
+                                       log=True)
+            qaFigUtil.make_densityContour(ax, dx, dy, xlims=xlimRose, ylims=ylimRose, bins=(xbin,ybin),
+                                          log=True, percentiles=True, normed=False, levels=[0.5])
+            c0 = Circle((0.0, 0.0), radius=0.0, facecolor='none', edgecolor=green, zorder=3, label="50%")
+            ax.add_patch(c0)
+        else:
+            z = numpy.zeros(len(dx))
+            xy2 = zip(dx, dy)
+            xy1 = zip(z, z)
+            lines = zip(xy1, xy2)
+            p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
+            ax.add_collection(p)
+            ax.scatter(dx, dy, s=0.05, color='k', zorder=2,label="_nolegend_")
 
-        #r = numpy.sqrt(dx**2 + dy**2)
-        #rmax = r.max()
-        isort = r.argsort()
-        i50 = isort[len(r)/2]
-        r50 = r[i50]
-        c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
-        ax.add_patch(c50)
+            #r = numpy.sqrt(dx**2 + dy**2)
+            #rmax = r.max()
+            isort = r.argsort()
+            i50 = isort[len(r)/2]
+            r50 = r[i50]
+            c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
+            ax.add_patch(c50)
+
 
         fp = fm.FontProperties(size="xx-small")
         ax.legend(prop=fp)
@@ -336,13 +353,10 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         ax.xaxis.set_ticks_position('top')
         ax.yaxis.set_ticks_position('right')
 
-        #get the figure width/heigh in inches to correct
-        #aspect ratio
-        f_w, f_h = fig.fig.get_size_inches()
         ax.set_xlabel("dRa [arcsec]", size='x-small')
         ax.set_ylabel("dDec [arcsec]", size='x-small')
-        ax.set_xlim([-width*f_w/(height*f_h)*rmax, f_w*width/(f_h*height)*rmax])
-        ax.set_ylim([-rmax, rmax])
+        ax.set_xlim(xlimRose)
+        ax.set_ylim(ylimRose)
         for tic in ax.get_xticklabels() + ax.get_yticklabels():
             tic.set_size("x-small")
 
@@ -376,7 +390,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
         ax0.set_xlabel("r [arcsec]", size='x-small')
         ax0.set_ylabel("N", size='x-small')
-        ax0.set_xlim([0, 0.5*rmax])
+        ax0.set_xlim([0, 0.9*rmax])
         ax0.set_ylim([0, 1.4*rNmax])
 
 

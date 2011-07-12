@@ -468,114 +468,128 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
 
-            # unstash the values
-            if self.useCache:
-                shelfData = testSet.unshelve(figbase, default={})
-
-            colorId = {}
-            i = 0
-            for k in sorted(data.cameraInfo.sensors.keys()):
-                colorId[k] = i
-                i += 1
-
-            allMags = numpy.array([])
-            allDiffs = numpy.array([])
-            allStars = numpy.array([])
-            allColor = numpy.array([])
-            allLabels = numpy.array([])
-            allCcds = []
-            for k,v in shelfData.items():
-                allCcds.append(k)
-                mags, diffs, stars, arealabels = v
-                allMags = numpy.append(allMags, mags)
-                allDiffs = numpy.append(allDiffs, diffs)
-                allStars = numpy.append(allStars, stars)
-                allColor = numpy.append(allColor, colorId[k]*numpy.ones(len(mags)))
-                allLabels = numpy.append(allLabels, arealabels)
-                
-            # figure out the color map
-            colorIdList = []
-            for ccd in allCcds:
-                clr = colorId[ccd]
-                colorIdList.append(clr)
-            minColorId = numpy.min(colorIdList)
-            maxColorId = numpy.max(colorIdList)
-            norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
-            sm = cm.ScalarMappable(norm, cmap=cm.jet)
-            allColor = sm.to_rgba(allColor)
-
-            # dmag vs mag
-            fig0 = qaFig.QaFigure(size=figsize)
-            fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
-            ax0_1 = fig0.fig.add_subplot(121)
-            ax0_2 = fig0.fig.add_subplot(122)
-
-            w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
-
-            if len(w) > 0:
-                lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
-                trendCoeffs = lineFit[0], lineFit[2]
-                trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
-                trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
-            else:
-                trendCoeffs = [0.0, 0.0]
-                trendCoeffsLo = [0.0, 0.0]
-                trendCoeffsHi = [0.0, 0.0]
-
-            ####################
-            # data for all ccds
-            if len(allMags) == 0:
-                allMags = numpy.array([xmax])
-                allDiffs = numpy.array([0.0])
-                allColor = [black]
-                allLabels = ["no_valid_data"]
-                trendCoeffs = [0.0, 0.0]
-                trendCoeffsLo = [0.0, 0.0]
-                trendCoeffsHi = [0.0, 0.0]
-
-            allColor = numpy.array(allColor)
-            for ax in [ax0_1, ax0_2]:
-                ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
-                ax.scatter(allMags, allDiffs, size, color=allColor)
-                # 99 is the 'no-data' values
-                if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
-                    ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
-                    ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
-                    ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
-            ax0_1.set_xlim(xlim)
-            ax0_2.set_xlim(xlim2)
-            ax0_1.set_ylim(ylim)
-            ax0_2.set_ylim(ylim2)
-
-            dmag = 0.1
-            ddiff1 = 0.01
-            ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
-            for j in xrange(len(allMags)):
-                area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
-                fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
-                area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
-                fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
+            self.summaryFigure([
+                data, figbase, testSet, shelfData, figsize,
+                xlim, ylim, xlim2, ylim2, size,
+                tag1, tag, dtag,
+                ])
 
 
-            del allMags
-            del allDiffs
-            del allColor
-            del allLabels
 
-            # move the yaxis ticks/labels to the other side
-            ax0_2.yaxis.set_label_position('right')
-            ax0_2.yaxis.set_ticks_position('right')
 
-            ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
-                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
-            ax0_2.set_xlim(xlim2)
-            ax0_2.set_ylim(ylim2)
+    def summaryFigure(self, summaryArgs):
 
-            for ax in [ax0_1, ax0_2]:
-                ax.set_xlabel(tag1)
-                ax.set_ylabel(tag)
-
-            testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
-
-            del fig0
+        data, figbase, testSet, shelfData, figsize, xlim, ylim, xlim2, ylim2, size, tag1, tag, dtag = \
+              summaryArgs
         
+        # unstash the values
+        if self.useCache:
+            shelfData = testSet.unshelve(figbase, default={})
+
+        colorId = {}
+        i = 0
+        for k in sorted(data.cameraInfo.sensors.keys()):
+            colorId[k] = i
+            i += 1
+
+        allMags = numpy.array([])
+        allDiffs = numpy.array([])
+        allStars = numpy.array([])
+        allColor = numpy.array([])
+        allLabels = numpy.array([])
+        allCcds = []
+        for k,v in shelfData.items():
+            allCcds.append(k)
+            mags, diffs, stars, arealabels = v
+            allMags = numpy.append(allMags, mags)
+            allDiffs = numpy.append(allDiffs, diffs)
+            allStars = numpy.append(allStars, stars)
+            allColor = numpy.append(allColor, colorId[k]*numpy.ones(len(mags)))
+            allLabels = numpy.append(allLabels, arealabels)
+
+        # figure out the color map
+        colorIdList = []
+        for ccd in allCcds:
+            clr = colorId[ccd]
+            colorIdList.append(clr)
+        minColorId = numpy.min(colorIdList)
+        maxColorId = numpy.max(colorIdList)
+        norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
+        sm = cm.ScalarMappable(norm, cmap=cm.jet)
+        allColor = sm.to_rgba(allColor)
+
+        # dmag vs mag
+        fig0 = qaFig.QaFigure(size=figsize)
+        fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
+        ax0_1 = fig0.fig.add_subplot(121)
+        ax0_2 = fig0.fig.add_subplot(122)
+
+        w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
+
+        if len(w) > 0:
+            lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
+            trendCoeffs = lineFit[0], lineFit[2]
+            trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
+            trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
+        else:
+            trendCoeffs = [0.0, 0.0]
+            trendCoeffsLo = [0.0, 0.0]
+            trendCoeffsHi = [0.0, 0.0]
+
+        ####################
+        # data for all ccds
+        if len(allMags) == 0:
+            allMags = numpy.array([xmax])
+            allDiffs = numpy.array([0.0])
+            allColor = [black]
+            allLabels = ["no_valid_data"]
+            trendCoeffs = [0.0, 0.0]
+            trendCoeffsLo = [0.0, 0.0]
+            trendCoeffsHi = [0.0, 0.0]
+
+        allColor = numpy.array(allColor)
+        for ax in [ax0_1, ax0_2]:
+            ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
+            ax.scatter(allMags, allDiffs, size, color=allColor)
+            # 99 is the 'no-data' values
+            if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
+                ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
+                ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
+                ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
+        ax0_1.set_xlim(xlim)
+        ax0_2.set_xlim(xlim2)
+        ax0_1.set_ylim(ylim)
+        ax0_2.set_ylim(ylim2)
+
+        dmag = 0.1
+        ddiff1 = 0.01
+        ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
+        for j in xrange(len(allMags)):
+            area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
+            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
+            area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
+            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
+
+
+        del allMags
+        del allDiffs
+        del allColor
+        del allLabels
+
+        # move the yaxis ticks/labels to the other side
+        ax0_2.yaxis.set_label_position('right')
+        ax0_2.yaxis.set_ticks_position('right')
+
+        ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
+                   [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
+        ax0_2.set_xlim(xlim2)
+        ax0_2.set_ylim(ylim2)
+
+        for ax in [ax0_1, ax0_2]:
+            ax.set_xlabel(tag1)
+            ax.set_ylabel(tag)
+
+        testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
+
+        del fig0
+

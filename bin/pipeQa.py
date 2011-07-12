@@ -42,7 +42,7 @@ def getMemUsageThisPid(size="rss"):
 
 def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
-	 groupInfo=None, delaySummary=False):
+	 groupInfo=None, delaySummary=False, forkFigure=False):
 
     visitList = []
     if isinstance(dataIdInput['visit'], list):
@@ -187,7 +187,15 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                 memory = 0
                 if exceptExit:
                     a.test(data, thisDataId)
-                    a.plot(data, thisDataId)
+                    if forkFigure:
+                        pid = os.fork()
+                        if pid == 0:
+                            a.plot(data, thisDataId)
+                            sys.exit()
+                        else:
+                            os.waidpid(pid, 0)
+                    else:
+                        a.plot(data, thisDataId)
                     memory = getMemUsageThisPid()
                     a.free()
 
@@ -195,6 +203,17 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                 else:
                     try:
                         a.test(data, thisDataId)
+                        if forkFigure:
+                            pid = os.fork()
+                            if pid == 0:
+                                a.plot(data, thisDataId)
+                                sys.exit(0)
+                            else:
+                                os.waitpid(pid, 0)
+                        else:
+                            a.plot(data, thisDataId)
+                        memory = getMemUsageThisPid()
+                        a.free()
                     except Exception, e:
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         s = traceback.format_exception(exc_type, exc_value,
@@ -203,10 +222,6 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                         print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
                         #print "       :", "".join(s)
                         testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
-                    else:
-                        a.plot(data, thisDataId)
-                        memory = getMemUsageThisPid()
-                        a.free()
 
 
                 test_tf = time.time()
@@ -248,6 +263,8 @@ if __name__ == '__main__':
                       help="Delay making summary figures until all ccds are finished (default=%default)")
     parser.add_option("-e", "--exceptExit", default=False, action='store_true',
                       help="Don't capture exceptions, fail and exit (default=%default)")
+    parser.add_option("-f", "--forkFigure", default=False, action='store_true',
+                      help="Make figures in separate process (default=%default)")
     parser.add_option("-g", "--group", default=None,
 		      help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%default)")
     parser.add_option("-k", "--keep", default=False, action="store_true",
@@ -307,5 +324,6 @@ if __name__ == '__main__':
     main(dataset, dataId, rerun=rerun,
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
-         breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary)
+         breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary,
+         forkFigure=opts.forkFigure)
         

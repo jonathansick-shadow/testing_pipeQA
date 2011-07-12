@@ -329,6 +329,7 @@ class CompletenessQa(qaAna.QaAnalysis):
             d       = 1.0 * histAll[0][w]
             y       = n / d  
             sp1x2.plot(x, y)
+            sp1x2.set_ylim([0.0, 1.2])
             sp1x2.set_ylabel('(Match+Blend)/Tot', fontsize=8)
             sp1x2.axhline(y = 0.5, c='k', linestyle='-', alpha = 0.25)
             sp1x2.axvline(x = self.depth.get(raft, ccd), c='k', linestyle='-', alpha = 0.25)

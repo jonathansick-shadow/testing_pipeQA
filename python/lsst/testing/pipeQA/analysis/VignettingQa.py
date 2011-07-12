@@ -232,8 +232,8 @@ class VignettingQa(qaAna.QaAnalysis):
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radii, dmags, 'ro', ms=2.0)
-            sp1.set_xlim(xlim)
-            sp1.set_ylim(ylim)
+            #sp1.set_xlim(xlim)
+            #sp1.set_ylim(ylim)
 
             ddmag = 0.001
             drad  = 0.01 * (max(radii) - min(radii))
@@ -287,8 +287,8 @@ class VignettingQa(qaAna.QaAnalysis):
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
             
-            sp1.set_xlim(xlim)
-            sp1.set_ylim(ylim)
+            #sp1.set_xlim(xlim)
+            #sp1.set_ylim(ylim)
             
             sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
             sp1x2 = sp1.twinx()

@@ -7,7 +7,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
-
+import matplotlib.cm as cm
 
 
 def binDistrib(x, y, dy, binSizeX = 0.5, minPts = 2):
@@ -148,3 +148,120 @@ def qaSetp(ticklabels, **kwargs):
             if hasattr(ticklabel, methodName):
                 method = getattr(ticklabel, methodName)
                 method(v)
+
+
+
+
+
+
+
+#get precentile levels for contour plot
+#uses a 'fill the bath tub method'
+##################################
+def getLevels(hist_data,percentile_list=[0.5]):
+    """
+    returns levels from histogramed data for the pecentiles listed
+    the method simply 'fills up' the contours until only the desired
+    percentage of the data is above the water mark. therefore ~30% of 
+    the data will be contained in the first contour. This is assuming
+    well-behaved data, but multiple peaks are ok
+    hist_data--regularly grided histogram data (1d or 2d)
+    percentile list--list of desired percentiles, needs to be in
+    """
+
+    #sort the list in ascending order
+    percentile_list = sorted(percentile_list)
+    
+    #levels
+    levels = numpy.zeros(len(percentile_list))
+
+    #Normed histdata
+    norm = numpy.sum(numpy.asarray(hist_data).flatten())
+    nHist = sorted(numpy.asarray(hist_data/norm).flatten())
+    cSum = numpy.cumsum(nHist)
+
+    indices = []
+    for p in percentile_list:
+        x = numpy.where(cSum > p)[0]
+        indices.append(x[0])
+    levels = nHist[numpy.array(indices)]
+    if isinstance(levels, numpy.float64):
+        levels = numpy.array([levels])
+
+    #renormalize to the hist data level
+    levels = norm*levels
+    return levels
+
+
+#make a contour plot
+def make_densityContour(axes,x,y,xlims=None,ylims=None,bins=(50,50),
+			log=False, color='g',levels=3,normed=True,
+                        percentiles=False,lw=1.0,ls='solid'):
+    if xlims==None:
+	xlims=(x.min(),x.max())
+    if ylims==None:
+	ylims=(y.min(),y.max())
+    x_p = x[(x>=xlims[0])&(x<=xlims[1])&
+	    (y>=ylims[0])&(y<=ylims[1])]
+    y_p = y[(x>=xlims[0])&(x<=xlims[1])&
+	    (y>=ylims[0])&(y<=ylims[1])]
+
+    if len(bins)==2:
+        bins = (numpy.linspace(ylims[0],ylims[1],num=bins[1]),
+                numpy.linspace(xlims[0],xlims[1],num=bins[0]))
+
+    hist_xy,xedges,yedges = numpy.histogram2d(y_p,x_p,bins=bins,normed=normed)
+
+    #if percentiles is set, get the levels from the percentiles
+    if percentiles:
+        if isinstance(levels,list):
+            levels = getLevels(hist_xy,levels)
+        else:
+            levels = getLevels(hist_xy)
+
+    if log:
+	new = axes.contour( numpy.log10((hist_xy)+1.0), numpy.log10(levels),
+                            extent=[xedges[0], xedges[-1], 
+                                    yedges[0], yedges[-1]],
+                            colors=color,linestyles=ls,linewidths=lw)
+        
+    else:
+	new = axes.contour( yedges[:-1], xedges[:-1], hist_xy, levels,
+                            extent=[xedges[0], 
+                                    xedges[-1], yedges[0], yedges[-1]],
+                            colors=color,linestyles=ls,linewidths=lw)
+        
+    return new
+
+
+
+#make a density plot and return the patches to make a colorbar
+def make_densityplot(axes,x,y,xlims=None,
+                     ylims=None,bins=(50,50),log=False):
+    if xlims==None:
+	xlims=(x.min(),x.max())
+    if ylims==None:
+	ylims=(y.min(),y.max())
+    x_p = x[(x>=xlims[0])&(x<=xlims[1])&
+	    (y>=ylims[0])&(y<=ylims[1])]
+    y_p = y[(x>=xlims[0])&(x<=xlims[1])&
+	    (y>=ylims[0])&(y<=ylims[1])]
+
+    if len(bins)==2:
+        bins = (numpy.linspace(xlims[0],xlims[1],num=bins[0]),
+                numpy.linspace(ylims[0],ylims[1],num=bins[1]))
+
+    hist_xy,xedges,yedges = numpy.histogram2d(x_p,y_p,bins=bins)
+
+    if log:
+	return axes.imshow( numpy.log10(numpy.rot90(hist_xy)+1.),
+			    extent=[xedges[0], xedges[-1], 
+                                    yedges[0], yedges[-1]],
+			    aspect='auto',
+                            interpolation='nearest',cmap=cm.gray_r)
+    else:
+	return axes.imshow( numpy.rot90(hist_xy),
+			    extent=[xedges[0], xedges[-1], 
+                                    yedges[0], yedges[-1]],
+			    aspect='auto',interpolation='nearest',
+                            cmap=cm.gray_r)
