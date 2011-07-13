@@ -237,177 +237,271 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         else:
             del zptFig, offsetFig
 
+
+        cacheLabel = "zeropointFit"
+        shelfData = {}
+        
         # Each CCD
         for raft, ccd in self.zeroPoint.raftCcdKeys():
-            if self.zeroPoint.get(raft, ccd) == 0.0:
+            zeropt = self.zeroPoint.get(raft, ccd)
+            if zeropt == 0.0:
                 continue
             
             print "Plotting", ccd
 
-            # Just to get the histogram results
-            fig = qaFig.QaFigure(size=self.figsize)
 
-            legLines  = []
-            legLabels = []
-            
-            axis = fig.fig.add_axes([0.225, 0.225, 0.675, 0.550])
-    
             # Plot all matched galaxies
             mrefGmag  = self.matchedGalaxy.get(raft, ccd)["Refmag"]
             mimgGmag  = self.matchedGalaxy.get(raft, ccd)["Imgmag"]
             mimgGmerr = self.matchedGalaxy.get(raft, ccd)["Imgerr"]
-            mimgGplot = axis.plot(mimgGmag, mrefGmag, '.', color='g', mfc='g', mec='g',
-                                  alpha=0.5, zorder=10, label = 'Matched Galaxies')
 
-            ################    --------------------------------  ##################
-            # can't fig.savefig() with this Ellipse stuff ??? ... i love matplotlib
-            if False:
-                for i in range(len(mrefGmag)):
-                    a = Ellipse(xy=num.array([mimgGmag[i], mrefGmag[i]]),
-                                width=mimgGmerr[i]/2., height=mimgGmerr[i]/2.,
-                                alpha=0.5, fill=True, ec='g', fc='g', zorder=10)
-                    axis.add_artist(a)
-            else:
-                axis.plot(mimgGmag, mrefGmag, 'g.', zorder=10, alpha=0.5)
-            #########################################################################
-
-                
-            legLines.append(mimgGplot[0])
-            legLabels.append("Matched Galaxies")
-                        
             # Plot all matched stars
             mrefSmag  = self.matchedStar.get(raft, ccd)["Refmag"]
             mimgSmag  = self.matchedStar.get(raft, ccd)["Imgmag"]
             mimgSmerr = self.matchedStar.get(raft, ccd)["Imgerr"]
-            mimgSplot = axis.plot(mimgSmag, mrefSmag, '.', color='b', mfc='b', mec='b',
-                                  alpha=0.5, zorder=12, label = 'Matched Stars')
 
-            ################    --------------------------------  ##################
-            # can't fig.savefig() with this Ellipse stuff ??? ... i love matplotlib
-            if False:
-                for i in range(len(mrefSmag)):
-                    a = Ellipse(xy=num.array([mimgSmag[i], mrefSmag[i]]),
-                                width=mimgSmerr[i]/2., height=mimgSmerr[i]/2.,
-                                alpha=0.5, fill=True, ec='b', fc='b', zorder=12)
-                    axis.add_artist(a)
-            else:
-                axis.plot(mimgSmag, mrefSmag, "b.", zorder=12, alpha=0.5)
-            ########################################################################
-                
-            legLines.append(mimgSplot[0])
-            legLabels.append("Matched Stars")
-    
-            if len(mrefGmag) == 0 and len(mrefSmag) == 0:
-                xmin, xmax, ymin, ymax = -15, -8, 16, 28
-            else:
-                xmin, xmax, ymin, ymax = axis.axis()
-    
-            # Plot zpt
-            xzpt = num.array((xmin, xmax))
-            pzpt = axis.plot(xzpt, xzpt - self.zeroPoint.get(raft, ccd), 'k--', label = 'Zeropoint')
-            legLines.append(pzpt)
-            legLabels.append("Zeropoint")
-    
-            # Unmatched objects
-            urefmag     = num.concatenate((self.undetectedStar.get(raft, ccd), self.undetectedGalaxy.get(raft, ccd)))
+
+            urefmag     = num.concatenate((self.undetectedStar.get(raft, ccd),
+                                           self.undetectedGalaxy.get(raft, ccd)))
             uimgmag     = self.orphan.get(raft, ccd)
 
-            # Unmatched & matched reference objects
-            ax2  = fig.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
-            if len(urefmag) > 0:
-                nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
-                                      orientation='horizontal', facecolor = 'r',
-                                      log = True, alpha = 0.5, zorder = 1)
-                legLines.append(pu[0])
-                legLabels.append("Unmatched Sources")
-                
-            if len(mrefGmag) > 0 and len(mrefSmag) > 0:
-                ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
-                         orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
-            elif len(mrefGmag):
-                ax2.hist(mrefGmag, bins=num.arange(ymin, ymax, 0.25),
-                         orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
-            elif len(mrefSmag) > 0:
-                ax2.hist(mrefSmag, bins=num.arange(ymin, ymax, 0.25),
-                         orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
-            ax2.set_xlabel('N', fontsize = 10)
-            ax2.set_ylabel('Reference catalog mag', fontsize = 10)
-
-    
-            # Unmatched & matched stellar objects
-            ax3  = fig.fig.add_axes([0.225, 0.1,   0.675, 0.125], sharex=axis)
-            ax3.get_yaxis().set_ticks_position('right')
-            ax3.get_yaxis().set_label_position('right')
-            if len(mimgGmag) > 0 and len(mimgSmag) > 0:
-                nm, bm, pm = ax3.hist(num.concatenate((mimgGmag,mimgSmag)), bins=num.arange(xmin, xmax, 0.25),
-                                      log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
-                legLines.append(pm[0])
-                legLabels.append("Matched Sources")
-            elif len(mimgGmag) > 0:
-                nm, bm, pm = ax3.hist(mimgGmag, bins=num.arange(xmin, xmax, 0.25),
-                                      log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
-                legLines.append(pm[0])
-                legLabels.append("Matched Sources")
-            elif len(mimgSmag) > 0:
-                nm, bm, pm = ax3.hist(mimgSmag, bins=num.arange(xmin, xmax, 0.25),
-                                      log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
-                legLines.append(pm[0])
-                legLabels.append("Matched Sources")
-
-            if len(uimgmag) > 0:
-                try:
-                    ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
-                             log = True, facecolor = 'r', alpha = 0.5, zorder = 1)
-                except:
-                    pass
-            ax3.set_xlabel('Image instrumental %s mag' % (self.fluxType), fontsize = 10)
-            ax3.set_ylabel('N', rotation = 180, fontsize = 10)
-    
-            # Mag - Zpt
-            ax4  = fig.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
-            if len(mimgSmag):
-                mimgSeb = ax4.errorbar(mimgSmag, mimgSmag - self.zeroPoint.get(raft, ccd) - mrefSmag,
-                                       yerr = mimgSmerr,
-                                       fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
-                mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
-    
-            if len(mimgGmag):
-                mimgGeb = ax4.errorbar(mimgGmag, mimgGmag - self.zeroPoint.get(raft, ccd) - mrefGmag,
-                                       yerr = mimgGmerr,
-                                       fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
-                mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
-    
-            ax4.get_yaxis().set_ticks_position('right')
-            ax4.get_yaxis().set_label_position('right')
-            ax4.set_ylabel('Cal-Ref', fontsize = 10, rotation = 270)
-            ax4.axhline(y = 0, c='k', linestyle='--', alpha = 0.25)
-    
-            # Cleaning up figure
-            qaFigUtils.qaSetp(axis.get_xticklabels()+axis.get_yticklabels(), visible=False)
-            qaFigUtils.qaSetp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize = 8)
-            qaFigUtils.qaSetp(ax3.get_xticklabels()+ax3.get_yticklabels(), fontsize = 8)
-            qaFigUtils.qaSetp(ax4.get_xticklabels(), visible=False)
-            qaFigUtils.qaSetp(ax4.get_yticklabels(), fontsize = 8)
-    
-            fig.fig.legend(legLines, legLabels,
-                           numpoints=1, prop=FontProperties(size='x-small'), loc = 'center right')
             label = data.cameraInfo.getDetectorName(raft, ccd)
-            fig.fig.suptitle('%s' % (label), fontsize = 12)
-    
-            numerator   = (mimgSmag - self.zeroPoint.get(raft, ccd) - mrefSmag)
-            denominator = mimgSmerr
-            med         = num.median(numerator) 
-            ax4.axhline(y = med, c='k', linestyle=':', alpha = 0.5)
-    
-            # Final axis limits
-            ax2.set_xlim(0.75, 999)
-            ax3.set_ylim(0.75, 999)
-            ax4.set_ylim(-0.24, 0.24)
+            fig = self.standardFigure(mrefGmag, mimgGmag, mimgGmerr,
+                                      mrefSmag, mimgSmag, mimgSmerr,
+                                      urefmag, uimgmag,
+                                      zeropt, label)
 
-            #axis.axis((xmax, xmin, ymax, ymin))
-            axis.set_ylim(26, 14)
-            axis.set_xlim(26 + self.zeroPoint.get(raft, ccd), 14 + self.zeroPoint.get(raft, ccd))
-    
-            label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "zeropointFit.png", "Zeropoint fit "+label, areaLabel=label)
-    
+
+
+            shelfData[ccd] = [mrefGmag, mimgGmag, mimgGmerr,
+                              mrefSmag, mimgSmag, mimgSmerr,
+                              urefmag, uimgmag, zeropt]
+            
+
+        if self.useCache:
+            testSet.shelve(cacheLabel, shelfData)
+
+        if not self.delaySummary or isFinalDataId:
+            print "plotting Summary figure"
+
+            # unstash the values
+            if self.useCache:
+                shelfData = testSet.unshelve(cacheLabel, default={})
+
+
+            mrefGmagAll   = num.array([])
+            mimgGmagAll   = num.array([])
+            mimgGmerrAll  = num.array([])
+            mrefSmagAll   = num.array([])
+            mimgSmagAll   = num.array([])
+            mimgSmerrAll  = num.array([])
+            urefmagAll    = num.array([])
+            uimgmagAll    = num.array([])
+            #zeroG         = num.array([])
+            #zeroS         = num.array([])
+
+            #n = 0
+            for k,v in shelfData.items():
+                mrefGmag, mimgGmag, mimgGmerr, mrefSmag, mimgSmag, mimgSmerr, urefmag, uimgmag, zeropt = v
+                mrefGmagAll   = num.append(mrefGmagAll   ,mrefGmag   )
+                mimgGmagAll   = num.append(mimgGmagAll   ,mimgGmag - zeropt  )
+                mimgGmerrAll  = num.append(mimgGmerrAll  ,mimgGmerr  )
+                mrefSmagAll   = num.append(mrefSmagAll   ,mrefSmag   )
+                mimgSmagAll   = num.append(mimgSmagAll   ,mimgSmag - zeropt  )
+                mimgSmerrAll  = num.append(mimgSmerrAll  ,mimgSmerr  )
+                urefmagAll    = num.append(urefmagAll    ,urefmag    )
+                uimgmagAll    = num.append(uimgmagAll    ,uimgmag - zeropt   )
+                #zeroG         = num.append(zeroG,  num.array([zeropt]*len(mrefGmag)))
+                #zeroS         = num.append(zeroS,  num.array([zeropt]*len(mrefSmag)))
+                #zeroMean += zeropt
+                #n+=1
+            #zeroMean /= n
+
+            allFig = self.standardFigure(mrefGmagAll, mimgGmagAll, mimgGmerrAll,
+                                         mrefSmagAll, mimgSmagAll, mimgSmerrAll,
+                                         urefmagAll, uimgmagAll,
+                                         0.0, "All Sensors")
+            
+            label = "all"
+            testSet.addFigure(allFig, "zeropointFit.png", "zeropoint fit "+label, areaLabel=label)
+            del allFig
+            
+
+    def standardFigure(self,
+                       mrefGmag, mimgGmag, mimgGmerr,
+                       mrefSmag, mimgSmag, mimgSmerr,
+                       urefmag, uimgmag,
+                       zeropt, title):
+
+
+        # Just to get the histogram results
+        fig = qaFig.QaFigure(size=self.figsize)
+
+        legLines  = []
+        legLabels = []
+
+        axis = fig.fig.add_axes([0.225, 0.225, 0.675, 0.550])
+
+
+        ################    --------------------------------  ##################
+        # can't fig.savefig() with this Ellipse stuff ??? ... i love matplotlib
+        if False:
+            for i in range(len(mrefGmag)):
+                a = Ellipse(xy=num.array([mimgGmag[i], mrefGmag[i]]),
+                            width=mimgGmerr[i]/2., height=mimgGmerr[i]/2.,
+                            alpha=0.5, fill=True, ec='g', fc='g', zorder=10)
+                axis.add_artist(a)
+        else:
+            pass
+            #axis.plot(mimgGmag, mrefGmag, 'g.', zorder=10, alpha=0.5)
+        #########################################################################
+
+
+        mimgGplot = axis.plot(mimgGmag, mrefGmag, '.', color='g', mfc='g', mec='g',
+                              zorder=10, label = 'Matched Galaxies', ms=2.5)
+
+        legLines.append(mimgGplot[0])
+        legLabels.append("Matched Galaxies")
+
+
+        ################    --------------------------------  ##################
+        # can't fig.savefig() with this Ellipse stuff ??? ... i love matplotlib
+        if False:
+            for i in range(len(mrefSmag)):
+                a = Ellipse(xy=num.array([mimgSmag[i], mrefSmag[i]]),
+                            width=mimgSmerr[i]/2., height=mimgSmerr[i]/2.,
+                            alpha=0.5, fill=True, ec='b', fc='b', zorder=12)
+                axis.add_artist(a)
+        else:
+            pass
+            #axis.plot(mimgSmag, mrefSmag, "b.", zorder=12, alpha=0.5)
+        ########################################################################
+
+        mimgSplot = axis.plot(mimgSmag, mrefSmag, '.', color='b', mfc='b', mec='b',
+                              zorder=12, label = 'Matched Stars', ms=2.5)
+
+        legLines.append(mimgSplot[0])
+        legLabels.append("Matched Stars")
+
+        if len(mrefGmag) == 0 and len(mrefSmag) == 0:
+            xmin, xmax, ymin, ymax = -15, -8, 16, 28
+        else:
+            xmin, xmax, ymin, ymax = axis.axis()
+
+        # Plot zpt
+        xzpt = num.array((xmin, xmax))
+        pzpt = axis.plot(xzpt, xzpt - zeropt, 'k--', label = 'Zeropoint')
+        legLines.append(pzpt)
+        legLabels.append("Zeropoint")
+
+        maxN2 = 999
+        
+        # Unmatched & matched reference objects
+        ax2  = fig.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
+        if len(urefmag) > 0:
+            nu, bu, pu = ax2.hist(urefmag, bins=num.arange(ymin, ymax, 0.25),
+                                  orientation='horizontal', facecolor = 'r',
+                                  log = True, alpha = 0.5, zorder = 1)
+            if num.max(nu) > maxN2: maxN2 = num.max(nu)
+            legLines.append(pu[0])
+            legLabels.append("Unmatched Sources")
+
+        if len(mrefGmag) > 0 and len(mrefSmag) > 0:
+            nu, bu, pu = ax2.hist(num.concatenate((mrefGmag,mrefSmag)), bins=num.arange(ymin, ymax, 0.25),
+                     orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
+        elif len(mrefGmag):
+            nu, bu, pu = ax2.hist(mrefGmag, bins=num.arange(ymin, ymax, 0.25),
+                     orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
+        elif len(mrefSmag) > 0:
+            nu, bu, pu =  ax2.hist(mrefSmag, bins=num.arange(ymin, ymax, 0.25),
+                     orientation='horizontal', log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
+        ax2.set_xlabel('N', fontsize = 10)
+        ax2.set_ylabel('Reference catalog mag', fontsize = 10)
+
+        if num.max(nu) > maxN2: maxN2 = num.max(nu)
+
+        maxN3 = 999
+
+        # Unmatched & matched stellar objects
+        ax3  = fig.fig.add_axes([0.225, 0.1,   0.675, 0.125], sharex=axis)
+        ax3.get_yaxis().set_ticks_position('right')
+        ax3.get_yaxis().set_label_position('right')
+        if len(mimgGmag) > 0 and len(mimgSmag) > 0:
+            nm, bm, pm = ax3.hist(num.concatenate((mimgGmag,mimgSmag)), bins=num.arange(xmin, xmax, 0.25),
+                                  log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
+            legLines.append(pm[0])
+            legLabels.append("Matched Sources")
+        elif len(mimgGmag) > 0:
+            nm, bm, pm = ax3.hist(mimgGmag, bins=num.arange(xmin, xmax, 0.25),
+                                  log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
+            legLines.append(pm[0])
+            legLabels.append("Matched Sources")
+        elif len(mimgSmag) > 0:
+            nm, bm, pm = ax3.hist(mimgSmag, bins=num.arange(xmin, xmax, 0.25),
+                                  log = True, facecolor = 'b', alpha = 0.5, zorder = 2)
+            legLines.append(pm[0])
+            legLabels.append("Matched Sources")
+
+        if num.max(nm) > maxN3: maxN3 = num.max(nm)
+
+        if len(uimgmag) > 0:
+            try:
+                ax3.hist(uimgmag, bins=num.arange(xmin, xmax, 0.25),
+                         log = True, facecolor = 'r', alpha = 0.5, zorder = 1)
+            except:
+                pass
+        if abs(zeropt) < 1.0e-5:
+            ax3.set_xlabel('Image calibrated %s mag' % (self.fluxType), fontsize = 10)
+        else:
+            ax3.set_xlabel('Image instrumental %s mag' % (self.fluxType), fontsize = 10)
+        ax3.set_ylabel('N', rotation = 180, fontsize = 10)
+
+        # Mag - Zpt
+        ax4  = fig.fig.add_axes([0.225, 0.775, 0.675, 0.125], sharex=axis)
+        if len(mimgSmag):
+            mimgSeb = ax4.errorbar(mimgSmag, mimgSmag - zeropt - mrefSmag,
+                                   yerr = mimgSmerr,
+                                   fmt = 'bo', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
+            mimgSeb[2][0].set_alpha(0.25) # alpha for error bars
+
+        if len(mimgGmag):
+            mimgGeb = ax4.errorbar(mimgGmag, mimgGmag - zeropt - mrefGmag,
+                                   yerr = mimgGmerr,
+                                   fmt = 'go', ms = 2, alpha = 0.25, capsize = 0, elinewidth = 0.5)
+            mimgGeb[2][0].set_alpha(0.25) # alpha for error bars
+
+        ax4.get_yaxis().set_ticks_position('right')
+        ax4.get_yaxis().set_label_position('right')
+        ax4.set_ylabel('Cal-Ref', fontsize = 10, rotation = 270)
+        ax4.axhline(y = 0, c='k', linestyle='--', alpha = 0.25)
+
+        # Cleaning up figure
+        qaFigUtils.qaSetp(axis.get_xticklabels()+axis.get_yticklabels(), visible=False)
+        qaFigUtils.qaSetp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize = 8)
+        qaFigUtils.qaSetp(ax2.get_xticklabels(), rotation=90)
+        qaFigUtils.qaSetp(ax3.get_xticklabels()+ax3.get_yticklabels(), fontsize = 8)
+        qaFigUtils.qaSetp(ax4.get_xticklabels(), visible=False)
+        qaFigUtils.qaSetp(ax4.get_yticklabels(), fontsize = 8)
+
+        fig.fig.legend(legLines, legLabels,
+                       numpoints=1, prop=FontProperties(size='x-small'), loc = 'center right')
+
+        fig.fig.suptitle('%s' % (title), fontsize = 12)
+
+        numerator   = (mimgSmag - zeropt - mrefSmag)
+        denominator = mimgSmerr
+        med         = num.median(numerator) 
+        ax4.axhline(y = med, c='k', linestyle=':', alpha = 0.5)
+
+        # Final axis limits
+        ax2.set_xlim(0.75, 3.0*maxN2)
+        ax3.set_ylim(0.75, 3.0*maxN3)
+        ax4.set_ylim(-0.24, 0.24)
+
+        #axis.axis((xmax, xmin, ymax, ymin))
+        axis.set_ylim(26, 14)
+        axis.set_xlim(26 + zeropt, 14 + zeropt)
+
+        return fig
+

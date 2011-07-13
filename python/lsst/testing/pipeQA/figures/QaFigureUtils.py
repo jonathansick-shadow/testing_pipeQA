@@ -76,6 +76,9 @@ def plotSparseContour(sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
 
 
 
+
+
+
 def cameraToRectangles(camera):
     rectangles = {}
     centers = {}
@@ -201,16 +204,14 @@ def make_densityContour(axes,x,y,xlims=None,ylims=None,bins=(50,50),
 	xlims=(x.min(),x.max())
     if ylims==None:
 	ylims=(y.min(),y.max())
-    x_p = x[(x>=xlims[0])&(x<=xlims[1])&
-	    (y>=ylims[0])&(y<=ylims[1])]
-    y_p = y[(x>=xlims[0])&(x<=xlims[1])&
-	    (y>=ylims[0])&(y<=ylims[1])]
+    x_p = x[(x>=xlims[0]) & (x<=xlims[1]) & (y>=ylims[0]) & (y<=ylims[1])]
+    y_p = y[(x>=xlims[0]) & (x<=xlims[1]) & (y>=ylims[0]) & (y<=ylims[1])]
 
     if len(bins)==2:
         bins = (numpy.linspace(ylims[0],ylims[1],num=bins[1]),
                 numpy.linspace(xlims[0],xlims[1],num=bins[0]))
 
-    hist_xy,xedges,yedges = numpy.histogram2d(y_p,x_p,bins=bins,normed=normed)
+    hist_xy,xedges,yedges = numpy.histogram2d(x_p,y_p,bins=bins,normed=normed)
 
     #if percentiles is set, get the levels from the percentiles
     if percentiles:
@@ -220,7 +221,7 @@ def make_densityContour(axes,x,y,xlims=None,ylims=None,bins=(50,50),
             levels = getLevels(hist_xy)
 
     if log:
-	new = axes.contour( numpy.log10((hist_xy)+1.0), numpy.log10(levels),
+	new = axes.contour( numpy.log10((hist_xy)+1.0), numpy.log10(levels + 1.0),
                             extent=[xedges[0], xedges[-1], 
                                     yedges[0], yedges[-1]],
                             colors=color,linestyles=ls,linewidths=lw)

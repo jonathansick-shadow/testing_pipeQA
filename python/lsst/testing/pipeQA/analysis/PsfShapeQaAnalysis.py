@@ -13,6 +13,7 @@ import QaAnalysisUtils as qaAnaUtil
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
+
 from matplotlib.collections import LineCollection
 
 
@@ -205,6 +206,17 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                 
         testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
         testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
+
+
+        if fwhmMin < 1e10:
+            vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
+        else:
+            vlimMin = self.limitsFwhm[0]
+        if fwhmMax > -1e10:
+            vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
+        else:
+            vlimMax = self.limitsFwhm[1]
+
         
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
@@ -216,15 +228,6 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             blue = '#0000ff'
             red = '#ff0000'
             
-            if fwhmMin < 1e10:
-                vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
-            else:
-                vlimMin = self.limitsFwhm[0]
-            if fwhmMax > -1e10:
-                vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
-            else:
-                vlimMax = self.limitsFwhm[1]
-            
             fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
                                title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
                                cmapUnder=blue)
@@ -235,61 +238,145 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
                         
         #
-        figsize = (4.0, 4.0)
         
         #xlim = [0, 25.0]
         #ylim = [0, 0.4]
 
-        conv = colors.ColorConverter()
-        black = conv.to_rgb('k')
+        norm = colors.Normalize(vmin=vlimMin, vmax=vlimMax)
+        sm = cm.ScalarMappable(norm, cmap=cm.jet)
 
+        cacheLabel = "psfEllip"
+        shelfData = {}
+        
         i = 0
         xmin, xmax = 1.0e99, -1.0e99
         for raft, ccd in self.ellip.raftCcdKeys():
-            eLen = vLen*self.ellip.get(raft, ccd)
+            eLen = self.ellip.get(raft, ccd)
             
             t = self.theta.get(raft, ccd)
             dx = eLen*numpy.cos(t)
             dy = eLen*numpy.sin(t)
-            x = self.x.get(raft, ccd) - 0.5*dx
-            y = self.y.get(raft, ccd) - 0.5*dy
+            x = self.x.get(raft, ccd)
+            y = self.y.get(raft, ccd)
 
-            if len(x) == 0:
-                x = numpy.array([0.0])
-                y = numpy.array([0.0])
-                dx = numpy.array([0.0])
-                dy = numpy.array([0.0])
-                
-            xmax, ymax = x.max(), y.max()
-            xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
-            ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
+            fwhm = self.fwhm.get(raft, ccd)
             
             print "plotting ", ccd
-            
-            fig = qaFig.QaFigure(size=figsize)
-            fig.fig.subplots_adjust(left=0.15)
-            ax = fig.fig.add_subplot(111)
 
-            q = ax.quiver(x, y, dx, dy, color='k', scale=2.0*vLen, angles='xy', pivot='middle',
-                          headlength=1, headwidth=1)
-            ax.quiverkey(q, 0.9, -0.1, 0.1*vLen, "e=0.1", coordinates='axes',
-                         fontproperties={'size':"small"}, labelpos='E')
+            xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
+            limits = [xlo, xhi, ylo, yhi]
             
-            ax.set_title("PSF ellipticity")
-            ax.set_xlabel("x [pixels]") #, position=(0.4, 0.0))
-            
-            ax.set_ylabel("y [pixels]")
-            ax.set_xlim(xlim)
-            ax.set_ylim(ylim)
-            for tic in ax.get_xticklabels() + ax.get_yticklabels():
-                tic.set_size("x-small")
-
+            fig = self.standardFigure(t, x, y, dx, dy, 'k', [0, xhi-xlo, 0, yhi-ylo], vLen, fwhm=fwhm)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "psfEllip.png",
-                              "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen),
-                              areaLabel=areaLabel)
-            
+                          "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen),
+                          areaLabel=areaLabel)
+
             del fig
             
-            i += 1
+            shelfData[ccd] = [t, x+xlo, y+ylo, dx, dy, fwhm]
+
+
+        if self.useCache:
+            testSet.shelve(cacheLabel, shelfData)
+
+        if not self.delaySummary or isFinalDataId:
+            print "plotting Summary figure"
+
+            # unstash the values
+            if self.useCache:
+                shelfData = testSet.unshelve(cacheLabel, default={})
+
+            tAll  = numpy.array([])
+            xAll  = numpy.array([])
+            yAll  = numpy.array([])
+            dxAll = numpy.array([])
+            dyAll = numpy.array([])
+            colorAll = numpy.array([])
+            for k,v in shelfData.items():
+                #allCcds.append(k)
+                t, x, y, dx, dy, fwhm = v
+                tAll   = numpy.append(tAll  , t )
+                xAll   = numpy.append(xAll  , x )
+                yAll   = numpy.append(yAll  , y )
+                dxAll  = numpy.append(dxAll , dx)
+                dyAll  = numpy.append(dyAll , dy)
+                clr = numpy.array([fwhm]*len(t))
+                colorAll = numpy.append(colorAll, clr)
+
+            xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
+            for raft,ccd in data.cameraInfo.raftCcdKeys:
+                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+                if xxlo < xlo: xlo = xxlo
+                if xxhi > xhi: xhi = xxhi
+                if yylo < ylo: ylo = yylo
+                if yyhi > yhi: yhi = yyhi
+                
+
+            allFig = self.standardFigure(tAll, xAll, yAll, dxAll, dyAll, colorAll, [xlo, xhi, ylo, yhi],
+                                         5.0*vLen, summary=True, sm=sm)
+            del tAll, xAll, yAll, dxAll, dyAll
+            
+            label = "all"
+            testSet.addFigure(allFig, "psfEllip.png", "PSF ellipticity "+label, areaLabel=label)
+            del allFig
+
+
+    def standardFigure(self, t, x, y, dx, dy, color, limits, vLen, summary=False, sm=None, fwhm=None):
+
+        figsize = (5.0, 4.0)
+        xlo, xhi, ylo, yhi = limits
+
+        if len(x) == 0:
+            x     = numpy.array([0.0])
+            y     = numpy.array([0.0])
+            dx    = numpy.array([0.0])
+            dy    = numpy.array([0.0])
+            color = numpy.array([0.0])
+
+        #xmax, ymax = x.max(), y.max()
+        xlim = [xlo, xhi] #[0, 1024*int(xmax/1024.0 + 0.5)]
+        ylim = [ylo, yhi] #[0, 1024*int(ymax/1024.0 + 0.5)]
+
+        fig = qaFig.QaFigure(size=figsize)
+        fig.fig.subplots_adjust(left=0.15, bottom=0.15)
+        ax = fig.fig.add_subplot(111)
+
+        
+
+        if summary:
+            vmin, vmax = sm.get_clim()
+            q = ax.quiver(x, y, vLen*dx, vLen*dy, color=sm.to_rgba(color),
+                          scale=2.0*vLen, angles='xy', pivot='middle',
+                          headlength=1.0, headwidth=1.0, width=0.002) 
+            ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
+                         fontproperties={'size':"small"}, labelpos='E', color='k')
+            q.set_array(color)
+            cb = fig.fig.colorbar(q) #, ax)
+            cb.ax.set_xlabel("FWHM$_{\mathrm{xc,yc}}$", size="small")
+            cb.ax.xaxis.set_label_position('top')
+            for tick in cb.ax.get_yticklabels():
+                tick.set_size("x-small")
+            ax.set_title("PSF Shape")
+        else:
+            q = ax.quiver(x, y, vLen*dx, vLen*dy, color=color, scale=2.0*vLen, angles='xy', pivot='middle',
+                          headlength=1.0, headwidth=1.0, width=0.002)
+            ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
+                         fontproperties={'size':"small"}, labelpos='E', color='k')
+            ax.set_title("PSF Shape (FWHM$_{\mathrm{xc,yc}}$=%.2f)"%(fwhm))
+            
+        ax.set_xlabel("x [pixels]") #, position=(0.4, 0.0))
+
+        ax.set_ylabel("y [pixels]")
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        for tic in ax.get_xticklabels() + ax.get_yticklabels():
+            tic.set_size("x-small")
+        for tic in ax.get_xticklabels():
+            tic.set_rotation(22)
+        for tic in ax.get_yticklabels():
+            tic.set_rotation(45)
+
+        return fig
+
 

@@ -1,5 +1,6 @@
 import os, re
 import eups
+import numpy
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
@@ -31,6 +32,8 @@ class CameraInfo(object):
         self.detectors   = {}
         self.nSensor     = 0
 
+        self.raftCcdKeys = []
+        
         if self.camera is None:
             return
         
@@ -45,7 +48,8 @@ class CameraInfo(object):
                 self.detectors[ccdName] = ccd
                 self.sensors[ccdName] = ccd
                 self.nSensor += 1
-
+                self.raftCcdKeys.append([raftName, ccdName])
+                
     def getDetectorName(self, raft, ccd):
         ccdId = self.detectors[ccd].getId()
         name = re.sub("\s+", "_", ccdId.getName())
@@ -97,6 +101,40 @@ class CameraInfo(object):
         """Get the number of sensors (ie. ccds) for this camera."""
         return self.nSensor
                 
+
+
+    def getBbox(self, raftName, ccdName):
+
+        raft = self.rafts[raftName]
+        # NOTE: all ccd coords are w.r.t. the *center* of the raft, not its LLC
+        rxc     = raft.getCenterPixel().getX()
+        ryc     = raft.getCenterPixel().getY()
+
+        ccd   = self.sensors[ccdName]
+        cxc     = ccd.getCenterPixel().getX()
+        cyc     = ccd.getCenterPixel().getY()
+        orient  = ccd.getOrientation()
+        nQuart  = ccd.getOrientation().getNQuarter()
+        yaw     = orient.getYaw()
+
+        cbbox   = ccd.getAllPixels(True)
+        cwidth  = cbbox.getMaxX() - cbbox.getMinX()
+        cheight = cbbox.getMaxY() - cbbox.getMinY()
+        if abs(yaw - numpy.pi/2.0) < 1.0e-3:  # nQuart == 1 or nQuart == 3:
+            ctmp = cwidth
+            cwidth = cheight
+            cheight = ctmp
+
+        cx0     = rxc + cxc - cwidth/2
+        cy0     = ryc + cyc - cheight/2
+        cx1     = cx0 + cwidth
+        cy1     = cy0 + cheight
+
+        return [cx0, cy0, cx1, cy1]
+
+    
+
+
 
 
 ####################################################################

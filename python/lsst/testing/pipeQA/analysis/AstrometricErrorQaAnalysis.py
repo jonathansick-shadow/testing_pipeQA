@@ -316,14 +316,14 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         #aspect ratio
         f_w, f_h = fig.fig.get_size_inches()
         xlimRose = [-width*f_w/(height*f_h)*rmax, f_w*width/(f_h*height)*rmax]
-        ylimRose = [-rmax, rmax]
+        limRose = [-rmax, rmax]
         # this is much faster than calling plot() in a loop, and quiver() scale length buggy
         if gridVectors:
             ybin = 50
-            xbin = int(1.0*ybin*f_w*width/(f_h*height))
-            qaFigUtil.make_densityplot(ax, dx, dy, xlims=xlimRose, ylims=ylimRose, bins=(xbin,ybin),
+            xbin = 50 #int(1.0*ybin*f_w*width/(f_h*height))
+            qaFigUtil.make_densityplot(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
                                        log=True)
-            qaFigUtil.make_densityContour(ax, dx, dy, xlims=xlimRose, ylims=ylimRose, bins=(xbin,ybin),
+            qaFigUtil.make_densityContour(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
                                           log=True, percentiles=True, normed=False, levels=[0.5])
             c0 = Circle((0.0, 0.0), radius=0.0, facecolor='none', edgecolor=green, zorder=3, label="50%")
             ax.add_patch(c0)
@@ -356,7 +356,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         ax.set_xlabel("dRa [arcsec]", size='x-small')
         ax.set_ylabel("dDec [arcsec]", size='x-small')
         ax.set_xlim(xlimRose)
-        ax.set_ylim(ylimRose)
+        ax.set_ylim(limRose)
         for tic in ax.get_xticklabels() + ax.get_yticklabels():
             tic.set_size("x-small")
 
