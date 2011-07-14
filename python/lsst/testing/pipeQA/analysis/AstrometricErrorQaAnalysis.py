@@ -193,7 +193,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
             # unstash the values
             if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel, default={})
+                shelfData = testSet.unshelve(cacheLabel)
 
             xAll  = numpy.array([])
             yAll  = numpy.array([])

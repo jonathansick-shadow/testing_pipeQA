@@ -287,7 +287,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
 
             # unstash the values
             if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel, default={})
+                shelfData = testSet.unshelve(cacheLabel)
 
 
             mrefGmagAll   = num.array([])

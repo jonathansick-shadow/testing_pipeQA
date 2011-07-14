@@ -83,6 +83,10 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
         # create a testset
         testSet = self.getTestSet(data, dataId)
+
+        # this normally gets set in the plot as that's where the caching happens,
+        # here we're stashing the nDetection and nCcd values, so we need to set it early.
+        testSet.setUseCache(self.useCache)
         testSet.addMetadata({"Description": self.description})
 
         # analyse each sensor and put the values in a raftccd container
@@ -128,8 +132,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
         nCcd, nDet = 0, 0
         for k,v in nShelf.items():
-            nCcd += 1
-            nDet += v
+            if v > 0:
+                nCcd += 1
+                nDet += v
 
         # a bit sketchy adding tests in the plot section, but these are dummies
         # they pass useful numbers through to the display, but don't actually test
@@ -235,7 +240,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
             # unstash the values
             if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel, default={})
+                shelfData = testSet.unshelve(cacheLabel)
 
             xAll  = numpy.array([])
             yAll  = numpy.array([])

@@ -484,7 +484,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         
         # unstash the values
         if self.useCache:
-            shelfData = testSet.unshelve(figbase, default={})
+            shelfData = testSet.unshelve(figbase)
 
         colorId = {}
         i = 0

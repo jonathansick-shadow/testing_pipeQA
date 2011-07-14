@@ -318,7 +318,7 @@ class CompletenessQa(qaAna.QaAnalysis):
 
             # unstash the values
             if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel, default={})
+                shelfData = testSet.unshelve(cacheLabel)
 
             orphanAll           = num.array([])
             depthAll            = num.array([])

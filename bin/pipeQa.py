@@ -180,7 +180,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                     continue
 
                 print "Running " + test + "  visit:" + str(visit)
-
+                sys.stdout.flush() # clear the buffer before the fork
 
                 # For debugging, it's useful to exit on failure, and get
                 # the full traceback
