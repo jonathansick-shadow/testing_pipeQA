@@ -84,7 +84,8 @@ class DbQaData(QaData):
         for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
             key, sqlName = keyNames
             if dataIdRegex.has_key(key):
-                idWhereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+                likeEqual = self._sqlLikeEqual(sqlName, dataIdRegex[key])
+                idWhereList.append(likeEqual)
             else:
                 haveAllKeys = False
         idWhere = " and ".join(idWhereList)
@@ -128,7 +129,7 @@ class DbQaData(QaData):
         sql += '    and '+idWhere
 
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
-
+        
         # run the query
         results  = self.dbInterface.execute(sql)
 
@@ -401,7 +402,7 @@ class DbQaData(QaData):
         sroFields = simRefObj.fields
         sroFieldStr = ",".join(["sro."+field for field in sroFields])
 
-        oldWay = True
+        oldWay = False
 
         # if the dataIdEntry is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex)
@@ -465,11 +466,14 @@ class DbQaData(QaData):
 
                 sql2 = 'SELECT %s ' % (sroFieldStr)
                 sql2 += 'FROM '
-                sql2 += '    SimRefObject AS sro, '
+                sql2 += '    SimRefObject AS sro '
                 sql2 += 'WHERE '
                 sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
 
-
+            #print sql
+            #if not oldWay:
+            #    print sql2
+            
             # if there are no regexes (ie. actual wildcard expressions),
             #  we can check the cache, otherwise must run the query
 

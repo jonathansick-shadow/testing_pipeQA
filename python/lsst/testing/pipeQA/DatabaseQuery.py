@@ -84,7 +84,8 @@ class LsstSimDbInterface(DatabaseInterface):
             
         results = self.cursor.fetchall()
         t1 = time.time()
-        Trace("lsst.testing.pipeQA.LsstSimDbInterface", 2, "Time for SQL query: %.1f s" % (t1-t0))
+        #print "Query time: %.2f s" % (t1-t0)
+        Trace("lsst.testing.pipeQA.LsstSimDbInterface", 2, "Time for SQL query: %.2f s" % (t1-t0))
         return results
 
     
