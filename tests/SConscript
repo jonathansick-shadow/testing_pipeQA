@@ -1,0 +1,7 @@
+# -*- python -*-
+Import("env")
+import lsst.tests
+
+tests = lsst.tests.Control(env, ignoreList=[], expectedFailures={}, verbose=True)
+tests.run("*.py")
+

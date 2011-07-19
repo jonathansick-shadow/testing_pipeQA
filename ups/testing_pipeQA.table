@@ -1,0 +1,12 @@
+setupRequired(pipette)
+setupRequired(ap)
+setupRequired(numpy 1.5.1 [>= 1.5.0])
+
+setupOptional(obs_lsstSim)
+setupOptional(obs_cfht)
+setupOptional(obs_subaru)
+
+envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
+envAppend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
+envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
+envAppend(PATH, ${PRODUCT_DIR}/bin)

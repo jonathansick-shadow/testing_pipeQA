@@ -1,0 +1,256 @@
+#<?cfg paf dictionary ?>
+#
+# Dictionary for pipeQa
+#
+definitions: {
+
+    doZptQa: {
+        type: string
+        description: "Photometric Zeropoint: qaAnalysis.ZeropointQaAnalysis"
+        maxOccurs: 4
+        default: "none"
+    }
+
+    zptQaMetricMin: {
+        type: double
+        description: "Metric used to evaluate quality of photometric zeropoint"
+        maxOccurs: 1
+        default: -3.0
+    }
+
+    zptQaMetricMax: {
+        type: double
+        description: "Metric used to evaluate quality of photometric zeropoint"
+        maxOccurs: 1
+        default: 3.0
+    }
+
+    ###
+    
+    doZptFitQa: {
+        type: string
+        description: "Photometric Zeropoint: qaAnalysis.ZeropointFitQa"
+        maxOccurs: 4
+        default: "lsstSim" "cfht"
+    }
+
+    zptFitQaOffsetMin: {
+        type: double
+        description: "Median offset of stars from zeropoint fit; minimum good value"
+        maxOccurs: 1
+        default: -0.05
+    }
+
+    zptFitQaOffsetMax: {
+        type: double
+        description: "Median offset of stars from zeropoint fit; maximum good value"
+        maxOccurs: 1
+        default: 0.05
+    }
+
+    ###
+    
+    doEmptySectorQa: {
+        type: string
+        description: "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis"
+        maxOccurs: 1
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+    }
+
+    emptySectorMaxMissing: {
+        type: integer
+        description: "Maximum number of missing CCDs"
+        maxOccurs: 1
+        default: 1
+    }
+
+    ###
+    
+    doAstromQa: {
+        type: string
+        description: "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis"
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+    }
+
+    astromQaMaxErr: {
+        type: double
+        description: "Maximum astrometric error (in arcseconds)"
+        maxOccurs: 1
+        default: 0.5
+    }
+
+    ###
+       
+    doPhotCompareQa: {
+        type: string
+        description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
+        maxOccurs: 1
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+    }
+
+    photCompareTypes: {
+        type: string
+        description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
+        maxOccurs: 7
+        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst" "inst cat" "mod cat"
+        allowed: {
+            value:        "psf cat"
+            description:  "Compare Psf magnitudes to catalog magnitudes"
+        }
+        allowed: {
+            value:        "psf ap"
+            description:  "Compare Psf and aperture magnitudes"
+        }
+        allowed: {
+            value:        "psf mod"
+            description:  "Compare Psf and model magnitudes"
+        }
+	allowed: {
+            value:        "ap cat"
+            description:  "Compare Psf and model magnitudes"
+        }
+        allowed: {
+            value:        "psf inst"
+            description:  "Compare PSF and instrument magnitudes"
+        }
+	allowed: {
+            value:        "inst cat"
+            description:  "Compare Inst (Gaussian) and catalog magnitudes"
+        }
+	allowed: {
+            value:        "mod cat"
+            description:  "Compare model and catalog magnitudes"
+        }
+
+    }
+ 
+    photCompareMagCut: {
+        type: double
+        description: "Faintest magnitude for establishing photometric RMS"
+        maxOccurs: 1
+        default: 20.0
+    }
+
+    photCompareDeltaMin: {
+        type: double
+        description: "Minimum allowed delta"
+        maxOccurs: 1
+        default: -0.2
+    }
+
+    photCompareDeltaMax: {
+        type: double
+        description: "Maximum allowed delta"
+        maxOccurs: 1
+        default:  0.2
+    }
+
+    photCompareRmsMax: {
+        type: double
+        description: "Maximum allowed photometric RMS on bright end"
+        maxOccurs: 1
+        default:  0.02
+    }
+
+    photCompareSlopeMinSigma: {
+        type: double
+        description: "Minimum (positive valued) std.devs. of slope below slope=0"
+        maxOccurs: 1
+        default: 3.5
+    }
+
+    photCompareSlopeMaxSigma: {
+        type: double
+        description: "Maximum std.dev. of slope above slope=0"
+        maxOccurs: 1
+        default:  3.5
+    }
+
+    ###
+
+    doPsfShapeQa: {
+        type: string
+        description: "Psf Shape: qaAnalysis.PsfShapeQaAnalysis"
+        maxOccurs: 4
+        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+    }
+
+    psfEllipMax: {
+        type: double
+        description: "Maximum median ellipticity"
+        maxOccurs: 1
+        default: 0.15
+    }
+
+    psfFwhmMax: {
+        type: double
+        description: "Maximum Psf Fwhm (arcsec)"
+        maxOccurs: 1
+        default: 2.0
+    }
+
+    ###
+
+    doCompleteQa: {
+        type: string
+        description: "Photometric Depth: qaAnalysis.CompletenessQa"
+        maxOccurs: 4
+        default: "lsstSim" "cfht"
+    }
+
+    completeMinMag: {
+        type: double
+        description: "Minimum photometric depth"
+        maxOccurs: 1
+        default: 20.0
+    }
+
+    completeMaxMag: {
+        type: double
+        description: "Maximum reasonable photometric depth"
+        maxOccurs: 1
+        default: 25.0
+    }
+
+    ###
+
+    doVignettingQa: {
+        type: string
+        description: "Vignetting testing: qaAnalysis.VignettingQa"
+        maxOccurs: 4
+        default: "lsstSim" "cfht" "suprimecam" "hscSim"
+    }
+
+    vigMaxMedian: {
+        type: double
+        description: "Maximum median magnitude offset"
+        maxOccurs: 1
+        default: 0.02
+    }
+
+    vigMagRms: {
+        type: double
+        description: "Maximum magnitude offset RMS"
+        maxOccurs: 1
+        default: 0.02
+    }
+
+    vigMaxMag: {
+        type: double
+        description: "Maximum magnitude star to use in VignettingQa test"
+        maxOccurs: 1
+        default: 19.0
+    }
+
+    ###
+
+    doFwhm: {
+        type: string
+        description: "Fwhm: qaANalysis.FwhmQaAnalysis"
+        maxOccurs: 4
+        default: "none"
+    }
+}
