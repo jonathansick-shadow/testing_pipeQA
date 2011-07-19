@@ -6,6 +6,7 @@ import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 import lsst.meas.algorithms as measAlg
 import QaAnalysisUtils as qaAnaUtil
+import lsst.afw.math as afwMath
 
 class VignettingQa(qaAna.QaAnalysis):
     def __init__(self, maxMedian, maxRms, maxMag, **kwargs):
@@ -14,11 +15,11 @@ class VignettingQa(qaAna.QaAnalysis):
         self.rmsLimits = [0, maxRms]
         self.maxMag    = maxMag
 
-        self.magType1 = "psf"
+        self.magType1 = "ap"
         self.magType2 = "cat"
 
         self.description = """
-         For each CCD, the difference in psf and reference catalog magnitudes
+         For each CCD, the difference in aperture and reference catalog magnitudes
          is plotted as a function of radial location from the center of the
          focal plane.  The summary FPA figures show the median offset, as well
          as the standard deviation of this offset, for each chip.
@@ -121,7 +122,8 @@ class VignettingQa(qaAna.QaAnalysis):
                 # Calculate stats
                 dmags = self.dmag.get(raftId, ccdId)
                 med   = num.median(dmags)
-                std   = num.std(dmags)
+                stat  = afwMath.makeStatistics(dmags, afwMath.IQRANGE)
+                std   = 0.741 * stat.getValue(afwMath.IQRANGE)
                 self.medianOffset.set(raftId, ccdId, med)
                 self.rmsOffset.set(raftId, ccdId, std)
                 
@@ -200,27 +202,14 @@ class VignettingQa(qaAna.QaAnalysis):
         cacheLabel = "vignetting_dmag" #cache
         shelfData = {}
         
-        xlim = [0, 40000]
-        ylim = [-0.05, 0.05]
-        xmax, xmin = xlim
-        ymax, ymin = ylim
-
-        if False:
-            for raft, ccd in self.dmag.raftCcdKeys():
-                dmags = self.dmag.get(raft, ccd)
-                ymin = num.min([dmags.min(), ymin])
-                ymax = num.max([dmags.max(), ymax])
-                radii = self.radius.get(raft, ccd)
-                xmin = num.min([radii.min(), xmin])
-                xmax = num.max([radii.max(), xmax])
-            xlim = [xmin, xmax]
-            ylim = [ymin, ymax]
-
-
         for raft, ccd in self.dmag.raftCcdKeys():
             dmags = self.dmag.get(raft, ccd)
             radii = self.radius.get(raft, ccd)
 
+            ymin = num.max([dmags.min(),-0.5])
+            ymax = num.min([dmags.max(), 0.5])
+            ylim = [ymin, ymax]
+            
             ids   = self.ids.get(raft, ccd)
 
 	    if len(dmags) == 0:
@@ -232,8 +221,7 @@ class VignettingQa(qaAna.QaAnalysis):
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radii, dmags, 'ro', ms=2.0)
-            #sp1.set_xlim(xlim)
-            #sp1.set_ylim(ylim)
+            sp1.set_ylim(ylim)
 
             ddmag = 0.001
             drad  = 0.01 * (max(radii) - min(radii))
@@ -242,11 +230,12 @@ class VignettingQa(qaAna.QaAnalysis):
                 area = (radii[i]-drad, dmags[i]-ddmag, radii[i]+drad, dmags[i]+ddmag)
                 fig.addMapArea("no_label_info", area, info, axes=sp1)
 
+            med = self.medianOffset.get(raft, ccd)
+            std = self.rmsOffset.get(raft, ccd)
                 
             sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
-            sp1.axhline(y=num.median(dmags), c = 'b', linestyle = '-')
-            sp1.axhspan(ymin = num.median(dmags)-num.std(dmags), ymax = \
-                        num.median(dmags)+num.std(dmags), fc = 'b', alpha = 0.15)
+            sp1.axhline(y=med, c = 'b', linestyle = '-')
+            sp1.axhspan(ymin = med-std, ymax = med+std, fc = 'b', alpha = 0.15)
             sp1x2 = sp1.twinx()
             ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
             ylab.set_rotation(-90)
@@ -282,13 +271,15 @@ class VignettingQa(qaAna.QaAnalysis):
                 idsAll    = num.append(idsAll    , ids)
                 labelsAll = num.append(labelsAll , labels)
             
+            ymin = num.max([dmagsAll.min(),-0.5])
+            ymax = num.min([dmagsAll.max(), 0.5])
+            ylim = [ymin, ymax]
             
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
             
-            #sp1.set_xlim(xlim)
-            #sp1.set_ylim(ylim)
+            sp1.set_ylim(ylim)
             
             sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
             sp1x2 = sp1.twinx()
