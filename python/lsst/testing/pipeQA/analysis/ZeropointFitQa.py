@@ -190,7 +190,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
 
         # fpa figure
         zpts = []
-        zptBase = "zeropoing"
+        zptBase = "zeropoint"
         zptData, zptMap = testSet.unpickle(zptBase, default=[None, None])
         zptFig = qaFig.FpaQaFigure(data.cameraInfo, data=zptData, map=zptMap)
 

@@ -403,6 +403,7 @@ class DbQaData(QaData):
         sroFieldStr = ",".join(["sro."+field for field in sroFields])
 
         oldWay = False
+        nStep = 3
 
         # if the dataIdEntry is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex)
@@ -452,23 +453,38 @@ class DbQaData(QaData):
                 sql += '        and ' + sqlDataId
 
             else:
-                sql  = 'SELECT scisql_s2CPolyToBin('
-                sql += '   sce.llcRa, sce.llcDecl, '
-                sql += '   sce.lrcRa, sce.lrcDecl, '
-                sql += '   sce.urcRa, sce.urcDecl, '
-                sql += '   sce.ulcRa, sce.ulcDecl) '
-                sql += 'FROM Science_Ccd_Exposure as sce '
-                sql += 'WHERE %s ' % (sqlDataId)
-                #sq += '   (sce.visit = 887252941) AND'
-                #sq += '   (sce.raftName = \'2,2\') AND'
-                #sq += '   (sce.ccdName = \'1,1\');'
-                sql += 'INTO @poly; '
+                if nStep == 2:
+                    sql  = 'SELECT scisql_s2CPolyToBin('
+                    sql += '   sce.llcRa, sce.llcDecl, '
+                    sql += '   sce.lrcRa, sce.lrcDecl, '
+                    sql += '   sce.urcRa, sce.urcDecl, '
+                    sql += '   sce.ulcRa, sce.ulcDecl) '
+                    sql += 'FROM Science_Ccd_Exposure as sce '
+                    sql += 'WHERE %s ' % (sqlDataId)
+                    #sq += '   (sce.visit = 887252941) AND'
+                    #sq += '   (sce.raftName = \'2,2\') AND'
+                    #sq += '   (sce.ccdName = \'1,1\');'
+                    sql += 'INTO @poly; '
 
-                sql2 = 'SELECT %s ' % (sroFieldStr)
-                sql2 += 'FROM '
-                sql2 += '    SimRefObject AS sro '
-                sql2 += 'WHERE '
-                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
+                    sql2 = 'SELECT %s ' % (sroFieldStr)
+                    sql2 += 'FROM '
+                    sql2 += '    SimRefObject AS sro '
+                    sql2 += 'WHERE '
+                    sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
+
+
+                elif nStep == 3:
+                    sql  = 'SELECT poly FROM Science_Ccd_Exposure as sce '
+                    sql += 'WHERE %s ' % (sqlDataId) 
+                    sql += 'INTO @poly;'
+
+                    sql2 = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
+
+                    sql3  = 'SELECT %s ' % (sroFieldStr)
+                    sql3 += 'FROM SimRefObject AS sro INNER JOIN '
+                    sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
+                    sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
+                    
 
             #print sql
             #if not oldWay:
@@ -492,8 +508,14 @@ class DbQaData(QaData):
             if oldWay:
                 results  = self.dbInterface.execute(sql)
             else:
-                self.dbInterface.execute(sql)
-                results = self.dbInterface.execute(sql2)
+                if nStep == 2:
+                    self.dbInterface.execute(sql)
+                    results = self.dbInterface.execute(sql2)
+                elif nStep == 3:
+                    self.dbInterface.execute(sql)
+                    self.dbInterface.execute(sql2)
+                    results = self.dbInterface.execute(sql3)
+                    
 
             # parse results and put them in a sourceSet
             for row in results:
