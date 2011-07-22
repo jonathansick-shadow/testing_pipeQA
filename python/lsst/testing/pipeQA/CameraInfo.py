@@ -276,6 +276,10 @@ class HscCameraInfo(CameraInfo):
         if os.environ.has_key('OBS_SUBARU_DIR'):
             simdir         = os.environ['OBS_SUBARU_DIR']
             cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
+            if not os.path.exists(cameraGeomPaf):
+                cameraGeomPaf = os.path.join(simdir, "hscSim", "hscSim_geom.paf")
+                if not os.path.exists(cameraGeomPaf):
+                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
             camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
@@ -331,6 +335,10 @@ class SuprimecamCameraInfo(CameraInfo):
         if os.environ.has_key('OBS_SUBARU_DIR'):
             simdir         = os.environ['OBS_SUBARU_DIR']
             cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
+            if not os.path.exists(cameraGeomPaf):
+                cameraGeomPaf = os.path.join(simdir, "suprimecam", "Full_Suprimecam_geom.paf")
+                if not os.path.exists(cameraGeomPaf):
+                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
             camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
