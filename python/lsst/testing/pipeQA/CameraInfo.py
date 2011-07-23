@@ -386,9 +386,8 @@ def getCameraInfoAvailable():
 
     def tryLoad(cameraInfo):
         haveCam = True
-        try:
-            ci = cameraInfo()
-        except Exception, e:
+        ci = cameraInfo()
+        if ci.camera is None:
             haveCam = False
         return haveCam
 
@@ -400,7 +399,7 @@ def getCameraInfoAvailable():
         ]
 
     for camInfo in all:
-        if tryLoad(LsstSimCameraInfo):
+        if tryLoad(camInfo):
             available.append(camInfo())
 
     return available

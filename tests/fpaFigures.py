@@ -25,7 +25,12 @@ import lsst.testing.pipeQA.figures as qaFig
 
 def main():
 
-    ts = pipeQA.TestSet(group="selftest")
+    ts = pipeQA.TestSet("allFpaFigures", group="selftest")
+
+    # need at least one test
+    t = pipeQA.Test("dummy", 0, [-1, 1], "A dummy test")
+    ts.addTest(t)
+    
     ts.addMetadata("keyname", "value")
 
     for camInfo in pipeQA.getCameraInfoAvailable():
