@@ -82,6 +82,25 @@ elif useSource == 'c++':
 else:
     class Source(object):
 
+        iPsfIxx     = 0
+        iPsfIxxErr  = 1
+        iPsfIyy     = 2
+        iPsfIyyErr  = 3
+        iPsfIxy     = 4
+        iPsfIxyErr  = 5
+        iResolution = 6
+        iE1         = 7   
+        iE1Err      = 8
+        iE2         = 9   
+        iE2Err      = 10
+        iShear1     = 11
+        iShear1Err  = 12
+        iShear2     = 13
+        iShear2Err  = 14
+        iSigma      = 15
+        iSigmaErr   = 16
+	
+
         def __init__(self):
             self.ints              = numpy.zeros(2, dtype=int)
             self.radec             = numpy.zeros(2)
@@ -89,49 +108,8 @@ else:
             self.flux              = numpy.zeros(4, dtype=numpy.float32)
             self.fluxErr           = numpy.zeros(4, dtype=numpy.float32)
             self.izz               = numpy.zeros(3, dtype=numpy.float32)
+	    self.shape             = numpy.zeros(17, dtype=numpy.float32)
             
-            #self._id               = 0  
-            #self._ra               = 0.0
-            #self._dec              = 0.0
-            #self._xAstrom          = 0.0
-            #self._yAstrom          = 0.0
-            #self._psfFlux          = 0.0
-            #self._psfFluxErr       = 0.0
-            #self._apFlux           = 0.0
-            #self._apFluxErr        = 0.0
-            #self._instFlux         = 0.0
-
-            #self._instFluxErr      = 0.0
-            #self._modelFlux        = 0.0
-            #self._modelFluxErr     = 0.0
-            #self._ixx              = 0.0
-            #self._ixxErr           = 0.0
-            #self._iyy              = 0.0
-            #self._iyyErr           = 0.0
-            #self._ixy              = 0.0
-            #self._ixyErr           = 0.0
-            #self._psfIxx           = 0.0
-
-            #self._psfIxxErr        = 0.0
-            #self._psfIyy           = 0.0
-            #self._psfIyyErr        = 0.0
-            #self._psfIxy           = 0.0
-            #self._psfIxyErr        = 0.0
-            #self._resolution       = 0.0
-            #self._e1               = 0.0
-            #self._e1Err            = 0.0
-            #self._e2               = 0.0
-            #self._e2Err            = 0.0
-
-            #self._shear1           = 0.0
-            #self._shear1Err        = 0.0
-            #self._shear2           = 0.0
-            #self._shear2Err        = 0.0
-            #self._sigma            = 0.0
-            #self._sigmaErr         = 0.0
-            ##self._shapeStatus    = 0.0  
-            #self._flagForDetection = 0x0
-
 
         def setPhotometry(self, val): pass
         def setAstrometry(self, val): pass
@@ -184,44 +162,44 @@ else:
         #def setIxyErr(self, val):      self.izz[2]Err = val
 
 
-        def getPsfIxx(self): return 0.0
-        def setPsfIxx(self, val): pass
-        def getPsfIxxErr(self): return 0.0
-        def setPsfIxxErr(self, val): pass
-        def getPsfIyy(self): return 0.0
-        def setPsfIyy(self, val): pass
-        def getPsfIyyErr(self): return 0.0
-        def setPsfIyyErr(self, val): pass
-        def getPsfIxy(self): return 0.0
-        def setPsfIxy(self, val): pass
-        def getPsfIxyErr(self): return 0.0
-        def setPsfIxyErr(self, val): pass
+        def getPsfIxx(self):          return self.shape[Source.iPsfIxx]
+        def setPsfIxx(self, val):     self.shape[Source.iPsfIxx] = val
+        def getPsfIxxErr(self):       return self.shape[Source.iPsfIxxErr]
+        def setPsfIxxErr(self, val):  self.shape[Source.iPsfIxxErr] = val
+        def getPsfIyy(self):          return self.shape[Source.iPsfIyy]
+        def setPsfIyy(self, val):     self.shape[Source.iPsfIyy] = val
+        def getPsfIyyErr(self):       return self.shape[Source.iPsfIyyErr]
+        def setPsfIyyErr(self, val):  self.shape[Source.iPsfIyyErr] = val
+        def getPsfIxy(self):          return self.shape[Source.iPsfIxy]
+        def setPsfIxy(self, val):     self.shape[Source.iPsfIxy] = val
+        def getPsfIxyErr(self):       return self.shape[Source.iPsfIxyErr]
+        def setPsfIxyErr(self, val):  self.shape[Source.iPsfIxyErr] = val
 
-        def getResolution(self): return 0.0
-        def setResolution(self, val): pass
+        def getResolution(self):      return self.shape[Source.iResolution]
+        def setResolution(self, val): self.shape[Source.iResolution] = val
 
-        def getE1(self): return 0.0   
-        def setE1(self, val): pass
-        def getE1Err(self): return 0.0
-        def setE1Err(self, val): pass
-        def getE2(self): return 0.0   
-        def setE2(self, val): pass
-        def getE2Err(self): return 0.0
-        def setE2Err(self, val): pass
+        def getE1(self):              return self.shape[Source.iE1]   
+        def setE1(self, val):         self.shape[Source.iE1] = val
+        def getE1Err(self):           return self.shape[Source.iE1Err]
+        def setE1Err(self, val):      self.shape[Source.iE1Err] = val
+        def getE2(self):              return self.shape[Source.iE2]   
+        def setE2(self, val):         self.shape[Source.iE2] = val
+        def getE2Err(self):           return self.shape[Source.iE2Err]
+        def setE2Err(self, val):      self.shape[Source.iE2Err] = val
 
-        def getShear1(self): return 0.0
-        def setShear1(self, val): pass
-        def getShear1Err(self): return 0.0
-        def setShear1Err(self, val): pass
-        def getShear2(self): return 0.0
-        def setShear2(self, val): pass
-        def getShear2Err(self): return 0.0
-        def setShear2Err(self, val): pass
+        def getShear1(self):          return self.shape[Source.iShear1]
+        def setShear1(self, val):     self.shape[Source.iShear1] = val
+        def getShear1Err(self):       return self.shape[Source.iShear1Err]
+        def setShear1Err(self, val):  self.shape[Source.iShear1Err] = val
+        def getShear2(self):          return self.shape[Source.iShear2]
+        def setShear2(self, val):     self.shape[Source.iShear2] = val
+        def getShear2Err(self):       return self.shape[Source.iShear2Err]
+        def setShear2Err(self, val):  self.shape[Source.iShear2Err] = val
 
-        def getSigma(self): return 0.0
-        def setSigma(self, val): pass
-        def getSigmaErr(self): return 0.0
-        def setSigmaErr(self, val): pass
+        def getSigma(self):           return self.shape[Source.iSigma]
+        def setSigma(self, val):      self.shape[Source.iSigma] = val
+        def getSigmaErr(self):        return self.shape[Source.iSigmaErr]
+        def setSigmaErr(self, val):   self.shape[Source.iSigmaErr] = val
 
 
 #         def getPsfIxx(self):             return self._psfIxx

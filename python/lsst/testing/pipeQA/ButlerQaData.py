@@ -20,6 +20,7 @@ except: pass
 
 import numpy
 import math
+import pyfits
 
 import Manifest   as manifest
 import CameraInfo as qaCamInfo
@@ -276,9 +277,9 @@ class ButlerQaData(QaData):
             self.printStartLoad("Loading SourceSets for: " + dataKey + "...")
             
             # make sure we actually have the output file
-            isWritten = self.outButler.datasetExists('icSrc', dataId)
+            isWritten = self.outButler.datasetExists('src', dataId)
             if isWritten:
-                persistableSourceVector = self.outButler.get('icSrc', dataId)
+                persistableSourceVector = self.outButler.get('src', dataId)
                 sourceSetTmp = persistableSourceVector.getSources()
 
                 #if self.outButler.datasetExists('calexp', dataId):
@@ -301,7 +302,51 @@ class ButlerQaData(QaData):
                 self.sourceSetCache[dataKey] = sourceSetTmp
                 ssDict[dataKey] = copy.copy(sourceSetTmp)
                 self.dataIdLookup[dataKey] = dataId
-                
+
+
+		# now see if we have 'source' to slurb out the blobs
+		sourceFile = self.outButler.get('source_filename', dataId)[0]
+		if os.path.exists(sourceFile):
+
+                    fits = pyfits.open(sourceFile)
+		    table = fits[1].data
+		    columns = fits[1].columns.names
+		    fits.close()
+
+		    preferredOrder = ["HSM_REGAUSS", "HSM_BJ", "HSM_LINEAR", "HSM_KSB"]
+		    useShape = None
+		    shapeColumns = []
+		    for pref in preferredOrder:
+			for column in columns:
+			    if re.search(pref, column):
+				useShape = pref
+				srcCol = re.sub("shape_"+pref+"_", "", column)
+				shapeColumns.append(srcCol)
+			if not useShape is None:
+			    break
+
+		    if not useShape is None:
+			prefix = "shape_"+useShape+"_"
+
+			# single pass through to store by ID
+			rowById = {}
+			for i in range(len(table)):
+			    row = table[i]
+			    objId = row.field('objId')
+			    rowById[objId] = row
+
+			# go through all sources and reset the shapes accordingly
+			for s in self.sourceSetCache[dataKey]:
+			    row = rowById[s.getId()]
+			    
+			    for column in shapeColumns:
+				value = row.field(prefix+column)
+				setterName = "set"+column.title()
+				if hasattr(s, setterName):
+				    setMethod = getattr(s, setterName)
+				    setMethod(value)
+			    
+ 
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
                 
