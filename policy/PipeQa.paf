@@ -138,14 +138,14 @@ definitions: {
         type: double
         description: "Minimum allowed delta"
         maxOccurs: 1
-        default: -0.2
+        default: -0.02
     }
 
     photCompareDeltaMax: {
         type: double
         description: "Maximum allowed delta"
         maxOccurs: 1
-        default:  0.2
+        default:  0.02
     }
 
     photCompareRmsMax: {
