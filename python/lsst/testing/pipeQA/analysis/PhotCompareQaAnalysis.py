@@ -17,7 +17,7 @@ import matplotlib.font_manager as fm
 class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
     def __init__(self, magType1, magType2, magCut,
-                 deltaMin, deltaMax, rmsMax, slopeMinSigma, slopeMaxSigma,
+                 deltaMin, deltaMax, rmsMax, slopeMinSigma, slopeMaxSigma, starGalaxyToggle,
                  **kwargs):
         testLabel = magType1+"-"+magType2
         qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
@@ -26,6 +26,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.deltaLimits = [deltaMin, deltaMax]
         self.rmsLimits = [0.0, rmsMax]
         self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
+        self.starGalaxyToggle = starGalaxyToggle
         
         def magType(mType):
             if re.search("(psf|PSF)", mType):
@@ -44,14 +45,17 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         self.description = """
          For each CCD, the difference between magnitude1 and magnitude2 are
-         plotted as a function of magnitude1.  We make comparisons between
-         aperture magnitudes and reference catalog magnitudes (ap-cat), psf and
-         aperture magnitudes (psf-ap), psf and reference catalog magnitudes
-         (psf-cat), psf and multifit model magnitudes (psf-model), and psf and
-         gaussian model magnitudes (psf-inst).  The width of the bright end of
+         plotted as a function of magnitude1, and also versus x,y pixel coordinate 
+         (color and point size represent delta-mag and mag1).  We make comparisons between
+         aperture magnitudes (ap), reference catalog magnitudes (cat), psf 
+         magnitudes (psf), multifit model magnitudes (mod), and
+         gaussian model magnitudes (inst).  The magnitudes used for a given test are shown
+         in the test name, eg.: psf-cat.  The width of the bright end of
          this distribution (stars plotted in red) reflects the systematic floor
          in these measurement comparisons.  For psf magnitudes, this is
-         typically 1-2% for PT1.2 measurements.  The summary FPA figures show
+         typically 1-2% for PT1.2 measurements.  The summary figure showing all
+         data from all CCDs in the FPA shows stars (red) and galaxies (green), but 
+         does not include the x,y panel.  The summary FPA figures show
          the mean magnitude offset, slope in this offset as a function of
          magnitude, and width (standard deviation) of this distribution for the
          bright stars.
@@ -186,13 +190,16 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         allDiffs = numpy.array([])
 
         for raft,  ccd in self.mag.raftCcdKeys():
-            dmag = self.diff.get(raft, ccd)
-            mag = self.mag.get(raft, ccd)
+            dmag0 = self.diff.get(raft, ccd)
+            mag0 = self.mag.get(raft, ccd)
             star = self.star.get(raft, ccd)
-            w = numpy.where((mag > 10) & (mag < self.magCut) & (star > 0))[0] # & (abs(dmag) < self.dmagMax) )[0]
 
-            mag = mag[w]
-            dmag = dmag[w]
+            wGxy = numpy.where((mag0 > 10) & (mag0 < self.magCut) &
+                               (star == 0) & (numpy.abs(dmag0) < 1.0))[0]
+            w = numpy.where((mag0 > 10) & (mag0 < self.magCut) & (star > 0))[0]
+
+            mag = mag0[w]
+            dmag = dmag0[w]
 
             allMags = numpy.append(allMags, mag)
             allDiffs = numpy.append(allDiffs, dmag)
@@ -204,8 +211,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             median = 99.0
             std = 99.0
             n = 0
-            lineFit = [99.0, 0.0, 0.0, 0.0]
-            lineCoeffs = [99.0, 0.0]
+            lineFit = [[99.0, 0.0, 0.0, 0.0]]*3
+            lineCoeffs = [[99.0, 0.0]]*3
             if len(dmag) > 0:
                 stat = afwMath.makeStatistics(dmag, afwMath.NPOINT | afwMath.MEANCLIP |
                                               afwMath.STDEVCLIP | afwMath.MEDIAN)
@@ -214,9 +221,16 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 std = stat.getValue(afwMath.STDEVCLIP)
                 n = stat.getValue(afwMath.NPOINT)
 
+                # get trendlines for stars/galaxies
+                # for alldata, use trendline for stars
                 if len(dmag) > 1:
-                    lineFit = qaAnaUtil.robustPolyFit(mag, dmag, 1)
-                    lineCoeffs = lineFit[0], lineFit[2]
+                    lineFit[0] = qaAnaUtil.robustPolyFit(mag, dmag, 1)
+                    lineCoeffs[0] = lineFit[0][0], lineFit[0][2]
+                if len(wGxy) > 1:
+                    lineFit[1] = qaAnaUtil.robustPolyFit(mag0[wGxy], dmag0[wGxy], 1)
+                    lineCoeffs[1] = lineFit[1][0], lineFit[1][2]
+                lineFit[2] = lineFit[0]
+                lineCoeffs[2] = lineCoeffs[0]
                     
 
             tag = self.magType1+"_vs_"+self.magType2
@@ -239,9 +253,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
             self.trend.set(raft, ccd, lineFit)
             label = "slope "+tag #+" " + areaLabel
-            slopeLimits = self.slopeLimits[0]*lineFit[1], self.slopeLimits[1]*lineFit[1]
-            comment = "slope of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d) limits=(%.1f,%.1f)sigma" % (self.magCut, len(dmag), n, self.slopeLimits[0], self.slopeLimits[1])
-            testSet.addTest( testCode.Test(label, lineCoeffs[0], slopeLimits, comment, areaLabel=areaLabel))
+            slopeLimits = self.slopeLimits[0]*lineFit[0][1], self.slopeLimits[1]*lineFit[0][1]
+            comment = "slope of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d) limits=(%.1f,%.1f)sigma" % \
+                      (self.magCut, len(dmag), n, self.slopeLimits[0], self.slopeLimits[1])
+            testSet.addTest( testCode.Test(label, lineCoeffs[0][0], slopeLimits, comment,
+                                           areaLabel=areaLabel))
 
 
         # do a test of all CCDs for the slope ... suffering small number problems
@@ -270,7 +286,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 	aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
 
         tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
-        tag = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
+        tag  = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
         dtag = self.magType1+"-"+self.magType2
         wtag = self.magType1+"minus"+self.magType2
 
@@ -290,7 +306,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
             meanFig.data[raft][ccd] = self.means.get(raft, ccd)
             stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
-            slope = self.trend.get(raft, ccd)
+            slope = self.trend.get(raft, ccd)[0]
 
             if not slope is None and not slope[1] == 0:
                 # aspRatio will make the vector have the same angle as the line in the figure
@@ -349,13 +365,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         #############################################
         #
-        figsize = (6.5, 3.75)
-
-        conv = colors.ColorConverter()
-        red = conv.to_rgba('r')
-        black = conv.to_rgba('k')
-        size = 1.0
-        
         xmin, xmax = self.mag.summarize('min', default=0.0), self.mag.summarize('max', default=25.0)
         ymin, ymax = self.diff.summarize('min', default=-1.0), self.diff.summarize('max', default=1.0)
         xrang = xmax-xmin
@@ -365,61 +374,211 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         xlim2 = xlim        #[xmin, xmax]
         ylim2 = [-2.0, 2.0] #[ymin, ymax]
 
+        figsize = (6.5, 3.75)
 
         figbase = "diff_" + dtag
 
         shelfData = {}
 
         for raft, ccd in self.mag.raftCcdKeys():
-            mag  = self.mag.get(raft, ccd)
-            diff = self.diff.get(raft, ccd)
-            x    = self.x.get(raft, ccd)
-            y    = self.y.get(raft, ccd)
-            star = self.star.get(raft, ccd)
-            lineFit = self.trend.get(raft, ccd)
-            trendCoeffs = lineFit[0], lineFit[2]
-            trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
-            trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
+            mag0  = self.mag.get(raft, ccd)
+            diff0 = self.diff.get(raft, ccd)
+            star0 = self.star.get(raft, ccd)
             
-            if len(mag) == 0:
-                mag = numpy.array([xmax])
-                diff = numpy.array([0.0])
-                x    = numpy.array([0.0])
-                y    = numpy.array([0.0])
-                star = numpy.array([0])
-
-            whereCut = numpy.where((mag < self.magCut) & (star > 0))[0] # & (abs(diff) < self.dmagMax))[0]
             print "plotting ", ccd
 
-            #################
-            # data for one ccd
-            fig = qaFig.QaFigure(size=figsize)
-            fig.fig.subplots_adjust(left=0.125, bottom=0.125)
-            ax_1 = fig.fig.add_subplot(121)
-            ax_2 = fig.fig.add_subplot(122)
-            clr = [black] * len(mag)
-            clr = numpy.array(clr)
-            if len(whereCut) > 0:
-                clr[whereCut] = [red] * len(whereCut)
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
+            statBlurb = "Points used for statistics shown in red."
+
+            if self.starGalaxyToggle:
+                fig = self.regularFigure([mag0, diff0, star0,
+                                          areaLabel, raft, ccd, figsize,
+                                          xlim, ylim, xlim2, ylim2, ylimStep,
+                                          tag1, tag, 'stars'])
+                testSet.addFigure(fig, figbase+".png",
+                                  dtag+" vs. "+self.magType1 + "(stars). "+statBlurb,
+                                  areaLabel=areaLabel, toggle='stars')
+                del fig
+
+                fig = self.regularFigure([mag0, diff0, star0,
+                                          areaLabel, raft, ccd, figsize,
+                                          xlim, ylim, xlim2, ylim2, ylimStep,
+                                          tag1, tag, 'galaxies'])
+                testSet.addFigure(fig, figbase+".png",
+                                  dtag+" vs. "+self.magType1 + "(galaxies). "+statBlurb,
+                                  areaLabel=areaLabel, toggle='galaxies')
+                del fig
+                fig = self.regularFigure([mag0, diff0, star0,
+                                          areaLabel, raft, ccd, figsize,
+                                          xlim, ylim, xlim2, ylim2, ylimStep,
+                                          tag1, tag, 'all'])
+                testSet.addFigure(fig, figbase+".png",
+                                  dtag+" vs. "+self.magType1 + ". "+statBlurb,
+                                  areaLabel=areaLabel, toggle="everything")
+                del fig
+                
+            else:
+                fig = self.regularFigure([mag0, diff0, star0,
+                                          areaLabel, raft, ccd, figsize,
+                                          xlim, ylim, xlim2, ylim2, ylimStep, 
+                                          tag1, tag, 'all'])
+                testSet.addFigure(fig, figbase+".png",
+                                  dtag+" vs. "+self.magType1 + ". "+statBlurb,
+                                  areaLabel=areaLabel)
+                del fig
+                
+            
+            # append values to arrays for a plot showing all data
+            shelfData[ccd] = [mag0, diff0, star0, [areaLabel]*len(mag0)]
+            
+        # stash values
+        if self.useCache:
+            testSet.shelve(figbase, shelfData)
+
+        if not self.delaySummary or isFinalDataId:
+            print "plotting Summary figure"
+
+            self.summaryFigure([
+                data, figbase, testSet, shelfData, figsize,
+                xlim, ylim, xlim2, ylim2,
+                tag1, tag, dtag,
+                ])
+
+
+
+
+
+
+    def regularFigure(self, args):
+
+        mag0, diff0, star0, areaLabel, raft, ccd, figsize, xlim, ylim, xlim2, ylim2, ylimStep, \
+              tag1, tag, mode = args
+
+        conv = colors.ColorConverter()
+        size = 2.0
+        
+        red = conv.to_rgba('r')
+        black = conv.to_rgba('k')
+
+        x0    = self.x.get(raft, ccd)
+        y0    = self.y.get(raft, ccd)
+        modeIdx = {'all': 0, 'galaxies': 1, 'stars': 2 }
+        lineFit = self.trend.get(raft, ccd)[modeIdx[mode]]
+            
+        trendCoeffs = lineFit[0], lineFit[2]
+        trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
+        trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
+        
+        if len(mag0) == 0:
+            mag0 = numpy.array([xmax])
+            diff0 = numpy.array([0.0])
+            x0    = numpy.array([0.0])
+            y0    = numpy.array([0.0])
+            star0 = numpy.array([0])
+
+        #################
+        # data for one ccd
+        if mode == 'fourPanel':
+            figsize = (6.5, 5.0)
+        
+        fig = qaFig.QaFigure(size=figsize)
+        fig.fig.subplots_adjust(left=0.09, right=0.93, bottom=0.125)
+
+        if mode == 'fourPanel':
+            ax_1s = fig.fig.add_subplot(221)
+            ax_2s = fig.fig.add_subplot(222)
+            ax_1g = fig.fig.add_subplot(223)
+            ax_2g = fig.fig.add_subplot(224)
+            axSets        = [ [ax_1s, ax_2s], [ax_1g, ax_2g] ]
+            starGalLabels = ["stars", "galaxies"]
+            whereStarGals = [numpy.where(star0 == 0)[0], numpy.where(star0 > 0)[0] ]
+        else:
+            ax_1 = fig.fig.add_subplot(131)
+            ax_2 = fig.fig.add_subplot(132)
+            ax_3 = fig.fig.add_subplot(133)
+            axSets        = [ [ax_1, ax_2, ax_3] ]
+            starGalLabels = [mode]
+            if mode == 'stars':
+                whereStarGals = [numpy.where(star0 > 0)[0] ]
+            if mode == 'galaxies':
+                whereStarGals = [numpy.where(star0 == 0)[0] ]
+            if mode == 'all':
+                starGalLabels = ["all data"]
+                whereStarGals = [numpy.where(star0 > -1)[0] ]
+        
+        for iSet in range(len(axSets)):
+            ax_1, ax_2, ax_3   = axSets[iSet]
+            starGalLabel = starGalLabels[iSet]
+            whereStarGal = whereStarGals[iSet]
+
+            mag  = mag0[whereStarGal]
+            diff = diff0[whereStarGal]
+            x    = x0[whereStarGal]
+            y    = y0[whereStarGal]
+            star = star0[whereStarGal]
+
+            whereCut = numpy.where((mag < self.magCut))[0]
+            whereOther = numpy.where((mag > self.magCut))[0]
 
             xTrend = numpy.array(xlim)
             ax_1.plot(xTrend, numpy.array([0.0, 0.0]), "-k", lw=1.0)
-            
-            for ax in [ax_1, ax_2]:
-                ax.scatter(mag, diff, size, color=clr, label=ccd)
-                ax.set_xlabel(tag1)
 
+            ax_1.text(1.02*xlim[0], 0.87*ylim[1], starGalLabel, size='x-small', horizontalalignment='left')
+            for ax in [ax_1, ax_2]:
+                ax.plot(mag[whereOther], diff[whereOther], "k.", ms=size, label=ccd)
+                ax.plot(mag[whereCut], diff[whereCut], "r.", ms=size, label=ccd)
+                ax.set_xlabel(tag1, size='small')
+
+
+            norm = colors.Normalize(vmin=-0.05, vmax=0.05, clip=True)
+            cdict = {'red': ((0.0, 0.0, 0.0),
+                             (0.5, 0.0, 0.0),
+                             (1.0, 1.0, 1.0)),
+                     'green': ((0.0, 0.0, 0.0),
+                               (0.5, 0.0, 0.0),
+                               (1.0, 0.0, 0.0)),
+                     'blue': ((0.0, 1.0, 1.0),
+                              (0.5, 0.0, 0.0),
+                              (1.0, 0.0, 0.0))}
+            my_cmap = colors.LinearSegmentedColormap('my_colormap',cdict,256)
+            
+            midSize = 2.0
+            maxSize = 6*midSize
+            minSize = midSize/2
+            magLo = xlim[0] if xlim[0] > mag0.min() else mag0.min()
+            magHi = self.magCut + 2.0 #xlim[1] if xlim[1] < mag0.max() else mag0.max()
+            sizes = minSize + (maxSize - minSize)*(magHi - mag)/(magHi - magLo)
+            sizes = numpy.clip(sizes, minSize, maxSize)
+            xyplot = ax_3.scatter(x, y, s=sizes, c=diff, marker='o',
+                                  cmap=my_cmap, norm=norm, edgecolors='none')
+            ax_3.set_xlim([x0.min(), x0.max()])
+            ax_3.set_ylim([y0.min(), y0.max()])
+            ax_3.set_xlabel("x", size='x-small')
+            #ax_3.set_ylabel("y", labelpad=20, y=1.0, size='x-small', rotation=0.0)
+            cb = fig.fig.colorbar(xyplot)
+            cb.ax.set_xlabel("$\delta$ mag", size="x-small")
+            cb.ax.xaxis.set_label_position('top')
+            for tick in cb.ax.get_yticklabels():
+                tick.set_size("x-small")
+            for t in ax_3.get_xticklabels() + ax_3.get_yticklabels():
+                t.set_rotation(45.0)
+                t.set_size('xx-small')
+            #for t in ax_3.get_yticklabels():
+            #    t.set_size('xx-small')
+                
+            
             lineVals = numpy.lib.polyval(trendCoeffs, xTrend)
             lineValsLo = numpy.lib.polyval(trendCoeffsLo, xTrend)
             lineValsHi = numpy.lib.polyval(trendCoeffsHi, xTrend)
-            
+
 
             if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
                 lmin, lmax = lineVals.min(), lineVals.max()
-                if lmin < ylim[0]:
-                    ylim[0] = -(int(abs(lmin)/ylimStep) + 1)*ylimStep
-                if lmax > ylim[1]:
-                    ylim[1] = (int(lmax/ylimStep) + 1)*ylimStep
+                if False:
+                    if lmin < ylim[0]:
+                        ylim[0] = -(int(abs(lmin)/ylimStep) + 1)*ylimStep
+                    if lmax > ylim[1]:
+                        ylim[1] = (int(lmax/ylimStep) + 1)*ylimStep
 
                 ax_1.plot(xTrend, lineVals, "-r", lw=1.0)
                 ax_1.plot(xTrend, lineValsLo, "--r", lw=1.0)
@@ -427,75 +586,59 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 ax_2.plot(xTrend, lineVals, "-r", lw=1.0)
                 ax_2.plot(xTrend, lineValsLo, "--r", lw=1.0)
                 ax_2.plot(xTrend, lineValsHi, "--r", lw=1.0)
-            
+
             ax_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
-            ax_1.set_ylabel(tag)
+            ax_1.set_ylabel(tag, size="small")
             ax_1.set_xlim(xlim)
             ax_2.set_xlim(xlim2)
             ax_1.set_ylim(ylim)
             ax_2.set_ylim(ylim2)
 
             # move the y axis on right panel
-            ax_2.yaxis.set_label_position('right')
-            ax_2.yaxis.set_ticks_position('right')
+            #ax_3.yaxis.set_label_position('right')
+            #ax_3.yaxis.set_ticks_position('right')
 
             dmag = 0.1
             ddiff1 = 0.02
             ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
-            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
+            
             for j in xrange(len(mag)):
                 info = "nolink:x:%.2f_y:%.2f" % (x[j], y[j])
                 area = (mag[j]-dmag, diff[j]-ddiff1, mag[j]+dmag, diff[j]+ddiff1)
                 fig.addMapArea(areaLabel, area, info, axes=ax_1)
                 area = (mag[j]-dmag, diff[j]-ddiff2, mag[j]+dmag, diff[j]+ddiff2)
                 fig.addMapArea(areaLabel, area, info, axes=ax_2)
-                
 
-            testSet.addFigure(fig, figbase+".png",
-                              dtag+" vs. "+self.magType1 + ". Point used for statistics shown in red.",
-                              areaLabel=areaLabel)
+            for ax in [ax_1, ax_2]:
+                for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                    tick.set_size("x-small")
 
-            # append values to arrays for a plot showing all data
-            shelfData[ccd] = [mag, diff, star, [areaLabel]*len(mag)]
-            
-
-        # stash values
-        if self.useCache:
-            testSet.shelve(figbase, shelfData)
-
-
-        if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
-
-            self.summaryFigure([
-                data, figbase, testSet, shelfData, figsize,
-                xlim, ylim, xlim2, ylim2, size,
-                tag1, tag, dtag,
-                ])
+        return fig
 
 
 
-
+                    
     def summaryFigure(self, summaryArgs):
 
-        data, figbase, testSet, shelfData, figsize, xlim, ylim, xlim2, ylim2, size, tag1, tag, dtag = \
-              summaryArgs
+        data, figbase, testSet, shelfData, figsize, xlim, ylim, xlim2, ylim2, tag1, tag, dtag = summaryArgs
+
+        size = 2.0
         
         # unstash the values
         if self.useCache:
             shelfData = testSet.unshelve(figbase)
 
-        colorId = {}
-        i = 0
-        for k in sorted(data.cameraInfo.sensors.keys()):
-            colorId[k] = i
-            i += 1
+        #colorId = {}
+        #i = 0
+        #for k in sorted(data.cameraInfo.sensors.keys()):
+        #    colorId[k] = i
+        #    i += 1
 
         allMags = numpy.array([])
         allDiffs = numpy.array([])
         allStars = numpy.array([])
-        allColor = numpy.array([])
+        #allColor = numpy.array([])
         allLabels = numpy.array([])
         allCcds = []
         for k,v in shelfData.items():
@@ -504,19 +647,19 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             allMags = numpy.append(allMags, mags)
             allDiffs = numpy.append(allDiffs, diffs)
             allStars = numpy.append(allStars, stars)
-            allColor = numpy.append(allColor, colorId[k]*numpy.ones(len(mags)))
+            #allColor = numpy.append(allColor, colorId[k]*numpy.ones(len(mags)))
             allLabels = numpy.append(allLabels, arealabels)
 
         # figure out the color map
-        colorIdList = []
-        for ccd in allCcds:
-            clr = colorId[ccd]
-            colorIdList.append(clr)
-        minColorId = numpy.min(colorIdList)
-        maxColorId = numpy.max(colorIdList)
-        norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
-        sm = cm.ScalarMappable(norm, cmap=cm.jet)
-        allColor = sm.to_rgba(allColor)
+        #colorIdList = []
+        #for ccd in allCcds:
+        #    clr = colorId[ccd]
+        #    colorIdList.append(clr)
+        #minColorId = numpy.min(colorIdList)
+        #maxColorId = numpy.max(colorIdList)
+        #norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
+        #sm = cm.ScalarMappable(norm, cmap=cm.jet)
+        #allColor = sm.to_rgba(allColor)
 
         # dmag vs mag
         fig0 = qaFig.QaFigure(size=figsize)
@@ -524,7 +667,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         ax0_1 = fig0.fig.add_subplot(121)
         ax0_2 = fig0.fig.add_subplot(122)
 
-        w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0] # & (abs(allDiffs) < self.dmagMax))[0]
+        w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0]
+        wStar = numpy.where(allStars > 0)[0]
+        wGxy = numpy.where(allStars == 0)[0]
 
         if len(w) > 0:
             lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
@@ -541,21 +686,33 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         if len(allMags) == 0:
             allMags = numpy.array([xmax])
             allDiffs = numpy.array([0.0])
-            allColor = [black]
+            #allColor = [black]
             allLabels = ["no_valid_data"]
             trendCoeffs = [0.0, 0.0]
             trendCoeffsLo = [0.0, 0.0]
             trendCoeffsHi = [0.0, 0.0]
 
-        allColor = numpy.array(allColor)
+        #allColor = numpy.array(allColor)
         for ax in [ax0_1, ax0_2]:
             ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
-            ax.scatter(allMags, allDiffs, size, color=allColor)
+            ax.plot(allMags[wGxy], allDiffs[wGxy], "g.", ms=size, label="galaxies") #0.75, alpha=0.5)
+            ax.plot(allMags[wStar], allDiffs[wStar], "r.", ms=size, label="stars") #, alpha=0.5)
             # 99 is the 'no-data' values
             if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
                 ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
                 ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
                 ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
+
+        # show outliers railed at the ylims
+        wStarOutlier = numpy.where((numpy.abs(allDiffs) > ylim2[1]) & (allStars > 0))[0]
+        wGxyOutlier = numpy.where((numpy.abs(allDiffs) > ylim2[1]) & (allStars == 0))[0]
+        clip = 0.99
+        ax0_2.plot(allMags[wStarOutlier], numpy.clip(allDiffs[wStarOutlier], clip*ylim2[0], clip*ylim2[1]),
+                   'r.', ms=size)
+        ax0_2.plot(allMags[wGxyOutlier], numpy.clip(allDiffs[wGxyOutlier], clip*ylim2[0], clip*ylim2[1]),
+                   'g.', ms=size)
+        ax0_2.legend(prop=fm.FontProperties(size="x-small"), loc="upper left")
+        
         ax0_1.set_xlim(xlim)
         ax0_2.set_xlim(xlim2)
         ax0_1.set_ylim(ylim)
@@ -573,7 +730,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         del allMags
         del allDiffs
-        del allColor
+        #del allColor
         del allLabels
 
         # move the yaxis ticks/labels to the other side

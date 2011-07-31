@@ -396,6 +396,8 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         legLabels.append("Zeropoint")
 
         maxN2 = 999
+
+        nu, bu, pu = None, None, None
         
         # Unmatched & matched reference objects
         ax2  = fig.fig.add_axes([0.1,   0.225, 0.125, 0.550], sharey=axis)
@@ -419,9 +421,12 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         ax2.set_xlabel('N', fontsize = 10)
         ax2.set_ylabel('Reference catalog mag', fontsize = 10)
 
-        if num.max(nu) > maxN2: maxN2 = num.max(nu)
+
+        if not nu is None and num.max(nu) > maxN2: maxN2 = num.max(nu)
 
         maxN3 = 999
+
+        nm, bm, pm = None, None, None
 
         # Unmatched & matched stellar objects
         ax3  = fig.fig.add_axes([0.225, 0.1,   0.675, 0.125], sharex=axis)
@@ -443,7 +448,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             legLines.append(pm[0])
             legLabels.append("Matched Sources")
 
-        if num.max(nm) > maxN3: maxN3 = num.max(nm)
+        if not nm is None and num.max(nm) > maxN3: maxN3 = num.max(nm)
 
         if len(uimgmag) > 0:
             try:

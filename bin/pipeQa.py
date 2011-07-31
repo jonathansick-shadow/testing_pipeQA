@@ -103,8 +103,12 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         slopeMax = policy.get("photCompareSlopeMaxSigma")
         for types in policy.getStringArray("photCompareTypes"):
             cmp1, cmp2 = types.split()
+            starGxyToggle = False
+            if types in policy.getStringArray("photCompareStarGalaxyToggle"):
+                starGxyToggle = True
             analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
-                                                                 rmsMax, slopeMin, slopeMax, useCache=keep,
+                                                                 rmsMax, slopeMin, slopeMax, starGxyToggle,
+                                                                 useCache=keep,
                                                                  wwwCache=wwwCache,
                                                                  delaySummary=delaySummary))
     if data.cameraInfo.name in policy.getStringArray("doPsfShapeQa"):

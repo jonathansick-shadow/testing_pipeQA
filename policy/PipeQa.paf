@@ -94,8 +94,8 @@ definitions: {
     photCompareTypes: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
-        maxOccurs: 7
-        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst" "inst cat" "mod cat"
+        maxOccurs: 8
+        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst" "inst cat" "mod cat" "mod inst"
         allowed: {
             value:        "psf cat"
             description:  "Compare Psf magnitudes to catalog magnitudes"
@@ -123,6 +123,10 @@ definitions: {
 	allowed: {
             value:        "mod cat"
             description:  "Compare model and catalog magnitudes"
+        }
+	allowed: {
+            value:        "mod inst"
+            description:  "Separate stars/gxys for model and inst (Gaussian) magnitudes"
         }
 
     }
@@ -167,6 +171,45 @@ definitions: {
         description: "Maximum std.dev. of slope above slope=0"
         maxOccurs: 1
         default:  3.5
+    }
+    photCompareStarGalaxyToggle: {
+        type: string
+        description: "Make separate figures for stars and galaxies."
+        maxOccurs: 8
+        default: "mod cat" "inst cat" "ap cat" "psf cat"
+        allowed: {
+            value:        "psf cat"
+            description:  "Separate stars/gxys for Psf magnitudes to catalog magnitudes"
+        }
+        allowed: {
+            value:        "psf ap"
+            description:  "Separate stars/gxys for Psf and aperture magnitudes"
+        }
+        allowed: {
+            value:        "psf mod"
+            description:  "Separate stars/gxys for Psf and model magnitudes"
+        }
+	allowed: {
+            value:        "ap cat"
+            description:  "Separate stars/gxys for Psf and model magnitudes"
+        }
+        allowed: {
+            value:        "psf inst"
+            description:  "Separate stars/gxys for PSF and instrument magnitudes"
+        }
+	allowed: {
+            value:        "inst cat"
+            description:  "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes"
+        }
+	allowed: {
+            value:        "mod cat"
+            description:  "Separate stars/gxys for model and catalog magnitudes"
+        }
+	allowed: {
+            value:        "mod inst"
+            description:  "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+        }
+
     }
 
     ###

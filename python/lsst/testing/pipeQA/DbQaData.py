@@ -236,13 +236,11 @@ class DbQaData(QaData):
                 soid = so.getId()
                 if soid in orphanIds:
                     orphans.append(so)
-                if soid in matchedIds:
+                if soid in matchedIds and soid in matchIds:
                     if multiplicity[soid] == 1:
-                        if soid in matchIds:
-                            matched.append(matchList[matchIds.index(soid)])
+                        matched.append(matchList[matchIds.index(soid)])
                     else:
-                        if soid in matchIds:
-                            blended.append(matchList[matchIds.index(soid)])
+                        blended.append(matchList[matchIds.index(soid)])
                         
             self.printMidLoad('\n        %s: Undet, orphan, matched, blended = %d %d %d %d' % (
                 key, len(undetected), len(orphans), len(matched), len(blended))
