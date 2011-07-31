@@ -365,12 +365,12 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         #############################################
         #
-        xmin, xmax = self.mag.summarize('min', default=0.0), self.mag.summarize('max', default=25.0)
-        ymin, ymax = self.diff.summarize('min', default=-1.0), self.diff.summarize('max', default=1.0)
-        xrang = xmax-xmin
-        xmin, xmax = int(xmin-0.05*xrang), int(xmax+0.05*xrang)+1
-        yrang = ymax-ymin
-        ymin, ymax = ymin-0.05*yrang, ymax+0.05*yrang
+        #xmin, xmax = self.mag.summarize('min', default=0.0), self.mag.summarize('max', default=25.0)
+        #ymin, ymax = self.diff.summarize('min', default=-1.0), self.diff.summarize('max', default=1.0)
+        #xrang = xmax-xmin
+        #xmin, xmax = int(xmin-0.05*xrang), int(xmax+0.05*xrang)+1
+        #yrang = ymax-ymin
+        #ymin, ymax = ymin-0.05*yrang, ymax+0.05*yrang
         xlim2 = xlim        #[xmin, xmax]
         ylim2 = [-2.0, 2.0] #[ymin, ymax]
 
@@ -470,7 +470,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
         
         if len(mag0) == 0:
-            mag0 = numpy.array([xmax])
+            mag0 = numpy.array([xlim[1]])
             diff0 = numpy.array([0.0])
             x0    = numpy.array([0.0])
             y0    = numpy.array([0.0])
@@ -684,7 +684,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         ####################
         # data for all ccds
         if len(allMags) == 0:
-            allMags = numpy.array([xmax])
+            allMags = numpy.array([xlim[1]])
             allDiffs = numpy.array([0.0])
             #allColor = [black]
             allLabels = ["no_valid_data"]
