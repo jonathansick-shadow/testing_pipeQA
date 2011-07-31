@@ -388,7 +388,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             print "plotting ", ccd
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            statBlurb = "Points used for statistics shown in red."
+            statBlurb = "Points used for statistics/trendline shown in red."
 
             if self.starGalaxyToggle:
                 fig = self.regularFigure([mag0, diff0, star0,
@@ -468,7 +468,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         trendCoeffs = lineFit[0], lineFit[2]
         trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
         trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
-        
+	#print trendCoeffs        
         if len(mag0) == 0:
             mag0 = numpy.array([xlim[1]])
             diff0 = numpy.array([0.0])
