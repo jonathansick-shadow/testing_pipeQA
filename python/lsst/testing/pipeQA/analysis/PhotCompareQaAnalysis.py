@@ -262,6 +262,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         # do a test of all CCDs for the slope ... suffering small number problems
         #  on indiv ccds and could miss a problem
+        
+        lineFit = [99.0, 0.0, 0.0, 0.0]
+        lineCoeffs = [99.0, 0.0]
         if len(allDiffs) > 1:
             lineFit = qaAnaUtil.robustPolyFit(allMags, allDiffs, 1)
             lineCoeffs = lineFit[0], lineFit[2]
