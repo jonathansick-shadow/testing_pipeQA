@@ -169,11 +169,12 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         #if star:
                         #    print "isStar: ", star
                         
-                        self.diff.append(raft, ccd, m1 - m2)
-                        self.mag.append(raft, ccd, m1)
-                        self.x.append(raft, ccd, s.getXAstrom())
-                        self.y.append(raft, ccd, s.getYAstrom())
-                        self.star.append(raft, ccd, star)
+                        if numpy.isfinite(m1) and numpy.isfinite(m2):
+			    self.diff.append(raft, ccd, m1 - m2)
+			    self.mag.append(raft, ccd, m1)
+			    self.x.append(raft, ccd, s.getXAstrom())
+			    self.y.append(raft, ccd, s.getYAstrom())
+			    self.star.append(raft, ccd, star)
                     
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.addMetadata('magType1', self.magType1)
