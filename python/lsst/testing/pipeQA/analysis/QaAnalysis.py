@@ -36,7 +36,9 @@ class QaAnalysis(object):
         filter = data.getFilterBySensor(dataId)
         # all sensors have the same filter, so just grab one
         key = filter.keys()[0]
-        filterName = filter[key].getName()
+	filterName = '?'
+	if not filter[key] is None:
+	    filterName = filter[key].getName()
 
         if not label is None:
             label = self.__class__.__name__ + "."+ label

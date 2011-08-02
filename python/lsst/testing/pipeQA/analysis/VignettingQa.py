@@ -89,7 +89,7 @@ class VignettingQa(qaAna.QaAnalysis):
             endY   = bbox.getEndY()
             centerXp = 0.5 * (endX - startX)
             centerYp = 0.5 * (endY - startY)
-            
+
             if self.matchListDictSrc.has_key(key):
                 mdict    = self.matchListDictSrc[key]['matched']
                 for m in mdict:
@@ -113,17 +113,26 @@ class VignettingQa(qaAna.QaAnalysis):
                         if num.isfinite(m1) and num.isfinite(m2):
                             self.dmag.append(raftId, ccdId, m1 - m2)
                             self.ids.append(raftId, ccdId, str(s.getId()))
-                            # XY switched
-                            xmm     = centerXm + (s.getYAstrom() - centerXp) * pixelSize
-                            ymm     = centerYm + (s.getXAstrom() - centerYp) * pixelSize
-                            radiusp = num.sqrt(xmm**2 + ymm**2) / pixelSize
+
+			    if data.cameraInfo.name == 'lsstSim':
+				# XY switched
+				xmm     = centerXm + (s.getYAstrom() - centerXp) * pixelSize
+				ymm     = centerYm + (s.getXAstrom() - centerYp) * pixelSize
+				radiusp = num.sqrt(xmm**2 + ymm**2) / pixelSize
+			    else:
+				# XY not switch, and pixel centers not in mm
+				xmm     = centerXm + (s.getXAstrom() - centerXp)
+				ymm     = centerYm + (s.getYAstrom() - centerYp)
+				radiusp = num.sqrt(xmm**2 + ymm**2)
                             self.radius.append(raftId, ccdId, radiusp)
 
                 # Calculate stats
                 dmags = self.dmag.get(raftId, ccdId)
                 med   = num.median(dmags)
-                stat  = afwMath.makeStatistics(dmags, afwMath.IQRANGE)
-                std   = 0.741 * stat.getValue(afwMath.IQRANGE)
+		std   = 0.0
+		if len(dmags) > 1:
+		    stat  = afwMath.makeStatistics(dmags, afwMath.IQRANGE)
+		    std   = 0.741 * stat.getValue(afwMath.IQRANGE)
                 self.medianOffset.set(raftId, ccdId, med)
                 self.rmsOffset.set(raftId, ccdId, std)
                 
@@ -206,8 +215,10 @@ class VignettingQa(qaAna.QaAnalysis):
             dmags = self.dmag.get(raft, ccd)
             radii = self.radius.get(raft, ccd)
 
-            ymin = num.max([dmags.min(),-0.5])
-            ymax = num.min([dmags.max(), 0.5])
+	    ymin, ymax = -0.5, 0.5
+	    if len(dmags) > 0:
+		ymin = num.max([dmags.min(),-0.5])
+		ymax = num.min([dmags.max(), 0.5])
             ylim = [ymin, ymax]
             
             ids   = self.ids.get(raft, ccd)
@@ -260,10 +271,10 @@ class VignettingQa(qaAna.QaAnalysis):
             if self.useCache:
                 shelfData = testSet.unshelve(cacheLabel)
 
-            dmagsAll  = num.array([])
-            radiiAll  = num.array([])
-            idsAll    = num.array([])
-            labelsAll = num.array([])
+            dmagsAll  = num.array([0.0])
+            radiiAll  = num.array([0.0])
+            idsAll    = num.array([0])
+            labelsAll = num.array([""])
             for k,v in shelfData.items():
                 dmags, radii, ids, labels = v
                 dmagsAll  = num.append(dmagsAll  , dmags)
