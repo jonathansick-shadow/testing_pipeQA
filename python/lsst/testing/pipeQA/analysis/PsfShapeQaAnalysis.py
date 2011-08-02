@@ -332,7 +332,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             y     = numpy.array([0.0])
             dx    = numpy.array([0.0])
             dy    = numpy.array([0.0])
-            color = numpy.array([0.0])
+            color = numpy.array((0.0, 0.0, 0.0))
 
         #xmax, ymax = x.max(), y.max()
         xlim = [xlo, xhi] #[0, 1024*int(xmax/1024.0 + 0.5)]
