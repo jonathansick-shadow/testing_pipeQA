@@ -52,7 +52,14 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
     if exceptExit:
         numpy.seterr(all="raise")
 
-    data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera)
+    # Policy for which plots to make and value of quality metrics
+    policyDictName = "PipeQa.paf"
+    policyFile = pexPolicy.DefaultPolicyFile("testing_pipeQA", policyDictName, "policy")
+    policy  = pexPolicy.Policy.createPolicy(policyFile, policyFile.getRepositoryPath(), True)
+
+
+    data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera,
+			     shapeAlg=policy.get('shapeAlgorithm'))
 
     if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
 	dataIdInput['sensor'] = dataIdInput['ccd']
@@ -70,10 +77,6 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
             raise Exception("Key "+k+" not available for this dataset (camera="+data.cameraInfo.name+")")
 
 
-    # Policy for which plots to make and value of quality metrics
-    policyDictName = "PipeQa.paf"
-    policyFile = pexPolicy.DefaultPolicyFile("testing_pipeQA", policyDictName, "policy")
-    policy  = pexPolicy.Policy.createPolicy(policyFile, policyFile.getRepositoryPath(), True)
     
     analysisList = []
     if data.cameraInfo.name in policy.getStringArray("doZptQa"):

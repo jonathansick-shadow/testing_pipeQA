@@ -4,6 +4,33 @@
 #
 definitions: {
 
+    shapeAlgorithm: {
+        type: string
+	description: "Shape Algorithm to load."
+	maxOccurs: 1
+	default: "HSM_REGAUSS"
+        allowed: {
+            value:        "HSM_REGAUSS"
+            description:  "Hirata-Seljac-Mandelbaum Regaussianization"
+        }
+        allowed: {
+            value:        "HSM_BJ"
+            description:  "Hirata-Seljac-Mandelbaum Bernstein&Jarvis"
+        }
+        allowed: {
+            value:        "HSM_LINEAR"
+            description:  "Hirata-Seljac-Mandelbaum Linear"
+        }
+        allowed: {
+            value:        "HSM_KSB"
+            description:  "Hirata-Seljac-Mandelbaum KSB"
+        }
+        allowed: {
+            value:        "HSM_SHAPELET"
+            description:  "Hirata-Seljac-Mandelbaum SHAPELET"
+        }
+    }
+
     doZptQa: {
         type: string
         description: "Photometric Zeropoint: qaAnalysis.ZeropointQaAnalysis"

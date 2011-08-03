@@ -64,6 +64,12 @@ class ButlerQaData(QaData):
         self.dataId         = self.kwargs.get('dataId', {})
         self.haveManifest   = self.kwargs.get('haveManifest', False)
         self.verifyChecksum = self.kwargs.get('verifyChecksum', False)
+	self.shapeAlg       = self.kwargs.get('shapeAlg', 'HSM_REGAUSS')
+
+	knownAlgs = ["HSM_REGAUSS", "HSM_BJ", "HSM_LINEAR", "HSM_SHAPELET", "HSM_KSB"]
+	if not self.shapeAlg in set(knownAlgs):
+	    knownStr = "\n".join(knownAlgs)
+	    raise Exception("Unknown shape algorithm: %s.  Please choose: \n%s\n" % (self.shapeAlg, knownStr))
 
         ###############################################
         # check the manifest, if requested
@@ -313,20 +319,16 @@ class ButlerQaData(QaData):
 		    columns = fits[1].columns.names
 		    fits.close()
 
-		    preferredOrder = ["HSM_REGAUSS", "HSM_BJ", "HSM_LINEAR", "HSM_KSB"]
-		    useShape = None
+		    haveShape = False
 		    shapeColumns = []
-		    for pref in preferredOrder:
-			for column in columns:
-			    if re.search(pref, column):
-				useShape = pref
-				srcCol = re.sub("shape_"+pref+"_", "", column)
-				shapeColumns.append(srcCol)
-			if not useShape is None:
-			    break
+		    for column in columns:
+			if re.search(self.shapeAlg, column):
+			    haveShape = True
+			    srcCol = re.sub("shape_"+self.shapeAlg+"_", "", column)
+			    shapeColumns.append(srcCol)
 
-		    if not useShape is None:
-			prefix = "shape_"+useShape+"_"
+		    if haveShape:
+			prefix = "shape_"+self.shapeAlg+"_"
 
 			# single pass through to store by ID
 			rowById = {}
@@ -497,6 +499,9 @@ class ButlerQaData(QaData):
 
 
                 # check the fwhm ... we know we need it
+		# NOTE that we actually try to load this from the SEEING
+		#  keyword in the calexp_md.  So a fwhm=-1 here, doesn't mean
+		#  it wasn't already set by SEEING
                 sigmaToFwhm = 2.0*math.sqrt(2.0*math.log(2.0))
                 width = calexp_md.get('NAXIS1')
                 height = calexp_md.get('NAXIS2')
