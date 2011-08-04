@@ -362,6 +362,7 @@ class CompletenessQa(qaAna.QaAnalysis):
 
         fig = qaFig.QaFigure()
         sp1 = fig.fig.add_subplot(211)
+        fig.fig.subplots_adjust(left=0.13)
         sp2 = fig.fig.add_subplot(212, sharex = sp1)
 
         # Stacked histogram
@@ -441,6 +442,7 @@ class CompletenessQa(qaAna.QaAnalysis):
         sp2.set_xlabel('Mag', fontsize=10)
         sp2.set_ylabel('N Gals', fontsize=10)
         qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize = 6)
+        qaFigUtils.qaSetp(sp2.get_yticklabels(), rotation = 45.0)
         sp2.legend(numpoints = 1, prop=FontProperties(size='x-small'), loc = 'upper left')
         #sp2.set_ylim(0.75, 999)
         #sp2.semilogy()
