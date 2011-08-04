@@ -101,7 +101,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         
         # get data
         self.detector      = data.getDetectorBySensor(dataId)
-        self.filter        = data.getFilterBySensor(dataId)
+        self.filter        = data.getFilterBySensor(dataId)       
         
         self.diff = raftCcdData.RaftCcdVector(self.detector)
         self.mag  = raftCcdData.RaftCcdVector(self.detector)
@@ -152,7 +152,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             for key, ss in self.ssDict.items():
                 raft = self.detector[key].getParent().getId().getName()
                 ccd  = self.detector[key].getId().getName()
-
+                
                 filter = self.filter[key].getName()
 
                 qaAnaUtil.isStar(ss)  # sets the 'STAR' flag

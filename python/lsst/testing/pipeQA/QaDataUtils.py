@@ -347,3 +347,23 @@ def getCalibObjects(butler, filterName, dataId):
     measAstrom.joinMatchList(matches, sources, first=False, log=log)
 
     return matches, calib, refsources
+
+
+
+def calibFluxError(f, df, f0, df0):
+    return (df/f + df0/f0)*f/f0
+
+
+def atEdge(bbox, x, y):
+
+    borderWidth = 18
+    x0, y0, x1, y1 = bbox
+    imgWidth  = x1 - x0
+    imgHeight = y1 - y0
+    
+    if x < borderWidth or imgWidth - x < borderWidth:
+        return True
+    if y < borderWidth or imgHeight - y < borderWidth:
+        return True
+    
+    return False

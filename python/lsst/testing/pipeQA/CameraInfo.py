@@ -102,7 +102,22 @@ class CameraInfo(object):
         return self.nSensor
                 
 
+    def raftKeyToName(self, raft):
+        for r in self.rafts.keys():
+            if re.search(raft, r):
+                return r
+        return None
 
+    def ccdKeyToName(self, ccd):
+        for c in self.sensors.keys():
+            if re.search("^R:\d,\d S:\d,\d$", c):
+                if re.search("^R:\d,\d S:"+ccd, c):
+                    return c
+            else:
+                if re.search(ccd, c):
+                    return c
+        return None
+        
     def getBbox(self, raftName, ccdName):
 
         raft = self.rafts[raftName]

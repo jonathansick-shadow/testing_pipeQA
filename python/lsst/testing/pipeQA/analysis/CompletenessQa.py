@@ -8,6 +8,7 @@ import lsst.meas.algorithms as measAlg
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 
+import matplotlib.ticker as ticker
 from matplotlib.font_manager import FontProperties
 import matplotlib.patches as patches
 
@@ -413,7 +414,12 @@ class CompletenessQa(qaAna.QaAnalysis):
         qaFigUtils.qaSetp(sp1x2.get_yticklabels(), fontsize = 6)
 
         sp1.set_ylabel('N Stars', fontsize=10)
-        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
+        if False: #1.4*ymax > 1000:
+            sp1.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2g"))
+            for t in sp1.get_yticklabels():
+                print t.get_text()
+                t.set_text(re.sub("\+0", "", t.get_text()))
+        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 6)
 
         ##############
 
@@ -434,14 +440,14 @@ class CompletenessQa(qaAna.QaAnalysis):
 
         sp2.set_xlabel('Mag', fontsize=10)
         sp2.set_ylabel('N Gals', fontsize=10)
-        qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize = 8)
+        qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize = 6)
         sp2.legend(numpoints = 1, prop=FontProperties(size='x-small'), loc = 'upper left')
         #sp2.set_ylim(0.75, 999)
         #sp2.semilogy()
 
         sp1.set_xlim(14, 26)
 
-        fig.fig.suptitle('%s Stacked histogram' % (title), fontsize = 12)
+        fig.fig.suptitle('%s Stacked histogram' % (title), fontsize = 11)
 
         return fig
 

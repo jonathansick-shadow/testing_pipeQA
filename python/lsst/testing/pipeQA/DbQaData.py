@@ -178,10 +178,22 @@ class DbQaData(QaData):
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
+
+            # fluxes
             s.setPsfFlux(s.getPsfFlux()/fmag0)
             s.setApFlux(s.getApFlux()/fmag0)
             s.setModelFlux(s.getModelFlux()/fmag0)
             s.setInstFlux(s.getInstFlux()/fmag0)
+
+            # flux errors
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
+            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+            s.setPsfFluxErr(psfFluxErr)
+            s.setApFluxErr(apFluxErr)
+            s.setModelFluxErr(modFluxErr)
+            s.setInstFluxErr(instFluxErr)
 
             dist = 0.0
             matchList.append([sref, s, dist])
@@ -194,7 +206,7 @@ class DbQaData(QaData):
         typeDict = {}
         for key in matchListDict.keys():
             matchList = matchListDict[key]
-            
+                
             typeDict[key] = {}
             
             sources    = self.getSourceSetBySensor(dataIdRegex)[key]
@@ -231,24 +243,25 @@ class DbQaData(QaData):
             for ro in refObjects:
                 if ro.getId() in undetectedIds:
                     undetected.append(ro)
-            matchIds = [x[1].getId() for x in matchList]
+            matchListById = dict([(m[1].getId(), m) for m in matchList])
+            matchIdsSet = set(matchListById.keys())
             for so in sources:
                 soid = so.getId()
                 if soid in orphanIds:
                     orphans.append(so)
-                if soid in matchedIds and soid in matchIds:
+                if soid in matchedIds and soid in matchIdsSet:
                     if multiplicity[soid] == 1:
-                        matched.append(matchList[matchIds.index(soid)])
+                        matched.append(matchListById[soid])
                     else:
-                        blended.append(matchList[matchIds.index(soid)])
+                        blended.append(matchListById[soid])
                         
             self.printMidLoad('\n        %s: Undet, orphan, matched, blended = %d %d %d %d' % (
                 key, len(undetected), len(orphans), len(matched), len(blended))
                               )
 
-            typeDict[key]['orphan'] = orphans
-            typeDict[key]['matched'] = matched
-            typeDict[key]['blended'] = blended
+            typeDict[key]['orphan']     = orphans
+            typeDict[key]['matched']    = matched
+            typeDict[key]['blended']    = blended
             typeDict[key]['undetected'] = undetected
 
             # cache it
@@ -318,9 +331,13 @@ class DbQaData(QaData):
 
         # run the query
         results  = self.dbInterface.execute(sql)
+        calib = self.getCalibBySensor(dataIdRegex)
 
         # parse results and put them in a sourceSet
         ssDict = {}
+        for k in calib.keys():
+            ssDict[k] = []
+        
         for row in results:
             s = pqaSource.Source()
             qaDataUtils.setSourceBlobsNone(s)
@@ -330,8 +347,8 @@ class DbQaData(QaData):
             key = self._dataIdToString(dataIdTmp)
             self.dataIdLookup[key] = dataIdTmp
 
-            if not ssDict.has_key(key):
-                ssDict[key] = [] #pqaSource.SourceSet()
+            #if not ssDict.has_key(key):
+            #    ssDict[key] = [] #pqaSource.SourceSet()
             ss = ssDict[key]
                 
             i = 0
@@ -343,12 +360,23 @@ class DbQaData(QaData):
 
 
             # calibrate it
-            calib = self.getCalibBySensor(dataIdTmp)
             fmag0, fmag0Err = calib[key].getFluxMag0()
+
+            # fluxes
             s.setPsfFlux(s.getPsfFlux()/fmag0)
             s.setApFlux(s.getApFlux()/fmag0)
             s.setModelFlux(s.getModelFlux()/fmag0)
             s.setInstFlux(s.getInstFlux()/fmag0)
+
+            # flux errors
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
+            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+            s.setPsfFluxErr(psfFluxErr)
+            s.setApFluxErr(apFluxErr)
+            s.setModelFluxErr(modFluxErr)
+            s.setInstFluxErr(instFluxErr)
             
             ss.append(s)
 
@@ -516,14 +544,28 @@ class DbQaData(QaData):
                     
 
             # parse results and put them in a sourceSet
+            visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
+            wcs = self.getWcsBySensor(dataIdEntry)[dataIdEntryStr]
+            raftName = self.cameraInfo.raftKeyToName(raft)
+            ccdName = self.cameraInfo.ccdKeyToName(sensor)
+            bbox = self.cameraInfo.getBbox(raftName, ccdName)
+            
             for row in results:
                 if oldWay:
                     visit, raft, sensor = row[0:3]
                     sroStuff = row[3:]
                 else:
-                    visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
                     sroStuff = row[:] #row[3:]
-                    
+
+                # ignore things near the edge
+                # ... they wouldn't be detected, and we should know about them
+                if True: #False:
+                    ra, dec = sroStuff[2], sroStuff[3]
+                    x, y = wcs.skyToPixel(ra, dec)
+                    if qaDataUtils.atEdge(bbox, x, y):
+                        continue
+
+                
                 dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
                 key = self._dataIdToString(dataIdTmp)
                 self.dataIdLookup[key] = dataIdTmp

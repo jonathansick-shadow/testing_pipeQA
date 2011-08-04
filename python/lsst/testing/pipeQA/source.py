@@ -108,6 +108,7 @@ else:
             self.flux              = numpy.zeros(4, dtype=numpy.float32)
             self.fluxErr           = numpy.zeros(4, dtype=numpy.float32)
             self.izz               = numpy.zeros(3, dtype=numpy.float32)
+            self.izzErr            = numpy.zeros(3, dtype=numpy.float32)
 	    self.shape             = numpy.zeros(17, dtype=numpy.float32)
             
 
@@ -141,25 +142,25 @@ else:
         def setApFluxErr(self, val):  self.fluxErr[1] = val
         def getInstFlux(self):      return self.flux[2]
         def setInstFlux(self, val): self.flux[2] = val
-        #def getInstFluxErr(self):     return self.fluxErr[2]
-        #def setInstFluxErr(self, val): self.fluxErr[2] = val
+        def getInstFluxErr(self):     return self.fluxErr[2]
+        def setInstFluxErr(self, val): self.fluxErr[2] = val
         def getModelFlux(self):      return self.flux[3]
         def setModelFlux(self, val): self.flux[3] = val
-        #def getModelFluxErr(self):   return self.flux[4]
-        #def setModelFluxErr(self, val):  self.flux[4] = val
+        def getModelFluxErr(self):   return self.fluxErr[3]
+        def setModelFluxErr(self, val):  self.fluxErr[3] = val
 
         def getIxx(self):             return self.izz[0]
         def setIxx(self, val):        self.izz[0] = val
-        #def getIxxErr(self):          return self.izz[0]Err
-        #def setIxxErr(self, val):     self.izz[0]Err = val
+        def getIxxErr(self):          return self.izzErr[0]
+        def setIxxErr(self, val):     self.izzErr[0] = val
         def getIyy(self):             return self.izz[1]
         def setIyy(self, val):        self.izz[1] = val
-        #def getIyyErr(self):          return self.izz[1]Err
-        #def setIyyErr(self, val):     self.izz[1]Err = val
+        def getIyyErr(self):          return self.izzErr[1]
+        def setIyyErr(self, val):     self.izzErr[1] = val
         def getIxy(self):              return self.izz[2]
         def setIxy(self, val):         self.izz[2] = val
-        #def getIxyErr(self):           return self.izz[2]Err
-        #def setIxyErr(self, val):      self.izz[2]Err = val
+        def getIxyErr(self):           return self.izzErr[2]
+        def setIxyErr(self, val):      self.izzErr[2] = val
 
 
         def getPsfIxx(self):          return self.shape[Source.iPsfIxx]
