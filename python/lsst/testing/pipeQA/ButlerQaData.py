@@ -239,6 +239,20 @@ class ButlerQaData(QaData):
                             s.setPsfFlux(s.getPsfFlux()/fmag0)
                             s.setModelFlux(s.getModelFlux()/fmag0)
 			    s.setInstFlux(s.getInstFlux()/fmag0)
+                            # flux errors
+                            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),
+                                                                     fmag0, fmag0Err)
+                            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),
+                                                                     fmag0, fmag0Err)
+                            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(),
+                                                                     fmag0, fmag0Err)
+                            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),
+                                                                     fmag0, fmag0Err)
+                            s.setPsfFluxErr(psfFluxErr)
+                            s.setApFluxErr(apFluxErr)
+                            s.setModelFluxErr(modFluxErr)
+                            s.setInstFluxErr(instFluxErr)
+                            
 			    if True: #re.search("lsst", self.cameraInfo.name):
 				s.setRa((180.0/numpy.pi)*s.getRa())
 				s.setDec((180.0/numpy.pi)*s.getDec())
@@ -304,6 +318,21 @@ class ButlerQaData(QaData):
 		    s.setPsfFlux(s.getPsfFlux()/fmag0)
 		    s.setModelFlux(s.getModelFlux()/fmag0)
 		    s.setInstFlux(s.getInstFlux()/fmag0)
+
+                    # flux errors
+                    psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),
+                                                             fmag0, fmag0Err)
+                    apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),
+                                                             fmag0, fmag0Err)
+                    modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(),
+                                                             fmag0, fmag0Err)
+                    instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),
+                                                             fmag0, fmag0Err)
+                    s.setPsfFluxErr(psfFluxErr)
+                    s.setApFluxErr(apFluxErr)
+                    s.setModelFluxErr(modFluxErr)
+                    s.setInstFluxErr(instFluxErr)
+
 
                 self.sourceSetCache[dataKey] = sourceSetTmp
                 ssDict[dataKey] = copy.copy(sourceSetTmp)
