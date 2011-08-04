@@ -321,13 +321,13 @@ class ButlerQaData(QaData):
 
                     # flux errors
                     psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),
-                                                             fmag0, fmag0Err)
+                                                             fmag0, fmag0err)
                     apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),
-                                                             fmag0, fmag0Err)
+                                                             fmag0, fmag0err)
                     modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(),
-                                                             fmag0, fmag0Err)
+                                                             fmag0, fmag0err)
                     instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),
-                                                             fmag0, fmag0Err)
+                                                             fmag0, fmag0err)
                     s.setPsfFluxErr(psfFluxErr)
                     s.setApFluxErr(apFluxErr)
                     s.setModelFluxErr(modFluxErr)

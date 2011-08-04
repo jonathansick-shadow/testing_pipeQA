@@ -351,8 +351,10 @@ def getCalibObjects(butler, filterName, dataId):
 
 
 def calibFluxError(f, df, f0, df0):
-    return (df/f + df0/f0)*f/f0
-
+    if f > 0.0 and f0 > 0.0:
+	return (df/f + df0/f0)*f/f0
+    else:
+	return numpy.NaN
 
 def atEdge(bbox, x, y):
 
