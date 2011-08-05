@@ -34,6 +34,26 @@ def getMemUsageThisPid(size="rss"):
     #return 1.0
     return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
 
+
+def tryThis(func, data, thisDataId, visit, test, testset):
+    try:
+        func(data, thisDataId)
+    except Exception, e:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        s = traceback.format_exception(exc_type, exc_value,
+                                       exc_traceback)
+        if thisDataId.has_key('raft'):
+            label = "v%s_r%s_s%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention], test)
+        else:
+            label = "v%s_r%s_s%s_%s" % (visit, thisDataId[data.ccdConvention], test)
+            
+        print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
+        #print "       :", "".join(s)
+        testset.addTest(label, 1, [0, 0], "QA exception thrown (%s)" % (str(thisDataId)),
+                        backtrace="".join(s))
+    
+
+
 #############################################################
 #
 # Main body of code
@@ -164,11 +184,19 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                 ("timestamp", "dataId", "testname", "t-elapsed", "resident-memory-kb-Mb"))
     
 
+    # create progress tests for all visits
+    if len(groupTag) > 0:
+        groupTag = "."+groupTag
+    progset = pipeQA.TestSet(group="", label="ProgressReport"+groupTag, wwwCache=wwwCache)
+    for visit in visits:
+        progset.addTest(visit, 0, [1, 1], "Not started.  Last dataId: None")
+
+
+    testset = pipeQA.TestSet(group="", label="QA-failures", wwwCache=wwwCache)
     for visit in visits:
 
         visit_t0 = time.time()
         
-        testset = pipeQA.TestSet(group="", label="QA-failures", wwwCache=wwwCache)
 
         dataIdVisit = copy.copy(dataId)
         dataIdVisit['visit'] = visit
@@ -186,7 +214,8 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                 if not re.search(testRegex, test):
                     continue
 
-                print "Running " + test + "  visit:" + str(visit)
+                date = datetime.datetime.now().strftime("%a %Y-%m-%d %H:%M:%S")
+                print "Running " + test + "  visit:" + str(visit) + "  ("+date+")"
                 sys.stdout.flush() # clear the buffer before the fork
 
                 # For debugging, it's useful to exit on failure, and get
@@ -208,27 +237,21 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
 
                 # otherwise, we want to continue gracefully
                 else:
-                    try:
-                        a.test(data, thisDataId)
-                        if forkFigure:
-                            pid = os.fork()
-                            if pid == 0:
-                                a.plot(data, thisDataId)
-                                sys.exit(0)
-                            else:
-                                os.waitpid(pid, 0)
+
+                    tryThis(a.test, data, thisDataId, visit, test, testset)
+                        
+                    if forkFigure:
+                        pid = os.fork()
+                        if pid == 0:
+                            tryThis(a.plot, data, thisDataId, visit, test, testset)
+                            sys.exit(0)
                         else:
-                            a.plot(data, thisDataId)
-                        memory = getMemUsageThisPid()
-                        a.free()
-                    except Exception, e:
-                        exc_type, exc_value, exc_traceback = sys.exc_info()
-                        s = traceback.format_exception(exc_type, exc_value,
-                                                       exc_traceback)
-                        label = "visit_%s_analysis_%s" % (visit, test)
-                        print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
-                        #print "       :", "".join(s)
-                        testset.addTest(label, 1, [0, 0], "QA exception thrown", backtrace="".join(s))
+                            os.waitpid(pid, 0)
+                    else:
+                        tryThis(a.plot, data, thisDataId, visit, test, testset)
+                        
+                    memory = getMemUsageThisPid()
+                    a.free()
 
 
                 test_tf = time.time()
@@ -240,9 +263,12 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                             (tstamp, idstamp, test, test_tf-test_t0, memory, memory/1024.0))
                 useFp.flush()
 
-            # we're now done this dataId ... can clear the cache
+            # we're now done this dataId ... can clear the cache            
             data.clearCache()
-            
+            raftName, ccdName = thisDataId['raft'], thisDataId[data.ccdConvention]
+            progset.addTest(visit, 0, [1, 1], "Processing. Done %s-%s." % (raftName,ccdName))
+        progset.addTest(visit, 1, [1, 1], "Done processing.")
+
     useFp.close()
 
 
