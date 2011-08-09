@@ -261,9 +261,40 @@ def getCalibObjects(butler, filterName, dataId):
     @param useOutputSrc             # use fluxes from the "src", not "icSrc"
     """
 
+    #################################
+    # color calibration
+    #
+    # this stuff stolen from pipette.
+    # - numbers from suprimecam.paf, method in Calibrate.py
+    #####################
+    primaryLookup = {
+	#"B" : "g",
+	#"V" : "g",
+	#"R" : "r",
+	#"I" : "i",
+	"g" : "g",
+	"g" : "g",
+	"r" : "r",
+	"i" : "i",
+	}
+    # The below colour terms are from the last page of
+    # http://www.naoj.org/staff/nakata/suprime/illustration/colorterm_report_ver3.pdf
+    secondaryLookup = {
+	"g" : ["r", [-0.00569, -0.0427]],
+        "r" : ["g", [0.00261, 0.0304]],
+        "i" : ["r", [0.00586, 0.0827, -0.0118]],
+	"z" : ['i', [0.000329, 0.0608, 0.0219]],
+	"y" : ['i', [0.000329, 0.0608, 0.0219]],
+	}
+    # figure out which filters we need for the color term
+    primaryFilter   = primaryLookup[filterName]      # Primary band for correction
+    secondaryFilter = secondaryLookup[primaryFilter][0]  # Secondary band for correction
+
+
+
     log = pexLog.Log.getDefaultLog()
-    psources = butler.get('icSrc', dataId)
-    pmatches = butler.get('icMatch', dataId)
+    psources  = butler.get('icSrc', dataId)
+    pmatches  = butler.get('icMatch', dataId)
     calexp_md = butler.get('calexp_md', dataId)
 
     wcs = afwImage.makeWcs(calexp_md)
@@ -301,7 +332,7 @@ def getCalibObjects(butler, filterName, dataId):
     solver = measAstrom.createSolver(pol, log)
     idName = 'id'
 
-    X = solver.getCatalogue(ra, dec, radius, filterName, idName, anid)
+    X = solver.getCatalogue(ra, dec, radius, primaryFilter, idName, anid)
     refsources = X.refsources
     setSourceSetBlobsNone(refsources)
     
@@ -320,6 +351,45 @@ def getCalibObjects(butler, filterName, dataId):
 
     fdict = maUtils.getDetectionFlags()
 
+
+    # get the data for the secondary
+    XX = solver.getCatalogue(ra, dec, radius, secondaryFilter, idName, anid)
+    secondaryRefsources = XX.refsources
+    setSourceSetBlobsNone(secondaryRefsources)
+
+    polyData = secondaryLookup[primaryFilter][1]   # Polynomial correction
+    polyData.reverse()                             # Numpy wants decreasing powers
+    polynomial = numpy.poly1d(polyData)
+
+
+    # We already have the 'primary' magnitudes in the matches
+    secondariesDict = dict()
+    for s in secondaryRefsources:
+	secondariesDict[s.getId()] = (s.getPsfFlux(), s.getPsfFluxErr())
+    del secondaryRefsources
+
+    #polyString = ["%f (%s-%s)^%d" % (polynomial[order+1], primary, secondary, order+1) for
+    #		  order in range(polynomial.order)]
+    #self.log.log(self.log.INFO, "Adjusting reference magnitudes: %f + %s" % (polynomial[0],
+    #" + ".join(polyString)))
+
+    #for m in matches:
+#	index = m.first.getId()
+#	primary = -2.5 * math.log10(m.first.getPsfFlux())
+#	primaryErr = m.first.getPsfFluxErr()
+#
+#
+#	secondary = -2.5 * math.log10(secondariesDict[index][0])
+#	secondaryErr = secondariesDict[index][1]
+#
+#	diff = polynomial(primary - secondary)
+#	m.first.setPsfFlux(math.pow(10.0, -0.4*(primary + diff)))
+    ##############################################################
+
+
+
+
+
     keepref = []
     keepi = []
     for i in xrange(len(refsources)):
@@ -333,8 +403,16 @@ def getCalibObjects(butler, filterName, dataId):
         refsources[i].setYAstrom(y)
         if stargal[i]:
             refsources[i].setFlagForDetection(refsources[i].getFlagForDetection() | fdict["STAR"])
+
+	# color term
+	primaryMag = -2.5*numpy.log10(refsources[i].getPsfFlux())
+	secondaryMag = -2.5*numpy.log10(secondariesDict[refsources[i].getId()][0])
+	diff = polynomial(primaryMag - secondaryMag)
+	refsources[i].setPsfFlux(10.0**(-0.4*(primaryMag+diff)))
+
         keepref.append(refsources[i])
         keepi.append(i)
+
 
     refsources = keepref
 
@@ -369,3 +447,6 @@ def atEdge(bbox, x, y):
         return True
     
     return False
+
+
+

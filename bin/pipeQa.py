@@ -265,8 +265,11 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
 
             # we're now done this dataId ... can clear the cache            
             data.clearCache()
-            raftName, ccdName = thisDataId['raft'], thisDataId[data.ccdConvention]
-            progset.addTest(visit, 0, [1, 1], "Processing. Done %s-%s." % (raftName,ccdName))
+	    raftName = ""
+	    if thisDataId.has_key('raft'):
+		raftName = thisDataId['raft']+"-"
+	    ccdName = thisDataId[data.ccdConvention]
+            progset.addTest(visit, 0, [1, 1], "Processing. Done %s%s." % (raftName,ccdName))
         progset.addTest(visit, 1, [1, 1], "Done processing.")
 
     useFp.close()

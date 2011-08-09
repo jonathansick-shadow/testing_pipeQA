@@ -208,8 +208,8 @@ def make_densityContour(axes,x,y,xlims=None,ylims=None,bins=(50,50),
     y_p = y[(x>=xlims[0]) & (x<=xlims[1]) & (y>=ylims[0]) & (y<=ylims[1])]
 
     if len(bins)==2:
-        bins = (numpy.linspace(ylims[0],ylims[1],num=bins[1]),
-                numpy.linspace(xlims[0],xlims[1],num=bins[0]))
+        bins = (numpy.linspace(xlims[0],xlims[1],num=bins[0]),
+                numpy.linspace(ylims[0],ylims[1],num=bins[1]))
 
     hist_xy,xedges,yedges = numpy.histogram2d(x_p,y_p,bins=bins,normed=normed)
 
@@ -221,13 +221,13 @@ def make_densityContour(axes,x,y,xlims=None,ylims=None,bins=(50,50),
             levels = getLevels(hist_xy)
 
     if log:
-	new = axes.contour( numpy.log10((hist_xy)+1.0), numpy.log10(levels + 1.0),
+	new = axes.contour( numpy.log10((numpy.rot90(hist_xy))+1.0), numpy.log10(levels + 1.0),
                             extent=[xedges[0], xedges[-1], 
                                     yedges[0], yedges[-1]],
                             colors=color,linestyles=ls,linewidths=lw)
         
     else:
-	new = axes.contour( yedges[:-1], xedges[:-1], hist_xy, levels,
+	new = axes.contour( xedges[:-1], yedges[:-1], numpy.rot90(hist_xy), levels,
                             extent=[xedges[0], 
                                     xedges[-1], yedges[0], yedges[-1]],
                             colors=color,linestyles=ls,linewidths=lw)

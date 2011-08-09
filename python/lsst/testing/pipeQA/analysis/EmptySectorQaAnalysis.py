@@ -298,7 +298,10 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         
         ncol = None
         if summary:
-            ax.plot(xmat, ymat, "k.", ms=0.1, label="matched")
+	    ms = 0.1
+	    if len(xmat) < 100000:
+		ms = 1.0
+            ax.plot(xmat, ymat, "k.", ms=ms, label="matched")
             ncol = 1
         else:
             ax.plot(x, y, "k.", ms=2.0, label="detected")

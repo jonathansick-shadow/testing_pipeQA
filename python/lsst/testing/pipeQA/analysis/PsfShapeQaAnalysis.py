@@ -54,6 +54,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)
         self.calexpDict    = data.getCalexpBySensor(dataId)
+	self.wcs           = data.getWcsBySensor(dataId)
 
         # create containers for data in the focal plane
         self.x     = raftCcdData.RaftCcdVector(self.detector)
@@ -63,8 +64,11 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
         # compute values of interest
         filter = None
-        for key, ss in self.ssDict.items():
+	sigmaToFwhm = 2.0*numpy.sqrt(2.0*numpy.log(2.0))
 
+	fwhmByKey = {}
+        for key, ss in self.ssDict.items():
+	    
 	    if self.detector.has_key(key):
 		raft = self.detector[key].getParent().getId().getName()
 		ccd  = self.detector[key].getId().getName()
@@ -72,7 +76,10 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 		continue
 
             qaAnaUtil.isStar(ss)
-            
+
+	    fwhmByKey[key] = 0.0
+
+            fwhmTmp = 0.0
             for s in ss:
                 ixx = s.getIxx()
                 iyy = s.getIyy()
@@ -109,6 +116,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     self.theta.append(raft, ccd, theta)
                     self.x.append(raft, ccd, s.getXAstrom())
                     self.y.append(raft, ccd, s.getYAstrom())
+		    fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
+		    
+	    fwhmByKey[key] = fwhmTmp/len(self.x.get(raft, ccd))
                 
         # create a testset and add values
         testSet = self.getTestSet(data, dataId)
@@ -153,7 +163,10 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 	    else:
 		continue
 
-            self.fwhm.set(raft, ccd, item['fwhm'])
+	    wcs = self.wcs[key]
+	    fwhmTmp = float(fwhmByKey[key]*wcs.pixelScale()) #item['fwhm']
+	    #print fwhmTmp, item['fwhm'], type(fwhmTmp), type(item['fwhm'])
+            self.fwhm.set(raft, ccd, fwhmTmp)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "psf fwhm (arcsec) "
             comment = "psf fwhm (arcsec)"
