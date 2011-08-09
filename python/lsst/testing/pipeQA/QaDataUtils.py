@@ -368,27 +368,6 @@ def getCalibObjects(butler, filterName, dataId):
 	secondariesDict[s.getId()] = (s.getPsfFlux(), s.getPsfFluxErr())
     del secondaryRefsources
 
-    #polyString = ["%f (%s-%s)^%d" % (polynomial[order+1], primary, secondary, order+1) for
-    #		  order in range(polynomial.order)]
-    #self.log.log(self.log.INFO, "Adjusting reference magnitudes: %f + %s" % (polynomial[0],
-    #" + ".join(polyString)))
-
-    #for m in matches:
-#	index = m.first.getId()
-#	primary = -2.5 * math.log10(m.first.getPsfFlux())
-#	primaryErr = m.first.getPsfFluxErr()
-#
-#
-#	secondary = -2.5 * math.log10(secondariesDict[index][0])
-#	secondaryErr = secondariesDict[index][1]
-#
-#	diff = polynomial(primary - secondary)
-#	m.first.setPsfFlux(math.pow(10.0, -0.4*(primary + diff)))
-    ##############################################################
-
-
-
-
 
     keepref = []
     keepi = []
