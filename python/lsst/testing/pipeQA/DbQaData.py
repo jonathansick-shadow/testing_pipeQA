@@ -1,4 +1,5 @@
 import sys, os, re, copy
+import time, numpy
 
 import lsst.afw.detection               as afwDet
 import lsst.afw.image                   as afwImage
@@ -14,6 +15,28 @@ from QaData        import QaData
 import QaDataUtils as qaDataUtils
 import simRefObject as simRefObj
 import source       as pqaSource
+
+
+class Timer(object):
+
+    def __init__(self):
+        self.t0 = {}
+        self.t = {}
+        self.labels = []
+        
+    def start(self, label):
+        if not self.t.has_key(label):
+            self.labels.append(label)
+            self.t[label] = 0.0
+        self.t0[label] = time.time()
+        
+    def stop(self, label):
+        self.t[label] += time.time() - self.t0[label]
+
+    def write(self):
+        for label in self.labels:
+            print label, "%.2f" % (self.t[label])
+            
 
 #########################################################################
 #
@@ -64,11 +87,22 @@ class DbQaData(QaData):
         self.matchQueryCache = { 'obj' : {}, 'src': {} }
         
 
+    def calibFluxError(self, f, df, f0, df0):
+        try:
+            return (df/f + df0/f0)*f/f0
+        except FloatingPointError:
+            return numpy.NaN
+
     def getMatchListBySensor(self, dataIdRegex, useRef='src'):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
+
+        calib          = self.getCalibBySensor(dataIdRegex)
+        sourcesDict    = self.getSourceSetBySensor(dataIdRegex)
+        refObjectsDict = self.getRefObjectSetBySensor(dataIdRegex)
+        
         
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
@@ -128,17 +162,18 @@ class DbQaData(QaData):
             sql += '    and (s.objectID is not NULL) '
         sql += '    and '+idWhere
 
+
+
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
         
         # run the query
         results  = self.dbInterface.execute(sql)
 
-        calib = self.getCalibBySensor(dataIdRegex)
-
         # parse results and put them in a sourceSet
         multiplicity = {}
         matchListDict = {}
         for row in results:
+
             s = pqaSource.Source()
             qaDataUtils.setSourceBlobsNone(s)
             sref = pqaSource.RefSource()
@@ -147,7 +182,8 @@ class DbQaData(QaData):
             nFields = 9
             visit, raft, sensor, mag, ra, dec, isStar, refObjId, nMatches = row[0:nFields]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
-            key = self._dataIdToString(dataIdTmp)
+
+            key = self._dataIdToString(dataIdTmp)            
             self.dataIdLookup[key] = dataIdTmp
 
             if not matchListDict.has_key(key):
@@ -162,7 +198,8 @@ class DbQaData(QaData):
             sref.setApFlux(flux)
             sref.setModelFlux(flux)
             sref.setInstFlux(flux)
-            
+
+
             i = 0
             for value in row[nFields:]:
                 method = getattr(s, setMethods[i])
@@ -178,18 +215,22 @@ class DbQaData(QaData):
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
+            psfFlux,   psfFluxErr   = s.getPsfFlux(),   s.getPsfFluxErr()
+            apFlux,    apFluxErr    = s.getApFlux(),    s.getApFluxErr()
+            modelFlux, modelFluxErr = s.getModelFlux(), s.getModelFluxErr()
+            instFlux,  instFluxErr  = s.getInstFlux(),  s.getInstFluxErr()
 
             # fluxes
-            s.setPsfFlux(s.getPsfFlux()/fmag0)
-            s.setApFlux(s.getApFlux()/fmag0)
-            s.setModelFlux(s.getModelFlux()/fmag0)
-            s.setInstFlux(s.getInstFlux()/fmag0)
+            s.setPsfFlux(psfFlux/fmag0)
+            s.setApFlux(apFlux/fmag0)
+            s.setModelFlux(modelFlux/fmag0)
+            s.setInstFlux(instFlux/fmag0)
 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+            psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
+            apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
+            modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
+            instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
             s.setPsfFluxErr(psfFluxErr)
             s.setApFluxErr(apFluxErr)
             s.setModelFluxErr(modFluxErr)
@@ -199,6 +240,7 @@ class DbQaData(QaData):
             matchList.append([sref, s, dist])
             multiplicity[s.getId()] = nMatches
 
+        
         ######
         ######
         ######
@@ -206,12 +248,12 @@ class DbQaData(QaData):
         typeDict = {}
         for key in matchListDict.keys():
             matchList = matchListDict[key]
+
+            sources    = sourcesDict[key]
+            refObjects = refObjectsDict[key]
                 
             typeDict[key] = {}
-            
-            sources    = self.getSourceSetBySensor(dataIdRegex)[key]
-            refObjects = self.getRefObjectSetBySensor(dataIdRegex)[key]
-                
+                            
             refIds     = []
             for ro in refObjects:
                 refIds.append(ro.getId())

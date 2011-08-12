@@ -66,8 +66,6 @@ else:
         def setModelFlux(self, val): self.flux[3] = val
 
 
-
-
 ################################################################
 # Source
 

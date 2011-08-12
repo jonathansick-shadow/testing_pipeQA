@@ -346,12 +346,22 @@ class QaData(object):
                 raise Exception("key: "+dataIdName+" not in dataId: "+ str(dataIdCopy))
         return tuple(dataList)
 
+
     def _dataIdToString(self, dataId):
         """Convert a dataId dict to a string.
 
         @param dataId The dataId to be converted
         """
-        return self._dataTupleToString(self._dataIdToDataTuple(dataId))
+
+        s = []
+        for i in xrange(len(self.dataIdNames)):
+            dataIdName = self.dataIdNames[i]
+            if dataId.has_key(dataIdName):
+                s.append( dataIdName + re.sub("[,]", "", str(dataId[dataIdName])))
+        #x = self._dataTupleToString(self._dataIdToDataTuple(dataId))
+        s = "-".join(s)
+        #print x, s
+        return s
     
 
     def keyStringsToVisits(self, keyList):
