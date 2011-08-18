@@ -117,8 +117,12 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     self.x.append(raft, ccd, s.getXAstrom())
                     self.y.append(raft, ccd, s.getYAstrom())
 		    fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
-		    
-	    fwhmByKey[key] = fwhmTmp/len(self.x.get(raft, ccd))
+
+            nFwhm = len(self.x.get(raft,ccd))
+            if nFwhm:
+                fwhmByKey[key] = fwhmTmp/nFwhm
+            else:
+                fwhmByKey[key] = 0.0
                 
         # create a testset and add values
         testSet = self.getTestSet(data, dataId)

@@ -223,7 +223,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             blue = '#0000ff'
             red = '#ff0000'
             zptFig.makeFigure(showUndefined=showUndefined, cmap="jet",
-                              vlimits=[num.min(zpts), num.max(zpts)],
+                              vlimits=[num.min(zpts)-0.05, num.max(zpts)+0.05],
                               title="Zeropoint", cmapOver=red, cmapUnder=blue)
             testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", navMap=True)
             del zptFig

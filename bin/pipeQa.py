@@ -35,23 +35,36 @@ def getMemUsageThisPid(size="rss"):
     return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
 
 
+
 def tryThis(func, data, thisDataId, visit, test, testset):
+
+    funcName = func.__name__
+    if thisDataId.has_key('raft'):
+	label = "v%s_r%s_s%s_%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention], test, funcName)
+    else:
+	label = "v%s_s%s_%s_%s" % (visit, thisDataId[data.ccdConvention], test, funcName)
+
+    
+    failed = False
+    s = ""
     try:
-        func(data, thisDataId)
+        if funcName == 'free':
+            func()
+        else:
+            func(data, thisDataId)
     except Exception, e:
+	failed = True
         exc_type, exc_value, exc_traceback = sys.exc_info()
         s = traceback.format_exception(exc_type, exc_value,
                                        exc_traceback)
-        if thisDataId.has_key('raft'):
-            label = "v%s_r%s_s%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention], test)
-        else:
-            label = "v%s_r%s_s%s_%s" % (visit, thisDataId[data.ccdConvention], test)
-            
-        print "Warning: Exception in QA processing of visit:%s, analysis:%s" % (visit, test)
+	
+        print "Warning: Exception in QA processing of %s: %s" % (label, str(e))
         #print "       :", "".join(s)
+
+    if failed:
         testset.addTest(label, 1, [0, 0], "QA exception thrown (%s)" % (str(thisDataId)),
                         backtrace="".join(s))
-    
+
 
 
 #############################################################
@@ -238,20 +251,24 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                 # otherwise, we want to continue gracefully
                 else:
 
+                    # try the test() method
                     tryThis(a.test, data, thisDataId, visit, test, testset)
                         
                     if forkFigure:
                         pid = os.fork()
                         if pid == 0:
+                            # try the plot() method
                             tryThis(a.plot, data, thisDataId, visit, test, testset)
                             sys.exit(0)
                         else:
                             os.waitpid(pid, 0)
                     else:
+                        # try the plot() method
                         tryThis(a.plot, data, thisDataId, visit, test, testset)
                         
                     memory = getMemUsageThisPid()
-                    a.free()
+                    # try the free() method
+                    tryThis(a.free, data, thisDataId, visit, test, testset)
 
 
                 test_tf = time.time()

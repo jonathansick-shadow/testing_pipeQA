@@ -521,6 +521,14 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             y    = y0[whereStarGal]
             star = star0[whereStarGal]
 
+            if len(x) == 0:
+                mag = numpy.array([0.0])
+                diff = numpy.array([0.0])
+                x = numpy.array([0.0])
+                y = numpy.array([0.0])
+                star = numpy.array([0])
+                
+
             whereCut = numpy.where((mag < self.magCut))[0]
             whereOther = numpy.where((mag > self.magCut))[0]
 
