@@ -205,7 +205,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         progset.addTest(visit, 0, [1, 1], "Not started.  Last dataId: None")
 
 
-    testset = pipeQA.TestSet(group="", label="QA-failures", wwwCache=wwwCache)
+    testset = pipeQA.TestSet(group="", label="QA-failures"+groupTag, wwwCache=wwwCache)
     for visit in visits:
 
         visit_t0 = time.time()
