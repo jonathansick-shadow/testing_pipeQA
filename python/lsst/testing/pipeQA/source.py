@@ -134,14 +134,17 @@ else:
         def setPsfFlux(self, val):  self.flux[0] = val
         def getPsfFluxErr(self):      return self.fluxErr[0]
         def setPsfFluxErr(self, val): self.fluxErr[0] = val
+        
         def getApFlux(self):        return self.flux[1]
         def setApFlux(self, val):   self.flux[1] = val
         def getApFluxErr(self):       return self.fluxErr[1]
         def setApFluxErr(self, val):  self.fluxErr[1] = val
+        
         def getInstFlux(self):      return self.flux[2]
         def setInstFlux(self, val): self.flux[2] = val
         def getInstFluxErr(self):     return self.fluxErr[2]
         def setInstFluxErr(self, val): self.fluxErr[2] = val
+
         def getModelFlux(self):      return self.flux[3]
         def setModelFlux(self, val): self.flux[3] = val
         def getModelFluxErr(self):   return self.fluxErr[3]

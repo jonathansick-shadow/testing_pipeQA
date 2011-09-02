@@ -199,7 +199,6 @@ class DbQaData(QaData):
             sref.setModelFlux(flux)
             sref.setInstFlux(flux)
 
-
             i = 0
             for value in row[nFields:]:
                 method = getattr(s, setMethods[i])
@@ -419,7 +418,7 @@ class DbQaData(QaData):
             s.setApFluxErr(apFluxErr)
             s.setModelFluxErr(modFluxErr)
             s.setInstFluxErr(instFluxErr)
-            
+
             ss.append(s)
 
 

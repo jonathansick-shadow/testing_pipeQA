@@ -186,6 +186,13 @@ definitions: {
         default:  0.02
     }
 
+    photCompareDerrMax: {
+        type: double
+        description: "Maximum allowed error bar underestimate on bright end"
+        maxOccurs: 1
+        default:  0.01
+    }
+
     photCompareSlopeMinSigma: {
         type: double
         description: "Minimum (positive valued) std.devs. of slope below slope=0"

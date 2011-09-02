@@ -135,6 +135,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         deltaMin = policy.get("photCompareDeltaMin")
         deltaMax = policy.get("photCompareDeltaMax")
         rmsMax   = policy.get("photCompareRmsMax")
+        derrMax  = policy.get("photCompareDerrMax")
         slopeMin = policy.get("photCompareSlopeMinSigma")
         slopeMax = policy.get("photCompareSlopeMaxSigma")
         for types in policy.getStringArray("photCompareTypes"):
@@ -143,7 +144,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
             if types in policy.getStringArray("photCompareStarGalaxyToggle"):
                 starGxyToggle = True
             analysisList.append(qaAnalysis.PhotCompareQaAnalysis(cmp1, cmp2, magCut, deltaMin, deltaMax,
-                                                                 rmsMax, slopeMin, slopeMax, starGxyToggle,
+                                                                 rmsMax, derrMax, slopeMin, slopeMax, starGxyToggle,
                                                                  useCache=keep,
                                                                  wwwCache=wwwCache,
                                                                  delaySummary=delaySummary))

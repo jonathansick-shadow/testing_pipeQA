@@ -5,6 +5,7 @@ import numpy
 
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
+import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
@@ -17,7 +18,7 @@ import matplotlib.font_manager as fm
 class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
     def __init__(self, magType1, magType2, magCut,
-                 deltaMin, deltaMax, rmsMax, slopeMinSigma, slopeMaxSigma, starGalaxyToggle,
+                 deltaMin, deltaMax, rmsMax, derrMax, slopeMinSigma, slopeMaxSigma, starGalaxyToggle,
                  **kwargs):
         testLabel = magType1+"-"+magType2
         qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
@@ -25,6 +26,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.magCut = magCut
         self.deltaLimits = [deltaMin, deltaMax]
         self.rmsLimits = [0.0, rmsMax]
+        self.derrLimits = [0.0, derrMax]
         self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
         self.starGalaxyToggle = starGalaxyToggle
         
@@ -79,6 +81,24 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         elif mType=="inst":
             return s.getInstFlux()
 
+    def _getFluxErr(self, mType, s, sref):
+
+        # if the source isn't valid, return NaN
+        if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
+            return numpy.NaN
+            
+        
+        if mType=="psf":
+            return s.getPsfFluxErr()
+        elif mType=="ap":
+            return s.getApFluxErr()
+        elif mType=="mod":
+            return s.getModelFluxErr()
+        elif mType=="cat":
+            return 0.0
+        elif mType=="inst":
+            return s.getInstFluxErr()
+
     def free(self):
         del self.x
         del self.y
@@ -102,7 +122,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         # get data
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)       
-        
+
+        self.derr = raftCcdData.RaftCcdVector(self.detector)
         self.diff = raftCcdData.RaftCcdVector(self.detector)
         self.mag  = raftCcdData.RaftCcdVector(self.detector)
         self.x    = raftCcdData.RaftCcdVector(self.detector)
@@ -129,17 +150,22 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 for m in matchList:
                     sref, s, dist = m
                     
-                    f1 = self._getFlux(self.magType1, s, sref)
-                    f2 = self._getFlux(self.magType2, s, sref)
+                    f1  = self._getFlux(self.magType1, s, sref)
+                    f2  = self._getFlux(self.magType2, s, sref)
+                    df1 = self._getFluxErr(self.magType1, s, sref)
+                    df2 = self._getFluxErr(self.magType2, s, sref)
                     flags = s.getFlagForDetection()
 
                     if (f1 > 0.0 and f2 > 0.0  and not flags & badFlags):
-                        m1 = -2.5*numpy.log10(f1)
-                        m2 = -2.5*numpy.log10(f2)
-
+                        m1  = -2.5*numpy.log10(f1)
+                        m2  = -2.5*numpy.log10(f2)
+                        dm1 = 2.5 / numpy.log(10.0) * df1 / f1
+                        dm2 = 2.5 / numpy.log(10.0) * df2 / f2
+                        
                         star = flags & measAlg.Flags.STAR
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
+                            self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
                             self.x.append(raft, ccd, s.getXAstrom())
@@ -159,17 +185,22 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 for s in ss:
                     f1 = self._getFlux(self.magType1, s, s)
                     f2 = self._getFlux(self.magType2, s, s)
+                    df1 = self._getFluxErr(self.magType1, s, s)
+                    df2 = self._getFluxErr(self.magType2, s, s)
                     flags = s.getFlagForDetection()
                     
                     if ((f1 > 0.0 and f2 > 0.0) and not flags & badFlags):
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
+                        dm1 = 2.5 / numpy.log(10.0) * df1 / f1
+                        dm2 = 2.5 / numpy.log(10.0) * df2 / f2
 
                         star = flags & measAlg.Flags.STAR
                         #if star:
                         #    print "isStar: ", star
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
+                            self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
 			    self.diff.append(raft, ccd, m1 - m2)
 			    self.mag.append(raft, ccd, m1)
 			    self.x.append(raft, ccd, s.getXAstrom())
@@ -388,7 +419,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             mag0  = self.mag.get(raft, ccd)
             diff0 = self.diff.get(raft, ccd)
             star0 = self.star.get(raft, ccd)
-            
+            derr0 = self.derr.get(raft, ccd)
+
             print "plotting ", ccd
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
@@ -433,7 +465,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 
             
             # append values to arrays for a plot showing all data
-            shelfData[ccd] = [mag0, diff0, star0, [areaLabel]*len(mag0)]
+            shelfData[ccd] = [mag0, diff0, star0, derr0, [areaLabel]*len(mag0)]
             
         # stash values
         if self.useCache:
@@ -647,6 +679,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         #    colorId[k] = i
         #    i += 1
 
+        allDerr = numpy.array([])
         allMags = numpy.array([])
         allDiffs = numpy.array([])
         allStars = numpy.array([])
@@ -655,7 +688,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         allCcds = []
         for k,v in shelfData.items():
             allCcds.append(k)
-            mags, diffs, stars, arealabels = v
+            mags, diffs, stars, derr, arealabels = v
+            allDerr = numpy.append(allDerr, derr)
             allMags = numpy.append(allMags, mags)
             allDiffs = numpy.append(allDiffs, diffs)
             allStars = numpy.append(allStars, stars)
@@ -676,8 +710,14 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         # dmag vs mag
         fig0 = qaFig.QaFigure(size=figsize)
         fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
-        ax0_1 = fig0.fig.add_subplot(121)
-        ax0_2 = fig0.fig.add_subplot(122)
+        rect0_1  = [0.125, 0.35, 0.478-0.125, 0.9-0.35]
+        rect0_2  = [0.548, 0.35, 0.9-0.548, 0.9-0.35]
+        rect0_1b = [0.125, 0.125, 0.478-0.125, 0.2]
+        rect0_2b = [0.548, 0.125, 0.9-0.548, 0.2]
+        ax0_1 = fig0.fig.add_axes(rect0_1)
+        ax0_2 = fig0.fig.add_axes(rect0_2)
+        ax0_1b = fig0.fig.add_axes(rect0_1b, sharex = ax0_1)
+        ax0_2b = fig0.fig.add_axes(rect0_2b, sharex = ax0_2)
 
         w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0]
         wStar = numpy.where(allStars > 0)[0]
@@ -703,11 +743,80 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             trendCoeffs = [0.0, 0.0]
             trendCoeffsLo = [0.0, 0.0]
             trendCoeffsHi = [0.0, 0.0]
+        else:
+            #
+            # Lower plots
 
+            mStar = allMags[wStar]
+            dStar = allDiffs[wStar]
+            eStar = allDerr[wStar]
+
+            binmag  = []
+            binstd  = []
+            binmerr = []
+            xmin = xlim[0]
+            xmax = xlim[1]
+            bins1 = numpy.arange(xmin, xmax, 0.5)
+            for i in range(1, len(bins1)):
+                idx = numpy.where((mStar>bins1[i-1])&(mStar<bins1[i]))[0]
+                if len(idx) == 0:
+                    continue
+                avgMag  = afwMath.makeStatistics(mStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+                stdDmag = 0.741 * afwMath.makeStatistics(dStar[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
+                avgEbar = afwMath.makeStatistics(eStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+                binmag.append(avgMag)
+                binstd.append(stdDmag)
+                binmerr.append(avgEbar)
+            ax0_1b.plot(binmag, binstd, 'r-')
+            ax0_1b.plot(binmag, binmerr, 'b--')
+            
+            binmag  = []
+            binstd  = []
+            binmerr = []
+            xmin2 = xlim2[0]
+            xmax2 = xlim2[1]
+            bins2 = numpy.arange(xmin2, xmax2, 0.5)
+            for i in range(1, len(bins2)):
+                idx = numpy.where((mStar>bins2[i-1])&(mStar<bins2[i]))[0]
+                if len(idx) == 0:
+                    continue
+                avgMag  = afwMath.makeStatistics(mStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+                stdDmag = 0.741 * afwMath.makeStatistics(dStar[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
+                avgEbar = afwMath.makeStatistics(eStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+                binmag.append(avgMag)
+                binstd.append(stdDmag)
+                binmerr.append(avgEbar)
+
+            binmag = numpy.array(binmag)
+            binstd = numpy.array(binstd)
+            binmerr = numpy.array(binmerr)
+
+            medresid = 0.0
+            idx         = numpy.where( (binstd > binmerr) & (binmag < self.magCut) )[0]
+            if len(idx) == 0:
+                medresid = 0.0
+            else:
+                brightmag   = binmag[idx]
+                brightresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
+                medresid    = numpy.median(brightresid)
+                if numpy.isnan(medresid) or medresid == None:
+                   medresid = 0.0
+
+            label       = "Quad error"
+            comment     = "Median value to add in quadrature to error bars (mag < %.2f)" % (self.magCut)
+            testSet.addTest( testCode.Test(label, medresid, self.derrLimits, comment, areaLabel="all"))
+
+            ax0_2b.plot(binmag, binstd, 'r-', label="Phot RMS")
+            ax0_2b.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
+
+    
+            # Lower plots
+            #
+        
         #allColor = numpy.array(allColor)
         for ax in [ax0_1, ax0_2]:
             ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
-            ax.plot(allMags[wGxy], allDiffs[wGxy], "g.", ms=size, label="galaxies") #0.75, alpha=0.5)
+            ax.plot(allMags[wGxy], allDiffs[wGxy], "b.", ms=size, label="galaxies") #0.75, alpha=0.5)
             ax.plot(allMags[wStar], allDiffs[wStar], "r.", ms=size, label="stars") #, alpha=0.5)
             # 99 is the 'no-data' values
             if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
@@ -723,13 +832,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                    'r.', ms=size)
         ax0_2.plot(allMags[wGxyOutlier], numpy.clip(allDiffs[wGxyOutlier], clip*ylim2[0], clip*ylim2[1]),
                    'g.', ms=size)
-        ax0_2.legend(prop=fm.FontProperties(size="x-small"), loc="upper left")
+        ax0_2.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
         
-        ax0_1.set_xlim(xlim)
-        ax0_2.set_xlim(xlim2)
-        ax0_1.set_ylim(ylim)
-        ax0_2.set_ylim(ylim2)
-
         dmag = 0.1
         ddiff1 = 0.01
         ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
@@ -748,15 +852,33 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         # move the yaxis ticks/labels to the other side
         ax0_2.yaxis.set_label_position('right')
         ax0_2.yaxis.set_ticks_position('right')
+        ax0_2b.yaxis.set_label_position('right')
+        ax0_2b.yaxis.set_ticks_position('right')
 
+        ax0_1b.set_xlabel(tag1, fontsize=12)
+        ax0_2b.set_xlabel(tag1, fontsize=12)
+        
         ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                    [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
-        ax0_2.set_xlim(xlim2)
-        ax0_2.set_ylim(ylim2)
+
+        ax0_1b.semilogy()
+        ax0_2b.semilogy()
+        ax0_2b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+
+        qaFigUtils.qaSetp(ax0_1.get_xticklabels()+ax0_2.get_xticklabels(), visible=False)
+        qaFigUtils.qaSetp(ax0_1.get_yticklabels()+ax0_2.get_yticklabels(), fontsize=11)
+        qaFigUtils.qaSetp(ax0_1b.get_yticklabels()+ax0_2b.get_yticklabels(), fontsize=10)
 
         for ax in [ax0_1, ax0_2]:
-            ax.set_xlabel(tag1)
             ax.set_ylabel(tag)
+
+        ax0_1.set_xlim(xlim)
+        ax0_2.set_xlim(xlim2)
+        ax0_1.set_ylim(ylim)
+        ax0_2.set_ylim(ylim2)
+
+        ax0_1b.set_ylim(0.001, 0.99)
+        ax0_2b.set_ylim(0.001, 0.99)
 
         testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
 
