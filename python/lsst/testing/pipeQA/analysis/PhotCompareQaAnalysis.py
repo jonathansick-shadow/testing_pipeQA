@@ -215,6 +215,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.means = raftCcdData.RaftCcdData(self.detector)
         self.medians = raftCcdData.RaftCcdData(self.detector)
         self.stds  = raftCcdData.RaftCcdData(self.detector)
+        self.derrs  = raftCcdData.RaftCcdData(self.detector)
         self.trend = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0])
         
         self.dmagMax = 0.4
@@ -224,6 +225,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         for raft,  ccd in self.mag.raftCcdKeys():
             dmag0 = self.diff.get(raft, ccd)
             mag0 = self.mag.get(raft, ccd)
+            derr0 = self.derr.get(raft, ccd)
             star = self.star.get(raft, ccd)
 
             wGxy = numpy.where((mag0 > 10) & (mag0 < self.magCut) &
@@ -232,6 +234,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
             mag = mag0[w]
             dmag = dmag0[w]
+            derr = derr0[w]  
 
             allMags = numpy.append(allMags, mag)
             allDiffs = numpy.append(allDiffs, dmag)
@@ -242,6 +245,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             mean = 99.0
             median = 99.0
             std = 99.0
+            derrmed = 99.0
             n = 0
             lineFit = [[99.0, 0.0, 0.0, 0.0]]*3
             lineCoeffs = [[99.0, 0.0]]*3
@@ -252,6 +256,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 median = stat.getValue(afwMath.MEDIAN)
                 std = stat.getValue(afwMath.STDEVCLIP)
                 n = stat.getValue(afwMath.NPOINT)
+
+		derrmed = afwMath.makeStatistics(derr, afwMath.MEDIAN).getValue(afwMath.MEDIAN)
 
                 # get trendlines for stars/galaxies
                 # for alldata, use trendline for stars
@@ -282,6 +288,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             label = "stdev "+tag #+" " + areaLabel
             comment = "stdev of "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
             testSet.addTest( testCode.Test(label, std, self.rmsLimits, comment, areaLabel=areaLabel))
+
+            self.derrs.set(raft, ccd, derrmed)
+            label = "derr "+tag 
+            comment = "add phot err in quad for "+dtag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmag), n)
+            testSet.addTest( testCode.Test(label, derrmed, self.derrLimits, comment, areaLabel=areaLabel))
 
             self.trend.set(raft, ccd, lineFit)
             label = "slope "+tag #+" " + areaLabel
@@ -328,19 +339,23 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         # fpa figure
         meanFilebase = "mean" + wtag
         stdFilebase  = "std"+wtag
+        derrFilebase  = "derr"+wtag
         slopeFilebase  = "slope"+wtag
         meanData, meanMap   = testSet.unpickle(meanFilebase, default=[None, None])
         stdData, stdMap     = testSet.unpickle(stdFilebase, default=[None, None])
+        derrData, derrMap   = testSet.unpickle(derrFilebase, default=[None, None])
         slopeData, slopeMap = testSet.unpickle(slopeFilebase, default=[None, None])
 
         meanFig  = qaFig.FpaQaFigure(data.cameraInfo, data=meanData, map=meanMap)
         stdFig   = qaFig.FpaQaFigure(data.cameraInfo, data=stdData, map=stdMap)
+        derrFig  = qaFig.FpaQaFigure(data.cameraInfo, data=derrData, map=derrMap)
         slopeFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=slopeData, map=slopeMap)
 
         for raft, ccd in self.means.raftCcdKeys():
 
             meanFig.data[raft][ccd] = self.means.get(raft, ccd)
             stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
+            derrFig.data[raft][ccd] = self.derrs.get(raft, ccd)
             slope = self.trend.get(raft, ccd)[0]
 
             if not slope is None and not slope[1] == 0:
@@ -354,6 +369,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             if not self.means.get(raft, ccd) is None:
                 meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
                 stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
+                derrFig.map[raft][ccd] = "derr=%.4f" % (self.derrs.get(raft, ccd))
                 fmt0, fmt1, fmtS = "%.4f", "%.4f", "%.1f"
                 if slope[0] is None:
                     fmt0 = "%s"
@@ -369,6 +385,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
         testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
+        testSet.pickle(derrFilebase, [derrFig.data, derrFig.map])
         testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
 
         if not self.delaySummary or isFinalDataId:
@@ -384,6 +401,12 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             testSet.addFigure(stdFig, stdFilebase+".png",
                               "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
             del stdFig
+
+            derrFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.01],
+                              title="Derr "+tag, cmapOver=red, failLimits=self.derrLimits)
+            testSet.addFigure(derrFig, derrFilebase+".png",
+                              "derr "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
+            del derrFig
             
             cScale = 2.0
             slopeFig.makeFigure(cmap="RdBu_r",
@@ -395,6 +418,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         else:
             del meanFig
             del stdFig
+            del derrFig
             del slopeFig
 
 
@@ -427,6 +451,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             statBlurb = "Points used for statistics/trendline shown in red."
 
             if self.starGalaxyToggle:
+                fig = self.derrFigure([mag0, diff0, star0, derr0,
+                                       areaLabel, raft, ccd, figsize,
+                                       xlim, ylim, xlim2, ylim2, ylimStep,
+                                       tag1, tag, 'stars'])
+                testSet.addFigure(fig, figbase+".png",
+                                  dtag+" vs. "+self.magType1 + "(star derr). "+statBlurb,
+                                  areaLabel=areaLabel, toggle='derr')
+                del fig
+
                 fig = self.regularFigure([mag0, diff0, star0,
                                           areaLabel, raft, ccd, figsize,
                                           xlim, ylim, xlim2, ylim2, ylimStep,
@@ -483,6 +516,133 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 
 
+    def derrFigure(self, args):
+        mag0, diff0, star0, derr0, areaLabel, raft, ccd, figsize, xlim, ylim, xlim2, ylim2, ylimStep, \
+              tag1, tag, mode = args
+        conv  = colors.ColorConverter()
+        size  = 2.0
+        red   = conv.to_rgba('r')
+        black = conv.to_rgba('k')
+        mode = "stars"  # this better be the case!
+        if len(mag0) == 0:
+            mag0 = numpy.array([xlim[1]])
+            diff0 = numpy.array([0.0])
+            derr0 = numpy.array([0.0])
+            star0 = numpy.array([0])
+
+        fig = qaFig.QaFigure(size=figsize)
+        fig.fig.subplots_adjust(left=0.09, right=0.93, bottom=0.125)
+
+        if len(mag0) == 0:
+            mag0 = numpy.array([xlim[1]])
+            diff0 = numpy.array([0.0])
+            derr0 = numpy.array([0.0])
+            star0 = numpy.array([0])
+
+        whereStarGal = numpy.where(star0 > 0)[0]
+        mag  = mag0[whereStarGal]
+        diff = diff0[whereStarGal]
+        derr = derr0[whereStarGal]
+        star = star0[whereStarGal]
+
+        if len(mag) == 0:
+            mag = numpy.array([0.0])
+            diff = numpy.array([0.0])
+            derr = numpy.array([0.0])
+            star = numpy.array([0])
+
+        whereCut = numpy.where((mag < self.magCut))[0]
+        whereOther = numpy.where((mag > self.magCut))[0]
+         
+        xlim = [14.0, 25.0]
+        ylim3 = [0.001, 0.99]
+
+        #####
+
+        sp1 = fig.fig.add_subplot(221)
+        sp1.plot(mag[whereCut], diff[whereCut], "r.", ms=size, label=ccd)
+        sp1.plot(mag[whereOther], diff[whereOther], "k.", ms=size, label=ccd)
+        sp1.set_ylabel(tag, fontsize = 10)
+
+        #####
+
+        sp2 = fig.fig.add_subplot(222, sharex = sp1)
+        sp2.plot(mag[whereCut], derr[whereCut], "r.", ms=size, label=ccd)
+        sp2.plot(mag[whereOther], derr[whereOther], "k.", ms=size, label=ccd)
+        sp2.set_ylabel('Error Bars', fontsize = 10)
+
+        #####
+        sp3 = fig.fig.add_subplot(223, sharex = sp1)
+
+        binmag  = []
+        binstd  = []
+        binmerr = []
+        xmin = xlim[0]
+        xmax = xlim[1]
+        bins1 = numpy.arange(xmin, xmax, 0.5)
+        for i in range(1, len(bins1)):
+            idx = numpy.where((mag>bins1[i-1])&(mag<=bins1[i]))[0]
+            if len(idx) == 0:
+                continue
+            avgMag  = afwMath.makeStatistics(mag[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            stdDmag = 0.741 * afwMath.makeStatistics(diff[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
+            avgEbar = afwMath.makeStatistics(derr[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            binmag.append(avgMag)
+            binstd.append(stdDmag)
+            binmerr.append(avgEbar)
+        # Shows the 2 curves   
+        sp3.plot(binmag, binstd, 'r-', label="Phot RMS")
+        sp3.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
+        sp3.set_xlabel(tag1, fontsize = 10)
+
+        #####
+        sp4 = fig.fig.add_subplot(224, sharex = sp1)
+           
+        binmag = numpy.array(binmag)
+        binstd = numpy.array(binstd)
+        binmerr = numpy.array(binmerr)
+
+
+        idx         = numpy.where( (binstd > binmerr) )[0]
+        errbarmag   = binmag[idx]
+        errbarresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
+
+        whereCut    = numpy.where((errbarmag < self.magCut))[0]
+        whereOther  = numpy.where((errbarmag > self.magCut))[0]
+        
+        sp4.plot(errbarmag[whereCut], errbarresid[whereCut], 'ro', ms = 3, label="Err Underestimate")
+        sp4.plot(errbarmag[whereOther], errbarresid[whereOther], 'ko', ms = 3)
+        sp4.set_xlabel(tag1, fontsize = 10)
+
+        #### CONFIG
+        sp2.semilogy()
+        sp3.semilogy()
+        sp4.semilogy()
+
+        sp2.yaxis.set_label_position('right')
+        sp2.yaxis.set_ticks_position('right')
+        sp4.yaxis.set_label_position('right')
+        sp4.yaxis.set_ticks_position('right')
+
+        sp3.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+        sp4.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+
+        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
+        qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
+        qaFigUtils.qaSetp(sp3.get_xticklabels()+sp3.get_yticklabels(), fontsize=8)
+        qaFigUtils.qaSetp(sp4.get_xticklabels()+sp4.get_yticklabels(), fontsize=8)
+
+        sp1.set_xlim(xlim)
+        sp1.set_ylim(ylim)
+       
+        sp2.set_ylim(ylim3)
+        sp3.set_ylim(ylim3)
+        sp4.set_ylim(ylim3)
+
+        return fig
+
+
+        #################
 
 
     def regularFigure(self, args):
@@ -767,9 +927,31 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 binmag.append(avgMag)
                 binstd.append(stdDmag)
                 binmerr.append(avgEbar)
-            ax0_1b.plot(binmag, binstd, 'r-')
-            ax0_1b.plot(binmag, binmerr, 'b--')
-            
+            # Shows the 2 curves
+            ax0_1b.plot(binmag, binstd, 'r-', label="Phot RMS")
+            ax0_1b.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
+
+            binmag = numpy.array(binmag)
+            binstd = numpy.array(binstd)
+            binmerr = numpy.array(binmerr)
+
+            medresid = 0.0
+            idx         = numpy.where( (binstd > binmerr) & (binmag < self.magCut) )[0]
+            if len(idx) == 0:
+                medresid = 0.0
+            else:
+                brightmag   = binmag[idx]
+                brightresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
+                medresid    = numpy.median(brightresid)
+                if numpy.isnan(medresid) or medresid == None:
+                   medresid = 0.0
+
+            label       = "Quad error"
+            comment     = "Median value to add in quadrature to star phot error bars (mag < %.2f)" % (self.magCut)
+            testSet.addTest( testCode.Test(label, medresid, self.derrLimits, comment, areaLabel="all"))
+
+            # SECOND SUBPANEL
+ 
             binmag  = []
             binstd  = []
             binmerr = []
@@ -791,23 +973,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             binstd = numpy.array(binstd)
             binmerr = numpy.array(binmerr)
 
-            medresid = 0.0
-            idx         = numpy.where( (binstd > binmerr) & (binmag < self.magCut) )[0]
-            if len(idx) == 0:
-                medresid = 0.0
-            else:
-                brightmag   = binmag[idx]
-                brightresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
-                medresid    = numpy.median(brightresid)
-                if numpy.isnan(medresid) or medresid == None:
-                   medresid = 0.0
-
-            label       = "Quad error"
-            comment     = "Median value to add in quadrature to error bars (mag < %.2f)" % (self.magCut)
-            testSet.addTest( testCode.Test(label, medresid, self.derrLimits, comment, areaLabel="all"))
-
-            ax0_2b.plot(binmag, binstd, 'r-', label="Phot RMS")
-            ax0_2b.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
+            idx         = numpy.where( (binstd > binmerr) )[0]
+            errbarmag   = binmag[idx]
+            errbarresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
+            ax0_2b.plot(errbarmag, errbarresid, 'ko', ms = 3, label="Err Underestimate")
 
     
             # Lower plots
@@ -863,6 +1032,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         ax0_1b.semilogy()
         ax0_2b.semilogy()
+        ax0_1b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
         ax0_2b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
 
         qaFigUtils.qaSetp(ax0_1.get_xticklabels()+ax0_2.get_xticklabels(), visible=False)
