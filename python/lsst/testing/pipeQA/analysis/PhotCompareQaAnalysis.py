@@ -392,19 +392,19 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             print "plotting FPAs"
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                                title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
-            testSet.addFigure(meanFig, meanFilebase+".png",
+            testSet.addFigure(meanFig, "f01"+meanFilebase+".png",
                               "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
             del meanFig
             
             stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
                               title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
-            testSet.addFigure(stdFig, stdFilebase+".png",
+            testSet.addFigure(stdFig, "f02"+stdFilebase+".png",
                               "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
             del stdFig
 
             derrFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.01],
                               title="Derr "+tag, cmapOver=red, failLimits=self.derrLimits)
-            testSet.addFigure(derrFig, derrFilebase+".png",
+            testSet.addFigure(derrFig, "f03"+derrFilebase+".png",
                               "derr "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
             del derrFig
             
@@ -412,7 +412,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             slopeFig.makeFigure(cmap="RdBu_r",
                                 vlimits=[cScale*self.slopeLimits[0], cScale*self.slopeLimits[1]],
                                 title="Slope "+tag, failLimits=self.slopeLimits)
-            testSet.addFigure(slopeFig, slopeFilebase+".png",
+            testSet.addFigure(slopeFig, "f04"+slopeFilebase+".png",
                               "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
             del slopeFig
         else:
