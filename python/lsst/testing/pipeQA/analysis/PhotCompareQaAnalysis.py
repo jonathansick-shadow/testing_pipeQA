@@ -53,14 +53,19 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
          magnitudes (psf), multifit model magnitudes (mod), and
          gaussian model magnitudes (inst).  The magnitudes used for a given test are shown
          in the test name, eg.: psf-cat.  The width of the bright end of
-         this distribution (stars plotted in red) reflects the systematic floor
+         this distribution (stars are plotted in red) reflects the systematic floor
          in these measurement comparisons.  For psf magnitudes, this is
          typically 1-2% for PT1.2 measurements.  The summary figure showing all
-         data from all CCDs in the FPA shows stars (red) and galaxies (green), but 
-         does not include the x,y panel.  The summary FPA figures show
-         the mean magnitude offset, slope in this offset as a function of
-         magnitude, and width (standard deviation) of this distribution for the
-         bright stars.
+         data from all CCDs in the FPA shows stars (red) and galaxies (blue), and 
+         on the bottom the average photometric error bar of the stars and the empirical
+         RMS in bins of 0.5 mags.  The bottom panel also shows the additional error
+         that must be added in quadrature to the photometric error bars to match the empirical
+         scatter (derr).  The FPA figures on the right show the the mean magnitude 
+         offset, slope in this offset as a function of magnitude, and width (standard deviation) 
+         of this distribution for the bright stars (mag < 20).  The Derr plot shows the value
+         of derr for all CCDs.  The per-CCD figures (everything, galaxies, stars) show the scatter
+         on a per-CCD basis, as well as the distribution of the residuals across the focal plane.
+         The per-CCD derr figure compares the error bars v. magnitude with the empirical RMS.
         """
 
     def _getFlux(self, mType, s, sref):
