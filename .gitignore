@@ -1,0 +1,20 @@
+
+# /
+/config.log
+/noI.*
+/.emacs*
+/.scon*
+/incant.sh
+/*out
+/figures
+/runtimePerformance*
+
+# /python/lsst/testing/pipeQA/
+/python/lsst/testing/pipeQA/*_wrap.*
+/python/lsst/testing/pipeQA/pipeQaLib.py
+
+# /src/
+/src/*.os
+
+# /tests/
+/tests/.tests
