@@ -1,10 +1,22 @@
-setupRequired(pipette)
-setupRequired(ap)
-setupRequired(numpy 1.5.1 [>= 1.5.0])
+if (type == exact) {
+   # Figure this out when needed; they all should be "setup -j"
 
-setupOptional(obs_lsstSim)
-setupOptional(obs_cfht)
-setupOptional(obs_subaru)
+   setupRequired(pipette >= 4.7.1.0+1)
+   setupRequired(ap >= 4.7.1.0+1)
+   setupRequired(numpy >= 1.6.1+2)
+   setupOptional(obs_lsstSim)
+   setupOptional(obs_cfht)
+   setupOptional(obs_subaru)
+} else {
+   setupRequired(pipette >= 4.7.1.0+1)
+   setupRequired(ap >= 4.7.1.0+1)
+   setupRequired(numpy >= 1.6.1+2)
+
+   setupOptional(obs_lsstSim)
+   setupOptional(obs_cfht)
+   setupOptional(obs_subaru)
+}
+
 
 envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
 envAppend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
