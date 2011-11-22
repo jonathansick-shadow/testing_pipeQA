@@ -406,12 +406,14 @@ def getCameraInfoAvailable():
             haveCam = False
         return haveCam
 
-    all = [
-        LsstSimCameraInfo,
-        CfhtCameraInfo,
-        HscCameraInfo,
-        SuprimecamCameraInfo,
-        ]
+    all = [LsstSimCameraInfo,]
+
+#    all = [
+#        LsstSimCameraInfo,
+#        CfhtCameraInfo,
+#        HscCameraInfo,
+#        SuprimecamCameraInfo,
+#        ]
 
     for camInfo in all:
         if tryLoad(camInfo):
