@@ -325,7 +325,7 @@ def getCalibObjects(butler, filterName, dataId):
     radec = wcs.pixelToSky(xc, yc)
     ra = radec.getLongitude(afwCoord.DEGREES)
     dec = radec.getLatitude(afwCoord.DEGREES)
-    radius = wcs.pixelScale()*math.hypot(xc, yc)*1.1
+    radius = wcs.pixelScale().asDegrees()*math.hypot(xc, yc)*1.1
 
     pol = pexPolicy.Policy()
     pol.set('matchThreshold', 30)

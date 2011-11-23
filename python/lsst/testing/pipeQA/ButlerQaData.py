@@ -538,7 +538,7 @@ class ButlerQaData(QaData):
                     psf = self.outButler.get("psf", visit=dataId['visit'],
                                              raft=dataId['raft'], sensor=dataId['sensor'])
                     attr = measAlg.PsfAttributes(psf, width // 2, height // 2)
-                    fwhm = attr.computeGaussianWidth() * self.wcsCache[dataKey].pixelScale() * sigmaToFwhm
+                    fwhm = attr.computeGaussianWidth() * self.wcsCache[dataKey].pixelScale().asArcseconds() * sigmaToFwhm
                 except Exception, e:
                     fwhm = -1.0
 

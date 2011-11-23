@@ -4,6 +4,7 @@ import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
 import lsst.afw.math                as afwMath
+import lsst.afw.geom                as afwGeom
 import lsst.testing.pipeQA.TestCode as testCode
 
 import QaAnalysis as qaAna
@@ -168,7 +169,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 		continue
 
 	    wcs = self.wcs[key]
-	    fwhmTmp = float(fwhmByKey[key]*wcs.pixelScale()) #item['fwhm']
+	    fwhmTmp = float(fwhmByKey[key]*wcs.pixelScale().asArcseconds()) #item['fwhm']
 	    #print fwhmTmp, item['fwhm'], type(fwhmTmp), type(item['fwhm'])
             self.fwhm.set(raft, ccd, fwhmTmp)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
