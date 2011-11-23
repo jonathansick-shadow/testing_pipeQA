@@ -39,12 +39,12 @@ class CameraInfo(object):
         
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
-	    raftName = raft.getId().getName().strip()
+            raftName = raft.getId().getName().strip()
             self.detectors[raftName] = raft
             self.rafts[raftName] = raft
             for c in raft:
                 ccd = cameraGeom.cast_Ccd(c)
-		ccdName = ccd.getId().getName().strip()
+                ccdName = ccd.getId().getName().strip()
                 self.detectors[ccdName] = ccd
                 self.sensors[ccdName] = ccd
                 self.nSensor += 1
@@ -328,7 +328,7 @@ class HscCameraInfo(CameraInfo):
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(rerun=rerun, root=roots['output'], calibRoot=roots['calib'],
-				registry=registry)
+                                registry=registry)
 
 
 ####################################################################
@@ -381,7 +381,7 @@ class SuprimecamCameraInfo(CameraInfo):
 
     def getMapper(self, baseDir, rerun=None):
         """Get a mapper for data in specified directory
-	
+
         @param baseDir  Directory where the registry files are to be found.
         @param rerun    The rerun of the data we want
         """
@@ -389,7 +389,7 @@ class SuprimecamCameraInfo(CameraInfo):
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(rerun=rerun, root=roots['output'],
-				calibRoot=roots['calib'], registry=registry)
+                                calibRoot=roots['calib'], registry=registry)
     
 
 
@@ -406,14 +406,12 @@ def getCameraInfoAvailable():
             haveCam = False
         return haveCam
 
-    all = [LsstSimCameraInfo,]
-
-#    all = [
-#        LsstSimCameraInfo,
-#        CfhtCameraInfo,
-#        HscCameraInfo,
-#        SuprimecamCameraInfo,
-#        ]
+    all = [
+        LsstSimCameraInfo,
+        CfhtCameraInfo,
+        HscCameraInfo,
+        SuprimecamCameraInfo,
+        ]
 
     for camInfo in all:
         if tryLoad(camInfo):

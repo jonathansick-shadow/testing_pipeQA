@@ -1,7 +1,0 @@
-"boost", "boost/version.hpp", "boost_system:C++"
-"boost", "boost/test/unit_test.hpp", "boost_unit_test_framework:C++"
-"base", "lsst/base.h"
-"utils", "lsst/utils/Utils.h", "utils:C++"
-"python", "Python.h"
-"m", "math.h", "m", "sqrt"
-"pex_exceptions", "lsst/pex/exceptions.h", "pex_exceptions:C++"

@@ -5,6 +5,7 @@ import lsst.afw.detection               as afwDet
 import lsst.afw.image                   as afwImage
 import lsst.meas.algorithms             as measAlg
 import lsst.afw.geom                    as afwGeom
+import lsst.afw.coord                   as afwCoord
 import lsst.afw.cameraGeom              as cameraGeom
 
 import CameraInfo                       as qaCamInfo
@@ -602,7 +603,7 @@ class DbQaData(QaData):
                 # ... they wouldn't be detected, and we should know about them
                 if True: #False:
                     ra, dec = sroStuff[2], sroStuff[3]
-                    x, y = wcs.skyToPixel(ra, dec)
+                    x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(ra, dec)))
                     if qaDataUtils.atEdge(bbox, x, y):
                         continue
 
@@ -764,10 +765,10 @@ class DbQaData(QaData):
             
             #print rowDict
             if not self.wcsCache.has_key(key):
-                crval = afwGeom.PointD(rowDict['crval1'], rowDict['crval2'])
+                crval = afwCoord.Coord(afwGeom.PointD(rowDict['crval1'], rowDict['crval2']))
                 crpix = afwGeom.PointD(rowDict['crpix1'], rowDict['crpix2'])
                 cd11, cd12, cd21, cd22 = rowDict['cd1_1'], rowDict['cd1_2'], rowDict['cd2_1'], rowDict['cd2_2']
-                wcs = afwImage.createWcs(crval, crpix, cd11, cd12, cd21, cd22)
+                wcs = afwImage.makeWcs(crval, crpix, cd11, cd12, cd21, cd22)
                 self.wcsCache[key] = wcs
 
             if not self.detectorCache.has_key(key):
