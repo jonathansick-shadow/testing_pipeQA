@@ -73,7 +73,7 @@ def tryThis(func, data, thisDataId, visit, test, testset):
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
+def main(dataset, dataIdInput, rerun=None, matchDset=None, matchVisit=None, testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
 	 groupInfo=None, delaySummary=False, forkFigure=False):
 
@@ -336,6 +336,13 @@ if __name__ == '__main__':
     parser.add_option("-v", "--visit", default=".*",
                       help="Specify visit as regex OR color separated list. (default=%default)")
 
+    # visit-to-visit
+    parser.add_option("--matchDataset", default=None,
+                      help="Specify another dataset to compare analysis to")
+    parser.add_option("--matchVisit", default=None,
+                      help="Specify another visit within this dataset to compare analysis to")
+
+
     parser.add_option("--noWwwCache", default=False, action="store_true",
                       help="Disable caching of pass/fail (needed to run in parallel) (default=%default)")
     
@@ -376,6 +383,7 @@ if __name__ == '__main__':
         opts.keep = True
         
     main(dataset, dataId, rerun=rerun,
+         matchDset=opts.matchDataset, matchVisit=opts.matchVisit,
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
          breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary,
