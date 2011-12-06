@@ -326,8 +326,17 @@ definitions: {
 
     doFwhm: {
         type: string
-        description: "Fwhm: qaANalysis.FwhmQaAnalysis"
+        description: "Fwhm: qaAnalysis.FwhmQaAnalysis"
         maxOccurs: 4
         default: "none"
+    }    
+
+    ###
+
+    doVisitQa: {
+        type: string
+        description: "Visit to visit: qaAnalysis.VisitToVisitQaAnalysis"
+        maxOccurs: 1
+        default: "lsstSim"
     }    
 }

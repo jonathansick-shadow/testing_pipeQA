@@ -457,7 +457,7 @@ class DbQaData(QaData):
         return dataIdList
 
 
-    def getVisitMatchesBySce(self, matchDatabase, matchVisit, dataIdRegex):
+    def getVisitMatchesBySensor(self, matchDatabase, matchVisit, dataIdRegex):
         """ Get a dict of all Catalog Sources matching dataId, but
         within another Science_Ccd_Exposure's polygon"""
 
@@ -510,7 +510,8 @@ class DbQaData(QaData):
             sql3 += '   END as mag,'
             sql3 += ' sro.ra, sro.decl, sro.isStar, sro.refObjectId,'                              # 5 values
             sql3 += selectStr
-            sql3 += ' FROM %s.Source AS s INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase, matchDatabase)
+            sql3 += ' FROM %s.Source AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase)
+            sql3 += ' INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase)
             sql3 += ' ON (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
             if matchVisit:
                 sql3 += '  AND (sce.visit = %s)' % (matchVisit)
@@ -606,9 +607,6 @@ class DbQaData(QaData):
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-
-        # DEBUGGING
-        self.getVisitMatchesBySce("buildbot_weekly_latest_tags", 887755911, dataIdRegex)
 
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)

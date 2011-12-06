@@ -162,6 +162,19 @@ def main(dataset, dataIdInput, rerun=None, matchDset=None, matchVisit=None, test
                                                     policy.get("vigMaxMag"), useCache=keep,
                                                     wwwCache=wwwCache, delaySummary=delaySummary))
 
+    if data.cameraInfo.name in policy.getStringArray("doVisitQa"):
+        if matchDset == None and matchVisit == None:
+            # we can't do it!
+            print "Unable to run visit to visit Qa; please request a comparison visit or database"
+            sys.exit(1)
+        elif matchDset == None:
+            matchDset = dataset
+
+        analysisList.append(qaAnalysis.VisitToVisitQaAnalysis(matchDset, matchVisit, "psf", 
+                                                              useCache=keep,
+                                                              wwwCache=wwwCache, 
+                                                              delaySummary=delaySummary))
+
 
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
