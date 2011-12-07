@@ -404,6 +404,9 @@ class DbQaData(QaData):
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
 
+            if (fmag0 == 0.0):
+                continue
+
             # fluxes
             s.setPsfFlux(s.getPsfFlux()/fmag0)
             s.setApFlux(s.getApFlux()/fmag0)
@@ -411,15 +414,34 @@ class DbQaData(QaData):
             s.setInstFlux(s.getInstFlux()/fmag0)
 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
-            s.setPsfFluxErr(psfFluxErr)
-            s.setApFluxErr(apFluxErr)
-            s.setModelFluxErr(modFluxErr)
-            s.setInstFluxErr(instFluxErr)
+            try:
+                psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setPsfFluxErr(psfFluxErr)
 
+            try:
+                apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setApFluxErr(apFluxErr)
+
+            try:
+                modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setModelFluxErr(modFluxErr)
+
+            try:
+                instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setInstFluxErr(instFluxErr)
+                
             ss.append(s)
 
 
@@ -474,7 +496,13 @@ class DbQaData(QaData):
 
         # Load each of the dataIds
         dataIdList = self.getDataIdsFromRegex(dataIdRegex)
+
+        # Set up the outputs
+        calib = self.getCalibBySensor(dataIdRegex)
         vmDict = {}
+        for k in calib.keys():
+            vmDict[k] = []
+
         for dataIdEntry in dataIdList:
             visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
             dataIdEntryStr = self._dataIdToString(dataIdEntry) # E.g. visit862826551-snap0-raft30-sensor20
@@ -500,15 +528,16 @@ class DbQaData(QaData):
             setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
             selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
             selectStr = ",".join(selectList)
-            sql3  = 'SELECT sce.visit, sce.raftName, sce.ccdName, sce.fluxMag0, sce.fluxMag0Sigma,' # 5 values
+            sql3  = 'SELECT sce.visit, sce.raftName, sce.ccdName, sce.filterName, '                # 4 values
+            sql3 += ' sce.fluxMag0, sce.fluxMag0Sigma,'                                            # 2 values
             sql3 += '   CASE WHEN sce.filterId = 0 THEN sro.uMag'
             sql3 += '        WHEN sce.filterId = 1 THEN sro.gMag'
             sql3 += '        WHEN sce.filterId = 2 THEN sro.rMag'
             sql3 += '        WHEN sce.filterId = 3 THEN sro.iMag'
             sql3 += '        WHEN sce.filterId = 4 THEN sro.zMag'
             sql3 += '        WHEN sce.filterId = 5 THEN sro.yMag'
-            sql3 += '   END as mag,'
-            sql3 += ' sro.ra, sro.decl, sro.isStar, sro.refObjectId,'                              # 5 values
+            sql3 += '   END as mag,'                                                               # 1 value
+            sql3 += ' sro.ra, sro.decl, sro.isStar, sro.refObjectId,'                              # 4 values
             sql3 += selectStr
             sql3 += ' FROM %s.Source AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase)
             sql3 += ' INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase)
@@ -520,13 +549,13 @@ class DbQaData(QaData):
             sql3 += '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
             sql3 += 'WHERE scisql_s2PtInCPoly(s.ra, s.decl, @poly) = 1;'
 
-            if not re.search("\%", sql1) and haveAllKeys:
-                dataIdCopy = copy.copy(dataIdEntry)
-                dataIdCopy['snap'] = "0"
-                key = self._dataIdToString(dataIdCopy)
-                if self.visitMatchCache.has_key(key):
-                    vmDict[key] = self.visitMatchCache[key]
-                    continue
+            #if not re.search("\%", sql1) and haveAllKeys:
+            #    dataIdCopy = copy.copy(dataIdEntry)
+            #    dataIdCopy['snap'] = "0"
+            #    key = self._dataIdToString(dataIdCopy)
+            #    if self.visitMatchCache.has_key(key):
+            #        vmDict[key] = self.visitMatchCache[key]
+            #        continue
             
             self.printStartLoad("Loading DatasetMatches for: " + dataIdEntryStr + "...")
             self.dbInterface.execute(sql1)
@@ -535,20 +564,15 @@ class DbQaData(QaData):
 
             self.printMidLoad("Found %d matches..." % (len(results)))
 
-            calib = self.getCalibBySensor(dataIdRegex)
-
-            vmDict = {}
-            for k in calib.keys():
-                vmDict[k] = []
-
             for row in results:
                 s = pqaSource.Source()
                 qaDataUtils.setSourceBlobsNone(s)
                 sref = pqaSource.RefSource()
                 qaDataUtils.setSourceBlobsNone(sref)
 
-                nValues = 10
-                mvisit, mraft, mccd, fmag0, fmag0Err, mag, ra, dec, isStar, refObjId = row[:nValues]
+                nValues = 11
+                mvisit, mraft, mccd, mfilt, fmag0, fmag0Err, mag, ra, dec, isStar, refObjId = row[:nValues]
+                filt = afwImage.Filter(mfilt, True)
 
                 sref.setId(refObjId)
                 sref.setRa(ra)
@@ -579,27 +603,45 @@ class DbQaData(QaData):
                 s.setInstFlux(s.getInstFlux()/fmag0)
     
                 # flux errors
-                psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-                apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-                modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-                instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
-                s.setPsfFluxErr(psfFluxErr)
-                s.setApFluxErr(apFluxErr)
-                s.setModelFluxErr(modFluxErr)
-                s.setInstFluxErr(instFluxErr)
+                try:
+                    psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
+                except:
+                    pass
+                else:
+                    s.setPsfFluxErr(psfFluxErr)
+    
+                try:
+                    apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+                except:
+                    pass
+                else:
+                    s.setApFluxErr(apFluxErr)
+    
+                try:
+                    modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+                except:
+                    pass
+                else:
+                    s.setModelFluxErr(modFluxErr)
+    
+                try:
+                    instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+                except:
+                    pass
+                else:
+                    s.setInstFluxErr(instFluxErr)
     
                 vm = vmDict[dataIdEntryStr]
-                vm.append( [sref, s] )
+                vm.append( [sref, s, filt] )
     
-    
-            # cache it
-            self.visitMatchQueryCache[dataIdStr] = True
-            for k, ss in vmDict.items():
-                self.visitMatchCache[k] = vmDict[k]
-            
             self.printStopLoad()
     
-            return vmDict
+        # cache it
+        self.visitMatchQueryCache[dataIdStr] = True
+        for k, ss in vmDict.items():
+            self.visitMatchCache[k] = vmDict[k]
+        
+        return vmDict
 
 
     def getRefObjectSetBySensor(self, dataIdRegex):
@@ -927,8 +969,8 @@ class DbQaData(QaData):
                 self.raftDetectorCache[key] = self.cameraInfo.detectors[raftName]
 
             if not self.filterCache.has_key(key):
-                filter = afwImage.Filter(rowDict['filterName'], True)
-                self.filterCache[key] = filter
+                filt = afwImage.Filter(rowDict['filterName'], True)
+                self.filterCache[key] = filt
             
             if not self.calibCache.has_key(key):
                 calib = afwImage.Calib()
