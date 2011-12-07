@@ -171,10 +171,6 @@ def main(dataset, dataIdInput, rerun=None, matchDset=None, matchVisit=None, test
             matchDset = dataset
 
         analysisList.append(qaAnalysis.VisitToVisitQaAnalysis(matchDset, matchVisit, "psf", 
-                                                              policy.get("visitQaMagCut"),
-                                                              policy.get("visitQaDeltaMin"),
-                                                              policy.get("visitQaDeltaMax"),
-                                                              policy.get("visitQaRmsMax"),
                                                               useCache=keep,
                                                               wwwCache=wwwCache, 
                                                               delaySummary=delaySummary))

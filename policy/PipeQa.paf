@@ -339,33 +339,4 @@ definitions: {
         maxOccurs: 1
         default: "lsstSim"
     }    
-
-    visitQaMagCut: {
-        type: double
-        description: "Faintest magnitude for establishing photometric RMS"
-        maxOccurs: 1
-        default: 20.0
-    }
-
-    visitQaDeltaMin: {
-        type: double
-        description: "Minimum allowed delta"
-        maxOccurs: 1
-        default: -0.02
-    }
-
-    visitQaDeltaMax: {
-        type: double
-        description: "Maximum allowed delta"
-        maxOccurs: 1
-        default:  0.02
-    }
-
-    visitQaRmsMax: {
-        type: double
-        description: "Maximum allowed photometric RMS on bright end"
-        maxOccurs: 1
-        default:  0.02
-    }
-
 }
