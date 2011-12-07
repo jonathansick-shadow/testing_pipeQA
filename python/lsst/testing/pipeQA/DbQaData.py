@@ -17,7 +17,6 @@ import QaDataUtils as qaDataUtils
 import simRefObject as simRefObj
 import source       as pqaSource
 
-
 class Timer(object):
 
     def __init__(self):
@@ -227,14 +226,33 @@ class DbQaData(QaData):
             s.setInstFlux(instFlux/fmag0)
 
             # flux errors
-            psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
-            apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
-            modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
-            instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
-            s.setPsfFluxErr(psfFluxErr)
-            s.setApFluxErr(apFluxErr)
-            s.setModelFluxErr(modFluxErr)
-            s.setInstFluxErr(instFluxErr)
+            try:
+                psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setPsfFluxErr(psfFluxErr)
+
+            try:
+                apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setApFluxErr(apFluxErr)
+
+            try:
+                modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setModelFluxErr(modFluxErr)
+
+            try:
+                instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
+            except:
+                pass
+            else:
+                s.setInstFluxErr(instFluxErr)
 
             dist = 0.0
             matchList.append([sref, s, dist])
