@@ -17,6 +17,21 @@ import QaDataUtils as qaDataUtils
 import simRefObject as simRefObj
 import source       as pqaSource
 
+
+class Source(object):
+    def __init__(self):
+        self.sourceId       = None
+        
+class MatchedSource(object):
+    def __init__(self):
+        self.simRefObjectId = None
+        self.u              = Source()
+        self.g              = Source()
+        self.r              = Source()
+        self.i              = Source()
+        self.z              = Source()
+        self.y              = Source()
+
 class Timer(object):
 
     def __init__(self):
@@ -504,12 +519,18 @@ class DbQaData(QaData):
 
         # If the dataIdEntry is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex)      # E.g. visit862826551-snap.*-raft.*-sensor.*
-        if self.visitMatchQueryCache.has_key(dataIdStr):
-            vmDict = {}
-            for key, ss in self.visitMatchCache.items():
-                if re.search(dataIdStr, key):
-                    vmDict[key] = ss
-            return vmDict
+
+        if self.visitMatchQueryCache.has_key(matchDatabase):
+            if self.visitMatchQueryCache[matchDatabase].has_key(matchVisit):
+                vmqCache = self.visitMatchQueryCache[matchDatabase][matchVisit]
+
+                if vmqCache.has_key(dataIdStr):
+                    vmCache = self.visitMatchCache[matchDatabase][matchVisit]
+                    vmDict = {}
+                    for key, ss in vmCache.items():
+                        if re.search(dataIdStr, key):
+                            vmDict[key] = ss
+                    return vmDict
 
 
         # Load each of the dataIds
@@ -655,9 +676,17 @@ class DbQaData(QaData):
             self.printStopLoad()
     
         # cache it
-        self.visitMatchQueryCache[dataIdStr] = True
+        if not self.visitMatchQueryCache.has_key(matchDatabase):
+            self.visitMatchQueryCache[matchDatabase] = {}
+            self.visitMatchCache[matchDatabase] = {}
+
+        if not self.visitMatchQueryCache[matchDatabase].has_key(matchVisit):
+            self.visitMatchQueryCache[matchDatabase][matchVisit] = {}
+            self.visitMatchCache[matchDatabase][matchVisit] = {}
+
+        self.visitMatchQueryCache[matchDatabase][matchVisit][dataIdStr] = True
         for k, ss in vmDict.items():
-            self.visitMatchCache[k] = vmDict[k]
+            self.visitMatchCache[matchDatabase][matchVisit][k] = ss
         
         return vmDict
 

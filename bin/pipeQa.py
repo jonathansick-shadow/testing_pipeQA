@@ -73,7 +73,7 @@ def tryThis(func, data, thisDataId, visit, test, testset):
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, matchDset=None, matchVisit=None, testRegex=".*", camera=None,
+def main(dataset, dataIdInput, rerun=None, matchDset=None, matchVisits=None, testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
 	 groupInfo=None, delaySummary=False, forkFigure=False):
 
@@ -163,14 +163,14 @@ def main(dataset, dataIdInput, rerun=None, matchDset=None, matchVisit=None, test
                                                     wwwCache=wwwCache, delaySummary=delaySummary))
 
     if data.cameraInfo.name in policy.getStringArray("doVisitQa"):
-        if matchDset == None and matchVisit == None:
+        if matchDset == None and matchVisits == None:
             # we can't do it!
             print "Unable to run visit to visit Qa; please request a comparison visit or database"
             sys.exit(1)
         elif matchDset == None:
             matchDset = dataset
 
-        analysisList.append(qaAnalysis.VisitToVisitQaAnalysis(matchDset, matchVisit, "psf", 
+        analysisList.append(qaAnalysis.VisitToVisitQaAnalysis(matchDset, matchVisits, "psf", 
                                                               policy.get("visitQaMagCut"),
                                                               policy.get("visitQaDeltaMin"),
                                                               policy.get("visitQaDeltaMax"),
@@ -356,8 +356,8 @@ if __name__ == '__main__':
     # visit-to-visit
     parser.add_option("--matchDataset", default=None,
                       help="Specify another dataset to compare analysis to")
-    parser.add_option("--matchVisit", default=None,
-                      help="Specify another visit within this dataset to compare analysis to")
+    parser.add_option("--matchVisits", default=None,
+                      help="Specify comma-delimited visits within this dataset to compare analysis to")
 
 
     parser.add_option("--noWwwCache", default=False, action="store_true",
@@ -368,8 +368,7 @@ if __name__ == '__main__':
     if len(args) != 1:
         parser.print_help()
         sys.exit(1)
-
-
+        
     #### handle visits
 
     # split by :
@@ -400,7 +399,7 @@ if __name__ == '__main__':
         opts.keep = True
         
     main(dataset, dataId, rerun=rerun,
-         matchDset=opts.matchDataset, matchVisit=opts.matchVisit,
+         matchDset=opts.matchDataset, matchVisits=opts.matchVisits.split(','),
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
          breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary,

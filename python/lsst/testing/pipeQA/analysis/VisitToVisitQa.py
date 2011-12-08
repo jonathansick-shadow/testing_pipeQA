@@ -13,20 +13,43 @@ import QaAnalysisUtils as qaAnaUtil
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+from matplotlib.font_manager import FontProperties
 
 class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, matchDatabase, matchVisit, mType, magCut, 
+    def __init__(self, database, visits, mType, magCut, 
                  deltaMin, deltaMax, rmsMax, 
                  **kwargs):
         qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.matchDatabase = matchDatabase
-        self.matchVisit    = matchVisit
+        self.database      = database
+        self.visits        = visits
         self.magCut        = magCut
         self.deltaLimits   = [deltaMin, deltaMax]
         self.rmsLimits     = [0.0, rmsMax]
         
-        self.xlim          = [14.0, 25.0]
+        self.maglim        = [14.0, 25.0]
+        self.colorlim      = [-0.98, 2.48]
+
+        self.ownFilt       = None
+
+        # Data caches
+        self.visitFilters  = {}
+        self.visitMatches  = {} 
+
+        # Inpyts to tests
+        self.mag         = {}
+        self.magErr      = {}
+        self.refMag      = {}
+        self.visitMag    = {}
+        self.visitMagErr = {}
+        self.visitRefMag = {}
+        self.refId       = {}
+        self.star        = {}
+
+        # Results of tests
+        self.meanDmags   = {}
+        self.medianDmags = {}
+        self.stdDmags    = {}
 
         self.description = """
 
@@ -88,196 +111,188 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
     def free(self):
         del self.matchListDictSrc
         del self.detector 
-        del self.filt 
         del self.visitMatches   
+        del self.visitFilters
 
+        del self.mag
+        del self.magErr
         del self.refMag   
-        del self.refColor 
-        del self.mag1     
-        del self.mag2     
-        del self.magErr1  
-        del self.magErr2  
+        del self.visitMag
+        del self.visitMagErr 
+        del self.visitRefMag
+        del self.refId
         del self.star
 
-    def testSameFilter(self, data, dataId):
-        # get data before you switch the plotting options since you need to fill filterCache
+    def test(self, data, dataId):
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
         self.detector         = data.getDetectorBySensor(dataId)
-        self.filt             = data.getFilterBySensor(dataId)
-        self.visitMatches     = data.getVisitMatchesBySensor(self.matchDatabase, self.matchVisit, dataId)
-        
-        km  = self.matchListDictSrc.keys()
-        kv  = self.visitMatches.keys()
-        if len(km) == 0:
-            self.filtm0 = None
-            self.filtv0 = None
-            return False
-        elif len(kv) == 0:
-            km0 = km[0]
-            self.filtm0 = self.filt[km0].getName()
-            self.filtv0 = self.filtm0
-            return False
-        else:
-            km0 = km[0]
-            self.filtm0 = self.filt[km0].getName()
 
-            kv0 = kv[0]
-            if len(self.visitMatches[kv0]) == 0:
-                self.filtv0 = self.filtm0
-                return False
+        if self.ownFilt == None:
+            filt = data.getFilterBySensor(dataId)
+            self.ownFilt = filt.values()[0]
+
+        for visit in self.visits:
+            self.visitMatches[visit] = data.getVisitMatchesBySensor(self.database, visit, dataId)
+            kv = self.visitMatches[visit].keys()
+            if len(kv) == 0:
+                self.visitFilters[visit] = None
+            elif len(self.visitMatches[visit][kv[0]]) == 0:
+                self.visitFilters[visit] = None
             else:
-                self.filtv0 = self.visitMatches[kv0][0][2].getName()
-                return self.filtm0 == self.filtv0
+                self.visitFilters[visit] = self.visitMatches[visit][kv[0]][0][2]
 
-    def test(self, data, dataId):
-        if self.testSameFilter(data, dataId):
-            # magnitude comparisons
-            self.testM(data, dataId)
-        else:
-            # color comparisons
-            #self.testC(data, dataId)
-            self.testM(data, dataId)
-
-
-    def testM(self, data, dataId):
-        # create containers for data we're interested in
-        self.refMag           = raftCcdData.RaftCcdVector(self.detector)
-        self.refColor         = raftCcdData.RaftCcdVector(self.detector)
-        self.mag1             = raftCcdData.RaftCcdVector(self.detector)
-        self.mag2             = raftCcdData.RaftCcdVector(self.detector)
-        self.magErr1          = raftCcdData.RaftCcdVector(self.detector)
-        self.magErr2          = raftCcdData.RaftCcdVector(self.detector)
-        self.star             = raftCcdData.RaftCcdVector(self.detector)
-
-        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
-
-        for key in self.matchListDictSrc.keys():
-            raft = self.detector[key].getParent().getId().getName()
-            ccd  = self.detector[key].getId().getName()
-            filt = self.filt[key].getName()
-
-            srcMatchList = self.matchListDictSrc[key]['matched']
-            visMatchList = self.visitMatches[key]
-            
-            # List of reference object ids
-            srcObjIds = num.array([x[0].getId() for x in srcMatchList])
-            matObjIds = num.array([x[0].getId() for x in visMatchList])
-
-
-            for i in range(len(srcObjIds)):
-                srcObjId = srcObjIds[i]                   # ref id for this visit
-                idx = num.where(matObjIds == srcObjId)[0] # ref id for other visit
-
-                # only take 1-to-1 matches
-                if len(idx) != 1:
-                    continue
-
-                sref1 = srcMatchList[i][0]
-                srcv1 = srcMatchList[i][1]
-
-                sref2 = visMatchList[idx[0]][0]
-                srcv2 = visMatchList[idx[0]][1]
-
-                f1  = self._getFlux(self.magType, srcv1, sref1)
-                f2  = self._getFlux(self.magType, srcv2, sref2)
-                df1 = self._getFluxErr(self.magType, srcv1, sref1)
-                df2 = self._getFluxErr(self.magType, srcv2, sref2)
-
-                fref1 = self._getFlux("cat", srcv1, sref1)
-                fref2 = self._getFlux("cat", srcv2, sref2)
-
-                flags1 = srcv1.getFlagForDetection()
-                flags2 = srcv2.getFlagForDetection()
+            # create containers for data we're interested in
+            self.mag[visit]         = raftCcdData.RaftCcdVector(self.detector)
+            self.magErr[visit]      = raftCcdData.RaftCcdVector(self.detector)
+            self.refMag[visit]      = raftCcdData.RaftCcdVector(self.detector)
+            self.visitMag[visit]    = raftCcdData.RaftCcdVector(self.detector)
+            self.visitMagErr[visit] = raftCcdData.RaftCcdVector(self.detector)
+            self.visitRefMag[visit] = raftCcdData.RaftCcdVector(self.detector)
+            self.refId[visit]       = raftCcdData.RaftCcdVector(self.detector)
+            self.star[visit]        = raftCcdData.RaftCcdVector(self.detector)
+    
+            badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
+    
+            for key in self.matchListDictSrc.keys():
+                raft = self.detector[key].getParent().getId().getName()
+                ccd  = self.detector[key].getId().getName()
+    
+                # All detections matched to ref objects
+                srcMatchList = self.matchListDictSrc[key]['matched']
+                # All visit dets in footprint of original image
+                visMatchList = self.visitMatches[visit][key]
                 
-                if (f1 > 0.0 and f2 > 0.0) and (not flags1 & badFlags) and (not flags2 & badFlags):
-                    m1  = -2.5 * num.log10(f1) 
-                    m2  = -2.5 * num.log10(f2) 
-                    dm1 = 2.5 / num.log(10.0) * df1 / f1
-                    dm2 = 2.5 / num.log(10.0) * df2 / f2
+                # List of reference object ids
+                srcObjIds = num.array([x[0].getId() for x in srcMatchList])
+                visObjIds = num.array([x[0].getId() for x in visMatchList])
 
-                    M1  = -2.5 * num.log10(fref1) 
-                    M2  = -2.5 * num.log10(fref2) 
-
-                    star1 = flags1 & measAlg.Flags.STAR
+                # Iterate over all object ids
+                for i in range(len(srcObjIds)):
+                    srcObjId = srcObjIds[i]                   # ref id for this visit
+                    idx = num.where(visObjIds == srcObjId)[0] # ref id for other visit
+    
+                    # only take 1-to-1 matches
+                    if len(idx) != 1:
+                        continue
+    
+                    sref1 = srcMatchList[i][0]
+                    srcv1 = srcMatchList[i][1]
+    
+                    sref2 = visMatchList[idx[0]][0]
+                    srcv2 = visMatchList[idx[0]][1]
+    
+                    f1  = self._getFlux(self.magType, srcv1, sref1)
+                    f2  = self._getFlux(self.magType, srcv2, sref2)
+                    df1 = self._getFluxErr(self.magType, srcv1, sref1)
+                    df2 = self._getFluxErr(self.magType, srcv2, sref2)
+    
+                    fref1 = self._getFlux("cat", srcv1, sref1)
+                    fref2 = self._getFlux("cat", srcv2, sref2)
+    
+                    flags1 = srcv1.getFlagForDetection()
+                    flags2 = srcv2.getFlagForDetection()
                     
-                    if num.isfinite(m1) and num.isfinite(m2) and num.isfinite(M1) and num.isfinite(M2):
-                        self.refMag.append(raft, ccd, M1)
-                        self.refColor.append(raft, ccd, M1-M2)
-                        self.mag1.append(raft, ccd, m1)
-                        self.mag2.append(raft, ccd, m2)
-                        self.magErr1.append(raft, ccd, dm1)
-                        self.magErr2.append(raft, ccd, dm2)
-                        self.star.append(raft, ccd, star1)
+                    if (f1 > 0.0 and f2 > 0.0) and (not flags1 & badFlags) and (not flags2 & badFlags):
+                        m1  = -2.5 * num.log10(f1) 
+                        m2  = -2.5 * num.log10(f2) 
+                        dm1 = 2.5 / num.log(10.0) * df1 / f1
+                        dm2 = 2.5 / num.log(10.0) * df2 / f2
+    
+                        M1  = -2.5 * num.log10(fref1) 
+                        M2  = -2.5 * num.log10(fref2) 
+    
+                        star1 = flags1 & measAlg.Flags.STAR
+                        
+                        if num.isfinite(m1) and num.isfinite(m2) and num.isfinite(M1) and num.isfinite(M2):
+                            self.mag[visit].append(raft, ccd, m1)
+                            self.magErr[visit].append(raft, ccd, dm1)
 
-        testSet = self.getTestSet(data, dataId, label=self.magType)
-        testSet.addMetadata('magType', self.magType)
-        testSet.addMetadata({"Description": self.description})
-        self.means   = raftCcdData.RaftCcdData(self.detector)
-        self.medians = raftCcdData.RaftCcdData(self.detector)
-        self.stds    = raftCcdData.RaftCcdData(self.detector)
-        self.derrs   = raftCcdData.RaftCcdData(self.detector)        
+                            self.visitMag[visit].append(raft, ccd, m2)
+                            self.visitMagErr[visit].append(raft, ccd, dm2)
 
-        for raft, ccd in self.mag1.raftCcdKeys():
-            m1  = self.mag1.get(raft, ccd)
-            m2  = self.mag2.get(raft, ccd)
-            dm1 = self.magErr1.get(raft, ccd)
-            dm2 = self.magErr2.get(raft, ccd)
-            M   = self.refMag.get(raft, ccd)
-            C   = self.refColor.get(raft, ccd)
-            star= self.star.get(raft, ccd)
+                            self.refMag[visit].append(raft, ccd, M1)
+                            self.visitRefMag[visit].append(raft, ccd, M2)
 
-            idxS = num.where( (M > 10) & (M < self.magCut) & (star > 0) )[0]
-            idxG = num.where( (M > 10) & (M < self.magCut) & (star == 0) )[0]
-            
-            dmS  = m1[idxS] - m2[idxS] - C[idxS]
-            ddmS = num.sqrt(dm1[idxS]**2 + dm2[idxS]**2)
+                            self.refId[visit].append(raft, ccd, srcObjId)
+                            self.star[visit].append(raft, ccd, star1)
 
-            dmG  = m1[idxG] - m2[idxG] - C[idxG]
-            ddmG = num.sqrt(dm1[idxG]**2 + dm2[idxG]**2)
+            testLabel = "%s_%s_%s" % (self.database, visit, self.magType)
+            testSet = self.getTestSet(data, dataId, label=testLabel)
+            testSet.addMetadata('magType', self.magType)
+            testSet.addMetadata({"Description": self.description})
 
-            if len(dmS) > 0:
-                stat   = afwMath.makeStatistics(dmS, afwMath.NPOINT | afwMath.MEANCLIP |
-                                                afwMath.STDEVCLIP | afwMath.MEDIAN)
-                mean   = stat.getValue(afwMath.MEANCLIP)
-                median = stat.getValue(afwMath.MEDIAN)
-                std    = stat.getValue(afwMath.STDEVCLIP)
-                npts   = stat.getValue(afwMath.NPOINT)
-
-                # Common
-                tag = self.magType
-                areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-
-                # MEAN
-                self.means.set(raft, ccd, mean)
-                label = "mean "+tag 
-                comment = "mean "+tag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmS), npts)
-                testSet.addTest( testCode.Test(label, mean, self.deltaLimits, comment, areaLabel=areaLabel))
-
-                # MEDIAN
-                self.medians.set(raft, ccd, median)
-                label = "median "+tag 
-                comment = "median "+tag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmS), npts)
-                testSet.addTest( testCode.Test(label, median, self.deltaLimits, comment, areaLabel=areaLabel))
-
-                # STD
-                self.stds.set(raft, ccd, std)
-                label = "stdev "+tag 
-                comment = "stdev "+tag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmS), npts)
-                testSet.addTest( testCode.Test(label, std, self.rmsLimits, comment, areaLabel=areaLabel))
+            self.meanDmags[visit]   = raftCcdData.RaftCcdData(self.detector)
+            self.medianDmags[visit] = raftCcdData.RaftCcdData(self.detector)
+            self.stdDmags[visit]    = raftCcdData.RaftCcdData(self.detector)
+    
+            for raft, ccd in self.mag[visit].raftCcdKeys():
+                m1  = self.mag[visit].get(raft, ccd)
+                m2  = self.visitMag[visit].get(raft, ccd)
+                dm1 = self.magErr[visit].get(raft, ccd)
+                dm2 = self.visitMagErr[visit].get(raft, ccd)
+                M1  = self.refMag[visit].get(raft, ccd)
+                M2  = self.visitRefMag[visit].get(raft, ccd)
+                star= self.star[visit].get(raft, ccd)
+    
+                idxS = num.where( (M1 > 10) & (M1 < self.magCut) & (star > 0) )[0]
+                #idxG = num.where( (M1 > 10) & (M1 < self.magCut) & (star == 0) )[0]
+                
+                dmS  = m1[idxS] - m2[idxS] - (M1[idxS] - M2[idxS])
+                ddmS = num.sqrt(dm1[idxS]**2 + dm2[idxS]**2)
+    
+                if len(dmS) > 0:
+                    stat   = afwMath.makeStatistics(dmS, afwMath.NPOINT | afwMath.MEANCLIP |
+                                                    afwMath.STDEVCLIP | afwMath.MEDIAN)
+                    mean   = stat.getValue(afwMath.MEANCLIP)
+                    median = stat.getValue(afwMath.MEDIAN)
+                    std    = stat.getValue(afwMath.STDEVCLIP)
+                    npts   = stat.getValue(afwMath.NPOINT)
+    
+                    # Common
+                    tag = self.magType
+                    areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
+    
+                    # MEAN
+                    self.meanDmags[visit].set(raft, ccd, mean)
+                    label = "mean "+tag 
+                    comment = "mean "+tag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmS), npts)
+                    testSet.addTest( testCode.Test(label, mean, self.deltaLimits, comment, areaLabel=areaLabel))
+    
+                    # MEDIAN
+                    self.medianDmags[visit].set(raft, ccd, median)
+                    label = "median "+tag 
+                    comment = "median "+tag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmS), npts)
+                    testSet.addTest( testCode.Test(label, median, self.deltaLimits, comment, areaLabel=areaLabel))
+    
+                    # STD
+                    self.stdDmags[visit].set(raft, ccd, std)
+                    label = "stdev "+tag 
+                    comment = "stdev "+tag+" (mag lt %.1f, nstar/clip=%d/%d)" % (self.magCut, len(dmS), npts)
+                    testSet.addTest( testCode.Test(label, std, self.rmsLimits, comment, areaLabel=areaLabel))
                 
 
 
     def plot(self, data, dataId, showUndefined=False):
-        if self.testSameFilter(data, dataId):
-            # magnitude comparisons
-            self.plotM(data, dataId, showUndefined=False) 
-        else:
-            # color comparisons
-            #self.plotC(data, dataId, showUndefined=False)
-            self.plotM(data, dataId, showUndefined=False)
+        # In all cases plot a delta-mag plot
+        for i in range(len(self.visits)):
+            visiti = self.visits[i]
+            self.visitMatches[visiti] = data.getVisitMatchesBySensor(self.database, visiti, dataId)
+            self.plotdM(data, dataId, visiti, showUndefined)
+            
+            # In some cases plot color-magnitude diagram
+            if self.ownFilt.getName() != self.visitFilters[visiti].getName():
+                self.plotCmd(data, dataId, visiti, showUndefined)
 
+            # In some cases plot color-color diagrams
+            for j in range(i+1, len(self.visits)):
+                visitj = self.visits[j]
+                self.visitMatches[visitj] = data.getVisitMatchesBySensor(self.database, visitj, dataId)
+                if self.ownFilt.getName() != self.visitFilters[visiti].getName() and \
+                        self.visitFilters[visiti].getName() != self.visitFilters[visitj].getName():
+                    self.plotCcd(data, dataId, visiti, visitj, showUndefined)
 
-    def plotM(self, data, dataId, showUndefined=False):
+            
+    def plotdM(self, data, dataId, visit, showUndefined=False):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         
@@ -286,20 +301,20 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
             isFinalDataId = True
 
         # fpa figure
-        tag  = "$\Delta m_{\mathrm{"+self.magType.upper()+"}}$"
-        dtag = "d"+self.magType
-        wtag = self.magType
-        meanFilebase = "mean" + wtag
-        stdFilebase  = "std" + wtag
+        title        = "$\Delta m_{\mathrm{"+self.magType.upper()+"}}$"
+        cachetag     = "%s_%s_%s" % (self.database, visit, self.magType)
+        nametag      = "d"+self.magType
+        meanFilebase = "mean" + cachetag
+        stdFilebase  = "std" + cachetag
         meanData, meanMap   = testSet.unpickle(meanFilebase, default=[None, None])
         stdData, stdMap     = testSet.unpickle(stdFilebase, default=[None, None])
 
         meanFig  = qaFig.FpaQaFigure(data.cameraInfo, data=meanData, map=meanMap)
         stdFig   = qaFig.FpaQaFigure(data.cameraInfo, data=stdData, map=stdMap)
 
-        for raft, ccd in self.mag1.raftCcdKeys():
-            meanFig.data[raft][ccd] = self.means.get(raft, ccd)
-            stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
+        for raft, ccd in self.mag[visit].raftCcdKeys():
+            meanFig.data[raft][ccd] = self.meanDmags[visit].get(raft, ccd)
+            stdFig.data[raft][ccd] = self.stdDmags[visit].get(raft, ccd)
             
         testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
         testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
@@ -308,15 +323,15 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
-                               title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
+                               title="Mean "+title, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
             testSet.addFigure(meanFig, "f01"+meanFilebase+".png",
-                              "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
+                              "mean "+nametag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
             del meanFig
             
             stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
-                              title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
+                              title="Stdev "+title, cmapOver=red, failLimits=self.rmsLimits)
             testSet.addFigure(stdFig, "f02"+stdFilebase+".png",
-                              "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
+                              "stdev "+nametag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
             del stdFig
 
         else:
@@ -325,57 +340,281 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
 
         # Per CCD figures
-        figbase = "vvdiff_"+dtag
+        figbase = "vvdiff_"+nametag
         shelfData = {}
-        for raft, ccd in self.mag1.raftCcdKeys():
-            m1  = self.mag1.get(raft, ccd)
-            m2  = self.mag2.get(raft, ccd)
-            dm1 = self.magErr1.get(raft, ccd)
-            dm2 = self.magErr2.get(raft, ccd)
-            M   = self.refMag.get(raft, ccd)
-            C   = self.refColor.get(raft, ccd)
-            star= self.star.get(raft, ccd)
+        for raft, ccd in self.mag[visit].raftCcdKeys():
+            m1  = self.mag[visit].get(raft, ccd)
+            m2  = self.visitMag[visit].get(raft, ccd)
+            dm1 = self.magErr[visit].get(raft, ccd)
+            dm2 = self.visitMagErr[visit].get(raft, ccd)
+            M1  = self.refMag[visit].get(raft, ccd)
+            M2  = self.visitRefMag[visit].get(raft, ccd)
+            star= self.star[visit].get(raft, ccd)
 
-            idxSB = num.where( (M > 10) & (M < self.magCut) & (star > 0) )[0]
-            idxSF = num.where( (M > 10) & (M >= self.magCut) & (star > 0) )[0]
+            idxSB = num.where( (M1 > 10) & (M1 < self.magCut) & (star > 0) )[0]
+            idxSF = num.where( (M1 > 10) & (M1 >= self.magCut) & (star > 0) )[0]
 
-            dmSB  = m1[idxSB] - m2[idxSB] - C[idxSB]
+            dmSB  = m1[idxSB] - m2[idxSB] - (M1[idxSB] - M2[idxSB])
             ddmSB = num.sqrt(dm1[idxSB]**2 + dm2[idxSB]**2)
 
-            dmSF  = m1[idxSF] - m2[idxSF] - C[idxSF]
+            dmSF  = m1[idxSF] - m2[idxSF] - (M1[idxSF] - M2[idxSF])
             ddmSF = num.sqrt(dm1[idxSF]**2 + dm2[idxSF]**2)
 
             fig = qaFig.QaFigure()
             sp1 = fig.fig.add_subplot(111)
             if len(dmSB):
-                sp1.errorbar(M[idxSB], dmSB, yerr=ddmSB, fmt='ro', ms=3)
+                sp1.errorbar(M1[idxSB], dmSB, yerr=ddmSB, fmt='ro', ms=3)
             if len(dmSF):
-                sp1.errorbar(M[idxSF], dmSF, yerr=ddmSF, fmt='ko', ms=3)
+                sp1.errorbar(M1[idxSF], dmSF, yerr=ddmSF, fmt='ko', ms=3)
 
-            sp1.set_xlabel("${\mathrm{M_{%s; cat}}}$" % self.filtm0, fontsize=12)
-            if self.filtm0 == self.filtv0:
-                lab = "${\mathrm{(%s_{%s} - %s_{%s})_{%s} - (%s - %s)_{cat}}}$" % (self.filtm0,
-                                                                                   dataId['visit'],
-                                                                                   self.filtv0,
-                                                                                   self.matchVisit,
-                                                                                   self.magType,
-                                                                                   self.filtm0,
-                                                                                   self.filtv0)
+            sp1.set_xlabel("${\mathrm{M_{%s; cat}}}$" % self.ownFilt.getName(), fontsize=12)
+            if self.ownFilt.getName() == self.visitFilters[visit].getName():
+                lab = "${\mathrm{(%s_{%s} - %s_{%s})_{%s}}}$" % (self.ownFilt.getName(),
+                                                                 dataId['visit'],
+                                                                 self.visitFilters[visit].getName(),
+                                                                 visit,
+                                                                 self.magType)
             else:
-                lab = "${\mathrm{(%s_{%s} - %s_{%s})_{%s} - (%s - %s)_{cat}}}$" % (self.filtm0,
+                lab = "${\mathrm{(%s_{%s} - %s_{%s})_{%s} - (%s - %s)_{cat}}}$" % (self.ownFilt.getName(),
                                                                                    dataId['visit'],
-                                                                                   self.filtv0,
-                                                                                   self.matchVisit,
+                                                                                   self.visitFilters[visit].getName(),
+                                                                                   visit,
                                                                                    self.magType,
-                                                                                   self.filtm0,
-                                                                                   self.filtv0)
+                                                                                   self.ownFilt.getName(),
+                                                                                   self.visitFilters[visit].getName())
             sp1.set_title(lab, fontsize=12)
             qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
             sp1.set_ylim(-0.5, 0.5)
-            sp1.set_xlim(self.xlim[0], self.xlim[1])
+            sp1.set_xlim(self.maglim[0], self.maglim[1])
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             statBlurb = "Points used for statistics shown in red."
             testSet.addFigure(fig, figbase+".png",
-                              dtag+" vs. "+self.magType + "(stars). "+statBlurb,
+                              nametag+" vs. "+self.magType + "(stars). "+statBlurb,
                               areaLabel=areaLabel)
+
+    def plotCmd(self, data, dataId, visit, showUndefined=False):
+        testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
+        
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
+
+        # Per CCD figures
+        nametag = "cmd_"+self.magType
+        figbase = "vvcmd_"+nametag
+        shelfData = {}
+        for raft, ccd in self.mag[visit].raftCcdKeys():
+            m1  = self.mag[visit].get(raft, ccd)
+            m2  = self.visitMag[visit].get(raft, ccd)
+            dm1 = self.magErr[visit].get(raft, ccd)
+            dm2 = self.visitMagErr[visit].get(raft, ccd)
+            M1  = self.refMag[visit].get(raft, ccd)
+            M2  = self.visitRefMag[visit].get(raft, ccd)
+            star= self.star[visit].get(raft, ccd)
+
+            idxS = num.where( (star >  0) )[0]
+            idxG = num.where( (star == 0) )[0]
+
+            order = ['u', 'g', 'r', 'i', 'z', 'y']
+            idx1  = order.index(self.ownFilt.getName())
+            idx2  = order.index(self.visitFilters[visit].getName())
+            if (idx1 < idx2):
+                firstD  = m1
+                secondD = m2
+                firstR  = M1
+                secondR = M2
+                lab1    = self.ownFilt.getName()
+                lab2    = self.visitFilters[visit].getName()
+            else:
+                firstD  = m2
+                secondD = m1
+                firstR  = M2
+                secondR = M1
+                lab1    = self.visitFilters[visit].getName()
+                lab2    = self.ownFilt.getName()
+                
+#            fig = qaFig.QaFigure()
+#            sp1 = fig.fig.add_subplot(121)
+#            sp2 = fig.fig.add_subplot(122, sharex=sp1, sharey=sp1)
+#            if len(idxS) and len(idxG):
+#                sp1.plot(firstD[idxS]-secondD[idxS], secondD[idxS], 'ro', ms=3, alpha=0.25, label='stars')
+#                sp1.plot(firstD[idxG]-secondD[idxG], secondD[idxG], 'bs', ms=3, alpha=0.25, label='galaxies')
+#
+#                sp2.plot(firstR[idxS]-secondR[idxS], secondR[idxS], 'ro', ms=3, alpha=0.25)
+#                sp2.plot(firstR[idxG]-secondR[idxG], secondR[idxG], 'bs', ms=3, alpha=0.25)
+#
+#            sp1.set_ylabel(lab2, fontsize=10)
+#            sp1.set_xlabel('%s - %s' % (lab1, lab2), fontsize=10)
+#            sp2.set_xlabel('%s - %s' % (lab1, lab2), fontsize=10)
+#            sp1.set_title('Data', fontsize=12)
+#            sp2.set_title('Ref Cat', fontsize=12)
+#            sp1.legend(numpoints = 1, loc = 1, prop = FontProperties(size=10, weight = 'bold'), fancybox = True, shadow = True)
+#
+#            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
+#            qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
+#            #qaFigUtils.qaSetp(sp1.get_xticklabels()+sp2.get_yticklabels(), rotation=45.0)
+#            
+#            sp1.set_ylim(self.xlim[1], self.xlim[0])
+#            sp2.set_xlim(xmin, xmax)
+
+            fig = self.panelPlot(firstD[idxS]-secondD[idxS], secondD[idxS],
+                                 firstD[idxG]-secondD[idxG], secondD[idxG],
+                                 firstR[idxS]-secondR[idxS], secondR[idxS],
+                                 firstR[idxG]-secondR[idxG], secondR[idxG],
+                                 '${\mathrm{(%s - %s)_{%s}}}$' % (lab1, lab2, self.magType),
+                                 '${\mathrm{%s_{%s}}}$' % (lab2, self.magType),
+                                 self.colorlim[0], self.colorlim[1],
+                                 self.maglim[1], self.maglim[0])
+                                 
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
+            statBlurb = "Color magnitude diagram."
+            testSet.addFigure(fig, figbase+".png",
+                              nametag+". "+statBlurb,
+                              areaLabel=areaLabel)
+
+    def plotCcd(self, data, dataId, visitA, visitB, showUndefined=False):
+        testSet = self.getTestSet(data, dataId)
+        testSet.setUseCache(self.useCache)
+        
+        isFinalDataId = False
+        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+            isFinalDataId = True
+
+        # Per CCD figures
+        nametag = "ccd_"+self.magType
+        figbase = "vvccd_"+nametag
+        shelfData = {}
+        for raft, ccd in self.mag[visitA].raftCcdKeys():
+            idA = self.refId[visitA].get(raft, ccd)
+            idB = self.refId[visitB].get(raft, ccd)
+            idX = num.intersect1d(idA, idB)
+            sliceA, sliceB = num.where(num.equal.outer(idA, idB) == True)
+            
+            m1A  = self.mag[visitA].get(raft, ccd)[sliceA]
+            m2A  = self.visitMag[visitA].get(raft, ccd)[sliceA]
+            dm1A = self.magErr[visitA].get(raft, ccd)[sliceA]
+            dm2A = self.visitMagErr[visitA].get(raft, ccd)[sliceA]
+            M1A  = self.refMag[visitA].get(raft, ccd)[sliceA]
+            M2A  = self.visitRefMag[visitA].get(raft, ccd)[sliceA]
+            starA= self.star[visitA].get(raft, ccd)[sliceA]
+
+            m1B  = self.mag[visitB].get(raft, ccd)[sliceB]
+            m2B  = self.visitMag[visitB].get(raft, ccd)[sliceB]
+            dm1B = self.magErr[visitB].get(raft, ccd)[sliceB]
+            dm2B = self.visitMagErr[visitB].get(raft, ccd)[sliceB]
+            M1B  = self.refMag[visitB].get(raft, ccd)[sliceB]
+            M2B  = self.visitRefMag[visitB].get(raft, ccd)[sliceB]
+            starB= self.star[visitB].get(raft, ccd)[sliceB]
+
+            idxS = num.where( (starA >  0) )[0]
+            idxG = num.where( (starA == 0) )[0]
+
+            order = ['u', 'g', 'r', 'i', 'z', 'y']
+            f1    = self.ownFilt.getName()
+            f2    = self.visitFilters[visitA].getName()
+            f3    = self.visitFilters[visitB].getName()
+            idx1  = order.index(f1)
+            idx2  = order.index(f2)
+            idx3  = order.index(f3)
+
+            slist = [ [idx1, m1A, M1A, f1],
+                      [idx2, m2A, M2A, f2],
+                      [idx3, m2B, M2B, f3]
+                      ]
+            slist.sort()
+
+#            fig = qaFig.QaFigure()
+#            sp1 = fig.fig.add_subplot(121)
+#            sp2 = fig.fig.add_subplot(122, sharex=sp1, sharey=sp1)
+#            if len(idxS) and len(idxG):
+#                sp1.plot(slist[0][1][idxS] - slist[1][1][idxS], 
+#                         slist[1][1][idxS] - slist[2][1][idxS], 
+#                         'ro', ms=3, alpha=0.25, label='stars')
+#
+#                sp1.plot(slist[0][1][idxG] - slist[1][1][idxG], 
+#                         slist[1][1][idxG] - slist[2][1][idxG], 
+#                         'bs', ms=3, alpha=0.25, label='galaxies')
+#
+#
+#                sp2.plot(slist[0][2][idxS] - slist[1][2][idxS], 
+#                         slist[1][2][idxS] - slist[2][2][idxS], 
+#                         'ro', ms=3, alpha=0.25)
+#
+#                sp2.plot(slist[0][2][idxG] - slist[1][2][idxG], 
+#                         slist[1][2][idxG] - slist[2][2][idxG], 
+#                         'bs', ms=3, alpha=0.25)
+#
+#            sp1.set_xlabel('%s - %s' % (slist[0][3], slist[1][3]), fontsize=10)
+#            sp2.set_xlabel('%s - %s' % (slist[0][3], slist[1][3]), fontsize=10)
+#            sp1.set_ylabel('%s - %s' % (slist[1][3], slist[2][3]), fontsize=10)
+#            sp1.set_title('Data', fontsize=12)
+#            sp2.set_title('Ref Cat', fontsize=12)
+#            sp1.legend(numpoints = 1, loc = 1, prop = FontProperties(size=10, weight = 'bold'), fancybox = True, shadow = True)
+#
+#            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
+#            qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
+#            #qaFigUtils.qaSetp(sp1.get_xticklabels()+sp2.get_yticklabels(), rotation=45.0)
+#            
+#            sp1.set_ylim(xmin, xmax)
+#            sp2.set_xlim(xmin, xmax)
+            fig = self.panelPlot(slist[0][1][idxS] - slist[1][1][idxS],  # xdataS
+                                 slist[1][1][idxS] - slist[2][1][idxS],  # ydataS
+                                 slist[0][1][idxG] - slist[1][1][idxG],  # xdataG
+                                 slist[1][1][idxG] - slist[2][1][idxG],  # ydataG
+                                 slist[0][2][idxS] - slist[1][2][idxS],  # xmodelS
+                                 slist[1][2][idxS] - slist[2][2][idxS],  # ymodelS
+                                 slist[0][2][idxG] - slist[1][2][idxG],  # xmodelG
+                                 slist[1][2][idxG] - slist[2][2][idxG],  # ymodelG
+                                 '${\mathrm{(%s - %s)_{%s}}}$' % (slist[0][3], slist[1][3], self.magType), # xlabel
+                                 '${\mathrm{(%s - %s)_{%s}}}$' % (slist[1][3], slist[2][3], self.magType), # ylabel
+                                 self.colorlim[0], self.colorlim[1], 
+                                 self.colorlim[0], self.colorlim[1])
+
+            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
+            statBlurb = "Color color diagram."
+            testSet.addFigure(fig, figbase+".png",
+                              nametag+". "+statBlurb,
+                              areaLabel=areaLabel)
+
+
+    def panelPlot(self, xdataS, ydataS, xdataG, ydataG, xmodelS, ymodelS, xmodelG, ymodelG, xlabel, ylabel, xmin, xmax, ymin, ymax):
+        fig = qaFig.QaFigure(size = (6.5, 5.0))
+        fig.fig.subplots_adjust(wspace=0.0, hspace=0.0)
+
+        sp1 = fig.fig.add_subplot(221)
+        sp2 = fig.fig.add_subplot(222, sharex=sp1, sharey=sp1)
+        sp3 = fig.fig.add_subplot(223, sharex=sp1, sharey=sp1)
+        sp4 = fig.fig.add_subplot(224, sharex=sp1, sharey=sp1)
+
+        sp1.plot(xdataS,  ydataS,  'ro', ms=3, alpha=0.25)
+        sp2.plot(xmodelS, ymodelS, 'ro', ms=3, alpha=0.25)
+        sp3.plot(xdataG,  ydataG,  'bs', ms=3, alpha=0.25)
+        sp4.plot(xmodelG, ymodelG, 'bs', ms=3, alpha=0.25)
+
+        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp2.get_xticklabels(), visible=False)
+        qaFigUtils.qaSetp(sp2.get_yticklabels()+sp4.get_yticklabels(), visible=False)
+
+        qaFigUtils.qaSetp(sp3.get_xticklabels()+sp4.get_xticklabels(), fontsize=8)
+        qaFigUtils.qaSetp(sp1.get_yticklabels()+sp3.get_yticklabels(), fontsize=8)
+
+        sp1.set_title('Data', fontsize=12)
+        sp2.set_title('Ref Cat', fontsize=12)
+        sp3.set_xlabel(xlabel, fontsize=12)
+        sp4.set_xlabel(xlabel, fontsize=12)
+        sp1.set_ylabel(ylabel, fontsize=12)
+        sp3.set_ylabel(ylabel, fontsize=12)
+
+        # right side
+        twinsp2 = sp2.twinx()
+        twinsp2.set_ylabel('Star', fontsize=12, rotation=-90)
+        twinsp4 = sp4.twinx()
+        twinsp4.set_ylabel('Gal', fontsize=12, rotation=-90)
+        qaFigUtils.qaSetp(twinsp2.get_xticklabels()+twinsp2.get_yticklabels(), visible=False)
+        qaFigUtils.qaSetp(twinsp4.get_xticklabels()+twinsp4.get_yticklabels(), visible=False)
+
+        #fig.fig.text(0.025, 0.5, ylabel, fontsize=10, rotation=90)
+        sp1.set_xlim(xmin, xmax)
+        sp1.set_ylim(ymin, ymax)
+        return fig
