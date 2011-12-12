@@ -435,30 +435,6 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                 lab1    = self.visitFilters[visit].getName()
                 lab2    = self.ownFilt.getName()
                 
-#            fig = qaFig.QaFigure()
-#            sp1 = fig.fig.add_subplot(121)
-#            sp2 = fig.fig.add_subplot(122, sharex=sp1, sharey=sp1)
-#            if len(idxS) and len(idxG):
-#                sp1.plot(firstD[idxS]-secondD[idxS], secondD[idxS], 'ro', ms=3, alpha=0.25, label='stars')
-#                sp1.plot(firstD[idxG]-secondD[idxG], secondD[idxG], 'bs', ms=3, alpha=0.25, label='galaxies')
-#
-#                sp2.plot(firstR[idxS]-secondR[idxS], secondR[idxS], 'ro', ms=3, alpha=0.25)
-#                sp2.plot(firstR[idxG]-secondR[idxG], secondR[idxG], 'bs', ms=3, alpha=0.25)
-#
-#            sp1.set_ylabel(lab2, fontsize=10)
-#            sp1.set_xlabel('%s - %s' % (lab1, lab2), fontsize=10)
-#            sp2.set_xlabel('%s - %s' % (lab1, lab2), fontsize=10)
-#            sp1.set_title('Data', fontsize=12)
-#            sp2.set_title('Ref Cat', fontsize=12)
-#            sp1.legend(numpoints = 1, loc = 1, prop = FontProperties(size=10, weight = 'bold'), fancybox = True, shadow = True)
-#
-#            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
-#            qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
-#            #qaFigUtils.qaSetp(sp1.get_xticklabels()+sp2.get_yticklabels(), rotation=45.0)
-#            
-#            sp1.set_ylim(self.xlim[1], self.xlim[0])
-#            sp2.set_xlim(xmin, xmax)
-
             fig = self.panelPlot(firstD[idxS]-secondD[idxS], secondD[idxS],
                                  firstD[idxG]-secondD[idxG], secondD[idxG],
                                  firstR[idxS]-secondR[idxS], secondR[idxS],
@@ -525,40 +501,6 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                       ]
             slist.sort()
 
-#            fig = qaFig.QaFigure()
-#            sp1 = fig.fig.add_subplot(121)
-#            sp2 = fig.fig.add_subplot(122, sharex=sp1, sharey=sp1)
-#            if len(idxS) and len(idxG):
-#                sp1.plot(slist[0][1][idxS] - slist[1][1][idxS], 
-#                         slist[1][1][idxS] - slist[2][1][idxS], 
-#                         'ro', ms=3, alpha=0.25, label='stars')
-#
-#                sp1.plot(slist[0][1][idxG] - slist[1][1][idxG], 
-#                         slist[1][1][idxG] - slist[2][1][idxG], 
-#                         'bs', ms=3, alpha=0.25, label='galaxies')
-#
-#
-#                sp2.plot(slist[0][2][idxS] - slist[1][2][idxS], 
-#                         slist[1][2][idxS] - slist[2][2][idxS], 
-#                         'ro', ms=3, alpha=0.25)
-#
-#                sp2.plot(slist[0][2][idxG] - slist[1][2][idxG], 
-#                         slist[1][2][idxG] - slist[2][2][idxG], 
-#                         'bs', ms=3, alpha=0.25)
-#
-#            sp1.set_xlabel('%s - %s' % (slist[0][3], slist[1][3]), fontsize=10)
-#            sp2.set_xlabel('%s - %s' % (slist[0][3], slist[1][3]), fontsize=10)
-#            sp1.set_ylabel('%s - %s' % (slist[1][3], slist[2][3]), fontsize=10)
-#            sp1.set_title('Data', fontsize=12)
-#            sp2.set_title('Ref Cat', fontsize=12)
-#            sp1.legend(numpoints = 1, loc = 1, prop = FontProperties(size=10, weight = 'bold'), fancybox = True, shadow = True)
-#
-#            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
-#            qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
-#            #qaFigUtils.qaSetp(sp1.get_xticklabels()+sp2.get_yticklabels(), rotation=45.0)
-#            
-#            sp1.set_ylim(xmin, xmax)
-#            sp2.set_xlim(xmin, xmax)
             fig = self.panelPlot(slist[0][1][idxS] - slist[1][1][idxS],  # xdataS
                                  slist[1][1][idxS] - slist[2][1][idxS],  # ydataS
                                  slist[0][1][idxG] - slist[1][1][idxG],  # xdataG
