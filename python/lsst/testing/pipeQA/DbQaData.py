@@ -103,10 +103,12 @@ class DbQaData(QaData):
         
 
     def calibFluxError(self, f, df, f0, df0):
+        val = numpy.NaN 
         try:
             return (df/f + df0/f0)*f/f0
         except FloatingPointError:
-            return numpy.NaN
+            val = numpy.NaN 
+        return val
 
     def getMatchListBySensor(self, dataIdRegex, useRef='src'):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
@@ -241,33 +243,17 @@ class DbQaData(QaData):
             s.setInstFlux(instFlux/fmag0)
 
             # flux errors
-            try:
-                psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setPsfFluxErr(psfFluxErr)
+            psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
+            s.setPsfFluxErr(psfFluxErr)
 
-            try:
-                apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setApFluxErr(apFluxErr)
+            apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
+            s.setApFluxErr(apFluxErr)
 
-            try:
-                modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setModelFluxErr(modFluxErr)
+            modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
+            s.setModelFluxErr(modFluxErr)
 
-            try:
-                instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setInstFluxErr(instFluxErr)
+            instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
+            s.setInstFluxErr(instFluxErr)
 
             dist = 0.0
             matchList.append([sref, s, dist])
@@ -447,33 +433,17 @@ class DbQaData(QaData):
             s.setInstFlux(s.getInstFlux()/fmag0)
 
             # flux errors
-            try:
-                psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setPsfFluxErr(psfFluxErr)
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
+            s.setPsfFluxErr(psfFluxErr)
 
-            try:
-                apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setApFluxErr(apFluxErr)
+            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+            s.setApFluxErr(apFluxErr)
 
-            try:
-                modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setModelFluxErr(modFluxErr)
+            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+            s.setModelFluxErr(modFluxErr)
 
-            try:
-                instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
-            except:
-                pass
-            else:
-                s.setInstFluxErr(instFluxErr)
+            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+            s.setInstFluxErr(instFluxErr)
                 
             ss.append(s)
 
@@ -642,33 +612,17 @@ class DbQaData(QaData):
                 s.setInstFlux(s.getInstFlux()/fmag0)
     
                 # flux errors
-                try:
-                    psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-                except:
-                    pass
-                else:
-                    s.setPsfFluxErr(psfFluxErr)
+                psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
+                s.setPsfFluxErr(psfFluxErr)
     
-                try:
-                    apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-                except:
-                    pass
-                else:
-                    s.setApFluxErr(apFluxErr)
+                apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+                s.setApFluxErr(apFluxErr)
     
-                try:
-                    modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-                except:
-                    pass
-                else:
-                    s.setModelFluxErr(modFluxErr)
+                modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+                s.setModelFluxErr(modFluxErr)
     
-                try:
-                    instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
-                except:
-                    pass
-                else:
-                    s.setInstFluxErr(instFluxErr)
+                instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+                s.setInstFluxErr(instFluxErr)
     
                 vm = vmDict[dataIdEntryStr]
                 vm.append( [sref, s, filt] )
