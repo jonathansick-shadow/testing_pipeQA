@@ -495,9 +495,9 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
             idx2  = order.index(f2)
             idx3  = order.index(f3)
 
-            slist = [ [idx1, m1A, M1A, f1],
-                      [idx2, m2A, M2A, f2],
-                      [idx3, m2B, M2B, f3]
+            slist = [ [idx1, m1A, M1A, f1, dataId['visit']],
+                      [idx2, m2A, M2A, f2, visitA],
+                      [idx3, m2B, M2B, f3, visitB]
                       ]
             slist.sort()
 
@@ -515,7 +515,9 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                                  self.colorlim[0], self.colorlim[1])
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            statBlurb = "Color color diagram."
+            statBlurb = "Color color diagram; filters (%s - %s) vs (%s - %s); visits (%s - %s) vs (%s - %s)" % (
+                slist[1][3], slist[2][3], slist[0][3], slist[1][3],
+                slist[1][4], slist[2][4], slist[0][4], slist[1][4])                
             testSet.addFigure(fig, figbase+".png",
                               nametag+". "+statBlurb,
                               areaLabel=areaLabel)
