@@ -340,7 +340,8 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
 
         # Per CCD figures
-        figbase = "vvdiff_"+visit+"_"+nametag
+        figbase = "vvdiff_"+nametag
+        toggle  = "diff_"+visit
         shelfData = {}
         for raft, ccd in self.mag[visit].raftCcdKeys():
             m1  = self.mag[visit].get(raft, ccd)
@@ -391,7 +392,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
             statBlurb = "Points used for statistics shown in red."
             testSet.addFigure(fig, figbase+".png",
                               nametag+" vs. "+self.magType + "(stars). "+statBlurb,
-                              areaLabel=areaLabel)
+                              areaLabel=areaLabel, toggle=toggle)
 
     def plotCmd(self, data, dataId, visit, showUndefined=False):
         testSet = self.getTestSet(data, dataId)
@@ -403,7 +404,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
         # Per CCD figures
         nametag = "cmd_"+self.magType
-        figbase = "vvcmd_"+visit+"_"+self.magType
+        figbase = "vvcmd_"+self.magType
         toggle  = "cmd_"+visit
         shelfData = {}
         for raft, ccd in self.mag[visit].raftCcdKeys():
@@ -466,7 +467,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
         # Per CCD figures
         nametag = "ccd_"+self.magType
-        figbase = "vvccd_"+visitA+"_"+visitB+"_"+self.magType
+        figbase = "vvccd_"+self.magType
         toggle  = "ccd_"+visitA+"_"+visitB
         shelfData = {}
         for raft, ccd in self.mag[visitA].raftCcdKeys():
