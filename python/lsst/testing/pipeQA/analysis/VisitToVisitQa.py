@@ -403,7 +403,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
         # Per CCD figures
         nametag = "cmd_"+self.magType
-        figbase = "vvcmd_"+visit+"_"+nametag
+        figbase = "vvcmd_"+visit+"_"+self.magType
         toggle  = "cmd_"+visit
         shelfData = {}
         for raft, ccd in self.mag[visit].raftCcdKeys():
@@ -466,7 +466,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
         # Per CCD figures
         nametag = "ccd_"+self.magType
-        figbase = "vvccd_"+visitA+"_"+visitB+"_"+nametag
+        figbase = "vvccd_"+visitA+"_"+visitB+"_"+self.magType
         toggle  = "ccd_"+visitA+"_"+visitB
         shelfData = {}
         for raft, ccd in self.mag[visitA].raftCcdKeys():
