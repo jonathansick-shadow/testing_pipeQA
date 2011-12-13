@@ -427,6 +427,8 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                 secondR = M2
                 lab1    = self.ownFilt.getName()
                 lab2    = self.visitFilters[visit].getName()
+                v1      = dataId['visit']
+                v2      = visit
             else:
                 firstD  = m2
                 secondD = m1
@@ -434,6 +436,8 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                 secondR = M1
                 lab1    = self.visitFilters[visit].getName()
                 lab2    = self.ownFilt.getName()
+                v1      = visit
+                v2      = dataId['visit']
                 
             fig = self.panelPlot(firstD[idxS]-secondD[idxS], secondD[idxS],
                                  firstD[idxG]-secondD[idxG], secondD[idxG],
@@ -445,7 +449,8 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                                  self.maglim[1], self.maglim[0])
                                  
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            statBlurb = "Color magnitude diagram."
+            statBlurb = "Color magnitude diagram; filters %s vs. (%s - %s); visits %s vs. (%s - %s)" % (
+                lab2, lab1, lab2, v2, v1, v2)
             testSet.addFigure(fig, figbase+".png",
                               nametag+". "+statBlurb,
                               areaLabel=areaLabel)
