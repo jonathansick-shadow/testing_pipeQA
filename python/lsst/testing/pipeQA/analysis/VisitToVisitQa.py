@@ -404,6 +404,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
         # Per CCD figures
         nametag = "cmd_"+self.magType
         figbase = "vvcmd_"+visit+"_"+nametag
+        toggle  = "cmd_"+visit
         shelfData = {}
         for raft, ccd in self.mag[visit].raftCcdKeys():
             m1  = self.mag[visit].get(raft, ccd)
@@ -453,7 +454,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                 lab2, lab1, lab2, v2, v1, v2)
             testSet.addFigure(fig, figbase+".png",
                               nametag+". "+statBlurb,
-                              areaLabel=areaLabel)
+                              areaLabel=areaLabel, toggle=toggle)
 
     def plotCcd(self, data, dataId, visitA, visitB, showUndefined=False):
         testSet = self.getTestSet(data, dataId)
@@ -466,6 +467,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
         # Per CCD figures
         nametag = "ccd_"+self.magType
         figbase = "vvccd_"+visitA+"_"+visitB+"_"+nametag
+        toggle  = "ccd_"+visitA+"_"+visitB
         shelfData = {}
         for raft, ccd in self.mag[visitA].raftCcdKeys():
             idA = self.refId[visitA].get(raft, ccd)
@@ -525,7 +527,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                 slist[1][4], slist[2][4], slist[0][4], slist[1][4])                
             testSet.addFigure(fig, figbase+".png",
                               nametag+". "+statBlurb,
-                              areaLabel=areaLabel)
+                              areaLabel=areaLabel, toggle=toggle)
 
 
     def panelPlot(self, xdataS, ydataS, xdataG, ydataG, xmodelS, ymodelS, xmodelG, ymodelG, xlabel, ylabel, xmin, xmax, ymin, ymax):
