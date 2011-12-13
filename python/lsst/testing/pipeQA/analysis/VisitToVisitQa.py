@@ -216,7 +216,10 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
                             self.refId[visit].append(raft, ccd, srcObjId)
                             self.star[visit].append(raft, ccd, star1)
 
-            testLabel = "%s_%s_%s" % (self.database, visit, self.magType)
+            # TMI
+            #testLabel = "%s_%s_%s" % (self.database, visit, self.magType)
+
+            testLabel = "%s_%s" % (visit, self.magType)
             testSet = self.getTestSet(data, dataId, label=testLabel)
             testSet.addMetadata('magType', self.magType)
             testSet.addMetadata({"Description": self.description})
