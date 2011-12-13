@@ -341,7 +341,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
 
         # Per CCD figures
         figbase = "vvdiff_"+nametag
-        toggle  = "diff_"+visit
+        toggle  = "Diff_"+visit
         shelfData = {}
         for raft, ccd in self.mag[visit].raftCcdKeys():
             m1  = self.mag[visit].get(raft, ccd)
@@ -405,7 +405,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
         # Per CCD figures
         nametag = "cmd_"+self.magType
         figbase = "vvcmd_"+self.magType
-        toggle  = "cmd_"+visit
+        toggle  = "Cmd_"+visit
         shelfData = {}
         for raft, ccd in self.mag[visit].raftCcdKeys():
             m1  = self.mag[visit].get(raft, ccd)
@@ -468,7 +468,7 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
         # Per CCD figures
         nametag = "ccd_"+self.magType
         figbase = "vvccd_"+self.magType
-        toggle  = "ccd_"+visitA+"_"+visitB
+        toggle  = "Ccd_"+visitA+"_"+visitB
         shelfData = {}
         for raft, ccd in self.mag[visitA].raftCcdKeys():
             idA = self.refId[visitA].get(raft, ccd)
