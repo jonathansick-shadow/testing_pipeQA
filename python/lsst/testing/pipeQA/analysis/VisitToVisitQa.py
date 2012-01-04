@@ -318,6 +318,8 @@ class VisitToVisitQaAnalysis(qaAna.QaAnalysis):
         for raft, ccd in self.mag[visit].raftCcdKeys():
             meanFig.data[raft][ccd] = self.meanDmags[visit].get(raft, ccd)
             stdFig.data[raft][ccd] = self.stdDmags[visit].get(raft, ccd)
+            meanFig.map[raft][ccd] = "mean=%.4f" % (self.meanDmags[visit].get(raft, ccd))
+            stdFig.map[raft][ccd] = "std=%.4f" % (self.stdDmags[visit].get(raft, ccd))
             
         testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
         testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
