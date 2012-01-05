@@ -644,7 +644,7 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
 
     # make sure LsstSim is last in the list (its 'verifyRegistries()' will pass for all cameras)
     cameraInfos = {
-	"cfht": qaCamInfo.CfhtCameraInfo(),
+#	"cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
 	"hsc" : qaCamInfo.HscCameraInfo(),
 	"suprimecam": qaCamInfo.SuprimecamCameraInfo(),
 	"lsstsim": qaCamInfo.LsstSimCameraInfo(),
