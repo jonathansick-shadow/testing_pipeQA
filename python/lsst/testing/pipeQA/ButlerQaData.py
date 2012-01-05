@@ -647,6 +647,7 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
 #	"cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
 	"hsc" : qaCamInfo.HscCameraInfo(),
 	"suprimecam": qaCamInfo.SuprimecamCameraInfo(),
+        "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
 	"lsstsim": qaCamInfo.LsstSimCameraInfo(),
         }
 

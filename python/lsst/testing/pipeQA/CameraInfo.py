@@ -337,7 +337,7 @@ class HscCameraInfo(CameraInfo):
 #
 ####################################################################
 class SuprimecamCameraInfo(CameraInfo):
-    def __init__(self):
+    def __init__(self, mit=False):
         try:
             import lsst.obs.suprimecam        as obsSuprimecam
             mapper = obsSuprimecam.SuprimecamMapper
@@ -362,6 +362,7 @@ class SuprimecamCameraInfo(CameraInfo):
         CameraInfo.__init__(self, "suprimecam", dataInfo, mapper, camera)
 
         self.doLabel = True
+        self.mit = mit
         
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
@@ -388,7 +389,7 @@ class SuprimecamCameraInfo(CameraInfo):
 
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun=rerun, root=roots['output'],
+        return self.mapperClass(rerun=rerun, mit=self.mit, root=roots['output'],
                                 calibRoot=roots['calib'], registry=registry)
     
 
