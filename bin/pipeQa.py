@@ -170,6 +170,7 @@ def main(dataset, dataIdInput, rerun=None, matchDset=None, matchVisits=None, tes
         elif matchDset == None:
             matchDset = dataset
 
+        matchVisits = matchVisits.split(',')
         analysisList.append(qaAnalysis.VisitToVisitQaAnalysis(matchDset, matchVisits, "psf", 
                                                               policy.get("visitQaMagCut"),
                                                               policy.get("visitQaDeltaMin"),
@@ -399,7 +400,7 @@ if __name__ == '__main__':
         opts.keep = True
         
     main(dataset, dataId, rerun=rerun,
-         matchDset=opts.matchDataset, matchVisits=opts.matchVisits.split(','),
+         matchDset=opts.matchDataset, matchVisits=opts.matchVisits,
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
          breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary,

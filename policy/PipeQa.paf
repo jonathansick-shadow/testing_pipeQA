@@ -337,7 +337,7 @@ definitions: {
         type: string
         description: "Visit to visit: qaAnalysis.VisitToVisitQaAnalysis"
         maxOccurs: 1
-        default: "lsstSim"
+        default: "none"
     }    
 
     visitQaMagCut: {
