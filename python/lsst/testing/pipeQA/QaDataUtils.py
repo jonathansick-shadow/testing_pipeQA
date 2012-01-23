@@ -408,7 +408,10 @@ def getCalibObjects(butler, filterName, dataId):
 
 
 def calibFluxError(f, df, f0, df0):
-    if f > 0.0 and f0 > 0.0:
+    # issues if f is inf
+    if numpy.isinf(f):
+        return numpy.NaN
+    elif f > 0.0 and f0 > 0.0:
 	return (df/f + df0/f0)*f/f0
     else:
 	return numpy.NaN
