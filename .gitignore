@@ -18,3 +18,5 @@
 
 # /tests/
 /tests/.tests
+
+*.pyc
