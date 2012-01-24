@@ -526,13 +526,14 @@ class DbQaData(QaData):
                     haveAllKeys = False
             sqlDataId = " and ".join(sqlDataId)
 
+            # Poly comes from our own database
             sql1  = 'SELECT poly FROM Science_Ccd_Exposure as sce '
             sql1 += 'WHERE %s ' % (sqlDataId) 
             sql1 += 'INTO @poly;'
 
             sql2  = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
         
-            # Selection of source matches
+            # Selection of source matches from the comparison database
             self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
             setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
             selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
@@ -550,9 +551,7 @@ class DbQaData(QaData):
             sql3 += selectStr
             sql3 += ' FROM %s.Source AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase)
             sql3 += ' INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase)
-            sql3 += ' ON (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
-            if matchVisit:
-                sql3 += '  AND (sce.visit = %s)' % (matchVisit)
+            sql3 += ' ON (s.scienceCcdExposureId = sce.scienceCcdExposureId) AND (sce.visit = %s)' % (matchVisit)
             sql3 += '   INNER JOIN %s.RefSrcMatch AS rsm ON (s.sourceId = rsm.sourceId)' % (matchDatabase)
             sql3 += '   INNER JOIN %s.SimRefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
             sql3 += '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
