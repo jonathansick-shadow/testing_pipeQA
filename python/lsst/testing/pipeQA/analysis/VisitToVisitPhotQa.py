@@ -226,7 +226,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
 
             testLabel = "%s_%s" % (visit, self.magType)
             testSet = self.getTestSet(data, dataId, label=testLabel)
-            testSet.addMetadata('magType', self.magType)
+            testSet.addMetadata("magType", "%s mags from %s" % (self.magType, self.database))
             testSet.addMetadata({"Description": self.description})
 
             self.meanDmags[visit]   = raftCcdData.RaftCcdData(self.detector)
