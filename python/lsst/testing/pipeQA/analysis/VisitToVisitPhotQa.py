@@ -31,26 +31,8 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
         self.colorlim      = [-0.98, 2.48]
 
         self.ownFilt       = None
-
-        # Data caches
-        self.visitFilters  = {}
-        self.visitMatches  = {} 
-
-        # Inpyts to tests
-        self.mag         = {}
-        self.magErr      = {}
-        self.refMag      = {}
-        self.visitMag    = {}
-        self.visitMagErr = {}
-        self.visitRefMag = {}
-        self.refId       = {}
-        self.star        = {}
-
-        # Results of tests
-        self.meanDmags   = {}
-        self.medianDmags = {}
-        self.stdDmags    = {}
-
+        self.alloc()
+        
         self.description = """
 
          For each CCD in the reference visit, its sky boundary in the
@@ -108,6 +90,26 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
         elif mType=="inst":
             return s.getInstFluxErr()
 
+    def alloc(self):
+        # Data caches
+        self.visitFilters  = {}
+        self.visitMatches  = {} 
+
+        # Inputs to tests
+        self.mag         = {}
+        self.magErr      = {}
+        self.refMag      = {}
+        self.visitMag    = {}
+        self.visitMagErr = {}
+        self.visitRefMag = {}
+        self.refId       = {}
+        self.star        = {}
+
+        # Results of tests
+        self.meanDmags   = {}
+        self.medianDmags = {}
+        self.stdDmags    = {}
+        
     def free(self):
         del self.matchListDictSrc
         del self.detector 
@@ -123,11 +125,14 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
         del self.refId
         del self.star
 
+        # realloc what needs to be reused
+        self.alloc()
+
     def test(self, data, dataId):
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
         self.detector         = data.getDetectorBySensor(dataId)
 
-        if self.ownFilt == None:
+        if type(self.ownFilt) == type(None):
             filt = data.getFilterBySensor(dataId)
             self.ownFilt = filt.values()[0]
 
