@@ -21,7 +21,7 @@ if __name__ == '__main__':
                       default = None,
                       help='Data input root for butler (e.g. /lsst3/weekly/datarel-runs/test_trunk_prod3_2011_0324)')
 
-    parser.add_option('-v', '--visit', type='int', dest='visit', action='append', type='int', default=[])
+    parser.add_option('-v', '--visit', type='int', dest='visit', action='append', default=[])
     parser.add_option('-r', '--raft', dest='raft', action='append', default=[])
     parser.add_option('-s', '--sensor', dest='sensor', action='append', default=[])
 

@@ -10,7 +10,7 @@ import lsst.daf.persistence             as dafPersist
 from lsst.testing.pipeQA.Checksum       import Checksum
 from lsst.testing.pipeQA.Manifest       import Manifest
 
-import lsst.pipette as pipette
+# import lsst.pipette as pipette
 import QaDataUtils as qaDataUtils
 
 #import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
@@ -169,100 +169,99 @@ class TestData(object):
     #######################################################################
     # Run our data through pipette
     #######################################################################
-    def run(self, kwargs):
-        """Run pipette on the data we know about."""
-        
-        force             = kwargs.get('force', False)
-        overrideConfigs   = kwargs.get('overrideConfig', None)  # array of paf filenames
-
-        # setup a specific astromentry.net data package, if one is provided
-        self.setupAstrometryNetData()
-        
-            
-        # keep a record of the eups setups for the data we're running
-        eupsSetupFile = os.path.join(self.localOutDir, self.label+".eups")
-        self.eupsSetupFiles.append(eupsSetupFile)
-        fp = open(eupsSetupFile, 'w')
-        ups = eups.Eups()
-        products = ups.getSetupProducts()
-        for product in products:
-            fp.write("%s %s\n" % (product.name, product.version))
-        fp.close()
-
-        
-        # merge in override config
-        config = self.defaultConfig
-        if overrideConfigs is not None:
-            for overrideConfig in overrideConfigs:
-                config.merge(pipette.config.Config(overrideConfig))
-                #config = pipette.config.configuration(config, overrideConfig)
-
-        #srcConf = config['measure']['source']
-        #srcConf['shape'] = "HSM_BJ"
-
-        #shapeConf = config['measure']['shape']
-        #shapeConf['HSM_BJ'] = pexPolicy.Policy()
-        #shapeConf['HSM_BJ']['enabled'] = True
-        
-        #do = config['do']
-        #do['phot'] = True
-        #do['ast']  = True
-        #do['cal']  = True
-
-        if len(self.dataTuples) == 0:
-            sys.stderr.write(
-                "WARNING: Requested data not found in registry.  Available frames:\n" +
-                str(self.availableDataTuples)
-                )
-            
-
-        for dataTuple in self.dataTuples:
-
-            # put these values in a Dict with the appropriate keys
-            dataId = self._tupleToDataId(dataTuple)
-            
-            # see if we already have the outputs
-            isWritten = self.outButler.datasetExists('src', dataId)
-
-            # set isWritten if we're a testBot ... assume we shouldn't try to run
-            #  ... can always override with 'force'
-            if re.search("^testBot", self.label):
-                isWritten = True
-            
-            thisFrame = "%s=%s" % (",".join(self.dataIdNames), str(dataTuple))
-
-            if force or (not isWritten):
-                
-                # create a log that prints to a file
-                idString = self.dataTupleToString(dataTuple)
-                if not os.path.exists(self.logDir):
-                    os.mkdir(self.logDir)
-                logFile = os.path.join(self.logDir, idString+".log")
-
-                if os.path.exists(logFile):
-                    os.remove(logFile)
-                    
-                self.logFiles.append(logFile)
-
-                log = pexLog.Log.getDefaultLog().createChildLog("testQA.TestData", pexLog.Log.INFO)
-                log.addDestination(pexLog.FileDestination(logFile, True))
-
-                # run, if necessary
-                
-                print "Running:  %s" % (thisFrame)
-                try:
-                    self.runPipette(self.rerun, dataId, config, log)
-                except Exception, e:
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    s = traceback.format_exception(exc_type, exc_value,
-                                                   exc_traceback)
-                    self.uncaughtExceptionDict[idString] = "Running "+idString+"\n" + "".join(s)
-
-                    log.log(log.WARN, idString + ": Unrecoverable exception. (see traceback) - "+str(e))
-
-            else:
-                print "%s exists, skipping. (use force=True to force a run)"  % (thisFrame) 
-                
+#    def run(self, kwargs):
+#        """Run pipette on the data we know about."""
+#        
+#        force             = kwargs.get('force', False)
+#        overrideConfigs   = kwargs.get('overrideConfig', None)  # array of paf filenames
+#
+#        # setup a specific astromentry.net data package, if one is provided
+#        self.setupAstrometryNetData()
+#        
+#            
+#        # keep a record of the eups setups for the data we're running
+#        eupsSetupFile = os.path.join(self.localOutDir, self.label+".eups")
+#        self.eupsSetupFiles.append(eupsSetupFile)
+#        fp = open(eupsSetupFile, 'w')
+#        ups = eups.Eups()
+#        products = ups.getSetupProducts()
+#        for product in products:
+#            fp.write("%s %s\n" % (product.name, product.version))
+#        fp.close()
+#
+#        
+#        # merge in override config
+#        config = self.defaultConfig
+#        if overrideConfigs is not None:
+#            for overrideConfig in overrideConfigs:
+#                config.merge(pipette.config.Config(overrideConfig))
+#                #config = pipette.config.configuration(config, overrideConfig)
+#
+#        #srcConf = config['measure']['source']
+#        #srcConf['shape'] = "HSM_BJ"
+#
+#        #shapeConf = config['measure']['shape']
+#        #shapeConf['HSM_BJ'] = pexPolicy.Policy()
+#        #shapeConf['HSM_BJ']['enabled'] = True
+#        
+#        #do = config['do']
+#        #do['phot'] = True
+#        #do['ast']  = True
+#        #do['cal']  = True
+#
+#        if len(self.dataTuples) == 0:
+#            sys.stderr.write(
+#                "WARNING: Requested data not found in registry.  Available frames:\n" +
+#                str(self.availableDataTuples)
+#                )
+#            
+#
+#        for dataTuple in self.dataTuples:
+#
+#            # put these values in a Dict with the appropriate keys
+#            dataId = self._tupleToDataId(dataTuple)
+#            
+#            # see if we already have the outputs
+#            isWritten = self.outButler.datasetExists('src', dataId)
+#
+#            # set isWritten if we're a testBot ... assume we shouldn't try to run
+#            #  ... can always override with 'force'
+#            if re.search("^testBot", self.label):
+#                isWritten = True
+#            
+#            thisFrame = "%s=%s" % (",".join(self.dataIdNames), str(dataTuple))
+#
+#            if force or (not isWritten):
+#                
+#                # create a log that prints to a file
+#                idString = self.dataTupleToString(dataTuple)
+#                if not os.path.exists(self.logDir):
+#                    os.mkdir(self.logDir)
+#                logFile = os.path.join(self.logDir, idString+".log")
+#
+#                if os.path.exists(logFile):
+#                    os.remove(logFile)
+#                    
+#                self.logFiles.append(logFile)
+#
+#                log = pexLog.Log.getDefaultLog().createChildLog("testQA.TestData", pexLog.Log.INFO)
+#                log.addDestination(pexLog.FileDestination(logFile, True))
+#
+#                # run, if necessary
+#                
+#                print "Running:  %s" % (thisFrame)
+#                try:
+#                    self.runPipette(self.rerun, dataId, config, log)
+#                except Exception, e:
+#                    exc_type, exc_value, exc_traceback = sys.exc_info()
+#                    s = traceback.format_exception(exc_type, exc_value,
+#                                                   exc_traceback)
+#                    self.uncaughtExceptionDict[idString] = "Running "+idString+"\n" + "".join(s)
+#
+#                    log.log(log.WARN, idString + ": Unrecoverable exception. (see traceback) - "+str(e))
+#
+#            else:
+#                print "%s exists, skipping. (use force=True to force a run)"  % (thisFrame) 
 
                 
     #######################################################################
