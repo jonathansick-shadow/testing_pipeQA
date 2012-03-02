@@ -42,5 +42,5 @@ from makeQaData   import *
 #from figures import *
 
 from DatabaseQuery import *
-from QaFigures import *
-from PipeQaUtils import *
+#from QaFigures import *
+#from PipeQaUtils import *
