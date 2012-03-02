@@ -93,7 +93,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                 a2 = 0.5*(ixx+iyy) + numpy.sqrt(tmp)
                 b2 = 0.5*(ixx+iyy) - numpy.sqrt(tmp)
 
-                if b2/a2 < 0:
+                if a2 == 0 or b2/a2 < 0:
                     continue
                 
                 ellip = 1.0 - numpy.sqrt(b2/a2)
