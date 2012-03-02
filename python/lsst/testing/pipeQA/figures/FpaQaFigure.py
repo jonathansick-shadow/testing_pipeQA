@@ -458,6 +458,8 @@ class VectorFpaQaFigure(FpaQaFigure):
             y = yc - 0.5*arrowLen*numpy.sin(angle)
             dx = arrowLen*numpy.cos(angle)
             dy = arrowLen*numpy.sin(angle)
+            if numpy.abs(dx) < 1.0e-15 or numpy.abs(dy) < 1.0e-15:
+                continue
             sp.arrow(x, y, dx, dy) #, ec="k", lw=3)
 
         self.plotRaftBoundaries(sp, boundaryColors)

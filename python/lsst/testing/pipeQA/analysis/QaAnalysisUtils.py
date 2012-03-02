@@ -125,6 +125,8 @@ def robustPolyFit(x, y, order, nbin=3, sigma=3.0, niter=1):
     xMeds, yMeds, yErrs = [], [], []
     for i in range(nbin):
         w = numpy.where( (xNew > xmin + i*step) & (xNew < xmin + (i+1)*step) )
+        if len(xNew[w]) == 0:
+            continue
         xMeds.append(numpy.median(xNew[w]))
         yMeds.append(numpy.median(yNew[w]))
         yErr = numpy.std(yNew[w])/numpy.sqrt(len(yNew[w]))
