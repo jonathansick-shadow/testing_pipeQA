@@ -30,7 +30,6 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
         self.maglim        = [14.0, 25.0]
         self.colorlim      = [-0.98, 2.48]
 
-        self.ownFilt       = None
         self.alloc()
         
         self.description = """
@@ -91,6 +90,9 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
             return s.getInstFluxErr()
 
     def alloc(self):
+        # Filter name
+        self.ownFilt       = None
+
         # Data caches
         self.visitFilters  = {}
         self.visitMatches  = {} 
@@ -143,13 +145,13 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
 
         for visit in visitList:
             self.visitMatches[visit] = data.getVisitMatchesBySensor(self.database, visit, dataId)
-            kv = self.visitMatches[visit].keys()
-            if len(kv) == 0:
-                self.visitFilters[visit] = None
-            elif len(self.visitMatches[visit][kv[0]]) == 0:
-                self.visitFilters[visit] = None
-            else:
-                self.visitFilters[visit] = self.visitMatches[visit][kv[0]][0][2]
+            kvs = self.visitMatches[visit].keys()
+            self.visitFilters[visit] = None
+            if len(kvs) > 0:
+                for kv in kvs:
+                    if len(self.visitMatches[visit][kv]) > 0:
+                        self.visitFilters[visit] = self.visitMatches[visit][kv][0][2] 
+                        break
 
             # create containers for data we're interested in
             self.mag[visit]         = raftCcdData.RaftCcdVector(self.detector)
