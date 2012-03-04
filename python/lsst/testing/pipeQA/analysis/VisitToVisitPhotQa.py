@@ -231,7 +231,8 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
             # TMI
             #testLabel = "%s_%s_%s" % (self.database, visit, self.magType)
 
-            testLabel = "%s_%s" % (visit, self.magType)
+            #testLabel = "%s-%s" % (visit, self.magType)
+            testLabel = "%s" % (self.magType)
             testSet = self.getTestSet(data, dataId, label=testLabel)
             testSet.addMetadata("magType", "%s mags from %s" % (self.magType, self.database))
             testSet.addMetadata({"Description": self.description})

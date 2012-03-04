@@ -20,8 +20,8 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from PipeRunner   import *
-from TestData     import *
+#from PipeRunner   import *
+#from TestData     import *
 
 # utilities
 from Checksum     import *
@@ -42,5 +42,5 @@ from makeQaData   import *
 #from figures import *
 
 from DatabaseQuery import *
-from QaFigures import *
-from PipeQaUtils import *
+#from QaFigures import *
+#from PipeQaUtils import *
