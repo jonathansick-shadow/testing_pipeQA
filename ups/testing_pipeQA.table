@@ -1,3 +1,5 @@
+setupRequired(testing_displayQA >= 4.8.0.0+1)
+setupRequired(meas_astrom >= 4.8.0.1+1)
 setupRequired(ap >= 4.7.1.0+1)
 setupRequired(numpy >= 1.6.1+2)
 
