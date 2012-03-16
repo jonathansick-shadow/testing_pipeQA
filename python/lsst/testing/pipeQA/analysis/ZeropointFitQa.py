@@ -185,7 +185,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
-        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+        if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
         # fpa figure
@@ -495,6 +495,8 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         fig.fig.suptitle('%s' % (title), fontsize = 12)
 
         numerator   = (mimgSmag - zeropt - mrefSmag)
+        if len(numerator) == 0:
+            numerator = num.array([0.0])
         denominator = mimgSmerr
         med         = num.median(numerator) 
         ax4.axhline(y = med, c='k', linestyle=':', alpha = 0.5)

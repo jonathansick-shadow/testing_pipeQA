@@ -80,7 +80,7 @@ class VignettingQa(qaAna.QaAnalysis):
             # We have a trimmed detector
             self.detector[key].setTrimmed(True)
             pixelSize          = self.detector[key].getPixelSize()    # mm
-            centerXm, centerYm = self.detector[key].getCenter()       # focal plane mm
+            centerXm, centerYm = self.detector[key].getCenter().getMm()  # focal plane mm
 
             bbox   = self.detector[key].getAllPixels()
             startX = bbox.getBeginX()
@@ -152,7 +152,7 @@ class VignettingQa(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache) #cache
         isFinalDataId = False
-        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+        if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
         # fpa figures

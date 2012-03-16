@@ -93,7 +93,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                 a2 = 0.5*(ixx+iyy) + numpy.sqrt(tmp)
                 b2 = 0.5*(ixx+iyy) - numpy.sqrt(tmp)
 
-                if b2/a2 < 0:
+                if a2 == 0 or b2/a2 < 0:
                     continue
                 
                 ellip = 1.0 - numpy.sqrt(b2/a2)
@@ -182,7 +182,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
-        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+        if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
         vLen = 3000.0  # for e=1.0

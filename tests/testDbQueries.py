@@ -41,7 +41,7 @@ if __name__ == '__main__':
     parser.add_option('-D', '--database', dest='database',
                       default=None,
                       help='Name of database for queries (e.g. rplante_DC3b_u_weeklytest_2011_0218_science')
-    parser.add_option('-v', '--visit', type='int', dest='visit', action='append', type='int', default=[])
+    parser.add_option('-v', '--visit', type='int', dest='visit', action='append', default=[])
     parser.add_option('-r', '--raft', dest='raft', action='append', default=[])
     parser.add_option('-s', '--sensor', dest='sensor', action='append', default=[])
     parser.add_option('-o', '--output', dest='outRoot', default='pipeQA', help='Output directory prefix')

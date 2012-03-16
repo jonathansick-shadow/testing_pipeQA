@@ -328,7 +328,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         testSet.setUseCache(self.useCache)
 
         isFinalDataId = False
-        if len(data.brokenDataIdList) > 0 and data.brokenDataIdList[-1] == dataId:
+        if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
         xlim = [14.0, 25.0]

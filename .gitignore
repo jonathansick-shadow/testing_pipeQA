@@ -1,17 +1,24 @@
+*.dylib
+*.o
+*.so
+*.os
+*.pyc
+*_wrap.cc
+*Lib.py
+.sconf_temp
+.sconsign.dblite
+config.log
+doc/*.tag
+doc/html
+doc/doxygen.conf
+tests/.tests
 
-# /
-/config.log
-/noI.*
-/.emacs*
-/.scon*
-/incant.sh
-/*out
-/figures
-/runtimePerformance*
+*out
+figures
+runtimePerformance*
 
-# /python/lsst/testing/pipeQA/
-/python/lsst/testing/pipeQA/*_wrap.*
-/python/lsst/testing/pipeQA/pipeQaLib.py
+python/lsst/testing/pipeQA/pipeQaLib.py
+python/lsst/testing/pipeQA/version.py
 
 # /src/
 /src/*.os
@@ -20,3 +27,4 @@
 /tests/.tests
 
 *.pyc
+ups/testing_pipeQA.cfgc
