@@ -183,10 +183,11 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                                                                       wwwCache=wwwCache, 
                                                                       delaySummary=delaySummary))
 
-        #analysisList.append(qaAnalysis.VisitToVisitAstromQaAnalysis(matchDset, matchVisits, 
-        #                                                            useCache=keep,
-        #                                                            wwwCache=wwwCache, 
-        #                                                            delaySummary=delaySummary))
+        analysisList.append(qaAnalysis.VisitToVisitAstromQaAnalysis(policy.get("astromQaMaxErr"),
+                                                                    matchDset, matchVisits, 
+                                                                    useCache=keep,
+                                                                    wwwCache=wwwCache, 
+                                                                    delaySummary=delaySummary))
 
 
     # split by visit, and handle specific requests

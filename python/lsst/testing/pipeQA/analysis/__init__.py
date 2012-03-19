@@ -30,4 +30,4 @@ from ZeropointFitQa              import *
 from VignettingQa                import *
 
 from VisitToVisitPhotQa          import *
-#from VisitToVisitAstromQa        import *
+from VisitToVisitAstromQa        import *
