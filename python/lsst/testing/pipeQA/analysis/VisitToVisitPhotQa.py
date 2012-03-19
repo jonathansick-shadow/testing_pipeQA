@@ -42,9 +42,10 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
          For each CCD in the reference visit, its sky boundary in the
          comparison visit is queried for sources.  In the case of the
          the filters being the same, magnitude v. magnitude
-         comparisons are made.  If the filters are different, color
-         v. magnitude plots are made, and color comparisons made to
-         the input catalog.
+         comparisons are made; the plotted differences are in the
+         sense of m_currentVisit - m_previousVisit.  If the filters
+         are different, color v. magnitude plots are made, and color
+         comparisons made to the input catalog.
 
         """
         def magType(mType):
@@ -489,7 +490,11 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
             ax2.set_ylim(0.001, 0.99)
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            statBlurb = "Points used for statistics shown in red."
+            if sgal == 0:
+                statBlurb = "Points used for statistics shown in red."
+            else:
+                statBlurb = "Stats currently not calculated for galaxies."
+
             testSet.addFigure(fig, figbase+".png",
                               nametag+" vs. "+self.magType + "(%s). "%(sglab)+statBlurb,
                               areaLabel=areaLabel, toggle=toggle)
