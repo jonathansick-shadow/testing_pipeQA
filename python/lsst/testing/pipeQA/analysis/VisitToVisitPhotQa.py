@@ -20,7 +20,12 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
     def __init__(self, database, visits, mType, magCut, 
                  deltaMin, deltaMax, rmsMax, 
                  **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
+
+        # Turns VisitToVisitPhotQaAnalysis label into VisitToVisitPhotQaAnalysis.ap, VisitToVisitPhotQaAnalysis.psf, etc
+        testLabel = mType
+
+        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
+
         self.database      = database
         self.visits        = visits
         self.magCut        = magCut
@@ -59,7 +64,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
 
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
-            return numpy.NaN
+            return num.NaN
         
         if mType=="psf":
             return s.getPsfFlux()
@@ -76,7 +81,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
 
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
-            return numpy.NaN
+            return num.NaN
         
         if mType=="psf":
             return s.getPsfFluxErr()
@@ -138,7 +143,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
             filt = data.getFilterBySensor(dataId)
             self.ownFilt = filt.values()[0]
 
-        if self.visits == None:
+        if len(self.visits) == 0:
             visitList = [dataId['visit'],]
         else:
             visitList = self.visits
@@ -173,25 +178,38 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                 srcMatchList = self.matchListDictSrc[key]['matched']
                 # All visit dets in footprint of original image
                 visMatchList = self.visitMatches[visit][key]
-                
+
                 # List of reference object ids
                 srcObjIds = num.array([x[0].getId() for x in srcMatchList])
                 visObjIds = num.array([x[0].getId() for x in visMatchList])
+                common    = list(set(srcObjIds) & set(visObjIds))
 
+                print key, ":", 
+                if len(common) == 0:
+                    print "No overlap, Using pre-to-post PT1.2 objectID mapping...", 
+                    
+                    # Try objectID hack from PT1.2 to post-PT1.2:
+                    visObjIds *= 2
+                    isStar     = (num.array([x[0].getFlagForDetection() for x in visMatchList]) & measAlg.Flags.STAR) > 0
+                    visObjIds += isStar
+                    common     = list(set(srcObjIds) & set(visObjIds))
+                print "Found %d matches" % (len(common))
+                    
                 # Iterate over all object ids
-                for i in range(len(srcObjIds)):
-                    srcObjId = srcObjIds[i]                   # ref id for this visit
-                    idx = num.where(visObjIds == srcObjId)[0] # ref id for other visit
-    
+                for i in range(len(common)):
+                    srcObjId  = common[i]
+                    idxS = num.where(srcObjIds == srcObjId)[0]
+                    idxV = num.where(visObjIds == srcObjId)[0] 
+
                     # only take 1-to-1 matches
-                    if len(idx) != 1:
+                    if len(idxS) != 1 or len(idxV) != 1:
                         continue
     
-                    sref1 = srcMatchList[i][0]
-                    srcv1 = srcMatchList[i][1]
+                    sref1 = srcMatchList[idxS[0]][0]
+                    srcv1 = srcMatchList[idxS[0]][1]
     
-                    sref2 = visMatchList[idx[0]][0]
-                    srcv2 = visMatchList[idx[0]][1]
+                    sref2 = visMatchList[idxV[0]][0]
+                    srcv2 = visMatchList[idxV[0]][1]
     
                     f1  = self._getFlux(self.magType, srcv1, sref1)
                     f2  = self._getFlux(self.magType, srcv2, sref2)
@@ -200,10 +218,13 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
     
                     fref1 = self._getFlux("cat", srcv1, sref1)
                     fref2 = self._getFlux("cat", srcv2, sref2)
-    
+
+                    # Measurment flags; note no star/gal separation yet
                     flags1 = srcv1.getFlagForDetection()
                     flags2 = srcv2.getFlagForDetection()
-                    
+                    # Get star/gal info here
+                    isStar = sref1.getFlagForDetection() & measAlg.Flags.STAR
+
                     if (f1 > 0.0 and f2 > 0.0) and (not flags1 & badFlags) and (not flags2 & badFlags):
                         m1  = -2.5 * num.log10(f1) 
                         m2  = -2.5 * num.log10(f2) 
@@ -213,8 +234,6 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                         M1  = -2.5 * num.log10(fref1) 
                         M2  = -2.5 * num.log10(fref2) 
     
-                        star1 = flags1 & measAlg.Flags.STAR
-                        
                         if num.isfinite(m1) and num.isfinite(m2) and num.isfinite(M1) and num.isfinite(M2):
                             self.mag[visit].append(raft, ccd, m1)
                             self.magErr[visit].append(raft, ccd, dm1)
@@ -226,7 +245,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                             self.visitRefMag[visit].append(raft, ccd, M2)
 
                             self.refId[visit].append(raft, ccd, srcObjId)
-                            self.star[visit].append(raft, ccd, star1)
+                            self.star[visit].append(raft, ccd, isStar)
 
             # TMI
             #testLabel = "%s_%s_%s" % (self.database, visit, self.magType)
@@ -251,7 +270,6 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                 star= self.star[visit].get(raft, ccd)
     
                 idxS = num.where( (M1 > 10) & (M1 < self.magCut) & (star > 0) )[0]
-                #idxG = num.where( (M1 > 10) & (M1 < self.magCut) & (star == 0) )[0]
                 
                 dmS  = m1[idxS] - m2[idxS] - (M1[idxS] - M2[idxS])
                 ddmS = num.sqrt(dm1[idxS]**2 + dm2[idxS]**2)
@@ -289,7 +307,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
 
 
     def plot(self, data, dataId, showUndefined=False):
-        if self.visits == None:
+        if len(self.visits) == 0:
             visitList = [dataId['visit'],]
         else:
             visitList = self.visits
@@ -298,7 +316,8 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
         for i in range(len(visitList)):
             visiti = visitList[i]
             self.visitMatches[visiti] = data.getVisitMatchesBySensor(self.database, visiti, dataId)
-            self.plotdM(data, dataId, visiti, showUndefined)
+            self.plotdM(data, dataId, visiti, 1, showUndefined)
+            self.plotdM(data, dataId, visiti, 0, showUndefined)
             
             # In some cases plot color-magnitude diagram
             if self.ownFilt.getName() != self.visitFilters[visiti].getName():
@@ -312,8 +331,43 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                         self.visitFilters[visiti].getName() != self.visitFilters[visitj].getName():
                     self.plotCcd(data, dataId, visiti, visitj, showUndefined)
 
-            
-    def plotdM(self, data, dataId, visit, showUndefined=False):
+
+    def plotErrvSig(self, sp, x, y, dy, bins):
+        binxs   = []
+        binerrs = []
+        binstds = []
+
+        for i in range(1, len(bins)):
+            idx = num.where((x>bins[i-1]) & (x<bins[i]))[0]
+            if len(idx) == 0:
+                continue
+            binx   = afwMath.makeStatistics(x[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            binerr = afwMath.makeStatistics(dy[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            binsig = 0.741 * afwMath.makeStatistics(y[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
+
+            binxs.append(binx)
+            binerrs.append(binerr)
+            binstds.append(binsig)
+
+        binxs   = num.array(binxs)
+        binerrs = num.array(binerrs)
+        binstds = num.array(binstds)
+        sp.plot(binxs, binstds, "r-", label="Phot RMS")
+        sp.plot(binxs, binerrs, "b--", label="Avg Error Bar")
+        sp.legend(prop=FontProperties(size="xx-small"), loc="upper left")
+
+        #idx = num.where( (binstds > binerrs) )[0]
+        #xtramag = binxs[idx]
+        #xtradmag = num.sqrt(binstds[idx]**2 - binerrs[idx]**2)
+        #sp.plot(xtramag, xtradmag, 'k.', label="Err Underest")
+        
+        
+    def plotdM(self, data, dataId, visit, sgal, showUndefined=False):
+        if sgal == 0:
+            sglab = "star"
+        else:
+            sglab = "gal"
+
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         
@@ -363,8 +417,11 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
 
 
         # Per CCD figures
-        figbase = "vvdiff_"+nametag
-        toggle  = "Diff_"+visit
+        rect1 = [0.125, 0.35, 0.775, 0.9-0.35]  #left, bottom, width, height
+        rect2 = [0.125, 0.1,  0.775, 0.2]
+
+        figbase = "vvdiff%d_" % (sgal)+nametag
+        toggle  = "%d_%sdiff_" % (sgal, sglab)+visit
         shelfData = {}
         for raft, ccd in self.mag[visit].raftCcdKeys():
             m1  = self.mag[visit].get(raft, ccd)
@@ -375,23 +432,39 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
             M2  = self.visitRefMag[visit].get(raft, ccd)
             star= self.star[visit].get(raft, ccd)
 
-            idxSB = num.where( (M1 > 10) & (M1 < self.magCut) & (star > 0) )[0]
-            idxSF = num.where( (M1 > 10) & (M1 >= self.magCut) & (star > 0) )[0]
 
-            dmSB  = m1[idxSB] - m2[idxSB] - (M1[idxSB] - M2[idxSB])
-            ddmSB = num.sqrt(dm1[idxSB]**2 + dm2[idxSB]**2)
+            dmAll  = m1 - m2 - (M1 - M2)
+            ddmAll = num.sqrt(dm1**2 + dm2**2)
 
-            dmSF  = m1[idxSF] - m2[idxSF] - (M1[idxSF] - M2[idxSF])
-            ddmSF = num.sqrt(dm1[idxSF]**2 + dm2[idxSF]**2)
+            if sgal == 0:
+                idx  = num.where(star>0)[0]
+                idxB = num.where( (M1 > 10) & (M1 < self.magCut) & (star > 0) )[0]
+                idxF = num.where( (M1 > 10) & (M1 >= self.magCut) & (star > 0) )[0]
+            else:
+                idx  = num.where(star==0)[0]
+                idxB = num.where( (M1 > 10) & (M1 < self.magCut) & (star == 0) )[0]
+                idxF = num.where( (M1 > 10) & (M1 >= self.magCut) & (star == 0) )[0]
+
+
+            dmB   = dmAll[idxB]
+            ddmB  = ddmAll[idxB]
+            dmF   = dmAll[idxF]
+            ddmF  = ddmAll[idxF]
 
             fig = qaFig.QaFigure()
-            sp1 = fig.fig.add_subplot(111)
-            if len(dmSB):
-                sp1.errorbar(M1[idxSB], dmSB, yerr=ddmSB, fmt='ro', ms=3)
-            if len(dmSF):
-                sp1.errorbar(M1[idxSF], dmSF, yerr=ddmSF, fmt='ko', ms=3)
+            ax1   = fig.fig.add_axes(rect1)
+            ax2   = fig.fig.add_axes(rect2, sharex=ax1)
 
-            sp1.set_xlabel("${\mathrm{M_{%s; cat}}}$" % self.ownFilt.getName(), fontsize=12)
+            if len(dmB):
+                ax1.errorbar(M1[idxB], dmB, yerr=ddmB, fmt='ro', ms=3)
+            if len(dmF):
+                ax1.errorbar(M1[idxF], dmF, yerr=ddmF, fmt='o', ecolor='0.75', color='k', ms=3)
+
+            bins = num.arange(self.maglim[0], self.maglim[1], 0.5)
+            self.plotErrvSig(ax2, M1[idx], dmAll[idx], ddmAll[idx], bins) # stars/gals only
+
+            ax1.set_ylabel("dM", fontsize=12)
+            ax2.set_xlabel("${\mathrm{M_{%s; cat}}}$" % self.ownFilt.getName(), fontsize=12)
             if self.ownFilt.getName() == self.visitFilters[visit].getName():
                 lab = "${\mathrm{(%s_{%s} - %s_{%s})_{%s}}}$" % (self.ownFilt.getName(),
                                                                  dataId['visit'],
@@ -406,15 +479,19 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                                                                                    self.magType,
                                                                                    self.ownFilt.getName(),
                                                                                    self.visitFilters[visit].getName())
-            sp1.set_title(lab, fontsize=12)
-            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
-            sp1.set_ylim(-0.5, 0.5)
-            sp1.set_xlim(self.maglim[0], self.maglim[1])
+            ax1.set_title(lab, fontsize=12)
+            qaFigUtils.qaSetp(ax1.get_xticklabels()+ax1.get_yticklabels(), fontsize=8)
+            qaFigUtils.qaSetp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize=8)
+
+            ax1.set_ylim(-0.5, 0.5)
+            ax1.set_xlim(self.maglim[0], self.maglim[1])
+            ax2.semilogy()
+            ax2.set_ylim(0.001, 0.99)
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             statBlurb = "Points used for statistics shown in red."
             testSet.addFigure(fig, figbase+".png",
-                              nametag+" vs. "+self.magType + "(stars). "+statBlurb,
+                              nametag+" vs. "+self.magType + "(%s). "%(sglab)+statBlurb,
                               areaLabel=areaLabel, toggle=toggle)
 
     def plotCmd(self, data, dataId, visit, showUndefined=False):

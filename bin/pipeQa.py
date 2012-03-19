@@ -170,6 +170,8 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
             sys.exit(1)
         elif matchDset == None:
             matchDset = dataset
+        elif matchVisits == None:
+            matchVisits = []
 
         for mType in policy.getStringArray("visitQaMagTypes"):
             analysisList.append(qaAnalysis.VisitToVisitPhotQaAnalysis(matchDset, matchVisits, mType, 
@@ -365,7 +367,7 @@ if __name__ == '__main__':
     parser.add_option("--matchDataset", default=None,
                       help="Specify another dataset to compare analysis to")
     parser.add_option("--matchVisits", default=None, action="append",
-                      help="Visits within this dataset to compare analysis to")
+                      help="Visits within this dataset to compare analysis to; default is same visit")
 
 
     parser.add_option("--noWwwCache", default=False, action="store_true",
