@@ -460,6 +460,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                 ax1.errorbar(M1[idxB], dmB, yerr=ddmB, fmt='ro', ms=3)
             if len(dmF):
                 ax1.errorbar(M1[idxF], dmF, yerr=ddmF, fmt='o', ecolor='0.75', color='k', ms=3)
+            ax1.axhline(y=0, c='k', linestyle=':')
 
             bins = num.arange(self.maglim[0], self.maglim[1], 0.5)
             self.plotErrvSig(ax2, M1[idx], dmAll[idx], ddmAll[idx], bins) # stars/gals only
