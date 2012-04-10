@@ -179,8 +179,6 @@ class DbQaData(QaData):
             sql += '    and (s.objectID is not NULL) '
         sql += '    and '+idWhere
 
-
-
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
         
         # run the query
@@ -738,7 +736,8 @@ class DbQaData(QaData):
                     sql3 += 'FROM SimRefObject AS sro INNER JOIN '
                     sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
                     sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
-                    
+
+        
             #print sql
             #if not oldWay:
             #    print sql2
