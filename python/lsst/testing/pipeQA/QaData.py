@@ -103,7 +103,10 @@ class QaData(object):
 
         self.refObjectQueryCache = {}
         self.refObjectCache = {}
-        
+
+        self.visitMatchQueryCache = {}
+        self.visitMatchCache = {}
+
         # cache calexp info, but not the MaskedImage ... it's too big.
         self.calexpQueryCache = {}
         self.calexpCache = {}
@@ -117,22 +120,23 @@ class QaData(object):
         self.dataIdLookup = {}
 
         self.cacheList = {
-            "query"         : self.queryCache,  
-            "columnQuery"   : self.columnQueryCache,
-            "sourceSet"     : self.sourceSetCache,
+            "query"          : self.queryCache,  
+            "columnQuery"    : self.columnQueryCache,
+            "sourceSet"      : self.sourceSetCache,
             "sourceSetColumn"  : self.sourceSetColumnCache,
-            "matchQuery"    : self.matchQueryCache,
-            "matchList"     : self.matchListCache,
-            "refObjectQuery": self.refObjectQueryCache,
-            "refObject"     : self.refObjectCache,
-            "calexpQuery"   : self.calexpQueryCache,
-            "calexp"        : self.calexpCache, 
-            "wcs"           : self.wcsCache,    
-            "detector"      : self.detectorCache,
-            "raftDetector"  : self.raftDetectorCache,
-            "filter"        : self.filterCache, 
-            "calib"         : self.calibCache,  
-            "dataIdLookup"  : self.dataIdLookup,
+            "matchQuery"     : self.matchQueryCache,
+            "matchList"      : self.matchListCache,
+            "refObjectQuery" : self.refObjectQueryCache,
+            "refObject"      : self.refObjectCache,
+            "visitMatchQuery": self.visitMatchQueryCache,
+            "calexpQuery"    : self.calexpQueryCache,
+            "calexp"         : self.calexpCache, 
+            "wcs"            : self.wcsCache,    
+            "detector"       : self.detectorCache,
+            "raftDetector"   : self.raftDetectorCache,
+            "filter"         : self.filterCache, 
+            "calib"          : self.calibCache,  
+            "dataIdLookup"   : self.dataIdLookup,
             }
 
 

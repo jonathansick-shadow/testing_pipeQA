@@ -326,8 +326,70 @@ definitions: {
 
     doFwhm: {
         type: string
-        description: "Fwhm: qaANalysis.FwhmQaAnalysis"
+        description: "Fwhm: qaAnalysis.FwhmQaAnalysis"
         maxOccurs: 4
         default: "none"
     }    
+
+    ###
+
+    doVisitQa: {
+        type: string
+        description: "Visit to visit: qaAnalysis.VisitToVisitPhotQaAnalysis and qaAnalysis.VisitToVisitAstromQaAnalysis"
+        maxOccurs: 1
+        default: "none"
+    }    
+
+    visitQaMagTypes: {
+        type: string
+        description: "Make separate figures for different magnitude types" 
+        maxOccurs: 8
+        default: "ap" "psf" "inst" "mod"
+        allowed: {
+            value:        "ap"
+            description:  "Compare aperture mags"
+        }
+        allowed: {
+            value:        "psf"
+            description:  "Compare PSF mags"
+        }
+        allowed: {
+            value:        "inst"
+            description:  "Compare instrumental mags"
+        }
+        allowed: {
+            value:        "mod"
+            description:  "Compare model mags"
+        }
+
+    }
+
+    visitQaMagCut: {
+        type: double
+        description: "Faintest magnitude for establishing photometric RMS"
+        maxOccurs: 1
+        default: 20.0
+    }
+
+    visitQaPhotDeltaMin: {
+        type: double
+        description: "Minimum allowed delta"
+        maxOccurs: 1
+        default: -0.02
+    }
+
+    visitQaPhotDeltaMax: {
+        type: double
+        description: "Maximum allowed delta"
+        maxOccurs: 1
+        default:  0.02
+    }
+
+    visitQaPhotRmsMax: {
+        type: double
+        description: "Maximum allowed photometric RMS on bright end"
+        maxOccurs: 1
+        default:  0.02
+    }
+
 }

@@ -73,7 +73,7 @@ def tryThis(func, data, thisDataId, visit, test, testset):
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
+def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matchVisits=None, testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
 	 groupInfo=None, delaySummary=False, forkFigure=False):
 
@@ -162,6 +162,33 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
                                                     policy.get("vigMaxMag"), useCache=keep,
                                                     wwwCache=wwwCache, delaySummary=delaySummary))
 
+    # allow command line override
+    if (data.cameraInfo.name in policy.getStringArray("doVisitQa")) or doVisitQa:
+        if matchDset == None and matchVisits == None:
+            # we can't do it!
+            print "Unable to run visit to visit Qa; please request a comparison visit or database"
+            sys.exit(1)
+        elif matchDset == None:
+            matchDset = dataset
+        elif matchVisits == None:
+            matchVisits = []
+
+        for mType in policy.getStringArray("visitQaMagTypes"):
+            analysisList.append(qaAnalysis.VisitToVisitPhotQaAnalysis(matchDset, matchVisits, mType, 
+                                                                      policy.get("visitQaMagCut"),
+                                                                      policy.get("visitQaPhotDeltaMin"),
+                                                                      policy.get("visitQaPhotDeltaMax"),
+                                                                      policy.get("visitQaPhotRmsMax"),
+                                                                      useCache=keep,
+                                                                      wwwCache=wwwCache, 
+                                                                      delaySummary=delaySummary))
+
+        analysisList.append(qaAnalysis.VisitToVisitAstromQaAnalysis(policy.get("astromQaMaxErr"),
+                                                                    matchDset, matchVisits, 
+                                                                    useCache=keep,
+                                                                    wwwCache=wwwCache, 
+                                                                    delaySummary=delaySummary))
+
 
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
@@ -203,8 +230,7 @@ def main(dataset, dataIdInput, rerun=None, testRegex=".*", camera=None,
         groupTag = "."+groupTag
     progset = pipeQA.TestSet(group="", label="ProgressReport"+groupTag, wwwCache=wwwCache)
     for visit in visits:
-        progset.addTest(visit, 0, [1, 1], "Not started.  Last dataId: None")
-
+        progset.addTest(visit, 0, [0, 1], "Not started.  Last dataId: None")
 
     testset = pipeQA.TestSet(group="", label="QA-failures"+groupTag, wwwCache=wwwCache)
     for visit in visits:
@@ -336,6 +362,15 @@ if __name__ == '__main__':
     parser.add_option("-v", "--visit", default=".*",
                       help="Specify visit as regex OR color separated list. (default=%default)")
 
+    # visit-to-visit
+    parser.add_option("--doVisitQa", default=False, action='store_true',
+                      help="Do visit-to-visit pipeQA, overriding the policy default")
+    parser.add_option("--matchDataset", default=None,
+                      help="Specify another dataset to compare analysis to")
+    parser.add_option("--matchVisits", default=None, action="append",
+                      help="Visits within this dataset to compare analysis to; default is same visit")
+
+
     parser.add_option("--noWwwCache", default=False, action="store_true",
                       help="Disable caching of pass/fail (needed to run in parallel) (default=%default)")
     
@@ -344,8 +379,7 @@ if __name__ == '__main__':
     if len(args) != 1:
         parser.print_help()
         sys.exit(1)
-
-
+        
     #### handle visits
 
     # split by :
@@ -376,6 +410,7 @@ if __name__ == '__main__':
         opts.keep = True
         
     main(dataset, dataId, rerun=rerun,
+         doVisitQa = opts.doVisitQa, matchDset=opts.matchDataset, matchVisits=opts.matchVisits,
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
          breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary,

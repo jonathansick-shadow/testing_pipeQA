@@ -18,6 +18,20 @@ import simRefObject as simRefObj
 import source       as pqaSource
 
 
+class Source(object):
+    def __init__(self):
+        self.sourceId       = None
+        
+class MatchedSource(object):
+    def __init__(self):
+        self.simRefObjectId = None
+        self.u              = Source()
+        self.g              = Source()
+        self.r              = Source()
+        self.i              = Source()
+        self.z              = Source()
+        self.y              = Source()
+
 class Timer(object):
 
     def __init__(self):
@@ -89,10 +103,12 @@ class DbQaData(QaData):
         
 
     def calibFluxError(self, f, df, f0, df0):
+        val = numpy.NaN 
         try:
             return (df/f + df0/f0)*f/f0
         except FloatingPointError:
-            return numpy.NaN
+            val = numpy.NaN 
+        return val
 
     def getMatchListBySensor(self, dataIdRegex, useRef='src'):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
@@ -163,8 +179,6 @@ class DbQaData(QaData):
             sql += '    and (s.objectID is not NULL) '
         sql += '    and '+idWhere
 
-
-
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
         
         # run the query
@@ -228,12 +242,15 @@ class DbQaData(QaData):
 
             # flux errors
             psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
-            apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
-            modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
-            instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
             s.setPsfFluxErr(psfFluxErr)
+
+            apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
             s.setApFluxErr(apFluxErr)
+
+            modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
             s.setModelFluxErr(modFluxErr)
+
+            instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
             s.setInstFluxErr(instFluxErr)
 
             dist = 0.0
@@ -404,6 +421,9 @@ class DbQaData(QaData):
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
 
+            if (fmag0 == 0.0):
+                continue
+
             # fluxes
             s.setPsfFlux(s.getPsfFlux()/fmag0)
             s.setApFlux(s.getApFlux()/fmag0)
@@ -412,19 +432,21 @@ class DbQaData(QaData):
 
             # flux errors
             psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
             s.setPsfFluxErr(psfFluxErr)
-            s.setApFluxErr(apFluxErr)
-            s.setModelFluxErr(modFluxErr)
-            s.setInstFluxErr(instFluxErr)
 
+            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+            s.setApFluxErr(apFluxErr)
+
+            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+            s.setModelFluxErr(modFluxErr)
+
+            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+            s.setInstFluxErr(instFluxErr)
+                
             ss.append(s)
 
 
         # cache it
-        self.queryCache[dataIdStr] = True
         for k, ss in ssDict.items():
             self.sourceSetCache[k] = ssDict[k]
         
@@ -456,6 +478,168 @@ class DbQaData(QaData):
             dataIdList.append({'visit':visit, 'raft':raft, 'sensor':ccd, 'snap':'0'})
             
         return dataIdList
+
+
+    def getVisitMatchesBySensor(self, matchDatabase, matchVisit, dataIdRegex):
+        """ Get a dict of all Catalog Sources matching dataId, but
+        within another Science_Ccd_Exposure's polygon"""
+
+
+        # If the dataIdEntry is identical to an earlier query, we must already have all the data
+        dataIdStr = self._dataIdToString(dataIdRegex)      # E.g. visit862826551-snap.*-raft.*-sensor.*
+
+        if self.visitMatchQueryCache.has_key(matchDatabase):
+            if self.visitMatchQueryCache[matchDatabase].has_key(matchVisit):
+                vmqCache = self.visitMatchQueryCache[matchDatabase][matchVisit]
+
+                if vmqCache.has_key(dataIdStr):
+                    vmCache = self.visitMatchCache[matchDatabase][matchVisit]
+                    vmDict = {}
+                    for key, ss in vmCache.items():
+                        if re.search(dataIdStr, key):
+                            vmDict[key] = ss
+                    return vmDict
+
+
+        # Load each of the dataIds
+        dataIdList = self.getDataIdsFromRegex(dataIdRegex)
+
+        # Set up the outputs
+        calib = self.getCalibBySensor(dataIdRegex)
+        vmDict = {}
+        for k in calib.keys():
+            vmDict[k] = []
+
+        for dataIdEntry in dataIdList:
+            visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
+            dataIdEntryStr = self._dataIdToString(dataIdEntry) # E.g. visit862826551-snap0-raft30-sensor20
+
+            haveAllKeys = True
+            sqlDataId = []
+            for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+                key, sqlName = keyNames
+                if dataIdEntry.has_key(key):
+                    sqlDataId.append(self._sqlLikeEqual(sqlName, dataIdEntry[key]))
+                else:
+                    haveAllKeys = False
+            sqlDataId = " and ".join(sqlDataId)
+
+            # Poly comes from our own database
+            sql1  = 'SELECT poly FROM Science_Ccd_Exposure as sce '
+            sql1 += 'WHERE %s ' % (sqlDataId) 
+            sql1 += 'INTO @poly;'
+
+            sql2  = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
+        
+            # Selection of source matches from the comparison database
+            self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
+            setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
+            selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
+            selectStr = ",".join(selectList)
+            sql3  = 'SELECT sce.visit, sce.raftName, sce.ccdName, sce.filterName, '                # 4 values
+            sql3 += ' sce.fluxMag0, sce.fluxMag0Sigma,'                                            # 2 values
+            sql3 += '   CASE WHEN sce.filterId = 0 THEN sro.uMag'
+            sql3 += '        WHEN sce.filterId = 1 THEN sro.gMag'
+            sql3 += '        WHEN sce.filterId = 2 THEN sro.rMag'
+            sql3 += '        WHEN sce.filterId = 3 THEN sro.iMag'
+            sql3 += '        WHEN sce.filterId = 4 THEN sro.zMag'
+            sql3 += '        WHEN sce.filterId = 5 THEN sro.yMag'
+            sql3 += '   END as mag,'                                                               # 1 value
+            sql3 += ' sro.ra, sro.decl, sro.isStar, sro.refObjectId,'                              # 4 values
+            sql3 += selectStr
+            sql3 += ' FROM %s.Source AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase)
+            sql3 += ' INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase)
+            sql3 += ' ON (s.scienceCcdExposureId = sce.scienceCcdExposureId) AND (sce.visit = %s)' % (matchVisit)
+            sql3 += '   INNER JOIN %s.RefSrcMatch AS rsm ON (s.sourceId = rsm.sourceId)' % (matchDatabase)
+            sql3 += '   INNER JOIN %s.SimRefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
+            sql3 += '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
+            sql3 += 'WHERE scisql_s2PtInCPoly(s.ra, s.decl, @poly) = 1;'
+
+            #if not re.search("\%", sql1) and haveAllKeys:
+            #    dataIdCopy = copy.copy(dataIdEntry)
+            #    dataIdCopy['snap'] = "0"
+            #    key = self._dataIdToString(dataIdCopy)
+            #    if self.visitMatchCache.has_key(key):
+            #        vmDict[key] = self.visitMatchCache[key]
+            #        continue
+            
+            self.printStartLoad("Loading DatasetMatches for: " + dataIdEntryStr + "...")
+            self.dbInterface.execute(sql1)
+            self.dbInterface.execute(sql2)
+            results = self.dbInterface.execute(sql3)
+
+            self.printMidLoad("Found %d matches..." % (len(results)))
+
+            for row in results:
+                s = pqaSource.Source()
+                qaDataUtils.setSourceBlobsNone(s)
+                sref = pqaSource.RefSource()
+                qaDataUtils.setSourceBlobsNone(sref)
+
+                nValues = 11
+                mvisit, mraft, mccd, mfilt, fmag0, fmag0Err, mag, ra, dec, isStar, refObjId = row[:nValues]
+                filt = afwImage.Filter(mfilt, True)
+
+                sref.setId(refObjId)
+                sref.setRa(ra)
+                sref.setDec(dec)
+                flux = 10**(-mag/2.5)
+                sref.setPsfFlux(flux)
+                sref.setApFlux(flux)
+                sref.setModelFlux(flux)
+                sref.setInstFlux(flux)
+
+                i = 0
+                for value in row[nValues:]:
+                    method = getattr(s, setMethods[i])
+                    if not value is None:
+                        method(value)
+                    i += 1
+           
+                for sss in [s, sref]:
+                    if isStar == 1:
+                        sss.setFlagForDetection(sss.getFlagForDetection() | measAlg.Flags.STAR)
+                    else:
+                        sss.setFlagForDetection(sss.getFlagForDetection() & ~measAlg.Flags.STAR)
+        
+                # fluxes
+                s.setPsfFlux(s.getPsfFlux()/fmag0)
+                s.setApFlux(s.getApFlux()/fmag0)
+                s.setModelFlux(s.getModelFlux()/fmag0)
+                s.setInstFlux(s.getInstFlux()/fmag0)
+    
+                # flux errors
+                psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
+                s.setPsfFluxErr(psfFluxErr)
+    
+                apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
+                s.setApFluxErr(apFluxErr)
+    
+                modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
+                s.setModelFluxErr(modFluxErr)
+    
+                instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
+                s.setInstFluxErr(instFluxErr)
+    
+                vm = vmDict[dataIdEntryStr]
+                vm.append( [sref, s, filt] )
+    
+            self.printStopLoad()
+    
+        # cache it
+        if not self.visitMatchQueryCache.has_key(matchDatabase):
+            self.visitMatchQueryCache[matchDatabase] = {}
+            self.visitMatchCache[matchDatabase] = {}
+
+        if not self.visitMatchQueryCache[matchDatabase].has_key(matchVisit):
+            self.visitMatchQueryCache[matchDatabase][matchVisit] = {}
+            self.visitMatchCache[matchDatabase][matchVisit] = {}
+
+        self.visitMatchQueryCache[matchDatabase][matchVisit][dataIdStr] = True
+        for k, ss in vmDict.items():
+            self.visitMatchCache[matchDatabase][matchVisit][k] = ss
+        
+        return vmDict
 
 
     def getRefObjectSetBySensor(self, dataIdRegex):
@@ -552,8 +736,8 @@ class DbQaData(QaData):
                     sql3 += 'FROM SimRefObject AS sro INNER JOIN '
                     sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
                     sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
-                    
 
+        
             #print sql
             #if not oldWay:
             #    print sql2
@@ -784,8 +968,8 @@ class DbQaData(QaData):
                 self.raftDetectorCache[key] = self.cameraInfo.detectors[raftName]
 
             if not self.filterCache.has_key(key):
-                filter = afwImage.Filter(rowDict['filterName'], True)
-                self.filterCache[key] = filter
+                filt = afwImage.Filter(rowDict['filterName'], True)
+                self.filterCache[key] = filt
             
             if not self.calibCache.has_key(key):
                 calib = afwImage.Calib()

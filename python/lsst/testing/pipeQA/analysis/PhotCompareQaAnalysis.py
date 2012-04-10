@@ -462,7 +462,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                        tag1, tag, 'stars'])
                 testSet.addFigure(fig, figbase+".png",
                                   dtag+" vs. "+self.magType1 + "(star derr). "+statBlurb,
-                                  areaLabel=areaLabel, toggle='derr')
+                                  areaLabel=areaLabel, toggle='3_derr')
                 del fig
 
                 fig = self.regularFigure([mag0, diff0, star0,
@@ -471,7 +471,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                           tag1, tag, 'stars'])
                 testSet.addFigure(fig, figbase+".png",
                                   dtag+" vs. "+self.magType1 + "(stars). "+statBlurb,
-                                  areaLabel=areaLabel, toggle='stars')
+                                  areaLabel=areaLabel, toggle='0_stars')
                 del fig
 
                 fig = self.regularFigure([mag0, diff0, star0,
@@ -480,7 +480,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                           tag1, tag, 'galaxies'])
                 testSet.addFigure(fig, figbase+".png",
                                   dtag+" vs. "+self.magType1 + "(galaxies). "+statBlurb,
-                                  areaLabel=areaLabel, toggle='galaxies')
+                                  areaLabel=areaLabel, toggle='1_galaxies')
                 del fig
                 fig = self.regularFigure([mag0, diff0, star0,
                                           areaLabel, raft, ccd, figsize,
@@ -488,7 +488,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                           tag1, tag, 'all'])
                 testSet.addFigure(fig, figbase+".png",
                                   dtag+" vs. "+self.magType1 + ". "+statBlurb,
-                                  areaLabel=areaLabel, toggle="everything")
+                                  areaLabel=areaLabel, toggle="2_everything")
                 del fig
                 
             else:
@@ -990,8 +990,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         #allColor = numpy.array(allColor)
         for ax in [ax0_1, ax0_2]:
             ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
-            ax.plot(allMags[wGxy], allDiffs[wGxy], "b.", ms=size, label="galaxies") #0.75, alpha=0.5)
-            ax.plot(allMags[wStar], allDiffs[wStar], "r.", ms=size, label="stars") #, alpha=0.5)
+            ax.plot(allMags[wGxy], allDiffs[wGxy], "bo", ms=size, label="galaxies", alpha=0.5)
+            ax.plot(allMags[wStar], allDiffs[wStar], "ro", ms=size, label="stars", alpha=0.5)
             # 99 is the 'no-data' values
             if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
                 ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
