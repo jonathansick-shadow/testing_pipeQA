@@ -8,6 +8,8 @@ import lsst.meas.algorithms as measAlg
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 
+import lsst.testing.pipeQA.source as pqaSource
+
 import matplotlib.ticker as ticker
 from matplotlib.font_manager import FontProperties
 import matplotlib.patches as patches
@@ -187,7 +189,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                         if (fref > 0.0 and f > 0.0):
                             # Use known catalog mag
                             mrefmag  = -2.5*num.log10(fref)
-                            star = flags & measAlg.Flags.STAR
+                            star = flags & pqaSource.STAR
                             if num.isfinite(mrefmag):
                                 if star > 0:
                                     stars.append(mrefmag)

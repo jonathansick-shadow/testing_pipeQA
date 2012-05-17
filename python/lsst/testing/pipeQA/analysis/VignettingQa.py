@@ -4,6 +4,8 @@ import QaAnalysis as qaAna
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
+import lsst.testing.pipeQA.source as pqaSource
+
 import lsst.meas.algorithms as measAlg
 import QaAnalysisUtils as qaAnaUtil
 import lsst.afw.math as afwMath
@@ -67,7 +69,7 @@ class VignettingQa(qaAna.QaAnalysis):
         self.medianOffset = raftCcdData.RaftCcdData(self.detector)
         self.rmsOffset    = raftCcdData.RaftCcdData(self.detector)
         
-        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
+        badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
         
         for key in self.detector.keys():
 
@@ -95,7 +97,7 @@ class VignettingQa(qaAna.QaAnalysis):
                 for m in mdict:
                     sref, s, dist = m
 
-                    if not sref.getFlagForDetection() & measAlg.Flags.STAR:
+                    if not sref.getFlagForDetection() & pqaSource.STAR:
                         continue
 
                     f1 = self._getFlux(self.magType1, s, sref)

@@ -14,6 +14,12 @@ if os.environ.has_key('SOURCECLASS'):
 useSource = sourceClass
 useRefSource = sourceClass
 
+# these mimic the old measAlg.Flags values
+# since we're wrapping the Source, we'll use these
+STAR          = 0x1
+SATUR_CENTER  = 0x2
+EDGE          = 0x4
+INTERP_CENTER = 0x8
 
 #################################################################
 # RefSource

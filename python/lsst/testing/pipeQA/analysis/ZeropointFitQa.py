@@ -9,6 +9,8 @@ import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import QaAnalysisUtils as qaAnaUtil
 import RaftCcdData as raftCcdData
 
+import lsst.testing.pipeQA.source as pqaSource
+
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 
@@ -69,7 +71,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         self.zeroPoint        = raftCcdData.RaftCcdData(self.detector)
         self.medOffset        = raftCcdData.RaftCcdData(self.detector)
 
-        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
+        badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
 
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
@@ -121,7 +123,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                         mimgmag  = -2.5*num.log10(f)
                         mimgmerr =  2.5 / num.log(10.0) * ferr / f
     
-                        star = flags & measAlg.Flags.STAR
+                        star = flags & pqaSource.STAR
                         
                         if num.isfinite(mrefmag) and num.isfinite(mimgmag):
                             if star > 0:

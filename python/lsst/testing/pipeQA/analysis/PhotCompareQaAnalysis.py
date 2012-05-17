@@ -11,6 +11,8 @@ import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
+import lsst.testing.pipeQA.source as pqaSource
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
@@ -136,7 +138,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.star = raftCcdData.RaftCcdVector(self.detector)
 
         filter = None
-        badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
+        badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
 
         self.matchListDictSrc = None
         self.ssDict = None
@@ -167,7 +169,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
                         
-                        star = flags & measAlg.Flags.STAR
+                        star = flags & pqaSource.STAR
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
@@ -200,10 +202,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
 
-                        star = flags & measAlg.Flags.STAR
+                        star = flags & pqaSource.STAR
                         #if star:
                         #    print "isStar: ", star
-                        
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
 			    self.diff.append(raft, ccd, m1 - m2)
@@ -572,7 +573,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         #####
 
         sp2 = fig.fig.add_subplot(222, sharex = sp1)
-        sp2.plot(mag[whereCut], derr[whereCut], "r.", ms=size, label=ccd)
+        sp2.plot(mag[whereCut],   derr[whereCut],   "r.", ms=size, label=ccd)
         sp2.plot(mag[whereOther], derr[whereOther], "k.", ms=size, label=ccd)
         sp2.set_ylabel('Error Bars', fontsize = 10)
 

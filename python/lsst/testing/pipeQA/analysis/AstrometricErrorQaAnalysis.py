@@ -11,6 +11,8 @@ import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 
+import lsst.testing.pipeQA.source as pqaSource
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
@@ -79,7 +81,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
 
-                if not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER ):
+                if not (s.getFlagForDetection() & pqaSource.INTERP_CENTER ):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
                     self.x.append(raft, ccd, s.getXAstrom())

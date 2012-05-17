@@ -84,8 +84,9 @@ class DbQaData(QaData):
 
         # default to new names
         self.dbAliases = {
-            "flux_Gaussian" : "instFlux",
-            "flux_ESG"      : "modelFlux",
+            #"flux_Gaussian" : "instFlux",
+            #"flux_ESG"      : "modelFlux",
+            'instFlux' : 'instFlux',
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
@@ -171,7 +172,7 @@ class DbQaData(QaData):
         sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
-        sql += '    Ref%sMatch as rom, SimRefObject as sro' % (self.refStr[useRef][0])
+        sql += '    Ref%sMatch as rom, RefObject as sro' % (self.refStr[useRef][0])
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         sql += '    and (s.%sId = rom.%sId) and (rom.refObjectId = sro.refObjectId)' % \
                (self.refStr[useRef][1], self.refStr[useRef][1])
@@ -223,9 +224,9 @@ class DbQaData(QaData):
 
             for sss in [s, sref]:
                 if isStar == 1:
-                    sss.setFlagForDetection(sss.getFlagForDetection() | measAlg.Flags.STAR)
+                    sss.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
                 else:
-                    sss.setFlagForDetection(sss.getFlagForDetection() & ~measAlg.Flags.STAR)
+                    sss.setFlagForDetection(sss.getFlagForDetection() & ~pqaSource.STAR)
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
@@ -350,7 +351,7 @@ class DbQaData(QaData):
 
         setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
-        selectStr = ",".join(selectList)
+        selectStr  = ",".join(selectList)
 
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
@@ -551,7 +552,7 @@ class DbQaData(QaData):
             sql3 += ' INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase)
             sql3 += ' ON (s.scienceCcdExposureId = sce.scienceCcdExposureId) AND (sce.visit = %s)' % (matchVisit)
             sql3 += '   INNER JOIN %s.RefSrcMatch AS rsm ON (s.sourceId = rsm.sourceId)' % (matchDatabase)
-            sql3 += '   INNER JOIN %s.SimRefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
+            sql3 += '   INNER JOIN %s.RefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
             sql3 += '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
             sql3 += 'WHERE scisql_s2PtInCPoly(s.ra, s.decl, @poly) = 1;'
 
@@ -598,9 +599,9 @@ class DbQaData(QaData):
            
                 for sss in [s, sref]:
                     if isStar == 1:
-                        sss.setFlagForDetection(sss.getFlagForDetection() | measAlg.Flags.STAR)
+                        sss.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
                     else:
-                        sss.setFlagForDetection(sss.getFlagForDetection() & ~measAlg.Flags.STAR)
+                        sss.setFlagForDetection(sss.getFlagForDetection() & ~pqaSource.STAR)
         
                 # fluxes
                 s.setPsfFlux(s.getPsfFlux()/fmag0)
@@ -694,7 +695,7 @@ class DbQaData(QaData):
             # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
             if oldWay:
                 sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
-                sql += '  from SimRefObject as sro, '
+                sql += '  from RefObject as sro, '
                 sql += '       Science_Ccd_Exposure as sce '
                 sql += '  where (scisql_s2PtInCPoly(sro.ra, sro.decl,'
                 sql += '         scisql_s2CPolyToBin('
@@ -720,7 +721,7 @@ class DbQaData(QaData):
 
                     sql2 = 'SELECT %s ' % (sroFieldStr)
                     sql2 += 'FROM '
-                    sql2 += '    SimRefObject AS sro '
+                    sql2 += '    RefObject AS sro '
                     sql2 += 'WHERE '
                     sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
 
@@ -733,7 +734,7 @@ class DbQaData(QaData):
                     sql2 = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
 
                     sql3  = 'SELECT %s ' % (sroFieldStr)
-                    sql3 += 'FROM SimRefObject AS sro INNER JOIN '
+                    sql3 += 'FROM RefObject AS sro INNER JOIN '
                     sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
                     sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
 

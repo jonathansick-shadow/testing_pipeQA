@@ -11,6 +11,8 @@ import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
+import lsst.testing.pipeQA.source as pqaSource
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
@@ -106,7 +108,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     theta += numpy.pi
                     
                 #print ixx, iyy, ixy, a2, b2, ellip, theta
-                isStar = s.getFlagForDetection() & measAlg.Flags.STAR
+                isStar = s.getFlagForDetection() & pqaSource.STAR
 
                 flux = s.getPsfFlux()
                 mag = 99.0
