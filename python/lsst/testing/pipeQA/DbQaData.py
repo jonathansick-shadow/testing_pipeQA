@@ -124,7 +124,7 @@ class DbQaData(QaData):
         
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
+        setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr  = ",".join(selectList)
         
@@ -162,13 +162,14 @@ class DbQaData(QaData):
                     matchListDict[key] = matchList
             return matchListDict
 
+        
         sql += idWhere
         result = self.dbInterface.execute(sql)
         filterId, filterName = result[0]
 
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, '%(filterName)
+        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.sourceId, '%(filterName)
         sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
@@ -190,71 +191,96 @@ class DbQaData(QaData):
         matchListDict = {}
         for row in results:
 
-            s = pqaSource.Source()
-            qaDataUtils.setSourceBlobsNone(s)
-            sref = pqaSource.RefSource()
-            qaDataUtils.setSourceBlobsNone(sref)
 
-            nFields = 9
-            visit, raft, sensor, mag, ra, dec, isStar, refObjId, nMatches = row[0:nFields]
+            nFields = 10
+            visit, raft, sensor, mag, ra, dec, isStar, refObjId, srcId, nMatches = row[0:nFields]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
 
             key = self._dataIdToString(dataIdTmp)            
             self.dataIdLookup[key] = dataIdTmp
 
             if not matchListDict.has_key(key):
+                refCatObj = pqaSource.RefCatalog()
+                refCat    = refCatObj.catalog
+                catObj    = pqaSource.Catalog()
+                cat       = catObj.catalog
+                
                 matchListDict[key] = []
+                
+                refRaKey   = refCatObj.keyDict['Ra']
+                refDecKey  = refCatObj.keyDict['Dec']
+                refPsfKey  = refCatObj.keyDict['PsfFlux']
+                refApKey   = refCatObj.keyDict['ApFlux']
+                refModKey  = refCatObj.keyDict['ModelFlux']
+                refInstKey = refCatObj.keyDict['InstFlux']
+
+                psfKey     = catObj.keyDict['PsfFlux']
+                apKey      = catObj.keyDict['ApFlux']
+                modKey     = catObj.keyDict['ModelFlux']
+                instKey    = catObj.keyDict['InstFlux']
+                
+                psfErrKey  = catObj.keyDict['PsfFluxErr']
+                apErrKey   = catObj.keyDict['ApFluxErr']
+                modErrKey  = catObj.keyDict['ModelFluxErr']
+                instErrKey = catObj.keyDict['InstFluxErr']
+
+                
             matchList = matchListDict[key]
 
-            sref.setId(refObjId)
-            sref.setRa(ra)
-            sref.setDec(dec)
-            flux = 10**(-mag/2.5)
-            sref.setPsfFlux(flux)
-            sref.setApFlux(flux)
-            sref.setModelFlux(flux)
-            sref.setInstFlux(flux)
+            # reference objects
+            sref = refCat.addNew()
 
+            sref.setId(refObjId)
+            sref.setF8(refRaKey, ra)
+            sref.setF8(refDecKey, dec)
+            flux = 10**(-mag/2.5)
+            sref.setF8(refPsfKey, flux)
+            sref.setF8(refApKey, flux)
+            sref.setF8(refModKey, flux)
+            sref.setF8(refInstKey, flux)
+
+            # sources
+            s = cat.addNew()
+            s.setId(srcId)
             i = 0
             for value in row[nFields:]:
-                method = getattr(s, setMethods[i])
-                if not value is None:
-                    method(value)
-                i += 1
+               if not value is None:
+                    setKey = catObj.setKeys[i]
+                    if isinstance(value, str):
+                        #print ord(value)
+                        value = 1.0 if ord(value) else 0.0
+                    s.setF8(setKey, value)
+               i += 1
 
-            for sss in [s, sref]:
-                if isStar == 1:
-                    sss.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
-                else:
-                    sss.setFlagForDetection(sss.getFlagForDetection() & ~pqaSource.STAR)
+            #sref.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
 
-            # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
-            psfFlux,   psfFluxErr   = s.getPsfFlux(),   s.getPsfFluxErr()
-            apFlux,    apFluxErr    = s.getApFlux(),    s.getApFluxErr()
-            modelFlux, modelFluxErr = s.getModelFlux(), s.getModelFluxErr()
-            instFlux,  instFluxErr  = s.getInstFlux(),  s.getInstFluxErr()
 
             # fluxes
-            s.setPsfFlux(psfFlux/fmag0)
-            s.setApFlux(apFlux/fmag0)
-            s.setModelFlux(modelFlux/fmag0)
-            s.setInstFlux(instFlux/fmag0)
+            s.setF8(psfKey,   s.getF8(psfKey)/fmag0)
+            s.setF8(apKey,    s.getF8(apKey)/fmag0)
+            s.setF8(modKey,   s.getF8(modKey)/fmag0)
+            s.setF8(instKey,  s.getF8(instKey)/fmag0)
 
             # flux errors
-            psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
-            s.setPsfFluxErr(psfFluxErr)
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getF8(psfKey), s.getF8(psfErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(psfErrKey, psfFluxErr)
 
-            apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
-            s.setApFluxErr(apFluxErr)
+            apFluxErr   = qaDataUtils.calibFluxError(s.getF8(psfKey),  s.getF8(apErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(apErrKey, apFluxErr)
 
-            modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
-            s.setModelFluxErr(modFluxErr)
+            modFluxErr  = qaDataUtils.calibFluxError(s.getF8(modKey), s.getF8(modErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(modErrKey, modFluxErr)
 
-            instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
-            s.setInstFluxErr(instFluxErr)
+            instFluxErr = qaDataUtils.calibFluxError(s.getF8(instKey),  s.getF8(instErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(instErrKey, instFluxErr)
 
             dist = 0.0
+
             matchList.append([sref, s, dist])
             multiplicity[s.getId()] = nMatches
 
@@ -349,13 +375,13 @@ class DbQaData(QaData):
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
+        setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr  = ",".join(selectList)
 
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName,'+selectStr
+        sql  = 'select sce.visit, sce.raftName, sce.ccdName, s.sourceId,'+selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce'
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         haveAllKeys = True
@@ -393,31 +419,46 @@ class DbQaData(QaData):
         results  = self.dbInterface.execute(sql)
         calib = self.getCalibBySensor(dataIdRegex)
 
+        
         # parse results and put them in a sourceSet
         ssDict = {}
         for k in calib.keys():
-            ssDict[k] = []
-        
-        for row in results:
-            s = pqaSource.Source()
-            qaDataUtils.setSourceBlobsNone(s)
+            catObj = pqaSource.Catalog()
+            ssDict[k] = catObj.catalog
 
-            visit, raft, sensor = row[0:3]
+            psfKey = catObj.keyDict['PsfFlux']
+            apKey  = catObj.keyDict['ApFlux']
+            modKey = catObj.keyDict['ModelFlux']
+            instKey = catObj.keyDict['InstFlux']
+
+            psfErrKey = catObj.keyDict['PsfFluxErr']
+            apErrKey  = catObj.keyDict['ApFluxErr']
+            modErrKey = catObj.keyDict['ModelFluxErr']
+            instErrKey = catObj.keyDict['InstFluxErr']
+                
+
+        for row in results:
+
+            s = ssDict[k].addNew() 
+
+            visit, raft, sensor, sid = row[0:4]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
             key = self._dataIdToString(dataIdTmp)
             self.dataIdLookup[key] = dataIdTmp
 
-            #if not ssDict.has_key(key):
-            #    ssDict[key] = [] #pqaSource.SourceSet()
             ss = ssDict[key]
-                
+            
+            s.setId(sid)
+            
             i = 0
-            for value in row[3:]:
-                method = getattr(s, setMethods[i])
+            for value in row[4:]:
                 if not value is None:
-                    method(value)
+                    setKey = catObj.setKeys[i]
+                    #print value, type(value)
+                    if isinstance(value, str) and len(value) == 1:
+                        value = 1.0 if ord(value) else 0.0
+                    s.setF8(setKey, value)
                 i += 1
-
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
@@ -426,26 +467,28 @@ class DbQaData(QaData):
                 continue
 
             # fluxes
-            s.setPsfFlux(s.getPsfFlux()/fmag0)
-            s.setApFlux(s.getApFlux()/fmag0)
-            s.setModelFlux(s.getModelFlux()/fmag0)
-            s.setInstFlux(s.getInstFlux()/fmag0)
+            s.setF8(psfKey,   s.getF8(psfKey)/fmag0)
+            s.setF8(apKey,    s.getF8(apKey)/fmag0)
+            s.setF8(modKey,   s.getF8(modKey)/fmag0)
+            s.setF8(instKey,  s.getF8(instKey)/fmag0)
 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-            s.setPsfFluxErr(psfFluxErr)
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getF8(psfKey), s.getF8(psfErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(psfErrKey, psfFluxErr)
 
-            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-            s.setApFluxErr(apFluxErr)
+            apFluxErr   = qaDataUtils.calibFluxError(s.getF8(psfKey),  s.getF8(apErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(apErrKey, apFluxErr)
 
-            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-            s.setModelFluxErr(modFluxErr)
+            modFluxErr  = qaDataUtils.calibFluxError(s.getF8(modKey), s.getF8(modErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(modErrKey, modFluxErr)
 
-            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
-            s.setInstFluxErr(instFluxErr)
+            instFluxErr = qaDataUtils.calibFluxError(s.getF8(instKey),  s.getF8(instErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(instErrKey, instFluxErr)
                 
-            ss.append(s)
-
 
         # cache it
         for k, ss in ssDict.items():

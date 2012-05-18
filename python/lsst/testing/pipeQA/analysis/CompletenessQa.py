@@ -157,7 +157,22 @@ class CompletenessQa(qaAna.QaAnalysis):
 
         if hasMinuit:
             self.fit = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0]) 
+
+
+
+        sCatDummy = pqaSource.Catalog().catalog
+        sCatSchema = sCatDummy.getSchema()
+        srefCatDummy  = pqaSource.RefCatalog().catalog
+        srefCatSchema = srefCatDummy.getSchema()
         
+        psfKey = sCatSchema.find('PsfFlux').key
+        psfErrKey = sCatSchema.find('PsfFluxErr').key
+        apKey = sCatSchema.find('ApFlux').key
+        apErrKey = sCatSchema.find('ApFluxErr').key
+        extKey = sCatSchema.find('Extendedness').key
+        
+        refPsfKey = srefCatSchema.find('PsfFlux').key
+            
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
@@ -177,24 +192,24 @@ class CompletenessQa(qaAna.QaAnalysis):
                     for m in mdict:
                         sref, s, dist = m
                         if fluxType == "psf":
-                            fref  = sref.getPsfFlux()
-                            f     = s.getPsfFlux()
-                            ferr  = s.getPsfFluxErr()
+                            fref  = sref.getF8(refPsfKey)
+                            f     = s.getF8(psfKey)
+                            ferr  = s.getF8(psfErrKey)
                         else:
-                            fref  = sref.getPsfFlux()
-                            f     = s.getApFlux()
-                            ferr  = s.getApFluxErr()
+                            fref  = sref.getF8(refPsfKey)
+                            f     = s.getF8(apKey)
+                            ferr  = s.getF8(apErrKey)
 
-                        flags = s.getFlagForDetection()
+
                         if (fref > 0.0 and f > 0.0):
                             # Use known catalog mag
                             mrefmag  = -2.5*num.log10(fref)
-                            star = flags & pqaSource.STAR
                             if num.isfinite(mrefmag):
-                                if star > 0:
-                                    stars.append(mrefmag)
-                                else:
+                                if s.getF8(extKey) > 0.0:
                                     galaxies.append(mrefmag)
+                                else:
+                                    stars.append(mrefmag)
+
                     starvec.set(raftId, ccdId, num.array(stars))
                     galvec.set(raftId, ccdId, num.array(galaxies))
     
@@ -214,9 +229,9 @@ class CompletenessQa(qaAna.QaAnalysis):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.getPsfFlux()
+                        f = orphan.getF8(psfKey)
                     else:
-                        f = orphan.getApFlux()
+                        f = orphan.getF8(apKey)
                     if f > 0.0:
                         orphans.append(-2.5 * num.log10(f))
                 self.orphan.set(raftId, ccdId, num.array(orphans))

@@ -54,6 +54,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         
         # get data
         self.ssDict           = data.getSourceSetBySensor(dataId)
+
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
         self.detector         = data.getDetectorBySensor(dataId)
         self.filter           = data.getFilterBySensor(dataId)
@@ -68,6 +69,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         filter = None
         self.size = raftCcdData.RaftCcdData(self.detector, initValue=[1.0, 1.0])
         for key, ss in self.ssDict.items():
+            xKey = ss.getSchema().find('XAstrom').key
+            yKey = ss.getSchema().find('YAstrom').key
+            
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
             bbox = self.detector[key].getAllPixels(True)
@@ -75,14 +79,16 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             self.size.set(raft, ccd, size)
             filter = self.filter[key].getName()
             for s in ss:
-                self.x.append(raft, ccd, s.getXAstrom())
-                self.y.append(raft, ccd, s.getYAstrom())
+                self.x.append(raft, ccd, s.getF8(xKey))
+                self.y.append(raft, ccd, s.getF8(yKey))
+                
             if self.matchListDictSrc.has_key(key):
                 for m in self.matchListDictSrc[key]['matched']:
                     sref, s, dist = m
-                    self.xmat.append(raft, ccd, s.getXAstrom())
-                    self.ymat.append(raft, ccd, s.getYAstrom())
+                    self.xmat.append(raft, ccd, s.getF8(xKey))
+                    self.ymat.append(raft, ccd, s.getF8(yKey))
 
+                    
         # create a testset
         testSet = self.getTestSet(data, dataId)
 

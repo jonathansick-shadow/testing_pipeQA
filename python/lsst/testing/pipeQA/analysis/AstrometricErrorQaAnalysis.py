@@ -66,6 +66,18 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.x    = raftCcdData.RaftCcdVector(self.detector)
         self.y    = raftCcdData.RaftCcdVector(self.detector)
 
+        sCatDummy = pqaSource.Catalog().catalog
+        sCatSchema = sCatDummy.getSchema()
+        srefCatDummy  = pqaSource.RefCatalog().catalog
+        srefCatSchema = srefCatDummy.getSchema()
+        
+        xKey = sCatSchema.find('XAstrom').key
+        yKey = sCatSchema.find('YAstrom').key
+        raKey = sCatSchema.find('Ra').key
+        decKey = sCatSchema.find('Dec').key
+        refRaKey = srefCatSchema.find('Ra').key
+        refDecKey = srefCatSchema.find('Dec').key
+
         filter = None
         for key in self.matchListDictSrc.keys():
             raft = self.detector[key].getParent().getId().getName()
@@ -76,16 +88,17 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [x*numpy.pi/180.0 for x in [s.getRa(), s.getDec(), sref.getRa(), sref.getDec()]]
+                    [x*numpy.pi/180.0 for x in [s.getF8(raKey), s.getF8(decKey),
+                                                sref.getF8(refRaKey), sref.getF8(refDecKey)]]
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
 
-                if not (s.getFlagForDetection() & pqaSource.INTERP_CENTER ):
+                if not (s.get('FlagPixInterpCen')):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
-                    self.x.append(raft, ccd, s.getXAstrom())
-                    self.y.append(raft, ccd, s.getYAstrom())
+                    self.x.append(raft, ccd, s.getF8(xKey))
+                    self.y.append(raft, ccd, s.getF8(yKey))
                     
                     
         testSet = self.getTestSet(data, dataId)
