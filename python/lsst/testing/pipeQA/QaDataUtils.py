@@ -161,6 +161,10 @@ def getSourceSetNameList():
         #["FlagForDetection",             "flagForDetection",             ],
         #["FlagForWcs",                   "flagForWcs",                   ],
         ["FlagPixInterpCen",              "flagPixInterpCen",             ],
+        ["FlagNegative",                  "flagNegative",             ],
+        ["FlagPixEdge",                   "flagPixEdge",             ],
+        ["FlagBadCentroid",               "flagBadCentroid",             ],
+        ["FlagPixSaturCen",               "flagPixSaturCen",             ],
         ["Extendedness",                  "extendedness",                 ],
         ]
     return accessors

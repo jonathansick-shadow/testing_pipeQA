@@ -26,6 +26,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         self.nx = nx
         self.ny = ny
 
+        self.sCatDummy = pqaSource.Catalog()
+        self.srefCatDummy = pqaSource.RefCatalog()
+        
         self.description = """
          For each CCD, the 1-to-1 matches between the reference catalog and
          sources are plotted as a function of position in the focal plane.
@@ -69,8 +72,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         filter = None
         self.size = raftCcdData.RaftCcdData(self.detector, initValue=[1.0, 1.0])
         for key, ss in self.ssDict.items():
-            xKey = ss.getSchema().find('XAstrom').key
-            yKey = ss.getSchema().find('YAstrom').key
+            xKey = self.sCatDummy.XAstromKey
+            yKey = self.sCatDummy.YAstromKey
             
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
@@ -78,6 +81,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             size = [bbox.getMaxX() - bbox.getMinX(), bbox.getMaxY() - bbox.getMinY()]
             self.size.set(raft, ccd, size)
             filter = self.filter[key].getName()
+            
             for s in ss:
                 self.x.append(raft, ccd, s.getF8(xKey))
                 self.y.append(raft, ccd, s.getF8(yKey))

@@ -242,6 +242,8 @@ class DbQaData(QaData):
             # sources
             s = cat.addNew()
             s.setId(srcId)
+            s.setF8(catObj.keyDict['Extendedness'], isStar)
+            
             i = 0
             for value in row[nFields:]:
                if not value is None:
@@ -413,6 +415,8 @@ class DbQaData(QaData):
                     ssDict[key] = ss
             return ssDict
 
+        self.queryCache[dataIdStr] = True
+        
         self.printStartLoad("Loading SourceSets for: " + dataIdStr + "...")
 
         # run the query
@@ -439,14 +443,13 @@ class DbQaData(QaData):
 
         for row in results:
 
-            s = ssDict[k].addNew() 
 
             visit, raft, sensor, sid = row[0:4]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
             key = self._dataIdToString(dataIdTmp)
             self.dataIdLookup[key] = dataIdTmp
 
-            ss = ssDict[key]
+            s = ssDict[key].addNew()
             
             s.setId(sid)
             

@@ -31,6 +31,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.derrLimits = [0.0, derrMax]
         self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
         self.starGalaxyToggle = starGalaxyToggle
+
+        self.sCatDummy = pqaSource.Catalog()
+        self.srefCatDummy = pqaSource.RefCatalog()
         
         def magType(mType):
             if re.search("(psf|PSF)", mType):
@@ -78,15 +81,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             
         
         if mType=="psf":
-            return s.getPsfFlux()
+            return s.getF8(self.sCatDummy.PsfFluxKey)
         elif mType=="ap":
-            return s.getApFlux()
+            return s.getF8(self.sCatDummy.ApFluxKey)
         elif mType=="mod":
-            return s.getModelFlux()
+            return s.getF8(self.sCatDummy.ModelFluxKey)
         elif mType=="cat":
-            return sref.getPsfFlux()
+            return sref.getF8(self.srefCatDummy.PsfFluxKey)
         elif mType=="inst":
-            return s.getInstFlux()
+            return s.getF8(self.sCatDummy.InstFluxKey)
 
     def _getFluxErr(self, mType, s, sref):
 
@@ -96,15 +99,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             
         
         if mType=="psf":
-            return s.getPsfFluxErr()
+            return s.getF8(self.sCatDummy.PsfFluxErrKey)
         elif mType=="ap":
-            return s.getApFluxErr()
+            return s.getF8(self.sCatDummy.ApFluxErrKey)
         elif mType=="mod":
-            return s.getModelFluxErr()
+            return s.getF8(self.sCatDummy.ModelFluxErrKey)
         elif mType=="cat":
             return 0.0
         elif mType=="inst":
-            return s.getInstFluxErr()
+            return s.getF8(self.sCatDummy.InstFluxErrKey)
 
     def free(self):
         del self.x
@@ -138,7 +141,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         self.star = raftCcdData.RaftCcdVector(self.detector)
 
         filter = None
-        badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
 
         self.matchListDictSrc = None
         self.ssDict = None
@@ -161,22 +163,26 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     f2  = self._getFlux(self.magType2, s, sref)
                     df1 = self._getFluxErr(self.magType1, s, sref)
                     df2 = self._getFluxErr(self.magType2, s, sref)
-                    flags = s.getFlagForDetection()
-
-                    if (f1 > 0.0 and f2 > 0.0  and not flags & badFlags):
+                    
+                    #badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
+                    intcen = s.getF8(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.getF8(self.sCatDummy.FlagPixEdgeKey)
+                    
+                    if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1  = -2.5*numpy.log10(f1)
                         m2  = -2.5*numpy.log10(f2)
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
                         
-                        star = flags & pqaSource.STAR
+                        star = 0 if s.getF8(self.sCatDummy.ExtendednessKey) else 1
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
-                            self.x.append(raft, ccd, s.getXAstrom())
-                            self.y.append(raft, ccd, s.getYAstrom())
+                            self.x.append(raft, ccd, s.getF8(self.sCatDummy.XAstromKey))
+                            self.y.append(raft, ccd, s.getF8(self.sCatDummy.YAstromKey))
                             self.star.append(raft, ccd, star)
 
         # if we're not asked for catalog fluxes, we can just use a sourceSet
@@ -188,29 +194,32 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 
                 filter = self.filter[key].getName()
 
-                qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
+                #qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
                 for s in ss:
                     f1 = self._getFlux(self.magType1, s, s)
                     f2 = self._getFlux(self.magType2, s, s)
                     df1 = self._getFluxErr(self.magType1, s, s)
                     df2 = self._getFluxErr(self.magType2, s, s)
-                    flags = s.getFlagForDetection()
+                    intcen = s.getF8(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.getF8(self.sCatDummy.FlagPixEdgeKey)
                     
-                    if ((f1 > 0.0 and f2 > 0.0) and not flags & badFlags):
+                    if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
 
-                        star = flags & pqaSource.STAR
+                        star = 0 if s.getF8(self.sCatDummy.ExtendednessKey) else 1
+                        
                         #if star:
                         #    print "isStar: ", star
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
 			    self.diff.append(raft, ccd, m1 - m2)
 			    self.mag.append(raft, ccd, m1)
-			    self.x.append(raft, ccd, s.getXAstrom())
-			    self.y.append(raft, ccd, s.getYAstrom())
+			    self.x.append(raft, ccd, s.getF8(self.sCatDummy.XAstromKey))
+			    self.y.append(raft, ccd, s.getF8(self.sCatDummy.YAstromKey))
 			    self.star.append(raft, ccd, star)
                     
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)

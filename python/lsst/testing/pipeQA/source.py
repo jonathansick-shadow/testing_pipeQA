@@ -47,9 +47,11 @@ class _RefCatalog(object):
             key = self.schema.addField(sm, type="F8")
             self.setKeys.append(key)
             self.keyDict[sm] = key
-
+            setattr(self, sm+"Key", key)
+            
         self.table = afwTab.SourceTable.make(self.schema)
         self.catalog = afwTab.SourceCatalog(self.table)
+
 
         
 class _RefSource(object):
@@ -128,6 +130,7 @@ class _Catalog(object):
             key = self.schema.addField(sm, type="F8")
             self.setKeys.append(key)
             self.keyDict[sm] = key
+            setattr(self, sm+"Key", key)
 
         self.table = afwTab.SourceTable.make(self.schema)
         self.catalog = afwTab.SourceCatalog(self.table)

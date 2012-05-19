@@ -20,6 +20,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         self.figsize = figsize
         self.limits = [medOffsetMin, medOffsetMax]
 
+        self.sCatDummy = pqaSource.Catalog()
+        self.srefCatDummy = pqaSource.RefCatalog()
+        
         self.description = """
          For each CCD, the central panel shows the instrumental magnitude of
          matched stars and galaxies, plotted as a function of the catalog
@@ -106,27 +109,30 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 for m in mdict:
                     sref, s, dist = m
                     if fluxType == "psf":
-                        fref  = sref.getPsfFlux()
-                        f     = s.getPsfFlux()
-                        ferr  = s.getPsfFluxErr()
+                        fref  = sref.getF8(self.srefCatDummy.PsfFluxKey)
+                        f     = s.getF8(self.sCatDummy.PsfFluxKey)
+                        ferr  = s.getF8(self.sCatDummy.PsfFluxErrKey)
                     else:
-                        fref  = sref.getPsfFlux()
-                        f     = s.getApFlux()
-                        ferr  = s.getApFluxErr()
+                        fref  = sref.getF8(self.srefCatDummy.PsfFluxKey)
+                        f     = s.getF8(self.sCatDummy.ApFluxKey)
+                        ferr  = s.getF8(self.sCatDummy.ApFluxErrKey)
 
                     # un-calibrate the magnitudes
                     f *= fmag0
                     
-                    flags = s.getFlagForDetection()
-                    if (fref > 0.0 and f > 0.0 and not flags & badFlags):
+                    intcen = s.getF8(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.getF8(self.sCatDummy.FlagPixEdgeKey)
+
+                    if (fref > 0.0 and f > 0.0 and not (intcen or satcen or edge)):
                         mrefmag  = -2.5*num.log10(fref)
                         mimgmag  = -2.5*num.log10(f)
                         mimgmerr =  2.5 / num.log(10.0) * ferr / f
     
-                        star = flags & pqaSource.STAR
+                        star = 0 if s.getF8(self.sCatDummy.ExtendednessKey) else 1
                         
                         if num.isfinite(mrefmag) and num.isfinite(mimgmag):
-                            if star > 0:
+                            if star:
                                 stars.append((mrefmag, mimgmag, mimgmerr))
                             else:
                                 galaxies.append((mrefmag, mimgmag, mimgmerr))
@@ -153,9 +159,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.getPsfFlux()
+                        f = orphan.getF8(self.sCatDummy.PsfFluxKey)
                     else:
-                        f = orphan.getApFlux()
+                        f = orphan.getF8(self.sCatDummy.ApFluxKey)
                     if f > 0.0:
                         # un-calibrate the magnitudes
                         f *= fmag0

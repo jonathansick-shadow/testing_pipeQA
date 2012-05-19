@@ -27,6 +27,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         self.limitsEllip = [0.0, ellipMax]
         self.limitsFwhm = [0.0, fwhmMax]
 
+        self.sCatDummy = pqaSource.Catalog()
+        self.srefCatDummy = pqaSource.RefCatalog()
+        
         self.description = """
          For each CCD, the ellipticity of stars used in the Psf model are
          plotted as a function of position in the focal plane.  The summary FPA
@@ -78,15 +81,15 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 	    else:
 		continue
 
-            qaAnaUtil.isStar(ss)
+            #qaAnaUtil.isStar(ss)
 
 	    fwhmByKey[key] = 0.0
 
             fwhmTmp = 0.0
             for s in ss:
-                ixx = s.getIxx()
-                iyy = s.getIyy()
-                ixy = s.getIxy()
+                ixx = s.getF8(self.sCatDummy.IxxKey)
+                iyy = s.getF8(self.sCatDummy.IyyKey)
+                ixy = s.getF8(self.sCatDummy.IxyKey)
 
                 tmp = 0.25*(ixx-iyy)**2 + ixy**2
                 if tmp < 0:
@@ -108,17 +111,17 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     theta += numpy.pi
                     
                 #print ixx, iyy, ixy, a2, b2, ellip, theta
-                isStar = s.getFlagForDetection() & pqaSource.STAR
+                isStar = 0 if s.getF8(self.sCatDummy.ExtendednessKey) else 1
 
-                flux = s.getPsfFlux()
+                flux = s.getF8(self.sCatDummy.PsfFluxKey)
                 mag = 99.0
                 if flux > 0:
-                    mag = -2.5*numpy.log10(s.getPsfFlux())
+                    mag = -2.5*numpy.log10(s.getF8(self.sCatDummy.PsfFluxKey))
                 if numpy.isfinite(ellip) and numpy.isfinite(theta) and isStar and mag < 20:
                     self.ellip.append(raft, ccd, ellip)
                     self.theta.append(raft, ccd, theta)
-                    self.x.append(raft, ccd, s.getXAstrom())
-                    self.y.append(raft, ccd, s.getYAstrom())
+                    self.x.append(raft, ccd, s.getF8(self.sCatDummy.XAstromKey))
+                    self.y.append(raft, ccd, s.getF8(self.sCatDummy.YAstromKey))
 		    fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
             nFwhm = len(self.x.get(raft,ccd))
