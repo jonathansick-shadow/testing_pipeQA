@@ -1,11 +1,12 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
-
+import lsst.meas.algorithms         as measAlg
 import lsst.afw.math                as afwMath
-import lsst.testing.pipeQA.TestCode as testCode
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
 
+import lsst.testing.pipeQA.TestCode as testCode
+import lsst.testing.pipeQA.figures  as qaFig
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
@@ -15,8 +16,13 @@ import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 from matplotlib.collections import LineCollection
 
+class EmptySectorQaConfig(pexConfig.Config):
+    cameras  = pexConfig.Field(dtype = str, doc = "Cameras to run EmptySectorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    maxMissing = pexConfig.Field(dtype = int, doc = "Maximum number of missing CCDs", default = 1)
 
-class EmptySectorQaAnalysis(qaAna.QaAnalysis):
+class EmptySectorQaTask(qaAna.QaAnalysis):
+    ConfigClass = EmptySectorQaConfig
+    _DefaultName = "emptySectorQa"
 
     def __init__(self, maxMissing, nx=4, ny=4, **kwargs):
         qaAna.QaAnalysis.__init__(self, **kwargs)

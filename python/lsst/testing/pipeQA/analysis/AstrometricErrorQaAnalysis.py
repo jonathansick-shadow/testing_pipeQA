@@ -1,15 +1,17 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
 import lsst.afw.math                as afwMath
-import lsst.testing.pipeQA.TestCode as testCode
+import lsst.meas.algorithms         as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
 
+import lsst.testing.pipeQA.figures  as qaFig
+import lsst.testing.pipeQA.TestCode as testCode
+import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
-import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -18,7 +20,13 @@ from  matplotlib.ticker import MaxNLocator
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 
-class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
+class AstrometricErrorQaConfig(pexConfig.Config):
+    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run AstrometricErrorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    maxErr  = pexConfig.Field(dtype = float, doc = "Maximum astrometric error (in arcseconds)", default = 0.5)
+
+class AstrometricErrorQaTask(qaAna.QaAnalysis):
+    ConfigClass = AstrometricErrorQaConfig
+    _DefaultName = "astrometricErrorQa"
 
     def __init__(self, maxErr, **kwargs):
         qaAna.QaAnalysis.__init__(self, **kwargs)

@@ -1,24 +1,30 @@
 import sys, os, re
-import lsst.meas.algorithms         as measAlg
-import lsst.testing.pipeQA.figures  as qaFig
 import numpy                        as num
 
 import lsst.afw.math                as afwMath
 import lsst.afw.coord               as afwCoord
 import lsst.afw.geom                as afwGeom
+import lsst.meas.algorithms         as measAlg
+
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+from .AstrometricErrorQaTask import AstrometricErrorQaTask, AstrometricErrorQaConfig
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 from matplotlib.font_manager import FontProperties
-from .AstrometricErrorQaAnalysis import AstrometricErrorQaAnalysis
 
-class VisitToVisitAstromQaAnalysis(AstrometricErrorQaAnalysis):
+class VisitToVisitAstromQaConfig(AstrometricErrorQaConfig):
+    # Any additional tests?
+    pass
+
+class VisitToVisitAstromQaTask(AstrometricErrorQaTask):
+    ConfigClass = VisitToVisitAstromQaConfig
+    _DefaultName = "visitToVisitAstromQa"
 
     def __init__(self, maxErr, database, visits, **kwargs):
         AstrometricErrorQaAnalysis.__init__(self, maxErr, **kwargs)

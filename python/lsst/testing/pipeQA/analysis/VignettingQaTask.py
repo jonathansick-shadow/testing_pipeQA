@@ -1,14 +1,27 @@
 import numpy as num
+
+import lsst.afw.math as afwMath
+import lsst.meas.algorithms as measAlg
+import lsst.pex.config as pexConfig
+import lsst.pipe.base as pipeBase
+
 import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
+import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
-import lsst.meas.algorithms as measAlg
 import QaAnalysisUtils as qaAnaUtil
-import lsst.afw.math as afwMath
 
-class VignettingQa(qaAna.QaAnalysis):
+class VignettingQaConfig(pexConfig.Config):
+    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run VignettingQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim"))
+    vigMaxMedian = pexConfig.Field(dtype = float, doc = "Maximum median magnitude offset", default = 0.02)
+    vigMagRms = pexConfig.Field(dtype = float, doc = "Maximum magnitude offset RMS", default = 0.02)
+    vigMaxMag = pexConfig.Field(dtype = float, doc = "Maximum magnitude star to use in VignettingQa test", default = 19.0)
+
+class VignettingQaTask(qaAna.QaAnalysis):
+    ConfigClass = VignettingQaConfig
+    _DefaultName = "vignettingQa"
+
     def __init__(self, maxMedian, maxRms, maxMag, **kwargs):
         qaAna.QaAnalysis.__init__(self, **kwargs)
         self.medLimits = [-1 * maxMedian, maxMedian]

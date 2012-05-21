@@ -1,12 +1,14 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
 import lsst.afw.math                as afwMath
 import lsst.afw.geom                as afwGeom
-import lsst.testing.pipeQA.TestCode as testCode
+import lsst.meas.algorithms        as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
 
+import lsst.testing.pipeQA.figures as qaFig
+import lsst.testing.pipeQA.TestCode as testCode
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
@@ -14,11 +16,16 @@ import QaAnalysisUtils as qaAnaUtil
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
-
 from matplotlib.collections import LineCollection
 
+class PsfShapeQaConfig(pexConfig.Config): 
+    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run PsfShapeQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    psfEllipMax = pexConfig.Field(dtype = float, doc = "Maximum median ellipticity", default = 0.2)
+    psfFwhmMax = pexConfig.Field(dtype = float, doc = "Maximum Psf Fwhm (arcsec)", default = 2.0)
 
-class PsfShapeQaAnalysis(qaAna.QaAnalysis):
+class PsfShapeQaTask(qaAna.QaAnalysis):
+    ConfigClass = PsfShapeQaConfig
+    _DefaultName = "psfShapeQa"
 
     def __init__(self, ellipMax, fwhmMax, **kwargs):
         qaAna.QaAnalysis.__init__(self, **kwargs)

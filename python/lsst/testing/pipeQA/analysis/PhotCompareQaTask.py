@@ -1,12 +1,14 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
+import lsst.meas.algorithms         as measAlg
 import lsst.afw.math                as afwMath
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
@@ -15,7 +17,49 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 
-class PhotCompareQaAnalysis(qaAna.QaAnalysis):
+class PhotCompareQaConfig(pexConfig.Config):
+    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run PhotCompareQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    magCut = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS", default = 20.0)
+    deltaMin = pexConfig.Field(dtype = float, doc = "Minimum allowed delta", default = -0.02)
+    deltaMax = pexConfig.Field(dtype = float, doc = "Maximum allowed delta", default =  0.02)
+    rmsMax = pexConfig.Field(dtype = float, doc = "Maximum allowed photometric RMS on bright end", default = 0.02)
+    derrMax = pexConfig.Field(dtype = float, doc = "Maximum allowed error bar underestimate on bright end", default = 0.01)
+    slopeMinSigma = pexConfig.Field(dtype = float, doc = "Minimum (positive valued) std.devs. of slope below slope=0", default = 3.5)
+    slopeMaxSigma = pexConfig.Field(dtype = float, doc = "Maximum std.dev. of slope above slope=0", default = 3.5)
+
+    compareTypes = pexConfig.Field(dtype = str, doc = "Photometric Error: qaAnalysis.PhotCompareQaAnalysis", 
+                                   default = ("psf cat", "psf ap", "psf mod", "ap cat", "psf inst", "inst cat", "mod cat", "mod inst"),
+                                   allowed = {
+                                           "psf cat"  : "Compare Psf magnitudes to catalog magnitudes",
+                                           "psf ap"   : "Compare Psf and aperture magnitudes",
+                                           "psf mod"  : "Compare Psf and model magnitudes",
+                                           "ap cat"   : "Compare Psf and model magnitudes",
+                                           "psf inst" : "Compare PSF and instrument magnitudes",
+                                           "inst cat" : "Compare Inst (Gaussian) and catalog magnitudes",
+                                           "mod cat"  : "Compare model and catalog magnitudes",
+                                           "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+                                           }
+    )
+
+    starGalaxyToggle = pexConfig.Field(dtype = str, doc = "Make separate figures for stars and galaxies.",
+                                       default = ("mod cat", "inst cat", "ap cat", "psf cat"),
+                                       allowed = {
+                                               "psf cat"  : "Separate stars/gxys for Psf magnitudes to catalog magnitudes",
+                                               "psf ap"   : "Separate stars/gxys for Psf and aperture magnitudes",
+                                               "psf mod"  : "Separate stars/gxys for Psf and model magnitudes",
+                                               "ap cat"   : "Separate stars/gxys for Psf and model magnitudes",
+                                               "psf inst" : "Separate stars/gxys for PSF and instrument magnitudes",
+                                               "inst cat" : "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes",
+                                               "mod cat"  : "Separate stars/gxys for model and catalog magnitudes",
+                                               "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+                                               }
+    )
+
+    
+
+class PhotCompareQaTask(qaAna.QaAnalysis):
+    ConfigClass = PhotCompareQaConfig
+    _DefaultName = "photCompareQa" 
 
     def __init__(self, magType1, magType2, magCut,
                  deltaMin, deltaMax, rmsMax, derrMax, slopeMinSigma, slopeMaxSigma, starGalaxyToggle,

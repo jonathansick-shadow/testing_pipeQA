@@ -1,12 +1,14 @@
 import sys, os, re
-import lsst.meas.algorithms         as measAlg
-import lsst.testing.pipeQA.figures  as qaFig
 import numpy                        as num
 
 import lsst.afw.math                as afwMath
+import lsst.meas.algorithms         as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-
 import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
@@ -15,7 +17,16 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from matplotlib.font_manager import FontProperties
 
-class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
+class VisitToVisitPhotQaConfig(qaAna.QaAnalysis):
+    magTypes = pexConfig.Field(dtype = str, doc = "Make separate figures for different magnitude types", default = ("ap", "psf", "inst", "mod"))
+    magCut = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS", default = 20.0)
+    deltaMin = pexConfig.Field(dtype = float, doc = "Minimum allowed delta", default = -0.02)
+    deltaMax = pexConfig.Field(dtype = float, doc = "Maximum allowed delta", default =  0.02)
+    rmsMax = pexConfig.Field(dtype = float, doc = "Maximum allowed photometric RMS on bright end", default =  0.02)
+
+class VisitToVisitPhotQaTask(qaAna.QaAnalysis):
+    ConfigClass = VisitToVisitPhotQaConfig
+    _DefaultName = "visitToVisitPhotQa"
 
     def __init__(self, database, visits, mType, magCut, 
                  deltaMin, deltaMax, rmsMax, 

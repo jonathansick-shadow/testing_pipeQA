@@ -3,16 +3,28 @@ import numpy as num
 
 import lsst.meas.algorithms         as measAlg
 import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
+
+import QaAnalysis as qaAna
 import QaAnalysisUtils as qaAnaUtil
 import RaftCcdData as raftCcdData
 
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 
-class ZeropointFitQa(qaAna.QaAnalysis):
+class ZeropointFitQaConfig(pexConfig.Config):
+    cameras   = pexConfig.Field(dtype = str, doc = "Cameras to run ZeropointFitQa", default = ("lsstSim", "cfht"))
+    offsetMin = pexConfig.Field(dtype = float, doc = "Median offset of stars from zeropoint fit; minimum good value", default = -0.05)
+    offsetMax = pexConfig.Field(dtype = float, doc = "Median offset of stars from zeropoint fit; maximum good value", default = +0.05)
+
+class ZeropointFitQaTask(qaAna.QaAnalysis):
+    ConfigClass = ZeropointFitQaConfig
+    _DefaultName = "zeropointFitQa"
+
     def __init__(self, medOffsetMin, medOffsetMax, figsize=(5.0,5.0), **kwargs):
         qaAna.QaAnalysis.__init__(self, **kwargs)
         self.figsize = figsize
