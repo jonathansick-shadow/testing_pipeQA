@@ -20,14 +20,15 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from QaAnalysis                  import *
-from EmptySectorQaAnalysis       import *
-from PhotCompareQaAnalysis       import *
-from PsfShapeQaAnalysis          import *
-from AstrometricErrorQaAnalysis  import *
-from CompletenessQa              import *
-from ZeropointFitQa              import *
-from VignettingQa                import *
+from PipeQaTask               import *
+from QaAnalysisTask           import *
+from EmptySectorQaTask        import *
+from PhotCompareQaTask        import *
+from PsfShapeQaTask           import *
+from AstrometricErrorQaTask   import *
+from CompletenessQaTask       import *
+from ZeropointFitQaTask       import *
+from VignettingQaTask         import *
 
-from VisitToVisitPhotQa          import *
-from VisitToVisitAstromQa        import *
+from VisitToVisitPhotQaTask   import *
+from VisitToVisitAstromQaTask import *

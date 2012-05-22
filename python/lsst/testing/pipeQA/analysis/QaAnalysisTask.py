@@ -9,27 +9,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures as qaFig
 
 class QaAnalysisConfig(pexConfig.Config):
-    shapeAlgorithm = pexConfig.ChoiceField(
-        dtype = str,
-        doc = "Shape Algorithm to load.",
-        default = "HSM_REGAUSS",
-        allowed = {
-            "HSM_REGAUSS": "Hirata-Seljac-Mandelbaum Regaussianization",
-            "HSM_BJ" : "Hirata-Seljac-Mandelbaum Bernstein&Jarvis",
-            "HSM_LINEAR" : "Hirata-Seljac-Mandelbaum Linear",
-            "HSM_KSB" : "Hirata-Seljac-Mandelbaum KSB",
-            "HSM_SHAPELET" : "Hirata-Seljac-Mandelbaum SHAPELET"
-        }
-    )
-
-    doZptFitQa = pexConfig.Field(dtype = bool, doc = "Photometric Zeropoint: qaAnalysis.ZeropointFitQa", default = True)
-    doEmptySectorQa = pexConfig.Field(dtype = bool, doc = "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis", default = True)
-    doAstromQa = pexConfig.Field(dtype = bool, doc = "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis", default = True)
-    doPhotCompareQa = pexConfig.Field(dtype = bool, doc = "Photometric Error: qaAnalysis.PhotCompareQaAnalysis", default = True)
-    doPsfShapeQa = pexConfig.Field(dtype = bool, doc = "Psf Shape: qaAnalysis.PsfShapeQaAnalysis", default = True)
-    doCompleteQa = pexConfig.Field(dtype = bool, doc = "Photometric Depth: qaAnalysis.CompletenessQa", default = True)
-    doVignettingQa = pexConfig.Field(dtype = bool, doc = "Vignetting testing: qaAnalysis.VignettingQa", default = True)
-    doVisitQa = pexConfig.Field(dtype = bool, doc = "Visit to visit: qaAnalysis.VisitToVisitPhotQaAnalysis and qaAnalysis.VisitToVisitAstromQaAnalysis", default = False)
+    pass
 
 class QaAnalysisTask(pipeBase.Task):
     """Baseclass for analysis classes."""
@@ -42,7 +22,7 @@ class QaAnalysisTask(pipeBase.Task):
         """
         pipeBase.Task.__init__(self, *args, **kwargs)
 
-        self.testSets = {}
+        self.testSets  = {}
         self.testLabel = testLabel
 
         # if we're not going to use the cached values
@@ -94,13 +74,6 @@ class QaAnalysisTask(pipeBase.Task):
     ##########################################
     # pure virtual methods
     #########################################
-    def run(self, doTest = True, doPlot = True, *args, **kwargs):
-        """Base method to perform pipeQA testing or plotting"""
-        if doTest:
-            self.test(*args, **kwargs)
-        if doPlot:
-            self.plot(*args, **kwargs)
-
     def free(self):
         """Method to free attributes to minimize memory consumption."""
         pass

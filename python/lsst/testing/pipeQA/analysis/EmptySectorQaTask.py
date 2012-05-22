@@ -5,9 +5,9 @@ import lsst.afw.math                as afwMath
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures  as qaFig
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
@@ -17,18 +17,20 @@ import matplotlib.font_manager as fm
 from matplotlib.collections import LineCollection
 
 class EmptySectorQaConfig(pexConfig.Config):
-    cameras  = pexConfig.Field(dtype = str, doc = "Cameras to run EmptySectorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    cameras    = pexConfig.ListField(dtype = str, doc = "Cameras to run EmptySectorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
     maxMissing = pexConfig.Field(dtype = int, doc = "Maximum number of missing CCDs", default = 1)
+    nx         = pexConfig.Field(dtype = int, doc = "Mesh size in x", default = 4)
+    ny         = pexConfig.Field(dtype = int, doc = "Mesh size in y", default = 4)
 
-class EmptySectorQaTask(qaAna.QaAnalysis):
+class EmptySectorQaTask(QaAnalysisTask):
     ConfigClass = EmptySectorQaConfig
     _DefaultName = "emptySectorQa"
 
-    def __init__(self, maxMissing, nx=4, ny=4, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [0, maxMissing]
-        self.nx = nx
-        self.ny = ny
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [0, self.config.maxMissing]
+        self.nx = self.config.nx
+        self.ny = self.confing.ny
 
         self.description = """
          For each CCD, the 1-to-1 matches between the reference catalog and

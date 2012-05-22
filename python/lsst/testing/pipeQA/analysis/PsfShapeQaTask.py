@@ -7,9 +7,9 @@ import lsst.meas.algorithms        as measAlg
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
@@ -19,18 +19,18 @@ import matplotlib.font_manager as fm
 from matplotlib.collections import LineCollection
 
 class PsfShapeQaConfig(pexConfig.Config): 
-    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run PsfShapeQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
-    psfEllipMax = pexConfig.Field(dtype = float, doc = "Maximum median ellipticity", default = 0.2)
-    psfFwhmMax = pexConfig.Field(dtype = float, doc = "Maximum Psf Fwhm (arcsec)", default = 2.0)
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PsfShapeQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    ellipMax = pexConfig.Field(dtype = float, doc = "Maximum median ellipticity", default = 0.2)
+    fwhmMax = pexConfig.Field(dtype = float, doc = "Maximum Psf Fwhm (arcsec)", default = 2.0)
 
-class PsfShapeQaTask(qaAna.QaAnalysis):
+class PsfShapeQaTask(QaAnalysisTask):
     ConfigClass = PsfShapeQaConfig
     _DefaultName = "psfShapeQa"
 
     def __init__(self, ellipMax, fwhmMax, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limitsEllip = [0.0, ellipMax]
-        self.limitsFwhm = [0.0, fwhmMax]
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limitsEllip = [0.0, self.config.ellipMax]
+        self.limitsFwhm = [0.0, self.config.fwhmMax]
 
         self.description = """
          For each CCD, the ellipticity of stars used in the Psf model are

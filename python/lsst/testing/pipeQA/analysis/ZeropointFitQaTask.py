@@ -6,10 +6,9 @@ import lsst.testing.pipeQA.TestCode as testCode
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-
-import QaAnalysis as qaAna
 import QaAnalysisUtils as qaAnaUtil
 import RaftCcdData as raftCcdData
 
@@ -17,18 +16,18 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 
 class ZeropointFitQaConfig(pexConfig.Config):
-    cameras   = pexConfig.Field(dtype = str, doc = "Cameras to run ZeropointFitQa", default = ("lsstSim", "cfht"))
+    cameras   = pexConfig.ListField(dtype = str, doc = "Cameras to run ZeropointFitQa", default = ("lsstSim", "cfht"))
     offsetMin = pexConfig.Field(dtype = float, doc = "Median offset of stars from zeropoint fit; minimum good value", default = -0.05)
     offsetMax = pexConfig.Field(dtype = float, doc = "Median offset of stars from zeropoint fit; maximum good value", default = +0.05)
 
-class ZeropointFitQaTask(qaAna.QaAnalysis):
+class ZeropointFitQaTask(QaAnalysisTask):
     ConfigClass = ZeropointFitQaConfig
     _DefaultName = "zeropointFitQa"
 
-    def __init__(self, medOffsetMin, medOffsetMax, figsize=(5.0,5.0), **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
+    def __init__(self, figsize=(5.0,5.0), **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
         self.figsize = figsize
-        self.limits = [medOffsetMin, medOffsetMax]
+        self.limits = [self.config.medOffsetMin, self.config.medOffsetMax]
 
         self.description = """
          For each CCD, the central panel shows the instrumental magnitude of

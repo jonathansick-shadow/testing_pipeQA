@@ -5,13 +5,13 @@ import lsst.afw.math                as afwMath
 import lsst.afw.coord               as afwCoord
 import lsst.afw.geom                as afwGeom
 import lsst.meas.algorithms         as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
 
 import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
 from .AstrometricErrorQaTask import AstrometricErrorQaTask, AstrometricErrorQaConfig
 
 import matplotlib.cm as cm
@@ -19,17 +19,17 @@ import matplotlib.colors as colors
 from matplotlib.font_manager import FontProperties
 
 class VisitToVisitAstromQaConfig(AstrometricErrorQaConfig):
-    # Any additional tests?
-    pass
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
 
 class VisitToVisitAstromQaTask(AstrometricErrorQaTask):
     ConfigClass = VisitToVisitAstromQaConfig
     _DefaultName = "visitToVisitAstromQa"
 
-    def __init__(self, maxErr, database, visits, **kwargs):
-        AstrometricErrorQaAnalysis.__init__(self, maxErr, **kwargs)
-        self.database      = database
-        self.visits        = visits
+    def __init__(self, matchDset, matchVisits, **kwargs):
+        AstrometricErrorQaTask.__init__(self, **kwargs)
+        self.limits        = [0.0, self.config.maxErr]
+        self.database      = matchDset
+        self.visits        = matchVisits
         
         self.description = """
 

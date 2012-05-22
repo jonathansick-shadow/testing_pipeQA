@@ -5,28 +5,28 @@ import lsst.meas.algorithms as measAlg
 import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
 class VignettingQaConfig(pexConfig.Config):
-    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run VignettingQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim"))
-    vigMaxMedian = pexConfig.Field(dtype = float, doc = "Maximum median magnitude offset", default = 0.02)
-    vigMagRms = pexConfig.Field(dtype = float, doc = "Maximum magnitude offset RMS", default = 0.02)
-    vigMaxMag = pexConfig.Field(dtype = float, doc = "Maximum magnitude star to use in VignettingQa test", default = 19.0)
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run VignettingQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim"))
+    maxMedian = pexConfig.Field(dtype = float, doc = "Maximum median magnitude offset", default = 0.02)
+    magRms = pexConfig.Field(dtype = float, doc = "Maximum magnitude offset RMS", default = 0.02)
+    maxMag = pexConfig.Field(dtype = float, doc = "Maximum magnitude star to use in VignettingQa test", default = 19.0)
 
-class VignettingQaTask(qaAna.QaAnalysis):
+class VignettingQaTask(QaAnalysisTask):
     ConfigClass = VignettingQaConfig
     _DefaultName = "vignettingQa"
 
     def __init__(self, maxMedian, maxRms, maxMag, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.medLimits = [-1 * maxMedian, maxMedian]
-        self.rmsLimits = [0, maxRms]
-        self.maxMag    = maxMag
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.medLimits = [-self.config.maxMedian, self.config.maxMedian]
+        self.rmsLimits = [0, self.config.maxRms]
+        self.maxMag    = self.config.maxMag
 
         self.magType1 = "ap"
         self.magType2 = "cat"

@@ -5,11 +5,11 @@ import lsst.meas.algorithms as measAlg
 import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
-import QaAnalysis as qaAna
 
 import matplotlib.ticker as ticker
 from matplotlib.font_manager import FontProperties
@@ -24,17 +24,17 @@ except:
     
 
 class CompletenessQaConfig(pexConfig.Config):
-    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run CompletenessQaTask", default = ("lsstSim", "cfht"))
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run CompletenessQaTask", default = ("lsstSim", "cfht"))
     completeMinMag = pexConfig.Field(dtype = float, doc = "Minimum photometric depth", default = 20.0)
     completeMaxMag = pexConfig.Field(dtype = float, doc = "Maximum reasonable photometric depth", default = 25.0)
 
-class CompletenessQaTask(qaAna.QaAnalysis):
+class CompletenessQaTask(QaAnalysisTask):
     ConfigClass = CompletenessQaConfig
     _DefaultName = "completenessQa"
 
-    def __init__(self, completenessMagMin, completenessMagMax, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [completenessMagMin, completenessMagMax]
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [self.config.completeMagMin, self.config.completeMagMax]
         self.bins   = num.arange(14, 27, 0.5)
 
         self.description = """

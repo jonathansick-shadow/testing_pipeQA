@@ -1,7 +1,8 @@
 import sys, os, re, copy, time
 import numpy
 
-import lsst.ap.cluster as apCluster
+# Until ap gets upgraded
+#import lsst.ap.cluster as apCluster
 
 #######################################################################
 #

@@ -6,10 +6,10 @@ import lsst.meas.algorithms         as measAlg
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
@@ -17,31 +17,28 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from matplotlib.font_manager import FontProperties
 
-class VisitToVisitPhotQaConfig(qaAna.QaAnalysis):
-    magTypes = pexConfig.Field(dtype = str, doc = "Make separate figures for different magnitude types", default = ("ap", "psf", "inst", "mod"))
+class VisitToVisitPhotQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    magTypes = pexConfig.ListField(dtype = str, doc = "Make separate figures for different magnitude types", default = ("ap", "psf", "inst", "mod"))
     magCut = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS", default = 20.0)
     deltaMin = pexConfig.Field(dtype = float, doc = "Minimum allowed delta", default = -0.02)
     deltaMax = pexConfig.Field(dtype = float, doc = "Maximum allowed delta", default =  0.02)
     rmsMax = pexConfig.Field(dtype = float, doc = "Maximum allowed photometric RMS on bright end", default =  0.02)
 
-class VisitToVisitPhotQaTask(qaAna.QaAnalysis):
+class VisitToVisitPhotQaTask(QaAnalysisTask):
     ConfigClass = VisitToVisitPhotQaConfig
     _DefaultName = "visitToVisitPhotQa"
 
-    def __init__(self, database, visits, mType, magCut, 
-                 deltaMin, deltaMax, rmsMax, 
-                 **kwargs):
-
+    def __init__(self, matchDset, matchVisits, mType, **kwargs):
         # Turns VisitToVisitPhotQaAnalysis label into VisitToVisitPhotQaAnalysis.ap, VisitToVisitPhotQaAnalysis.psf, etc
         testLabel = mType
+        QaAnalysisTask.__init__(self, testLabel, **kwargs)
 
-        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
-
-        self.database      = database
-        self.visits        = visits
-        self.magCut        = magCut
-        self.deltaLimits   = [deltaMin, deltaMax]
-        self.rmsLimits     = [0.0, rmsMax]
+        self.database      = matchDset
+        self.visits        = matchVisits
+        self.magCut        = self.config.magCut
+        self.deltaLimits   = [self.config.deltaMin, self.config.deltaMax]
+        self.rmsLimits     = [0.0, self.config.rmsMax]
         
         self.maglim        = [14.0, 25.0]
         self.colorlim      = [-0.98, 2.48]
@@ -70,6 +67,7 @@ class VisitToVisitPhotQaTask(qaAna.QaAnalysis):
                 return "cat"
             elif re.search("^inst", mType):
                 return "inst"
+
         self.magType = magType(mType)
 
     def _getFlux(self, mType, s, sref):

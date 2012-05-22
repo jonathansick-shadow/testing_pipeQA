@@ -6,10 +6,10 @@ import lsst.meas.algorithms         as measAlg
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
@@ -21,16 +21,16 @@ from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 
 class AstrometricErrorQaConfig(pexConfig.Config):
-    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run AstrometricErrorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run AstrometricErrorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
     maxErr  = pexConfig.Field(dtype = float, doc = "Maximum astrometric error (in arcseconds)", default = 0.5)
 
-class AstrometricErrorQaTask(qaAna.QaAnalysis):
+class AstrometricErrorQaTask(QaAnalysisTask):
     ConfigClass = AstrometricErrorQaConfig
     _DefaultName = "astrometricErrorQa"
 
-    def __init__(self, maxErr, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [0.0, maxErr]
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [0.0, self.config.maxErr]
 
         self.description = """
          For each CCD, the left figure shows the distance offset between the

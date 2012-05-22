@@ -6,10 +6,10 @@ import lsst.afw.math                as afwMath
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
@@ -18,7 +18,7 @@ import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 
 class PhotCompareQaConfig(pexConfig.Config):
-    cameras = pexConfig.Field(dtype = str, doc = "Cameras to run PhotCompareQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
     magCut = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS", default = 20.0)
     deltaMin = pexConfig.Field(dtype = float, doc = "Minimum allowed delta", default = -0.02)
     deltaMax = pexConfig.Field(dtype = float, doc = "Maximum allowed delta", default =  0.02)
@@ -27,52 +27,51 @@ class PhotCompareQaConfig(pexConfig.Config):
     slopeMinSigma = pexConfig.Field(dtype = float, doc = "Minimum (positive valued) std.devs. of slope below slope=0", default = 3.5)
     slopeMaxSigma = pexConfig.Field(dtype = float, doc = "Maximum std.dev. of slope above slope=0", default = 3.5)
 
-    compareTypes = pexConfig.Field(dtype = str, doc = "Photometric Error: qaAnalysis.PhotCompareQaAnalysis", 
-                                   default = ("psf cat", "psf ap", "psf mod", "ap cat", "psf inst", "inst cat", "mod cat", "mod inst"),
-                                   allowed = {
-                                           "psf cat"  : "Compare Psf magnitudes to catalog magnitudes",
-                                           "psf ap"   : "Compare Psf and aperture magnitudes",
-                                           "psf mod"  : "Compare Psf and model magnitudes",
-                                           "ap cat"   : "Compare Psf and model magnitudes",
-                                           "psf inst" : "Compare PSF and instrument magnitudes",
-                                           "inst cat" : "Compare Inst (Gaussian) and catalog magnitudes",
-                                           "mod cat"  : "Compare model and catalog magnitudes",
-                                           "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
-                                           }
-    )
+    compareTypes = pexConfig.ListField(dtype = str, doc = "Photometric Error: qaAnalysis.PhotCompareQaAnalysis", 
+                                       default = ("psf cat", "psf ap", "psf mod", "ap cat", "psf inst", "inst cat", "mod cat", "mod inst"))
+#                                   allowed = {
+#                                           "psf cat"  : "Compare Psf magnitudes to catalog magnitudes",
+#                                           "psf ap"   : "Compare Psf and aperture magnitudes",
+#                                           "psf mod"  : "Compare Psf and model magnitudes",
+#                                           "ap cat"   : "Compare Psf and model magnitudes",
+#                                           "psf inst" : "Compare PSF and instrument magnitudes",
+#                                           "inst cat" : "Compare Inst (Gaussian) and catalog magnitudes",
+#                                           "mod cat"  : "Compare model and catalog magnitudes",
+#                                           "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+#                                           }
+#    )
 
-    starGalaxyToggle = pexConfig.Field(dtype = str, doc = "Make separate figures for stars and galaxies.",
-                                       default = ("mod cat", "inst cat", "ap cat", "psf cat"),
-                                       allowed = {
-                                               "psf cat"  : "Separate stars/gxys for Psf magnitudes to catalog magnitudes",
-                                               "psf ap"   : "Separate stars/gxys for Psf and aperture magnitudes",
-                                               "psf mod"  : "Separate stars/gxys for Psf and model magnitudes",
-                                               "ap cat"   : "Separate stars/gxys for Psf and model magnitudes",
-                                               "psf inst" : "Separate stars/gxys for PSF and instrument magnitudes",
-                                               "inst cat" : "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes",
-                                               "mod cat"  : "Separate stars/gxys for model and catalog magnitudes",
-                                               "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
-                                               }
-    )
+    starGalaxyToggle = pexConfig.ListField(dtype = str, doc = "Make separate figures for stars and galaxies.",
+                                           default = ("mod cat", "inst cat", "ap cat", "psf cat"))
+#                                       allowed = {
+#                                               "psf cat"  : "Separate stars/gxys for Psf magnitudes to catalog magnitudes",
+#                                               "psf ap"   : "Separate stars/gxys for Psf and aperture magnitudes",
+#                                               "psf mod"  : "Separate stars/gxys for Psf and model magnitudes",
+#                                               "ap cat"   : "Separate stars/gxys for Psf and model magnitudes",
+#                                               "psf inst" : "Separate stars/gxys for PSF and instrument magnitudes",
+#                                               "inst cat" : "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes",
+#                                               "mod cat"  : "Separate stars/gxys for model and catalog magnitudes",
+#                                               "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+#                                               }
+#    )
 
     
 
-class PhotCompareQaTask(qaAna.QaAnalysis):
+class PhotCompareQaTask(QaAnalysisTask):
     ConfigClass = PhotCompareQaConfig
     _DefaultName = "photCompareQa" 
 
-    def __init__(self, magType1, magType2, magCut,
-                 deltaMin, deltaMax, rmsMax, derrMax, slopeMinSigma, slopeMaxSigma, starGalaxyToggle,
-                 **kwargs):
-        testLabel = magType1+"-"+magType2
-        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
+    def __init__(self, magType1, magType2, starGalaxyToggle, **kwargs):
+        QaAnalysisTask.__init__(self, testLabel, **kwargs)
 
-        self.magCut = magCut
-        self.deltaLimits = [deltaMin, deltaMax]
-        self.rmsLimits = [0.0, rmsMax]
-        self.derrLimits = [0.0, derrMax]
-        self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
-        self.starGalaxyToggle = starGalaxyToggle
+        testLabel = magType1+"-"+magType2
+
+        self.magCut = self.config.magCut
+        self.deltaLimits = [self.config.deltaMin, self.configdeltaMax]
+        self.rmsLimits = [0.0, self.config.rmsMax]
+        self.derrLimits = [0.0, self.config.derrMax]
+        self.slopeLimits = [-self.config.slopeMinSigma, self.config.slopeMaxSigma]
+        self.starGalaxyToggle = starGalaxyToggle # not from config!
         
         def magType(mType):
             if re.search("(psf|PSF)", mType):
