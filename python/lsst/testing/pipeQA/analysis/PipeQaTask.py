@@ -159,6 +159,8 @@ class PipeQaTask(pipeBase.Task):
         argumentParser = self._makeArgumentParser()
         parsedCmd = argumentParser.parse_args(sys.argv[1:])
         self.config = parsedCmd.config # include any overrides
+        self.config.validate()
+        self.config.freeze()
 
         # split by :
         visits = parsedCmd.visit
@@ -392,3 +394,16 @@ class PipeQaTask(pipeBase.Task):
 
         self.log.log(self.log.INFO, "PipeQA End")
         return pipeBase.Struct()
+
+
+SETUP = """
+setup meas_algorithms 4.9.0.1+1
+setup -k meas_astrom 4.9.0.0+1
+setup -k -r ~/LSST/DMS/testing_displayQA/
+setup -k -r ~/LSST/DMS/testing_pipeQA/
+setup -k -r ~/LSST/DMS/pipe_base/
+setup -k pex_config 5.0.0.1+1
+cd ~/LSST/DMS/testing_pipeQA/
+setenv WWW_RERUN ticket2040
+python bin/pipeQa.py -v 885449191 -r "2,2" -c "1,1" -e abecker_PT1_2_u_becker_2012_0209_181253 --config doEmptySectorQa=False
+"""
