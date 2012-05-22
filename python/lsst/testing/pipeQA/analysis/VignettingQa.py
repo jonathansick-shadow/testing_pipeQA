@@ -81,9 +81,9 @@ class VignettingQa(qaAna.QaAnalysis):
         
         for key in self.detector.keys():
 
-	    if self.detector[key] is None:
-		continue
-	    
+            if self.detector[key] is None:
+                continue
+            
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
 
@@ -126,25 +126,25 @@ class VignettingQa(qaAna.QaAnalysis):
                             self.dmag.append(raftId, ccdId, m1 - m2)
                             self.ids.append(raftId, ccdId, str(s.getId()))
 
-			    if data.cameraInfo.name == 'lsstSim':
-				# XY switched
-				xmm     = centerXm + (s.getF8(self.sCatDummy.YAstromKey) - centerXp)*pixelSize
-				ymm     = centerYm + (s.getF8(self.sCatDummy.XAstromKey) - centerYp)*pixelSize
-				radiusp = num.sqrt(xmm**2 + ymm**2) / pixelSize
-			    else:
-				# XY not switch, and pixel centers not in mm
-				xmm     = centerXm + (s.getF8(self.sCatDummy.XAstromKey) - centerXp)
-				ymm     = centerYm + (s.getF8(self.sCatDummy.YAstromKey) - centerYp)
-				radiusp = num.sqrt(xmm**2 + ymm**2)
+                            if data.cameraInfo.name == 'lsstSim':
+                                # XY switched
+                                xmm     = centerXm + (s.getF8(self.sCatDummy.YAstromKey) - centerXp)*pixelSize
+                                ymm     = centerYm + (s.getF8(self.sCatDummy.XAstromKey) - centerYp)*pixelSize
+                                radiusp = num.sqrt(xmm**2 + ymm**2) / pixelSize
+                            else:
+                                # XY not switch, and pixel centers not in mm
+                                xmm     = centerXm + (s.getF8(self.sCatDummy.XAstromKey) - centerXp)
+                                ymm     = centerYm + (s.getF8(self.sCatDummy.YAstromKey) - centerYp)
+                                radiusp = num.sqrt(xmm**2 + ymm**2)
                             self.radius.append(raftId, ccdId, radiusp)
 
                 # Calculate stats
                 dmags = self.dmag.get(raftId, ccdId)
                 med   = num.median(dmags)
-		std   = 0.0
-		if len(dmags) > 1:
-		    stat  = afwMath.makeStatistics(dmags, afwMath.IQRANGE)
-		    std   = 0.741 * stat.getValue(afwMath.IQRANGE)
+                std   = 0.0
+                if len(dmags) > 1:
+                    stat  = afwMath.makeStatistics(dmags, afwMath.IQRANGE)
+                    std   = 0.741 * stat.getValue(afwMath.IQRANGE)
                 self.medianOffset.set(raftId, ccdId, med)
                 self.rmsOffset.set(raftId, ccdId, std)
                 
@@ -227,18 +227,18 @@ class VignettingQa(qaAna.QaAnalysis):
             dmags = self.dmag.get(raft, ccd)
             radii = self.radius.get(raft, ccd)
 
-	    ymin, ymax = -0.5, 0.5
-	    if len(dmags) > 0:
-		ymin = num.max([dmags.min(),-0.5])
-		ymax = num.min([dmags.max(), 0.5])
+            ymin, ymax = -0.5, 0.5
+            if len(dmags) > 0:
+                ymin = num.max([dmags.min(),-0.5])
+                ymax = num.min([dmags.max(), 0.5])
             ylim = [ymin, ymax]
             
             ids   = self.ids.get(raft, ccd)
 
-	    if len(dmags) == 0:
-		dmags = num.array([0.0])
-		radii = num.array([0.0])
-		ids   = num.array([0])
+            if len(dmags) == 0:
+                dmags = num.array([0.0])
+                radii = num.array([0.0])
+                ids   = num.array([0])
 
             print "Plotting ", ccd
             fig = qaFig.QaFigure(size=(4.0,4.0))

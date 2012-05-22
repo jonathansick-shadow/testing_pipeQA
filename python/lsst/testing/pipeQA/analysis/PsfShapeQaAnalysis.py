@@ -60,7 +60,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)
         self.calexpDict    = data.getCalexpBySensor(dataId)
-	self.wcs           = data.getWcsBySensor(dataId)
+        self.wcs           = data.getWcsBySensor(dataId)
 
         # create containers for data in the focal plane
         self.x     = raftCcdData.RaftCcdVector(self.detector)
@@ -70,20 +70,20 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
         # compute values of interest
         filter = None
-	sigmaToFwhm = 2.0*numpy.sqrt(2.0*numpy.log(2.0))
+        sigmaToFwhm = 2.0*numpy.sqrt(2.0*numpy.log(2.0))
 
-	fwhmByKey = {}
+        fwhmByKey = {}
         for key, ss in self.ssDict.items():
-	    
-	    if self.detector.has_key(key):
-		raft = self.detector[key].getParent().getId().getName()
-		ccd  = self.detector[key].getId().getName()
-	    else:
-		continue
+            
+            if self.detector.has_key(key):
+                raft = self.detector[key].getParent().getId().getName()
+                ccd  = self.detector[key].getId().getName()
+            else:
+                continue
 
             #qaAnaUtil.isStar(ss)
 
-	    fwhmByKey[key] = 0.0
+            fwhmByKey[key] = 0.0
 
             fwhmTmp = 0.0
             for s in ss:
@@ -122,7 +122,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     self.theta.append(raft, ccd, theta)
                     self.x.append(raft, ccd, s.getF8(self.sCatDummy.XAstromKey))
                     self.y.append(raft, ccd, s.getF8(self.sCatDummy.YAstromKey))
-		    fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
+                    fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
             nFwhm = len(self.x.get(raft,ccd))
             if nFwhm:
@@ -166,16 +166,16 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         # And the Fwhm
         self.fwhm  = raftCcdData.RaftCcdData(self.detector)
         for key, item in self.calexpDict.items():
-	    if (self.detector.has_key(key) and hasattr(self.detector[key], 'getParent') and
-		hasattr(self.detector[key], 'getId')):
-		raft = self.detector[key].getParent().getId().getName()
-		ccd  = self.detector[key].getId().getName()
-	    else:
-		continue
+            if (self.detector.has_key(key) and hasattr(self.detector[key], 'getParent') and
+                hasattr(self.detector[key], 'getId')):
+                raft = self.detector[key].getParent().getId().getName()
+                ccd  = self.detector[key].getId().getName()
+            else:
+                continue
 
-	    wcs = self.wcs[key]
-	    fwhmTmp = float(fwhmByKey[key]*wcs.pixelScale().asArcseconds()) #item['fwhm']
-	    #print fwhmTmp, item['fwhm'], type(fwhmTmp), type(item['fwhm'])
+            wcs = self.wcs[key]
+            fwhmTmp = float(fwhmByKey[key]*wcs.pixelScale().asArcseconds()) #item['fwhm']
+            #print fwhmTmp, item['fwhm'], type(fwhmTmp), type(item['fwhm'])
             self.fwhm.set(raft, ccd, fwhmTmp)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "psf fwhm (arcsec) "

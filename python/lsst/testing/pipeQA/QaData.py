@@ -42,11 +42,11 @@ class QaData(object):
 
         self.brokenDataIdList = []
 
-	self.ccdConvention = 'ccd'
-	if self.cameraInfo.name == 'lsstSim':
-	    self.ccdConvention = 'sensor'
+        self.ccdConvention = 'ccd'
+        if self.cameraInfo.name == 'lsstSim':
+            self.ccdConvention = 'sensor'
 
-	
+        
     def printStartLoad(self, message):
         if self.loadDepth > 0:
             print "\n", " "*4*self.loadDepth, message,
@@ -144,15 +144,25 @@ class QaData(object):
         """Reset all internal cache attributes."""
         for cache in self.cacheList.values():
             for key in cache.keys():
-                del cache[key]
+                #sys.stderr.write( "Clearing "+key+"\n")
+                if isinstance(cache[key], dict):
+                    for key2 in cache[key].keys():
+                        del cache[key][key2]
+                else:
+                    del cache[key]
         self.initCache()
 
     def printCache(self):
-        for name, cache in self.cacheList.items():
+        for name, cache in self.__dict__.items(): #cacheList.items():
+            if re.search("^_", name):
+                continue
             n = 0
-            for key in cache:
-                if hasattr(cache[key], "__len__"):
-                    n += len(cache[key])
+            if isinstance(cache, dict):
+                for key in cache:
+                    if hasattr(cache[key], "__len__"):
+                        n += len(cache[key])
+            if isinstance(cache, list):
+                n = len(cache)
             print name, n
                 
 

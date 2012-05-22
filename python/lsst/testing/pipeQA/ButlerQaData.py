@@ -64,12 +64,12 @@ class ButlerQaData(QaData):
         self.dataId         = self.kwargs.get('dataId', {})
         self.haveManifest   = self.kwargs.get('haveManifest', False)
         self.verifyChecksum = self.kwargs.get('verifyChecksum', False)
-	self.shapeAlg       = self.kwargs.get('shapeAlg', 'HSM_REGAUSS')
+        self.shapeAlg       = self.kwargs.get('shapeAlg', 'HSM_REGAUSS')
 
-	knownAlgs = ["HSM_REGAUSS", "HSM_BJ", "HSM_LINEAR", "HSM_SHAPELET", "HSM_KSB"]
-	if not self.shapeAlg in set(knownAlgs):
-	    knownStr = "\n".join(knownAlgs)
-	    raise Exception("Unknown shape algorithm: %s.  Please choose: \n%s\n" % (self.shapeAlg, knownStr))
+        knownAlgs = ["HSM_REGAUSS", "HSM_BJ", "HSM_LINEAR", "HSM_SHAPELET", "HSM_KSB"]
+        if not self.shapeAlg in set(knownAlgs):
+            knownStr = "\n".join(knownAlgs)
+            raise Exception("Unknown shape algorithm: %s.  Please choose: \n%s\n" % (self.shapeAlg, knownStr))
 
         ###############################################
         # check the manifest, if requested
@@ -187,10 +187,10 @@ class ButlerQaData(QaData):
         """
 
         flookup = {
-	    "u":"u", "g": "g", "r":"r", "i":"i", "z":"z", "y":"z",
-	    "B":"g", 'V':"r", 'R':"r", 'I':"i",
-	    }
-	
+            "u":"u", "g": "g", "r":"r", "i":"i", "z":"z", "y":"z",
+            "B":"g", 'V':"r", 'R':"r", 'I':"i",
+            }
+        
         
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
         
@@ -210,8 +210,8 @@ class ButlerQaData(QaData):
             filterName = "unknown"
             if filterObj.has_key(dataKey) and hasattr(filterObj[dataKey], 'getName'):
                 filterName = filterObj[dataKey].getName()
-		filterName = flookup[filterName]
-		
+                filterName = flookup[filterName]
+                
             # make sure we actually have the output file
             isWritten = self.outButler.datasetExists('icMatch', dataId)
             if isWritten:
@@ -238,7 +238,7 @@ class ButlerQaData(QaData):
                             s.setApFlux(s.getApFlux()/fmag0)
                             s.setPsfFlux(s.getPsfFlux()/fmag0)
                             s.setModelFlux(s.getModelFlux()/fmag0)
-			    s.setInstFlux(s.getInstFlux()/fmag0)
+                            s.setInstFlux(s.getInstFlux()/fmag0)
                             # flux errors
                             psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),
                                                                      fmag0, fmag0err)
@@ -253,11 +253,11 @@ class ButlerQaData(QaData):
                             s.setModelFluxErr(modFluxErr)
                             s.setInstFluxErr(instFluxErr)
                             
-			    if True: #re.search("lsst", self.cameraInfo.name):
-				s.setRa((180.0/numpy.pi)*s.getRa())
-				s.setDec((180.0/numpy.pi)*s.getDec())
-				sref.setRa((180.0/numpy.pi)*sref.getRa())
-				sref.setDec((180.0/numpy.pi)*sref.getDec())
+                            if True: #re.search("lsst", self.cameraInfo.name):
+                                s.setRa((180.0/numpy.pi)*s.getRa())
+                                s.setDec((180.0/numpy.pi)*s.getDec())
+                                sref.setRa((180.0/numpy.pi)*sref.getRa())
+                                sref.setDec((180.0/numpy.pi)*sref.getDec())
                             self.matchListCache[dataKey]['matched'].append([sref, s, dist])
                             
                             
@@ -304,20 +304,20 @@ class ButlerQaData(QaData):
 
                 #if self.outButler.datasetExists('calexp', dataId):
 
-		calibDict = self.getCalibBySensor(dataId)
-		calib = calibDict[dataKey]
+                calibDict = self.getCalibBySensor(dataId)
+                calib = calibDict[dataKey]
 
-		if not calib is None:
-		    fmag0, fmag0err = calib.getFluxMag0()
-		else:
-		    print "Warning: no calib available, fluxes uncalibrated."
-		    fmag0, fmag0err = 1.0, 1.0
-		    
-		for s in sourceSetTmp:
-		    s.setApFlux(s.getApFlux()/fmag0)
-		    s.setPsfFlux(s.getPsfFlux()/fmag0)
-		    s.setModelFlux(s.getModelFlux()/fmag0)
-		    s.setInstFlux(s.getInstFlux()/fmag0)
+                if not calib is None:
+                    fmag0, fmag0err = calib.getFluxMag0()
+                else:
+                    print "Warning: no calib available, fluxes uncalibrated."
+                    fmag0, fmag0err = 1.0, 1.0
+                    
+                for s in sourceSetTmp:
+                    s.setApFlux(s.getApFlux()/fmag0)
+                    s.setPsfFlux(s.getPsfFlux()/fmag0)
+                    s.setModelFlux(s.getModelFlux()/fmag0)
+                    s.setInstFlux(s.getInstFlux()/fmag0)
 
                     # flux errors
                     psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),
@@ -339,44 +339,44 @@ class ButlerQaData(QaData):
                 self.dataIdLookup[dataKey] = dataId
 
 
-		# now see if we have 'source' to slurb out the blobs
-		sourceFile = self.outButler.get('source_filename', dataId)[0]
-		if os.path.exists(sourceFile):
+                # now see if we have 'source' to slurb out the blobs
+                sourceFile = self.outButler.get('source_filename', dataId)[0]
+                if os.path.exists(sourceFile):
 
                     fits = pyfits.open(sourceFile)
-		    table = fits[1].data
-		    columns = fits[1].columns.names
-		    fits.close()
+                    table = fits[1].data
+                    columns = fits[1].columns.names
+                    fits.close()
 
-		    haveShape = False
-		    shapeColumns = []
-		    for column in columns:
-			if re.search(self.shapeAlg, column):
-			    haveShape = True
-			    srcCol = re.sub("shape_"+self.shapeAlg+"_", "", column)
-			    shapeColumns.append(srcCol)
+                    haveShape = False
+                    shapeColumns = []
+                    for column in columns:
+                        if re.search(self.shapeAlg, column):
+                            haveShape = True
+                            srcCol = re.sub("shape_"+self.shapeAlg+"_", "", column)
+                            shapeColumns.append(srcCol)
 
-		    if haveShape:
-			prefix = "shape_"+self.shapeAlg+"_"
+                    if haveShape:
+                        prefix = "shape_"+self.shapeAlg+"_"
 
-			# single pass through to store by ID
-			rowById = {}
-			for i in range(len(table)):
-			    row = table[i]
-			    objId = row.field('objId')
-			    rowById[objId] = row
+                        # single pass through to store by ID
+                        rowById = {}
+                        for i in range(len(table)):
+                            row = table[i]
+                            objId = row.field('objId')
+                            rowById[objId] = row
 
-			# go through all sources and reset the shapes accordingly
-			for s in self.sourceSetCache[dataKey]:
-			    row = rowById[s.getId()]
-			    
-			    for column in shapeColumns:
-				value = row.field(prefix+column)
-				setterName = "set"+column.title()
-				if hasattr(s, setterName):
-				    setMethod = getattr(s, setterName)
-				    setMethod(value)
-			    
+                        # go through all sources and reset the shapes accordingly
+                        for s in self.sourceSetCache[dataKey]:
+                            row = rowById[s.getId()]
+                            
+                            for column in shapeColumns:
+                                value = row.field(prefix+column)
+                                setterName = "set"+column.title()
+                                if hasattr(s, setterName):
+                                    setMethod = getattr(s, setterName)
+                                    setMethod(value)
+                            
  
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
@@ -487,9 +487,9 @@ class ButlerQaData(QaData):
                     raftName = names[0]
                 else:
                     raftName = "R:0,0"
-		raftName = raftName.strip()
+                raftName = raftName.strip()
 
-		#raftId = cameraGeom.Id(raftName)
+                #raftId = cameraGeom.Id(raftName)
                 #ccdId = cameraGeom.Id(ccdName)
                 #ccdDetector = cameraGeom.Detector(ccdId)
                 #raftDetector = cameraGeom.Detector(raftId)
@@ -507,19 +507,19 @@ class ButlerQaData(QaData):
                 self.filterCache[dataKey]   = afwImage.Filter(calexp_md)
                 self.calibCache[dataKey]    = afwImage.Calib(calexp_md)
 
-		# store the calexp as a dict
-		if not self.calexpCache.has_key(dataKey):
-		    self.calexpCache[dataKey] = {}
+                # store the calexp as a dict
+                if not self.calexpCache.has_key(dataKey):
+                    self.calexpCache[dataKey] = {}
 
-		nameLookup = qaDataUtils.getCalexpNameLookup()
-		for n in calexp_md.names():
-		    val = calexp_md.get(n)
-		    self.calexpCache[dataKey][n] = val
+                nameLookup = qaDataUtils.getCalexpNameLookup()
+                for n in calexp_md.names():
+                    val = calexp_md.get(n)
+                    self.calexpCache[dataKey][n] = val
 
-		    # assign an alias to provide the same name as the database version uses.
-		    if nameLookup.has_key(n):
-			n2 = nameLookup[n]
-			self.calexpCache[dataKey][n2] = val
+                    # assign an alias to provide the same name as the database version uses.
+                    if nameLookup.has_key(n):
+                        n2 = nameLookup[n]
+                        self.calexpCache[dataKey][n2] = val
 
                 # if we're missing anything in nameLookup ... put in a NaN
                 for calexpName,qaName in nameLookup.items():
@@ -528,9 +528,9 @@ class ButlerQaData(QaData):
 
 
                 # check the fwhm ... we know we need it
-		# NOTE that we actually try to load this from the SEEING
-		#  keyword in the calexp_md.  So a fwhm=-1 here, doesn't mean
-		#  it wasn't already set by SEEING
+                # NOTE that we actually try to load this from the SEEING
+                #  keyword in the calexp_md.  So a fwhm=-1 here, doesn't mean
+                #  it wasn't already set by SEEING
                 sigmaToFwhm = 2.0*math.sqrt(2.0*math.log(2.0))
                 width = calexp_md.get('NAXIS1')
                 height = calexp_md.get('NAXIS2')
@@ -576,8 +576,8 @@ class ButlerQaData(QaData):
             if cache.has_key(dataKey):
                 entryDict[dataKey] = cache[dataKey]
             else:
-		entryDict[dataKey] = None
-		
+                entryDict[dataKey] = None
+                
         return entryDict
 
 
@@ -644,11 +644,11 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
 
     # make sure LsstSim is last in the list (its 'verifyRegistries()' will pass for all cameras)
     cameraInfos = {
-#	"cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
-	"hsc" : qaCamInfo.HscCameraInfo(),
-	"suprimecam": qaCamInfo.SuprimecamCameraInfo(),
+#       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
+        "hsc" : qaCamInfo.HscCameraInfo(),
+        "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
         "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
-	"lsstsim": qaCamInfo.LsstSimCameraInfo(),
+        "lsstsim": qaCamInfo.LsstSimCameraInfo(),
         }
 
     # try each camera ***in-order***
@@ -656,25 +656,25 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
     # ... must test it last
     cameraToUse = None
     if not camera is None:
-	cameraToUse = cameraInfos[camera]
+        cameraToUse = cameraInfos[camera]
     else:
-	for cameraInfo in cameraInfos.values():
-	    # if the mapper couldn't be found, we can't use this camera
-	    hasMapper = not cameraInfo.mapperClass is None
-	    validReg = cameraInfo.verifyRegistries(testdataDir)
-	    if hasMapper and validReg:
-		cameraToUse = cameraInfo
-		break
+        for cameraInfo in cameraInfos.values():
+            # if the mapper couldn't be found, we can't use this camera
+            hasMapper = not cameraInfo.mapperClass is None
+            validReg = cameraInfo.verifyRegistries(testdataDir)
+            if hasMapper and validReg:
+                cameraToUse = cameraInfo
+                break
 
     if cameraToUse is None:
         raise Exception("Can't find registries usable with any mappers.")
     else:
         if rerun is None:
             rerun = cameraToUse.getDefaultRerun()
-	print "label:       ", label
-	print "rerun:       ", rerun
-	print "camera:      ", cameraToUse.name
-	print "testdataDir: ", testdataDir
+        print "label:       ", label
+        print "rerun:       ", rerun
+        print "camera:      ", cameraToUse.name
+        print "testdataDir: ", testdataDir
         return ButlerQaData(label, rerun, cameraToUse, testdataDir, **kwargs)
 
 

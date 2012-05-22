@@ -156,7 +156,7 @@ def robustPolyFit(x, y, order, nbin=3, sigma=3.0, niter=1):
         # then the dy could be zero
         if meanError == 0.0:
             meanError = 1.0
-	dyNew[w0] = meanError
+        dyNew[w0] = meanError
 
     
     for i in range(niter):

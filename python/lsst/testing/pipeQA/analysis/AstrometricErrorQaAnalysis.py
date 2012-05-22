@@ -45,10 +45,15 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         del self.filter
         
         del self.detector
-        del self.matchListDictSrc
+        for k,v in self.matchListDictSrc.items():
+            for k2, v2 in v.items():
+                del self.matchListDictSrc[k][k2]
 
         del self.medErrArcsec
         del self.medThetaRad
+
+        del self.sCatDummy
+        del self.srefCatDummy
         
     def test(self, data, dataId):
         
@@ -66,16 +71,18 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.x    = raftCcdData.RaftCcdVector(self.detector)
         self.y    = raftCcdData.RaftCcdVector(self.detector)
 
-        sCatDummy = pqaSource.Catalog().catalog
+        self.sCatDummy = pqaSource.Catalog()
+        sCatDummy = self.sCatDummy.catalog
         sCatSchema = sCatDummy.getSchema()
-        srefCatDummy  = pqaSource.RefCatalog().catalog
+        self.srefCatDummy  = pqaSource.RefCatalog()
+        srefCatDummy = self.srefCatDummy.catalog
         srefCatSchema = srefCatDummy.getSchema()
         
-        xKey = sCatSchema.find('XAstrom').key
-        yKey = sCatSchema.find('YAstrom').key
-        raKey = sCatSchema.find('Ra').key
-        decKey = sCatSchema.find('Dec').key
-        refRaKey = srefCatSchema.find('Ra').key
+        xKey      = sCatSchema.find('XAstrom').key
+        yKey      = sCatSchema.find('YAstrom').key
+        raKey     = sCatSchema.find('Ra').key
+        decKey    = sCatSchema.find('Dec').key
+        refRaKey  = srefCatSchema.find('Ra').key
         refDecKey = srefCatSchema.find('Dec').key
 
         filter = None
@@ -94,7 +101,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
 
-                if not (s.get('FlagPixInterpCen')):
+                if not (s.getF8(sCatSchema.find('FlagPixInterpCen').key)):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
                     self.x.append(raft, ccd, s.getF8(xKey))
