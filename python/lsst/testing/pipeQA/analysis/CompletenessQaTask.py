@@ -34,7 +34,7 @@ class CompletenessQaTask(QaAnalysisTask):
 
     def __init__(self, **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
-        self.limits = [self.config.completeMagMin, self.config.completeMagMax]
+        self.limits = [self.config.completeMinMag, self.config.completeMaxMag]
         self.bins   = num.arange(14, 27, 0.5)
 
         self.description = """

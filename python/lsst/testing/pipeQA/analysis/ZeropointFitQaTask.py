@@ -27,7 +27,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
     def __init__(self, figsize=(5.0,5.0), **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
         self.figsize = figsize
-        self.limits = [self.config.medOffsetMin, self.config.medOffsetMax]
+        self.limits = [self.config.offsetMin, self.config.offsetMax]
 
         self.description = """
          For each CCD, the central panel shows the instrumental magnitude of

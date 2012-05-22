@@ -62,12 +62,12 @@ class PhotCompareQaTask(QaAnalysisTask):
     _DefaultName = "photCompareQa" 
 
     def __init__(self, magType1, magType2, starGalaxyToggle, **kwargs):
+        testLabel = magType1+"-"+magType2
         QaAnalysisTask.__init__(self, testLabel, **kwargs)
 
-        testLabel = magType1+"-"+magType2
 
         self.magCut = self.config.magCut
-        self.deltaLimits = [self.config.deltaMin, self.configdeltaMax]
+        self.deltaLimits = [self.config.deltaMin, self.config.deltaMax]
         self.rmsLimits = [0.0, self.config.rmsMax]
         self.derrLimits = [0.0, self.config.derrMax]
         self.slopeLimits = [-self.config.slopeMinSigma, self.config.slopeMaxSigma]

@@ -15,14 +15,14 @@ import QaAnalysisUtils as qaAnaUtil
 class VignettingQaConfig(pexConfig.Config):
     cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run VignettingQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim"))
     maxMedian = pexConfig.Field(dtype = float, doc = "Maximum median magnitude offset", default = 0.02)
-    magRms = pexConfig.Field(dtype = float, doc = "Maximum magnitude offset RMS", default = 0.02)
+    maxRms = pexConfig.Field(dtype = float, doc = "Maximum magnitude offset RMS", default = 0.02)
     maxMag = pexConfig.Field(dtype = float, doc = "Maximum magnitude star to use in VignettingQa test", default = 19.0)
 
 class VignettingQaTask(QaAnalysisTask):
     ConfigClass = VignettingQaConfig
     _DefaultName = "vignettingQa"
 
-    def __init__(self, maxMedian, maxRms, maxMag, **kwargs):
+    def __init__(self, **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
         self.medLimits = [-self.config.maxMedian, self.config.maxMedian]
         self.rmsLimits = [0, self.config.maxRms]

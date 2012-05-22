@@ -30,7 +30,7 @@ class EmptySectorQaTask(QaAnalysisTask):
         QaAnalysisTask.__init__(self, **kwargs)
         self.limits = [0, self.config.maxMissing]
         self.nx = self.config.nx
-        self.ny = self.confing.ny
+        self.ny = self.config.ny
 
         self.description = """
          For each CCD, the 1-to-1 matches between the reference catalog and

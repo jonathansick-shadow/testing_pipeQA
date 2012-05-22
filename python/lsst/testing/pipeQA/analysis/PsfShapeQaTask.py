@@ -27,7 +27,7 @@ class PsfShapeQaTask(QaAnalysisTask):
     ConfigClass = PsfShapeQaConfig
     _DefaultName = "psfShapeQa"
 
-    def __init__(self, ellipMax, fwhmMax, **kwargs):
+    def __init__(self, **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
         self.limitsEllip = [0.0, self.config.ellipMax]
         self.limitsFwhm = [0.0, self.config.fwhmMax]
