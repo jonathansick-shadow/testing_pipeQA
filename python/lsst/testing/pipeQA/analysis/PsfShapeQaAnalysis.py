@@ -1,4 +1,5 @@
 import sys, os, re
+import time
 import lsst.meas.algorithms        as measAlg
 import lsst.testing.pipeQA.figures as qaFig
 import numpy
@@ -54,6 +55,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         del self.calexpDict
         
     def test(self, data, dataId):
+
+        t0 = time.time()
         
         # get data
         self.ssDict        = data.getSourceSetBySensor(dataId)
@@ -181,9 +184,15 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             label = "psf fwhm (arcsec) "
             comment = "psf fwhm (arcsec)"
             testSet.addTest( testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel) )
-                          
+
+
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "PsfShapeQaAnalysis", "test-runtime", dt)
+            
     def plot(self, data, dataId, showUndefined=False):
 
+        t0 = time.time()
+        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
@@ -344,6 +353,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             testSet.addFigure(allFig, "psfEllip.png", "PSF ellipticity "+label, areaLabel=label)
             del allFig
 
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "PsfShapeQaAnalysis", "plot-runtime", dt)
 
     def standardFigure(self, t, x, y, dx, dy, color, limits, vLen, summary=False, sm=None, fwhm=None):
 

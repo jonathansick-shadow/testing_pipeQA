@@ -116,6 +116,8 @@ class QaData(object):
         self.filterCache = {}
         self.calibCache = {}
 
+        self.performCache = {}
+        
         # store the explicit dataId (ie. no regexes) for each key used in a cache
         self.dataIdLookup = {}
 
@@ -139,6 +141,34 @@ class QaData(object):
             "dataIdLookup"   : self.dataIdLookup,
             }
 
+
+    def cachePerformance(self, dataIdStr, test, label, value):
+        if isinstance(dataIdStr, dict):
+            dataIdStr = self._dataIdToString(dataIdStr)
+            
+        if not self.performCache.has_key(dataIdStr):
+            self.performCache[dataIdStr] = {}
+        if not self.performCache[dataIdStr].has_key(test):
+            self.performCache[dataIdStr][test] = {}
+            self.performCache[dataIdStr]['total'] = {}
+            
+        if not self.performCache[dataIdStr][test].has_key(label):
+            self.performCache[dataIdStr][test][label] = 0.0
+        if not self.performCache[dataIdStr]['total'].has_key(label):
+            self.performCache[dataIdStr]['total'][label] = 0.0
+            
+        self.performCache[dataIdStr][test][label]    += value
+        self.performCache[dataIdStr]['total'][label] += value
+
+        
+    def getPerformance(self, dataIdStr, test, label):
+        if isinstance(dataIdStr, dict):
+            dataIdStr = self._dataIdToString(dataIdStr)
+        if self.performCache.has_key(dataIdStr):
+            if self.performCache[dataIdStr].has_key(test):
+                if self.performCache[dataIdStr][test].has_key(label):
+                    return self.performCache[dataIdStr][test][label]
+        return None
 
     def clearCache(self):
         """Reset all internal cache attributes."""

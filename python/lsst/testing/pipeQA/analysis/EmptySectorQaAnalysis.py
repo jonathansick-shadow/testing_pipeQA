@@ -1,4 +1,5 @@
 import sys, os, re
+import time
 import lsst.meas.algorithms        as measAlg
 import lsst.testing.pipeQA.figures as qaFig
 import numpy
@@ -54,7 +55,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         del self.emptySectorsMat
         
     def test(self, data, dataId):
-        
+
+        t0 = time.time()
+
         # get data
         self.ssDict           = data.getSourceSetBySensor(dataId)
 
@@ -157,10 +160,14 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         testSet.addTest(test)
 
 
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "EmptySectorQaAnalysis", "test-runtime", dt)
 
 
     def plot(self, data, dataId, showUndefined=False):
 
+        t0 = time.time()
+        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
@@ -285,6 +292,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                               "Pixel coordinates of all (black) and matched (red) objects", areaLabel=label)
             del allFig
 
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "EmptySectorQaAnalysis", "plot-runtime", dt)
             
 
     def standardFigure(self, x, y, xmat, ymat, limits, summary=False):

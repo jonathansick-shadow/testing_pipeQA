@@ -3,6 +3,8 @@ import lsst.meas.algorithms        as measAlg
 import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
+import time
+
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
 
@@ -54,6 +56,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         del self.srefCatDummy
         
     def test(self, data, dataId):
+
+        t0 = time.time()
         
         # get data
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
@@ -140,9 +144,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             test = testCode.Test(label, medErrArcsec, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
 
-
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "AstrometricErrorQaAnalysis", "test-runtime", dt)
+        
     def plot(self, data, dataId, showUndefined=False):
 
+        t0 = time.time()
+        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
 
@@ -234,7 +242,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             testSet.addFigure(allFig, "astromError.png", "Astrometric error"+label, areaLabel=label)
             del allFig
             
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "AstrometricErrorQaAnalysis", "plot-runtime", dt)
 
+
+        
     def standardFigure(self, x, y, dx, dy, gridVectors=False):
 
 
@@ -418,5 +430,6 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         for tic in ax0.get_xticklabels() + ax0.get_yticklabels(): # + ax.get_xticklabels():
             tic.set_size("xx-small")
 
+            
         return fig
 

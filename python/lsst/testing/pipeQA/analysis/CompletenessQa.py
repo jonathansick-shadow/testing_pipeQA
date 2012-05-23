@@ -1,6 +1,7 @@
 import re
 import numpy as num
 
+import time
 import lsst.testing.pipeQA.TestCode as testCode
 import QaAnalysis as qaAna
 import lsst.testing.pipeQA.figures as qaFig
@@ -138,6 +139,9 @@ class CompletenessQa(qaAna.QaAnalysis):
         return mx[mindx]
 
     def test(self, data, dataId, fluxType = "psf"):
+
+        t0 = time.time()
+        
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
         
@@ -247,8 +251,12 @@ class CompletenessQa(qaAna.QaAnalysis):
                 test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
 
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "CompletenessQa", "test-runtime", dt)
 
     def plot(self, data, dataId, showUndefined = False):
+        t0 = time.time()
+        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
@@ -371,6 +379,8 @@ class CompletenessQa(qaAna.QaAnalysis):
             testSet.addFigure(allFig, "completeness.png", "Photometric detections "+label, areaLabel=label)
             del allFig
             
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "CompletenessQa", "plot-runtime", dt)
 
     def standardFigure(self, title, orphan, depth,
                        matchedStar, blendedStar, undetectedStar,

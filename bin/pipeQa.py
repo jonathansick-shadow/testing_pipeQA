@@ -190,6 +190,10 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                                                                     delaySummary=delaySummary))
 
 
+    # always run performance summary
+    analysisList.append(qaAnalysis.performanceQa(useCache=keep, wwwCache=wwwCache,
+                                                 delaySummary=delaySummary))
+        
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
 
@@ -251,7 +255,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
                 test_t0 = time.time()
                 test = str(a)
-                if not re.search(testRegex, test):
+                if not re.search(testRegex, test) and not re.search('performance', test):
                     continue
 
                 date = datetime.datetime.now().strftime("%a %Y-%m-%d %H:%M:%S")
