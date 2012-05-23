@@ -45,9 +45,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         del self.filter
         
         del self.detector
-        for k,v in self.matchListDictSrc.items():
-            for k2, v2 in v.items():
-                del self.matchListDictSrc[k][k2]
+        del self.matchListDictSrc
 
         del self.medErrArcsec
         del self.medThetaRad

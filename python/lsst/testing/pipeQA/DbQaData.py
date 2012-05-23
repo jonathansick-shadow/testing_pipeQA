@@ -296,7 +296,11 @@ class DbQaData(QaData):
             matchList = matchListDict[key]
 
             sources    = sourcesDict[key]
-            refObjects = refObjectsDict[key]
+            if refObjectsDict.has_key(key):
+                refObjects = refObjectsDict[key]
+            else:
+                refObjects = simRefObj.SimRefObjectSet() # an empty set
+
                 
             typeDict[key] = {}
                             
@@ -727,7 +731,7 @@ class DbQaData(QaData):
         for dataIdEntry in dataIdList:
 
             dataIdEntryStr = self._dataIdToString(dataIdEntry)
-
+            
             haveAllKeys = True
             sqlDataId = []
             for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:

@@ -221,7 +221,7 @@ def make_densityContour(axes,x,y,xlims=None,ylims=None,bins=(50,50),
             levels = getLevels(hist_xy)
 
     if log:
-        new = axes.contour( numpy.log10((numpy.rot90(hist_xy))+1.0), numpy.log10(levels + 1.0),
+        new = axes.contour( numpy.log10(numpy.flipud(numpy.rot90(hist_xy)) + 0.1), numpy.log10(levels + 0.1),
                             extent=[xedges[0], xedges[-1], 
                                     yedges[0], yedges[-1]],
                             colors=color,linestyles=ls,linewidths=lw)
