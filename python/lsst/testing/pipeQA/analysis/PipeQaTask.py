@@ -342,9 +342,9 @@ class PipeQaTask(pipeBase.Task):
                             pid = os.fork()
                             if pid == 0:
                                 task.plot(data, thisDataId)
-                                sys.exit()
+                                os._exit(os.EX_OK) #sys.exit(0)
                             else:
-                                os.waidpid(pid, 0)
+                                os.waitpid(pid, 0)
                         else:
                             task.plot(data, thisDataId)
                         memory = self._getMemUsageThisPid()
@@ -360,7 +360,7 @@ class PipeQaTask(pipeBase.Task):
                             if pid == 0:
                                 # try the plot() method
                                 self.runSubtask(task.plot, data, thisDataId, visit, test, testset)
-                                sys.exit(0)
+                                os._exit(os.EX_OK) # sys.exit(0)
                             else:
                                 os.waitpid(pid, 0)
                         else:
