@@ -437,7 +437,7 @@ class PhotCompareQaTask(QaAnalysisTask):
         testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                                title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
             testSet.addFigure(meanFig, "f01"+meanFilebase+".png",
@@ -493,7 +493,7 @@ class PhotCompareQaTask(QaAnalysisTask):
             star0 = self.star.get(raft, ccd)
             derr0 = self.derr.get(raft, ccd)
 
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             statBlurb = "Points used for statistics/trendline shown in red."
@@ -553,7 +553,7 @@ class PhotCompareQaTask(QaAnalysisTask):
             testSet.shelve(figbase, shelfData)
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             self.summaryFigure([
                 data, figbase, testSet, shelfData, figsize,

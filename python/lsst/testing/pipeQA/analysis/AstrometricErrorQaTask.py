@@ -157,7 +157,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         testSet.pickle(medAstBase, [astFig.data, astFig.map])
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
                               title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
                               cmapUnder="#ff0000")
@@ -184,7 +184,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             x = (self.x.get(raft, ccd))[w]
             y = (self.y.get(raft, ccd))[w]
 
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
             fig = self.standardFigure(x, y, dx, dy)
             label = data.cameraInfo.getDetectorName(raft, ccd)
@@ -197,7 +197,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             testSet.shelve(cacheLabel, shelfData)
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             # unstash the values
             if self.useCache:

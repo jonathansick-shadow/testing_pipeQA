@@ -146,7 +146,7 @@ class PipeQaTask(pipeBase.Task):
             s = traceback.format_exception(exc_type, exc_value,
                                            exc_traceback)
             
-            print "Warning: Exception in QA processing of %s: %s" % (label, str(e))
+            self.log.log(self.log.WARN, "Warning: Exception in QA processing of %s: %s" % (label, str(e)))
     
         if failed:
             testset.addTest(label, 1, [0, 0], "QA exception thrown (%s)" % (str(thisDataId)),
@@ -192,11 +192,11 @@ class PipeQaTask(pipeBase.Task):
         dataset      = parsedCmd.dataset
 
         if not re.search("^(visit|raft|ccd)$", breakBy):
-            print "breakBy (-b) must be 'visit', 'raft', or 'ccd'"
+            self.log.log(self.log.FATAL, "breakBy (-b) must be 'visit', 'raft', or 'ccd'")
             sys.exit()
     
         if re.search("(raft|ccd)", breakBy) and not keep:
-            print "You've specified breakBy=%s, which requires 'keep' (-k). I'll set it for you."
+            self.log.log(self.log.WARN, "You've specified breakBy=%s, which requires 'keep' (-k). I'll set it for you.")
             keep = True
         
         # Is this deprecated?
@@ -253,7 +253,7 @@ class PipeQaTask(pipeBase.Task):
         if self.config.doVisitQa:
             if matchDset == None and matchVisits == None:
                 # we can't do it!
-                print "Unable to run visit to visit Qa; please request a comparison visit or database"
+                self.log.log(self.log.FATAL, "Unable to run visit to visit Qa; please request a comparison visit or database")
                 sys.exit(1)
 
             elif matchDset == None:
@@ -288,14 +288,14 @@ class PipeQaTask(pipeBase.Task):
     
             nvisit = len(visits)
             if lo >= nvisit:
-                print "Can't run visits %d to %d as there are only %d visits" % (lo, hi, nvisit)
+                self.log.log(self.log.FATAL, "Can't run visits %d to %d as there are only %d visits" % (lo, hi, nvisit))
                 sys.exit()
             if hi > nvisit:
                 hi = nvisit
             visits = visits[lo:hi]
     
-            print "Total of %d visits grouped by %d.  Running group %d with visits %d - %d:\n%s\n" % \
-                (nvisit, groupSize, whichGroup, lo, hi-1, "\n".join(visits))
+            self.log.log(self.log.INFO, "Total of %d visits grouped by %d.  Running group %d with visits %d - %d:\n%s\n" % \
+                             (nvisit, groupSize, whichGroup, lo, hi-1, "\n".join(visits)))
             groupTag = "%02d-%02d" % (groupSize, whichGroup)
     
     
@@ -330,7 +330,7 @@ class PipeQaTask(pipeBase.Task):
                         continue
     
                     date = datetime.datetime.now().strftime("%a %Y-%m-%d %H:%M:%S")
-                    print "Running " + test + "  visit:" + str(visit) + "  ("+date+")"
+                    self.log.log(self.log.INFO, "Running " + test + "  visit:" + str(visit) + "  ("+date+")")
                     sys.stdout.flush() # clear the buffer before the fork
     
                     # For debugging, it's useful to exit on failure, and get

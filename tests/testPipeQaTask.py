@@ -70,6 +70,15 @@ class PipeQaTestCases(unittest.TestCase):
 
         shutil.rmtree(self.wwwRerun)
 
+    def testAll(self):
+        os.mkdir(self.wwwRerun)
+
+        args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
+        self.qaTask.parseAndRun(args)
+        self.validateFiles(self.testVisit1, self.testFilt, self.testRaft, self.testCcd)
+
+        shutil.rmtree(self.wwwRerun)
+
 
     def testRegexp(self):
         os.mkdir(self.wwwRerun)

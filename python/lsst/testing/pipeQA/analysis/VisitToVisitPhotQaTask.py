@@ -194,16 +194,16 @@ class VisitToVisitPhotQaTask(QaAnalysisTask):
                 visObjIds = num.array([x[0].getId() for x in visMatchList])
                 common    = list(set(srcObjIds) & set(visObjIds))
 
-                print key, ":", 
+                self.log.log(self.log.INFO, "%s :" % (key))
                 if len(common) == 0:
-                    print "No overlap, Using pre-to-post PT1.2 objectID mapping...", 
+                    self.log.log(self.log.INFO, "  No overlap, Using pre-to-post PT1.2 objectID mapping...")
                     
                     # Try objectID hack from PT1.2 to post-PT1.2:
                     visObjIds *= 2
                     isStar     = (num.array([x[0].getFlagForDetection() for x in visMatchList]) & measAlg.Flags.STAR) > 0
                     visObjIds += isStar
                     common     = list(set(srcObjIds) & set(visObjIds))
-                print "Found %d matches" % (len(common))
+                self.log.log(self.log.INFO, "Found %d matches" % (len(common)))
                     
                 # Iterate over all object ids
                 for i in range(len(common)):
@@ -408,7 +408,7 @@ class VisitToVisitPhotQaTask(QaAnalysisTask):
 
         blue, red = '#0000ff', '#ff0000'
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                                title="Mean "+title, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
             testSet.addFigure(meanFig, "f01"+meanFilebase+".png",

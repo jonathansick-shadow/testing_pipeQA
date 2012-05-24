@@ -79,16 +79,16 @@ class VisitToVisitAstromQaTask(AstrometricErrorQaTask):
             visObjIds = num.array([x[0].getId() for x in visMatchList])
             common    = list(set(srcObjIds) & set(visObjIds))
 
-            print key, ":", 
+            self.log.log(self.log.INFO, "%s : " % (key))
             if len(common) == 0:
-                print "No overlap, Using pre-to-post PT1.2 objectID mapping...", 
+                self.log.log(self.log.WARN, "  No overlap, Using pre-to-post PT1.2 objectID mapping...")
                     
                 # Try objectID hack from PT1.2 to post-PT1.2:
                 visObjIds *= 2
                 isStar     = (num.array([x[0].getFlagForDetection() for x in visMatchList]) & measAlg.Flags.STAR) > 0
                 visObjIds += isStar
                 common     = list(set(srcObjIds) & set(visObjIds))
-            print "Found %d matches" % (len(common))
+            self.log.log(self.log.INFO, "  Found %d matches" % (len(common)))
                     
             # Iterate over all object ids
             for i in range(len(common)):

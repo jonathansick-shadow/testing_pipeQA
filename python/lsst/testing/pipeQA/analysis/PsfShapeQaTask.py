@@ -244,7 +244,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
                                 title="Median PSF Ellipticity", failLimits=self.limitsEllip)
             testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
@@ -286,7 +286,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
             fwhm = self.fwhm.get(raft, ccd)
             
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
             xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
             limits = [xlo, xhi, ylo, yhi]
@@ -306,7 +306,7 @@ class PsfShapeQaTask(QaAnalysisTask):
             testSet.shelve(cacheLabel, shelfData)
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             # unstash the values
             if self.useCache:

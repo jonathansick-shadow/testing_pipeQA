@@ -202,7 +202,7 @@ class VignettingQaTask(QaAnalysisTask):
         red  = '#ff0000'
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             medFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.medLimits,
                               title="Median offset", cmapOver=red, cmapUnder=blue,
                               failLimits=self.medLimits)
@@ -241,7 +241,7 @@ class VignettingQaTask(QaAnalysisTask):
 		radii = num.array([0.0])
 		ids   = num.array([0])
 
-            print "Plotting ", ccd
+            self.log.log(self.log.INFO, "Plotting %s" % (ccd))
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radii, dmags, 'ro', ms=2.0)
@@ -278,7 +278,7 @@ class VignettingQaTask(QaAnalysisTask):
             testSet.shelve(cacheLabel, shelfData)
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             # unstash the values
             if self.useCache:

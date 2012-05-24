@@ -193,7 +193,7 @@ class EmptySectorQaTask(QaAnalysisTask):
         # make the figures and add them to the testSet
         # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
                                 vlimits=[0, self.nx*self.ny],
                                 title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
@@ -224,7 +224,7 @@ class EmptySectorQaTask(QaAnalysisTask):
             xmat, ymat = self.xmat.get(raft, ccd), self.ymat.get(raft, ccd)
             xwid, ywid = self.size.get(raft, ccd)
 
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
             fig = self.standardFigure(x, y, xmat, ymat, [0, xwid, 0, ywid])
 
             # add the plot to the testSet
@@ -244,7 +244,7 @@ class EmptySectorQaTask(QaAnalysisTask):
             testSet.shelve(cacheLabel, shelfData)
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             # unstash the values
             if self.useCache:

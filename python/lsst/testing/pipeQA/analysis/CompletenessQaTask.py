@@ -285,7 +285,7 @@ class CompletenessQaTask(QaAnalysisTask):
             vmin, vmax = 1.0*self.limits[0], 1.0*self.limits[1]
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
                                 title="Photometric Depth", cmapOver=red, cmapUnder=blue,
                                 failLimits=self.limits)
@@ -308,7 +308,7 @@ class CompletenessQaTask(QaAnalysisTask):
             undetectedGalaxy = self.undetectedGalaxy.get(raft, ccd)
             depth            = self.depth.get(raft, ccd)
 
-            print "Plotting ", ccd
+            self.log.log(self.log.INFO, "Plotting %s" % (ccd))
             label = data.cameraInfo.getDetectorName(raft, ccd)
             fig = self.standardFigure(label, orphan, depth,
                                       matchedStar, blendedStar, undetectedStar,
@@ -326,7 +326,7 @@ class CompletenessQaTask(QaAnalysisTask):
             testSet.shelve(cacheLabel, shelfData)
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             # unstash the values
             if self.useCache:
@@ -429,7 +429,7 @@ class CompletenessQaTask(QaAnalysisTask):
         if False: #1.4*ymax > 1000:
             sp1.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2g"))
             for t in sp1.get_yticklabels():
-                print t.get_text()
+                self.log.log(self.log.INFO, t.get_text())
                 t.set_text(re.sub("\+0", "", t.get_text()))
         qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 6)
 

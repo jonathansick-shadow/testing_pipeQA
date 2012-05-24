@@ -229,7 +229,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
         testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             
             blue = '#0000ff'
             red = '#ff0000'
@@ -258,7 +258,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
             if zeropt == 0.0:
                 continue
             
-            print "Plotting", ccd
+            self.log.log(self.log.INFO, "Plotting %s" % (ccd))
 
 
             # Plot all matched galaxies
@@ -294,7 +294,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
             testSet.shelve(cacheLabel, shelfData)
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             # unstash the values
             if self.useCache:
