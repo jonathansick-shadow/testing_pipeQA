@@ -20,7 +20,9 @@
 # the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
+import sys
 from lsst.testing.pipeQA.analysis.PipeQaTask import PipeQaTask
+
 qaTask = PipeQaTask()
-qaTask.parseAndRun()
+qaTask.parseAndRun(sys.argv[1:])
         

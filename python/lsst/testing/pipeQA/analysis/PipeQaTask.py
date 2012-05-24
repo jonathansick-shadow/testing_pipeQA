@@ -153,11 +153,11 @@ class PipeQaTask(pipeBase.Task):
                             backtrace="".join(s))
 
     @pipeBase.timeMethod
-    def parseAndRun(self):
+    def parseAndRun(self, args):
         self.log.log(self.log.INFO, "PipeQA Start")
 
         argumentParser = self._makeArgumentParser()
-        parsedCmd = argumentParser.parse_args(sys.argv[1:])
+        parsedCmd = argumentParser.parse_args(args)
         self.config = parsedCmd.config # include any overrides
         self.config.validate()
         self.config.freeze()
