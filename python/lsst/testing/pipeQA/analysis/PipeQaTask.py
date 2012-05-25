@@ -210,7 +210,7 @@ class PipeQaTask(pipeBase.Task):
         if exceptExit:
             numpy.seterr(all="raise")
     
-        data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera,
+        data = pipeQA.makeQaData(dataset, self.log, rerun=rerun, retrievalType=camera,
                                  shapeAlg = self.config.shapeAlgorithm)
     
         if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):

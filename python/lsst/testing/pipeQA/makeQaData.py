@@ -10,7 +10,7 @@ from DbQaData      import makeDbQaData
 ###################################################
 # Factory for QaData
 ###################################################
-def makeQaData(label, rerun=None, retrievalType=None, **kwargs):
+def makeQaData(label, log, rerun=None, retrievalType=None, **kwargs):
     """Factory to make a QaData object for either Butler data, or Database data.
 
     @param label         identifier for the data - either a directory in TESTBED_PATH or a database name
@@ -51,12 +51,12 @@ def makeQaData(label, rerun=None, retrievalType=None, **kwargs):
 
     # handle specially requested camera via retrievalType
     if re.search("(lsstsim|suprimecam|cfht|hsc)", retrievalType):
-        return makeButlerQaData(label, rerun, camera=retrievalType, **kwargs)
+        return makeButlerQaData(label, log, rerun, camera=retrievalType, **kwargs)
 
 
     if re.search("^[Bb]utler$", retrievalType):
-        return makeButlerQaData(label, rerun, camera=None, **kwargs)
+        return makeButlerQaData(label, log, rerun, camera=None, **kwargs)
     
     if re.search("^([Dd][Bb]|[Dd]atabase)$", retrievalType):
-        return makeDbQaData(label, rerun, **kwargs)
+        return makeDbQaData(label, log, rerun, **kwargs)
 

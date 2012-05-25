@@ -61,13 +61,13 @@ class Timer(object):
 class DbQaData(QaData):
     #Qa__init__(self, label, rerun, dataInfo):
 
-    def __init__(self, database, rerun, cameraInfo):
+    def __init__(self, database, rerun, cameraInfo, log):
         """
         @param database The name of the database to connect to
         @param rerun The data rerun to use
         @param cameraInfo A cameraInfo object describing the camera for these data
         """
-        QaData.__init__(self, database, rerun, cameraInfo)
+        QaData.__init__(self, database, rerun, cameraInfo, log)
         self.dbId        = DatabaseIdentity(self.label)
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
@@ -1049,12 +1049,12 @@ class DbQaData(QaData):
 # Factory for dbQaData
 # - curently only lsstSim is available by database, so this is a trivial factory
 ###################################################
-def makeDbQaData(label, rerun=None, **kwargs):
+def makeDbQaData(label, log, rerun=None, **kwargs):
     """Factory for a DbQaData object.
     
     @param database The name of the database to connect to
     @param rerun The data rerun to use
     """
-    return DbQaData(label, rerun, qaCamInfo.LsstSimCameraInfo())
+    return DbQaData(label, rerun, qaCamInfo.LsstSimCameraInfo(), log)
 
 
