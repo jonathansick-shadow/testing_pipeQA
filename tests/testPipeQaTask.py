@@ -136,6 +136,16 @@ class PipeQaTestCases(unittest.TestCase):
         shutil.rmtree(self.wwwRerun)
         
 
+    def testExcept(self):
+        os.mkdir(self.wwwRerun)
+        args = ["-e", "-b", "invalid", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
+        try:
+            self.qaTask.parseAndRun(args)
+        except:
+            pass
+        else:
+            self.fail()
+        shutil.rmtree(self.wwwRerun)
 #####
         
 def suite():
