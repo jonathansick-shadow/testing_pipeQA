@@ -395,6 +395,71 @@ class SuprimecamCameraInfo(CameraInfo):
 
 
 
+####################################################################
+#
+# SdssCameraInfo class
+#
+####################################################################
+class SdssCameraInfo(CameraInfo):
+    def __init__(self):
+        try:
+            import lsst.obs.sdss        as obsSdss
+            mapper = obsSdss.SdssMapper
+        except Exception, e:
+            print "Failed to import lsst.obs.sdss", e
+            mapper = None
+        dataInfo       = [['visit',1], ['ccd', 0]]
+
+        #simdir        = eups.productDir("obs_subaru")
+        if os.environ.has_key('OBS_SDSS_DIR'):
+            simdir         = os.environ['OBS_SDSS_DIR']
+            #cameraGeomPaf = os.path.join(simdir, "sdss", "description", "Full_Suprimecam_geom.paf")
+            #if not os.path.exists(cameraGeomPaf):
+            #    cameraGeomPaf = os.path.join(simdir, "sdss", "Full_Sdss_geom.paf")
+            #    if not os.path.exists(cameraGeomPaf):
+            #        raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
+            #cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+            #camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+            camera = obsSdss.makeCamera.makeCamera(name='SDSS')
+        else:
+            camera           = None
+
+        CameraInfo.__init__(self, "sdss", dataInfo, mapper, camera)
+
+        self.doLabel = True
+
+        
+    def getRoots(self, baseDir, output=None):
+        """Get data directories in a dictionary
+
+        @param baseDir The base directory where the registries can be found.
+        """
+        baseOut = baseDir
+        if not output is None:
+            baseOut = output
+        return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
+
+        
+
+    def getDefaultRerun(self):
+        return "pipeQA"
+    
+
+    def getMapper(self, baseDir, rerun=None):
+        """Get a mapper for data in specified directory
+
+        @param baseDir  Directory where the registry files are to be found.
+        @param rerun    The rerun of the data we want
+        """
+
+        roots = self.getRoots(baseDir)
+        registry, calibRegistry = self.getRegistries(baseDir)
+        return self.mapperClass(rerun=rerun, mit=self.mit, root=roots['output'],
+                                calibRoot=roots['calib'], registry=registry)
+    
+
+    
+
 def getCameraInfoAvailable():
     """Get a list of available CameraInfo objects."""
     
@@ -408,8 +473,9 @@ def getCameraInfoAvailable():
         return haveCam
 
     all = [
+        SdssCameraInfo,
         LsstSimCameraInfo,
-        CfhtCameraInfo,
+        #CfhtCameraInfo,
         HscCameraInfo,
         SuprimecamCameraInfo,
         ]
