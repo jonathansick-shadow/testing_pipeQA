@@ -107,7 +107,7 @@ class ButlerQaData(QaData):
         # make a list of the frames we're asked to care about
 
         # get all the available raw inputs
-        self.availableDataTuples = self.outButler.queryMetadata('raw', self.dataIdNames,
+        self.availableDataTuples = self.outButler.queryMetadata(cameraInfo.rawName, self.dataIdNames,
                                                                 format=self.dataIdNames)
 
         # of the data available, get a list of the ones the user actually wants us
@@ -125,10 +125,11 @@ class ButlerQaData(QaData):
         @param dataIdRegex dataId dict containing regular expressions of data to retrieve.
         """
         visits = []
+
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
-            visits.append(str(dataId['visit']))
+            visits.append(str(dataId[self.cameraInfo.dataIdTranslationMap['visit']]))
         return sorted(set(visits))
     
 
@@ -299,10 +300,7 @@ class ButlerQaData(QaData):
             # make sure we actually have the output file
             isWritten = self.outButler.datasetExists('src', dataId)
             if isWritten:
-                persistableSourceVector = self.outButler.get('src', dataId)
-                sourceSetTmp = persistableSourceVector.getSources()
-
-                #if self.outButler.datasetExists('calexp', dataId):
+                sourceCatalog = self.outButler.get('src', dataId)
 
 		calibDict = self.getCalibBySensor(dataId)
 		calib = calibDict[dataKey]
@@ -313,7 +311,7 @@ class ButlerQaData(QaData):
 		    print "Warning: no calib available, fluxes uncalibrated."
 		    fmag0, fmag0err = 1.0, 1.0
 		    
-		for s in sourceSetTmp:
+		for s in sourceCatalog:
 		    s.setApFlux(s.getApFlux()/fmag0)
 		    s.setPsfFlux(s.getPsfFlux()/fmag0)
 		    s.setModelFlux(s.getModelFlux()/fmag0)
@@ -483,10 +481,11 @@ class ButlerQaData(QaData):
 
                 ccdName = calexp_md.getAsString('DETNAME').strip()
                 names = ccdName.split()
+
                 if len(names) > 1:
                     raftName = names[0]
                 else:
-                    raftName = "R:0,0"
+                    raftName = ""
 		raftName = raftName.strip()
 
 		#raftId = cameraGeom.Id(raftName)
@@ -500,7 +499,8 @@ class ButlerQaData(QaData):
                 #raftName = "R:"+rowDict['raftName']
                 #ccdName = raftName + " S:"+rowDict['ccdName']
                 self.detectorCache[dataKey] = self.cameraInfo.detectors[ccdName] #ccdDetector
-                self.raftDetectorCache[dataKey] = self.cameraInfo.detectors[raftName]
+                if len(raftName) > 0:
+                    self.raftDetectorCache[dataKey] = self.cameraInfo.detectors[raftName]
 
                 
                 #self.detectorCache[dataKey] = cameraGeom.Detector()
@@ -643,11 +643,13 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
     testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
     # make sure LsstSim is last in the list (its 'verifyRegistries()' will pass for all cameras)
+    cameraKeys = ["hsc", "suprimecam", "suprimecam-old", "sdss", "lsstsim"]
     cameraInfos = {
 #	"cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
 	"hsc" : qaCamInfo.HscCameraInfo(),
 	"suprimecam": qaCamInfo.SuprimecamCameraInfo(),
         "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
+        "sdss" : qaCamInfo.SdssCameraInfo(),
 	"lsstsim": qaCamInfo.LsstSimCameraInfo(),
         }
 
@@ -658,10 +660,12 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
     if not camera is None:
 	cameraToUse = cameraInfos[camera]
     else:
-	for cameraInfo in cameraInfos.values():
+	for cameraKey in cameraKeys:
+            cameraInfo = cameraInfos[cameraKey]
 	    # if the mapper couldn't be found, we can't use this camera
 	    hasMapper = not cameraInfo.mapperClass is None
 	    validReg = cameraInfo.verifyRegistries(testdataDir)
+            #print cameraInfo.name, "valid: ", validReg
 	    if hasMapper and validReg:
 		cameraToUse = cameraInfo
 		break

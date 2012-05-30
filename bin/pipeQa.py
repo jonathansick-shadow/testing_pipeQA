@@ -94,9 +94,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
     data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera,
 			     shapeAlg=policy.get('shapeAlgorithm'))
 
-    if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
-	dataIdInput['sensor'] = dataIdInput['ccd']
-	del dataIdInput['ccd']
+    dataIdInput = data.cameraInfo.adaptDataId(dataIdInput)    
 
     # take what we need for this camera, ignore the rest
     dataId = {}
@@ -192,7 +190,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
-
+    
     visits = []
     if len(visitList) > 0:
         for v in visitsTmp:
@@ -201,7 +199,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
     else:
         visits = visitsTmp
 
-
+    
     groupTag = ""
     if not groupInfo is None:
 	groupSize, whichGroup = map(int, groupInfo.split(":"))
@@ -235,16 +233,16 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
     testset = pipeQA.TestSet(group="", label="QA-failures"+groupTag, wwwCache=wwwCache)
     for visit in visits:
 
+        
         visit_t0 = time.time()
         
-
         dataIdVisit = copy.copy(dataId)
-        dataIdVisit['visit'] = visit
+        dataIdVisit[data.cameraInfo.dataIdTranslationMap['visit']] = visit
 
         # now break up the run into eg. rafts or ccds
         #  ... if we only run one raft or ccd at a time, we use less memory
         brokenDownDataIdList = data.breakDataId(dataIdVisit, breakBy)
-        
+
         for thisDataId in brokenDownDataIdList:
 
             for a in analysisList:

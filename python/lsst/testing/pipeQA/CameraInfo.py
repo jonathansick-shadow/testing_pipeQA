@@ -36,6 +36,8 @@ class CameraInfo(object):
         
         if self.camera is None:
             return
+
+        self.rawName = "raw"
         
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
@@ -49,6 +51,24 @@ class CameraInfo(object):
                 self.sensors[ccdName] = ccd
                 self.nSensor += 1
                 self.raftCcdKeys.append([raftName, ccdName])
+
+        self.dataIdTranslationMap = {
+            # input  : return
+            'visit'  : 'visit',
+            'snap'   : 'snap',
+            'raft'   : 'raft',
+            'sensor' : 'sensor',
+            }
+
+        
+    def adaptDataId(self, dataId):
+        transMap = self.dataIdTranslationMap
+        for k, v in transMap.items():
+            if dataId.has_key(k) and k != v:
+                dataId[v] = dataId[k]
+                del dataId[k]
+        return dataId
+    
                 
     def getDetectorName(self, raft, ccd):
         ccdId = self.detectors[ccd].getId()
@@ -188,7 +208,14 @@ class LsstSimCameraInfo(CameraInfo):
 
         self.doLabel = False
 
-
+        self.dataIdTranslationMap = {
+            # input  : return
+            'visit'  : 'visit',
+            'snap'   : 'snap',
+            'raft'   : 'raft',
+            'ccd'    : 'sensor',
+            }
+        
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
@@ -408,7 +435,7 @@ class SdssCameraInfo(CameraInfo):
         except Exception, e:
             print "Failed to import lsst.obs.sdss", e
             mapper = None
-        dataInfo       = [['visit',1], ['ccd', 0]]
+        dataInfo       = [['run', 1], ['band', 0], ['frame',0], ['camcol', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SDSS_DIR'):
@@ -425,10 +452,17 @@ class SdssCameraInfo(CameraInfo):
             camera           = None
 
         CameraInfo.__init__(self, "sdss", dataInfo, mapper, camera)
-
+        self.rawName = "fpC"
+        
         self.doLabel = True
 
-        
+        self.dataIdTranslationMap = {
+            'visit' : 'run',
+            'snap'  : 'band', 
+            'raft'  : 'frame',
+            'ccd'   : 'camcol',
+            }
+    
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
@@ -441,6 +475,18 @@ class SdssCameraInfo(CameraInfo):
 
         
 
+    def verifyRegistries(self, baseDir):
+        """Verify that registry.sqlite files exist in the specified directory
+
+        @param baseDir  Directory to check for registries.
+        """
+        roots = self.getRoots(baseDir)
+        registry = os.path.join(roots['data'], "registry.sqlite3")
+        #calibRegistry = os.path.join(roots['data'], "registry.sqlite3")
+        return os.path.exists(registry)
+
+
+    
     def getDefaultRerun(self):
         return "pipeQA"
     
@@ -454,7 +500,7 @@ class SdssCameraInfo(CameraInfo):
 
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun=rerun, mit=self.mit, root=roots['output'],
+        return self.mapperClass(root=roots['output'],
                                 calibRoot=roots['calib'], registry=registry)
     
 

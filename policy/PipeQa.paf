@@ -81,8 +81,8 @@ definitions: {
         type: string
         description: "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis"
         maxOccurs: 1
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     emptySectorMaxMissing: {
@@ -97,8 +97,8 @@ definitions: {
     doAstromQa: {
         type: string
         description: "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis"
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     astromQaMaxErr: {
@@ -114,8 +114,8 @@ definitions: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 1
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     photCompareTypes: {
@@ -251,8 +251,8 @@ definitions: {
     doPsfShapeQa: {
         type: string
         description: "Psf Shape: qaAnalysis.PsfShapeQaAnalysis"
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     psfEllipMax: {
@@ -274,7 +274,7 @@ definitions: {
     doCompleteQa: {
         type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
-        maxOccurs: 4
+        maxOccurs: 5
         default: "lsstSim" "cfht"
     }
 
@@ -297,8 +297,8 @@ definitions: {
     doVignettingQa: {
         type: string
         description: "Vignetting testing: qaAnalysis.VignettingQa"
-        maxOccurs: 4
-        default: "lsstSim" "cfht" "suprimecam" "hscSim"
+        maxOccurs: 5
+        default: "lsstSim" "cfht" "suprimecam" "hscSim" "sdss"
     }
 
     vigMaxMedian: {
