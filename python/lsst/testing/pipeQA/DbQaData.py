@@ -84,8 +84,9 @@ class DbQaData(QaData):
 
         # default to new names
         self.dbAliases = {
-            "flux_Gaussian" : "instFlux",
-            "flux_ESG"      : "modelFlux",
+            #"flux_Gaussian" : "instFlux",
+            #"flux_ESG"      : "modelFlux",
+            'instFlux' : 'instFlux',
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
@@ -123,7 +124,7 @@ class DbQaData(QaData):
         
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
+        setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr  = ",".join(selectList)
         
@@ -161,17 +162,18 @@ class DbQaData(QaData):
                     matchListDict[key] = matchList
             return matchListDict
 
+        
         sql += idWhere
         result = self.dbInterface.execute(sql)
         filterId, filterName = result[0]
 
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, '%(filterName)
+        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.sourceId, '%(filterName)
         sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
-        sql += '    Ref%sMatch as rom, SimRefObject as sro' % (self.refStr[useRef][0])
+        sql += '    Ref%sMatch as rom, RefObject as sro' % (self.refStr[useRef][0])
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         sql += '    and (s.%sId = rom.%sId) and (rom.refObjectId = sro.refObjectId)' % \
                (self.refStr[useRef][1], self.refStr[useRef][1])
@@ -189,71 +191,98 @@ class DbQaData(QaData):
         matchListDict = {}
         for row in results:
 
-            s = pqaSource.Source()
-            qaDataUtils.setSourceBlobsNone(s)
-            sref = pqaSource.RefSource()
-            qaDataUtils.setSourceBlobsNone(sref)
 
-            nFields = 9
-            visit, raft, sensor, mag, ra, dec, isStar, refObjId, nMatches = row[0:nFields]
+            nFields = 10
+            visit, raft, sensor, mag, ra, dec, isStar, refObjId, srcId, nMatches = row[0:nFields]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
 
             key = self._dataIdToString(dataIdTmp)            
             self.dataIdLookup[key] = dataIdTmp
 
             if not matchListDict.has_key(key):
+                refCatObj = pqaSource.RefCatalog()
+                refCat    = refCatObj.catalog
+                catObj    = pqaSource.Catalog()
+                cat       = catObj.catalog
+                
                 matchListDict[key] = []
+                
+                refRaKey   = refCatObj.keyDict['Ra']
+                refDecKey  = refCatObj.keyDict['Dec']
+                refPsfKey  = refCatObj.keyDict['PsfFlux']
+                refApKey   = refCatObj.keyDict['ApFlux']
+                refModKey  = refCatObj.keyDict['ModelFlux']
+                refInstKey = refCatObj.keyDict['InstFlux']
+
+                psfKey     = catObj.keyDict['PsfFlux']
+                apKey      = catObj.keyDict['ApFlux']
+                modKey     = catObj.keyDict['ModelFlux']
+                instKey    = catObj.keyDict['InstFlux']
+                
+                psfErrKey  = catObj.keyDict['PsfFluxErr']
+                apErrKey   = catObj.keyDict['ApFluxErr']
+                modErrKey  = catObj.keyDict['ModelFluxErr']
+                instErrKey = catObj.keyDict['InstFluxErr']
+
+                
             matchList = matchListDict[key]
 
-            sref.setId(refObjId)
-            sref.setRa(ra)
-            sref.setDec(dec)
-            flux = 10**(-mag/2.5)
-            sref.setPsfFlux(flux)
-            sref.setApFlux(flux)
-            sref.setModelFlux(flux)
-            sref.setInstFlux(flux)
+            # reference objects
+            sref = refCat.addNew()
 
+            sref.setId(refObjId)
+            sref.setF8(refRaKey, ra)
+            sref.setF8(refDecKey, dec)
+            flux = 10**(-mag/2.5)
+            sref.setF8(refPsfKey, flux)
+            sref.setF8(refApKey, flux)
+            sref.setF8(refModKey, flux)
+            sref.setF8(refInstKey, flux)
+
+            # sources
+            s = cat.addNew()
+            s.setId(srcId)
+            s.setF8(catObj.keyDict['Extendedness'], isStar)
+            
             i = 0
             for value in row[nFields:]:
-                method = getattr(s, setMethods[i])
-                if not value is None:
-                    method(value)
-                i += 1
+               if not value is None:
+                    setKey = catObj.setKeys[i]
+                    if isinstance(value, str):
+                        #print ord(value)
+                        value = 1.0 if ord(value) else 0.0
+                    s.setF8(setKey, value)
+               i += 1
 
-            for sss in [s, sref]:
-                if isStar == 1:
-                    sss.setFlagForDetection(sss.getFlagForDetection() | measAlg.Flags.STAR)
-                else:
-                    sss.setFlagForDetection(sss.getFlagForDetection() & ~measAlg.Flags.STAR)
+            #sref.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
 
-            # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
-            psfFlux,   psfFluxErr   = s.getPsfFlux(),   s.getPsfFluxErr()
-            apFlux,    apFluxErr    = s.getApFlux(),    s.getApFluxErr()
-            modelFlux, modelFluxErr = s.getModelFlux(), s.getModelFluxErr()
-            instFlux,  instFluxErr  = s.getInstFlux(),  s.getInstFluxErr()
 
             # fluxes
-            s.setPsfFlux(psfFlux/fmag0)
-            s.setApFlux(apFlux/fmag0)
-            s.setModelFlux(modelFlux/fmag0)
-            s.setInstFlux(instFlux/fmag0)
+            s.setF8(psfKey,   s.getF8(psfKey)/fmag0)
+            s.setF8(apKey,    s.getF8(apKey)/fmag0)
+            s.setF8(modKey,   s.getF8(modKey)/fmag0)
+            s.setF8(instKey,  s.getF8(instKey)/fmag0)
 
             # flux errors
-            psfFluxErr  = self.calibFluxError(psfFlux,   psfFluxErr,   fmag0, fmag0Err)
-            s.setPsfFluxErr(psfFluxErr)
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getF8(psfKey), s.getF8(psfErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(psfErrKey, psfFluxErr)
 
-            apFluxErr   = self.calibFluxError(apFlux,    apFluxErr,    fmag0, fmag0Err)
-            s.setApFluxErr(apFluxErr)
+            apFluxErr   = qaDataUtils.calibFluxError(s.getF8(psfKey),  s.getF8(apErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(apErrKey, apFluxErr)
 
-            modFluxErr  = self.calibFluxError(modelFlux, modelFluxErr, fmag0, fmag0Err)
-            s.setModelFluxErr(modFluxErr)
+            modFluxErr  = qaDataUtils.calibFluxError(s.getF8(modKey), s.getF8(modErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(modErrKey, modFluxErr)
 
-            instFluxErr = self.calibFluxError(instFlux,  instFluxErr,  fmag0, fmag0Err)
-            s.setInstFluxErr(instFluxErr)
+            instFluxErr = qaDataUtils.calibFluxError(s.getF8(instKey),  s.getF8(instErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(instErrKey, instFluxErr)
 
             dist = 0.0
+
             matchList.append([sref, s, dist])
             multiplicity[s.getId()] = nMatches
 
@@ -267,7 +296,11 @@ class DbQaData(QaData):
             matchList = matchListDict[key]
 
             sources    = sourcesDict[key]
-            refObjects = refObjectsDict[key]
+            if refObjectsDict.has_key(key):
+                refObjects = refObjectsDict[key]
+            else:
+                refObjects = simRefObj.SimRefObjectSet() # an empty set
+
                 
             typeDict[key] = {}
                             
@@ -348,13 +381,13 @@ class DbQaData(QaData):
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
+        setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
-        selectStr = ",".join(selectList)
+        selectStr  = ",".join(selectList)
 
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName,'+selectStr
+        sql  = 'select sce.visit, sce.raftName, sce.ccdName, s.sourceId,'+selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce'
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         haveAllKeys = True
@@ -386,37 +419,53 @@ class DbQaData(QaData):
                     ssDict[key] = ss
             return ssDict
 
+        self.queryCache[dataIdStr] = True
+        
         self.printStartLoad("Loading SourceSets for: " + dataIdStr + "...")
 
         # run the query
         results  = self.dbInterface.execute(sql)
         calib = self.getCalibBySensor(dataIdRegex)
 
+        
         # parse results and put them in a sourceSet
         ssDict = {}
         for k in calib.keys():
-            ssDict[k] = []
-        
-        for row in results:
-            s = pqaSource.Source()
-            qaDataUtils.setSourceBlobsNone(s)
+            catObj = pqaSource.Catalog()
+            ssDict[k] = catObj.catalog
 
-            visit, raft, sensor = row[0:3]
+            psfKey = catObj.keyDict['PsfFlux']
+            apKey  = catObj.keyDict['ApFlux']
+            modKey = catObj.keyDict['ModelFlux']
+            instKey = catObj.keyDict['InstFlux']
+
+            psfErrKey = catObj.keyDict['PsfFluxErr']
+            apErrKey  = catObj.keyDict['ApFluxErr']
+            modErrKey = catObj.keyDict['ModelFluxErr']
+            instErrKey = catObj.keyDict['InstFluxErr']
+                
+
+        for row in results:
+
+
+            visit, raft, sensor, sid = row[0:4]
             dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
             key = self._dataIdToString(dataIdTmp)
             self.dataIdLookup[key] = dataIdTmp
 
-            #if not ssDict.has_key(key):
-            #    ssDict[key] = [] #pqaSource.SourceSet()
-            ss = ssDict[key]
-                
+            s = ssDict[key].addNew()
+            
+            s.setId(sid)
+            
             i = 0
-            for value in row[3:]:
-                method = getattr(s, setMethods[i])
+            for value in row[4:]:
                 if not value is None:
-                    method(value)
+                    setKey = catObj.setKeys[i]
+                    #print value, type(value)
+                    if isinstance(value, str) and len(value) == 1:
+                        value = 1.0 if ord(value) else 0.0
+                    s.setF8(setKey, value)
                 i += 1
-
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
@@ -425,26 +474,28 @@ class DbQaData(QaData):
                 continue
 
             # fluxes
-            s.setPsfFlux(s.getPsfFlux()/fmag0)
-            s.setApFlux(s.getApFlux()/fmag0)
-            s.setModelFlux(s.getModelFlux()/fmag0)
-            s.setInstFlux(s.getInstFlux()/fmag0)
+            s.setF8(psfKey,   s.getF8(psfKey)/fmag0)
+            s.setF8(apKey,    s.getF8(apKey)/fmag0)
+            s.setF8(modKey,   s.getF8(modKey)/fmag0)
+            s.setF8(instKey,  s.getF8(instKey)/fmag0)
 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),   fmag0, fmag0Err)
-            s.setPsfFluxErr(psfFluxErr)
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getF8(psfKey), s.getF8(psfErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(psfErrKey, psfFluxErr)
 
-            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),    fmag0, fmag0Err)
-            s.setApFluxErr(apFluxErr)
+            apFluxErr   = qaDataUtils.calibFluxError(s.getF8(psfKey),  s.getF8(apErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(apErrKey, apFluxErr)
 
-            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(), fmag0, fmag0Err)
-            s.setModelFluxErr(modFluxErr)
+            modFluxErr  = qaDataUtils.calibFluxError(s.getF8(modKey), s.getF8(modErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(modErrKey, modFluxErr)
 
-            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),  fmag0, fmag0Err)
-            s.setInstFluxErr(instFluxErr)
+            instFluxErr = qaDataUtils.calibFluxError(s.getF8(instKey),  s.getF8(instErrKey),
+                                                     fmag0, fmag0Err)
+            s.setF8(instErrKey, instFluxErr)
                 
-            ss.append(s)
-
 
         # cache it
         for k, ss in ssDict.items():
@@ -551,7 +602,7 @@ class DbQaData(QaData):
             sql3 += ' INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase)
             sql3 += ' ON (s.scienceCcdExposureId = sce.scienceCcdExposureId) AND (sce.visit = %s)' % (matchVisit)
             sql3 += '   INNER JOIN %s.RefSrcMatch AS rsm ON (s.sourceId = rsm.sourceId)' % (matchDatabase)
-            sql3 += '   INNER JOIN %s.SimRefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
+            sql3 += '   INNER JOIN %s.RefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
             sql3 += '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
             sql3 += 'WHERE scisql_s2PtInCPoly(s.ra, s.decl, @poly) = 1;'
 
@@ -598,9 +649,9 @@ class DbQaData(QaData):
            
                 for sss in [s, sref]:
                     if isStar == 1:
-                        sss.setFlagForDetection(sss.getFlagForDetection() | measAlg.Flags.STAR)
+                        sss.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
                     else:
-                        sss.setFlagForDetection(sss.getFlagForDetection() & ~measAlg.Flags.STAR)
+                        sss.setFlagForDetection(sss.getFlagForDetection() & ~pqaSource.STAR)
         
                 # fluxes
                 s.setPsfFlux(s.getPsfFlux()/fmag0)
@@ -680,7 +731,7 @@ class DbQaData(QaData):
         for dataIdEntry in dataIdList:
 
             dataIdEntryStr = self._dataIdToString(dataIdEntry)
-
+            
             haveAllKeys = True
             sqlDataId = []
             for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
@@ -694,7 +745,7 @@ class DbQaData(QaData):
             # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
             if oldWay:
                 sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
-                sql += '  from SimRefObject as sro, '
+                sql += '  from RefObject as sro, '
                 sql += '       Science_Ccd_Exposure as sce '
                 sql += '  where (scisql_s2PtInCPoly(sro.ra, sro.decl,'
                 sql += '         scisql_s2CPolyToBin('
@@ -720,7 +771,7 @@ class DbQaData(QaData):
 
                     sql2 = 'SELECT %s ' % (sroFieldStr)
                     sql2 += 'FROM '
-                    sql2 += '    SimRefObject AS sro '
+                    sql2 += '    RefObject AS sro '
                     sql2 += 'WHERE '
                     sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
 
@@ -733,7 +784,7 @@ class DbQaData(QaData):
                     sql2 = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
 
                     sql3  = 'SELECT %s ' % (sroFieldStr)
-                    sql3 += 'FROM SimRefObject AS sro INNER JOIN '
+                    sql3 += 'FROM RefObject AS sro INNER JOIN '
                     sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
                     sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
 

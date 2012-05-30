@@ -40,9 +40,9 @@ def tryThis(func, data, thisDataId, visit, test, testset):
 
     funcName = func.__name__
     if thisDataId.has_key('raft'):
-	label = "v%s_r%s_s%s_%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention], test, funcName)
+        label = "v%s_r%s_s%s_%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention], test, funcName)
     else:
-	label = "v%s_s%s_%s_%s" % (visit, thisDataId[data.ccdConvention], test, funcName)
+        label = "v%s_s%s_%s_%s" % (visit, thisDataId[data.ccdConvention], test, funcName)
 
     
     failed = False
@@ -53,11 +53,11 @@ def tryThis(func, data, thisDataId, visit, test, testset):
         else:
             func(data, thisDataId)
     except Exception, e:
-	failed = True
+        failed = True
         exc_type, exc_value, exc_traceback = sys.exc_info()
         s = traceback.format_exception(exc_type, exc_value,
                                        exc_traceback)
-	
+        
         print "Warning: Exception in QA processing of %s: %s" % (label, str(e))
         #print "       :", "".join(s)
 
@@ -75,7 +75,7 @@ def tryThis(func, data, thisDataId, visit, test, testset):
 
 def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matchVisits=None, testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
-	 groupInfo=None, delaySummary=False, forkFigure=False):
+         groupInfo=None, delaySummary=False, forkFigure=False):
 
     visitList = []
     if isinstance(dataIdInput['visit'], list):
@@ -92,7 +92,8 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
 
     data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera,
-			     shapeAlg=policy.get('shapeAlgorithm'))
+                             shapeAlg=policy.get('shapeAlgorithm'))
+
 
     dataIdInput = data.cameraInfo.adaptDataId(dataIdInput)    
 
@@ -188,6 +189,10 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                                                                     delaySummary=delaySummary))
 
 
+    # always run performance summary
+    analysisList.append(qaAnalysis.performanceQa(useCache=keep, wwwCache=wwwCache,
+                                                 delaySummary=delaySummary))
+        
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
     
@@ -202,19 +207,19 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
     
     groupTag = ""
     if not groupInfo is None:
-	groupSize, whichGroup = map(int, groupInfo.split(":"))
-	lo, hi = whichGroup*groupSize, (whichGroup+1)*groupSize
+        groupSize, whichGroup = map(int, groupInfo.split(":"))
+        lo, hi = whichGroup*groupSize, (whichGroup+1)*groupSize
 
-	nvisit = len(visits)
-	if lo >= nvisit:
-	    print "Can't run visits %d to %d as there are only %d visits" % (lo, hi, nvisit)
-	    sys.exit()
-	if hi > nvisit:
-	    hi = nvisit
-	visits = visits[lo:hi]
+        nvisit = len(visits)
+        if lo >= nvisit:
+            print "Can't run visits %d to %d as there are only %d visits" % (lo, hi, nvisit)
+            sys.exit()
+        if hi > nvisit:
+            hi = nvisit
+        visits = visits[lo:hi]
 
-	print "Total of %d visits grouped by %d.  Running group %d with visits %d - %d:\n%s\n" % \
-	      (nvisit, groupSize, whichGroup, lo, hi-1, "\n".join(visits))
+        print "Total of %d visits grouped by %d.  Running group %d with visits %d - %d:\n%s\n" % \
+              (nvisit, groupSize, whichGroup, lo, hi-1, "\n".join(visits))
         groupTag = "%02d-%02d" % (groupSize, whichGroup)
 
 
@@ -249,7 +254,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
                 test_t0 = time.time()
                 test = str(a)
-                if not re.search(testRegex, test):
+                if not re.search(testRegex, test) and not re.search('performance', test):
                     continue
 
                 date = datetime.datetime.now().strftime("%a %Y-%m-%d %H:%M:%S")
@@ -267,7 +272,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                             a.plot(data, thisDataId)
                             sys.exit()
                         else:
-                            os.waidpid(pid, 0)
+                            os.waitpid(pid, 0)
                     else:
                         a.plot(data, thisDataId)
                     memory = getMemUsageThisPid()
@@ -290,27 +295,27 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                     else:
                         # try the plot() method
                         tryThis(a.plot, data, thisDataId, visit, test, testset)
-                        
-                    memory = getMemUsageThisPid()
                     # try the free() method
+                    memory = getMemUsageThisPid()
                     tryThis(a.free, data, thisDataId, visit, test, testset)
 
-
+                    
                 test_tf = time.time()
                 tstamp = time.mktime(datetime.datetime.now().timetuple())
                 idstamp = ""
-		for k,v in thisDataId.items():
-		    idstamp += k[0]+str(v)
+                for k,v in thisDataId.items():
+                    idstamp += k[0]+str(v)
                 useFp.write("%-12.1f %-24s %-32s %9.2fs %7d %7.2f\n" %
                             (tstamp, idstamp, test, test_tf-test_t0, memory, memory/1024.0))
                 useFp.flush()
 
-            # we're now done this dataId ... can clear the cache            
+            # we're now done this dataId ... can clear the cache
             data.clearCache()
-	    raftName = ""
-	    if thisDataId.has_key('raft'):
-		raftName = thisDataId['raft']+"-"
-	    ccdName = thisDataId[data.ccdConvention]
+            
+            raftName = ""
+            if thisDataId.has_key('raft'):
+                raftName = thisDataId['raft']+"-"
+            ccdName = thisDataId[data.ccdConvention]
             progset.addTest(visit, 0, [1, 1], "Processing. Done %s%s." % (raftName,ccdName))
         progset.addTest(visit, 1, [1, 1], "Done processing.")
 
@@ -334,7 +339,7 @@ if __name__ == '__main__':
     parser.add_option("-b", "--breakBy", default="visit",
                       help="Break the run by 'visit','raft', or 'ccd' (default=%default)")
     parser.add_option("-C", "--camera", default=None,
-		      help="Specify a camera and override auto-detection (default=%default)")
+                      help="Specify a camera and override auto-detection (default=%default)")
     parser.add_option("-c", "--ccd", default=".*",
                       help="Specify ccd as regex (default=%default)")
     parser.add_option("-d", "--delaySummary", default=False, action="store_true",
@@ -344,7 +349,7 @@ if __name__ == '__main__':
     parser.add_option("-f", "--forkFigure", default=False, action='store_true',
                       help="Make figures in separate process (default=%default)")
     parser.add_option("-g", "--group", default=None,
-		      help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%default)")
+                      help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%default)")
     parser.add_option("-k", "--keep", default=False, action="store_true",
                       help="Keep existing outputs (default=%default)")
     parser.add_option("-r", "--raft", default=".*",

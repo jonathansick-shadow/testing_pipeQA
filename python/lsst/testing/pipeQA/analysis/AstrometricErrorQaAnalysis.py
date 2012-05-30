@@ -3,6 +3,8 @@ import lsst.meas.algorithms        as measAlg
 import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
+import time
+
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
 
@@ -10,6 +12,8 @@ import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
+
+import lsst.testing.pipeQA.source as pqaSource
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -47,8 +51,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
         del self.medErrArcsec
         del self.medThetaRad
+
+        del self.sCatDummy
+        del self.srefCatDummy
         
     def test(self, data, dataId):
+
+        t0 = time.time()
         
         # get data
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
@@ -64,6 +73,20 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.x    = raftCcdData.RaftCcdVector(self.detector)
         self.y    = raftCcdData.RaftCcdVector(self.detector)
 
+        self.sCatDummy = pqaSource.Catalog()
+        sCatDummy = self.sCatDummy.catalog
+        sCatSchema = sCatDummy.getSchema()
+        self.srefCatDummy  = pqaSource.RefCatalog()
+        srefCatDummy = self.srefCatDummy.catalog
+        srefCatSchema = srefCatDummy.getSchema()
+        
+        xKey      = sCatSchema.find('XAstrom').key
+        yKey      = sCatSchema.find('YAstrom').key
+        raKey     = sCatSchema.find('Ra').key
+        decKey    = sCatSchema.find('Dec').key
+        refRaKey  = srefCatSchema.find('Ra').key
+        refDecKey = srefCatSchema.find('Dec').key
+
         filter = None
         for key in self.matchListDictSrc.keys():
             raft = self.detector[key].getParent().getId().getName()
@@ -74,16 +97,17 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [x*numpy.pi/180.0 for x in [s.getRa(), s.getDec(), sref.getRa(), sref.getDec()]]
+                    [x*numpy.pi/180.0 for x in [s.getF8(raKey), s.getF8(decKey),
+                                                sref.getF8(refRaKey), sref.getF8(refDecKey)]]
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
 
-                if not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER ):
+                if not (s.getF8(sCatSchema.find('FlagPixInterpCen').key)):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
-                    self.x.append(raft, ccd, s.getXAstrom())
-                    self.y.append(raft, ccd, s.getYAstrom())
+                    self.x.append(raft, ccd, s.getF8(xKey))
+                    self.y.append(raft, ccd, s.getF8(yKey))
                     
                     
         testSet = self.getTestSet(data, dataId)
@@ -120,9 +144,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             test = testCode.Test(label, medErrArcsec, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
 
-
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "AstrometricErrorQaAnalysis", "test-runtime", dt)
+        
     def plot(self, data, dataId, showUndefined=False):
 
+        t0 = time.time()
+        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
 
@@ -214,7 +242,11 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             testSet.addFigure(allFig, "astromError.png", "Astrometric error"+label, areaLabel=label)
             del allFig
             
+        dt = time.time() - t0
+        data.cachePerformance(dataId, "AstrometricErrorQaAnalysis", "plot-runtime", dt)
 
+
+        
     def standardFigure(self, x, y, dx, dy, gridVectors=False):
 
 
@@ -398,5 +430,6 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         for tic in ax0.get_xticklabels() + ax0.get_yticklabels(): # + ax.get_xticklabels():
             tic.set_size("xx-small")
 
+            
         return fig
 

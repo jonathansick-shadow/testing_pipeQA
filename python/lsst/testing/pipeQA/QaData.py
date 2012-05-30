@@ -42,13 +42,14 @@ class QaData(object):
 
         self.brokenDataIdList = []
 
-	self.ccdConvention = 'ccd'
-	if self.cameraInfo.name == 'lsstSim':
-	    self.ccdConvention = 'sensor'
+
+        self.ccdConvention = 'ccd'
+        if self.cameraInfo.name == 'lsstSim':
+            self.ccdConvention = 'sensor'
         if self.cameraInfo.name == 'sdss':
             self.ccdConvention = 'camcol'
 
-	
+        
     def printStartLoad(self, message):
         if self.loadDepth > 0:
             print "\n", " "*4*self.loadDepth, message,
@@ -118,6 +119,8 @@ class QaData(object):
         self.filterCache = {}
         self.calibCache = {}
 
+        self.performCache = {}
+        
         # store the explicit dataId (ie. no regexes) for each key used in a cache
         self.dataIdLookup = {}
 
@@ -142,19 +145,57 @@ class QaData(object):
             }
 
 
+    def cachePerformance(self, dataIdStr, test, label, value):
+        if isinstance(dataIdStr, dict):
+            dataIdStr = self._dataIdToString(dataIdStr)
+            
+        if not self.performCache.has_key(dataIdStr):
+            self.performCache[dataIdStr] = {}
+        if not self.performCache[dataIdStr].has_key(test):
+            self.performCache[dataIdStr][test] = {}
+            self.performCache[dataIdStr]['total'] = {}
+            
+        if not self.performCache[dataIdStr][test].has_key(label):
+            self.performCache[dataIdStr][test][label] = 0.0
+        if not self.performCache[dataIdStr]['total'].has_key(label):
+            self.performCache[dataIdStr]['total'][label] = 0.0
+            
+        self.performCache[dataIdStr][test][label]    += value
+        self.performCache[dataIdStr]['total'][label] += value
+
+        
+    def getPerformance(self, dataIdStr, test, label):
+        if isinstance(dataIdStr, dict):
+            dataIdStr = self._dataIdToString(dataIdStr)
+        if self.performCache.has_key(dataIdStr):
+            if self.performCache[dataIdStr].has_key(test):
+                if self.performCache[dataIdStr][test].has_key(label):
+                    return self.performCache[dataIdStr][test][label]
+        return None
+
     def clearCache(self):
         """Reset all internal cache attributes."""
         for cache in self.cacheList.values():
             for key in cache.keys():
-                del cache[key]
+                #sys.stderr.write( "Clearing "+key+"\n")
+                if isinstance(cache[key], dict):
+                    for key2 in cache[key].keys():
+                        del cache[key][key2]
+                else:
+                    del cache[key]
         self.initCache()
 
     def printCache(self):
-        for name, cache in self.cacheList.items():
+        for name, cache in self.__dict__.items(): #cacheList.items():
+            if re.search("^_", name):
+                continue
             n = 0
-            for key in cache:
-                if hasattr(cache[key], "__len__"):
-                    n += len(cache[key])
+            if isinstance(cache, dict):
+                for key in cache:
+                    if hasattr(cache[key], "__len__"):
+                        n += len(cache[key])
+            if isinstance(cache, list):
+                n = len(cache)
             print name, n
                 
 

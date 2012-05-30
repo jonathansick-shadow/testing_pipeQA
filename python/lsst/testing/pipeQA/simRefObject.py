@@ -30,9 +30,9 @@ else:
     class SimRefObject(object):
 
         flookup = {
-	    "u":0, "g": 1, "r":2, "i":3, "z":4, "y":5,
-	    "B":1, 'V':2, 'R':2, 'I':3,
-	    }
+            "u":0, "g": 1, "r":2, "i":3, "z":4, "y":5,
+            "B":1, 'V':2, 'R':2, 'I':3,
+            }
 
         def __init__(self, *sroStuff):
 

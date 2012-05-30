@@ -85,7 +85,7 @@ def getSourceSetNameList():
     """Associate Source accessor names to database columns in a list of pairs. """
     
     accessors = [
-        ["Id",                           "sourceId" ], #"objectId"                      ],
+        #["Id",                           "sourceId" ], #"objectId"                      ],
         ["Ra",                           "ra",                           ],
         ["Dec",                          "decl",                         ],
         #["RaErrForWcs",                  "raSigmaForWcs",                ],
@@ -104,9 +104,9 @@ def getSourceSetNameList():
         #["YPeak",                        "yPeak",                        ],
         #["RaPeak",                       "raPeak",                       ],
         #["DecPeak",                      "declPeak",                     ],
-        ["XAstrom",                      "xAstrom",                      ],
+        ["XAstrom",                      "x",                      ],
         #["XAstromErr",                   "xAstromSigma",                 ],
-        ["YAstrom",                      "yAstrom",                      ],
+        ["YAstrom",                      "y",                      ],
         #["YAstromErr",                   "yAstromSigma",                 ],
         #["RaAstrom",                     "raAstrom",                     ],
         #["RaAstromErr",                  "raAstromSigma",                ],
@@ -118,46 +118,54 @@ def getSourceSetNameList():
         ["PsfFluxErr",                   "psfFluxSigma",                 ],
         ["ApFlux",                       "apFlux",                       ],
         ["ApFluxErr",                    "apFluxSigma",                  ],
-        #["ModelFlux",                    "modelFlux",                    ],
-        ["ModelFlux",                    "flux_ESG",                 ], 
-        ["ModelFluxErr",                 "flux_ESG_Sigma",               ],
-        #["InstFlux",                     "instFlux",                     ],
-        ["InstFlux",                      "flux_Gaussian",                     ], 
-        ["InstFluxErr",                  "flux_Gaussian_Sigma",                ],
+        ["ModelFlux",                    "modelFlux",                    ],
+        ["ModelFluxErr",                    "modelFluxSigma",                    ],
+        #["ModelFlux",                    "flux_ESG",                 ], 
+        #["ModelFluxErr",                 "flux_ESG_Sigma",               ],
+        ["InstFlux",                     "instFlux",                     ],
+        ["InstFluxErr",                     "instFluxSigma",                     ],
+        #["InstFlux",                      "flux_Gaussian",                     ], 
+        #["InstFluxErr",                  "flux_Gaussian_Sigma",                ],
         #["NonGrayCorrFlux",              "nonGrayCorrFlux",              ],
         #["NonGrayCorrFluxErr",           "nonGrayCorrFluxSigma",         ],
         #["AtmCorrFlux",                  "atmCorrFlux",                  ],
         #["AtmCorrFluxErr",               "atmCorrFluxSigma",             ],
         #["ApDia",                        "apDia",                        ],
-        ["Ixx",                          "ixx",                          ],
+        ["Ixx",                          "shapeIxx",                          ],
         #["IxxErr",                       "ixxSigma",                     ],
-        ["Iyy",                          "iyy",                          ],
+        ["Iyy",                          "shapeIyy",                          ],
         #["IyyErr",                       "iyySigma",                     ],
-        ["Ixy",                          "ixy",                          ],
+        ["Ixy",                          "shapeIxy",                          ],
         #["IxyErr",                       "ixySigma",                     ],
-        ["PsfIxx",                       "psfIxx",                       ],
-        ["PsfIxxErr",                    "psfIxxSigma",                  ],
-        ["PsfIyy",                       "psfIyy",                       ],
-        ["PsfIyyErr",                    "psfIyySigma",                  ],
-        ["PsfIxy",                       "psfIxy",                       ],
-        ["PsfIxyErr",                    "psfIxySigma",                  ],
-        ["Resolution",                   "resolution_SG",                ],
-        ["E1",                           "e1_SG",                        ],
-        ["E1Err",                        "e1_SG_Sigma",                  ],
-        ["E2",                           "e2_SG",                        ],
-        ["E2Err",                        "e2_SG_Sigma",                  ],
-        ["Shear1",                       "shear1_SG",                    ],
-        ["Shear1Err",                    "shear1_SG_Sigma",              ],
-        ["Shear2",                       "shear2_SG",                    ],
-        ["Shear2Err",                    "shear2_SG_Sigma",              ],
-        ["Sigma",                        "sourceWidth_SG",               ],
-        ["SigmaErr",                     "sourceWidth_SG_Sigma",         ],
+        #["PsfIxx",                       "psfIxx",                       ],
+        #["PsfIxxErr",                    "psfIxxSigma",                  ],
+        #["PsfIyy",                       "psfIyy",                       ],
+        #["PsfIyyErr",                    "psfIyySigma",                  ],
+        #["PsfIxy",                       "psfIxy",                       ],
+        #["PsfIxyErr",                    "psfIxySigma",                  ],
+        #["Resolution",                   "resolution_SG",                ],
+        #["E1",                           "e1_SG",                        ],
+        #["E1Err",                        "e1_SG_Sigma",                  ],
+        #["E2",                           "e2_SG",                        ],
+        #["E2Err",                        "e2_SG_Sigma",                  ],
+        #["Shear1",                       "shear1_SG",                    ],
+        #["Shear1Err",                    "shear1_SG_Sigma",              ],
+        #["Shear2",                       "shear2_SG",                    ],
+        #["Shear2Err",                    "shear2_SG_Sigma",              ],
+        #["Sigma",                        "sourceWidth_SG",               ],
+        #["SigmaErr",                     "sourceWidth_SG_Sigma",         ],
         #["ShapeStatus",                  "shapeStatus",                  ],
         #["Snr",                          "snr",                          ],
         #["Chi2",                         "chi2",                         ],
         #["FlagForAssociation",           "flagForAssociation",           ],
-        ["FlagForDetection",             "flagForDetection",             ],
+        #["FlagForDetection",             "flagForDetection",             ],
         #["FlagForWcs",                   "flagForWcs",                   ],
+        ["FlagPixInterpCen",              "flagPixInterpCen",             ],
+        ["FlagNegative",                  "flagNegative",             ],
+        ["FlagPixEdge",                   "flagPixEdge",             ],
+        ["FlagBadCentroid",               "flagBadCentroid",             ],
+        ["FlagPixSaturCen",               "flagPixSaturCen",             ],
+        ["Extendedness",                  "extendedness",                 ],
         ]
     return accessors
 
@@ -268,24 +276,24 @@ def getCalibObjects(butler, filterName, dataId):
     # - numbers from suprimecam.paf, method in Calibrate.py
     #####################
     primaryLookup = {
-	#"B" : "g",
-	#"V" : "g",
-	#"R" : "r",
-	#"I" : "i",
-	"g" : "g",
-	"g" : "g",
-	"r" : "r",
-	"i" : "i",
-	}
+        #"B" : "g",
+        #"V" : "g",
+        #"R" : "r",
+        #"I" : "i",
+        "g" : "g",
+        "g" : "g",
+        "r" : "r",
+        "i" : "i",
+        }
     # The below colour terms are from the last page of
     # http://www.naoj.org/staff/nakata/suprime/illustration/colorterm_report_ver3.pdf
     secondaryLookup = {
-	"g" : ["r", [-0.00569, -0.0427]],
+        "g" : ["r", [-0.00569, -0.0427]],
         "r" : ["g", [0.00261, 0.0304]],
         "i" : ["r", [0.00586, 0.0827, -0.0118]],
-	"z" : ['i', [0.000329, 0.0608, 0.0219]],
-	"y" : ['i', [0.000329, 0.0608, 0.0219]],
-	}
+        "z" : ['i', [0.000329, 0.0608, 0.0219]],
+        "y" : ['i', [0.000329, 0.0608, 0.0219]],
+        }
     # figure out which filters we need for the color term
     primaryFilter   = primaryLookup[filterName]      # Primary band for correction
     secondaryFilter = secondaryLookup[primaryFilter][0]  # Secondary band for correction
@@ -365,14 +373,14 @@ def getCalibObjects(butler, filterName, dataId):
     # We already have the 'primary' magnitudes in the matches
     secondariesDict = dict()
     for s in secondaryRefsources:
-	secondariesDict[s.getId()] = (s.getPsfFlux(), s.getPsfFluxErr())
+        secondariesDict[s.getId()] = (s.getPsfFlux(), s.getPsfFluxErr())
     del secondaryRefsources
 
 
     keepref = []
     keepi = []
     for i in xrange(len(refsources)):
-	ra, dec = refsources[i].getRa(), refsources[i].getDec() # ra,dec in Rads
+        ra, dec = refsources[i].getRa(), refsources[i].getDec() # ra,dec in Rads
         x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(180/numpy.pi*ra, 180/numpy.pi*dec)))
 
         if x < 0 or y < 0 or x > W or y > H:
@@ -383,11 +391,11 @@ def getCalibObjects(butler, filterName, dataId):
         if stargal[i]:
             refsources[i].setFlagForDetection(refsources[i].getFlagForDetection() | fdict["STAR"])
 
-	# color term
-	primaryMag = -2.5*numpy.log10(refsources[i].getPsfFlux())
-	secondaryMag = -2.5*numpy.log10(secondariesDict[refsources[i].getId()][0])
-	diff = polynomial(primaryMag - secondaryMag)
-	refsources[i].setPsfFlux(10.0**(-0.4*(primaryMag+diff)))
+        # color term
+        primaryMag = -2.5*numpy.log10(refsources[i].getPsfFlux())
+        secondaryMag = -2.5*numpy.log10(secondariesDict[refsources[i].getId()][0])
+        diff = polynomial(primaryMag - secondaryMag)
+        refsources[i].setPsfFlux(10.0**(-0.4*(primaryMag+diff)))
 
         keepref.append(refsources[i])
         keepi.append(i)
@@ -419,9 +427,9 @@ def calibFluxError(f, df, f0, df0):
             return numpy.NaN
 
     if f > 0.0 and f0 > 0.0:
-	return (df/f + df0/f0)*f/f0
+        return (df/f + df0/f0)*f/f0
     else:
-	return numpy.NaN
+        return numpy.NaN
 
 def atEdge(bbox, x, y):
 
