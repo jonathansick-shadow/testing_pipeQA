@@ -27,6 +27,7 @@ import CameraInfo as qaCamInfo
 
 import QaDataUtils as qaDataUtils
 import simRefObject as simRefObj
+import source       as pqaSource
 
 from QaData import QaData
 
@@ -218,7 +219,9 @@ class ButlerQaData(QaData):
             if isWritten:
                 #persistableMatchVector = self.outButler.get('icMatch', dataId)
 
-                matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
+                #matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
+                matches, calib, refsources = [], None, []
+                
                 self.matchListCache[dataKey] = {
                     'orphan' : [],
                     'matched' : [],
@@ -234,26 +237,85 @@ class ButlerQaData(QaData):
                     
                     fmag0, fmag0err = calib.getFluxMag0()
                     for m in matches:
-                        sref, s, dist = m
-                        if ((not sref is None) and (not s is None)):
-                            s.setApFlux(s.getApFlux()/fmag0)
-                            s.setPsfFlux(s.getPsfFlux()/fmag0)
-                            s.setModelFlux(s.getModelFlux()/fmag0)
-                            s.setInstFlux(s.getInstFlux()/fmag0)
+                        srefIn, sIn, dist = m
+                        if ((not srefIn is None) and (not sIn is None)):
+
+                            if not matchListDict.has_key(key):
+                                refCatObj = pqaSource.RefCatalog()
+                                refCat    = refCatObj.catalog
+                                catObj    = pqaSource.Catalog()
+                                cat       = catObj.catalog
+
+                                matchListDict[key] = []
+
+                                refRaKey   = refCatObj.keyDict['Ra']
+                                refDecKey  = refCatObj.keyDict['Dec']
+                                refPsfKey  = refCatObj.keyDict['PsfFlux']
+                                refApKey   = refCatObj.keyDict['ApFlux']
+                                refModKey  = refCatObj.keyDict['ModelFlux']
+                                refInstKey = refCatObj.keyDict['InstFlux']
+
+                                psfKey     = catObj.keyDict['PsfFlux']
+                                apKey      = catObj.keyDict['ApFlux']
+                                modKey     = catObj.keyDict['ModelFlux']
+                                instKey    = catObj.keyDict['InstFlux']
+
+                                psfErrKey  = catObj.keyDict['PsfFluxErr']
+                                apErrKey   = catObj.keyDict['ApFluxErr']
+                                modErrKey  = catObj.keyDict['ModelFluxErr']
+                                instErrKey = catObj.keyDict['InstFluxErr']
+
+
+                            matchList = matchListDict[key]
+
+                            # reference objects
+                            sref = refCat.addNew()
+
+                            sref.setId(sref.getId()) # this should be refobjId
+                            sref.setF8(refRaKey, srefIn.getRa())
+                            sref.setF8(refDecKey, srefIn.getDec())
+                            mag = 1.0 # Where is this?
+                            flux = 10**(-mag/2.5)
+                            sref.setF8(refPsfKey, flux)
+                            sref.setF8(refApKey, flux)
+                            sref.setF8(refModKey, flux)
+                            sref.setF8(refInstKey, flux)
+
+                            # sources
+                            s = cat.addNew()
+                            s.setId(srcId)
+                            isStar = 1
+                            s.setF8(catObj.keyDict['Extendedness'], isStar)
+
+
+                            #sref.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
+
+                            fmag0, fmag0Err = calib[key].getFluxMag0()
+
+                            # fluxes
+                            s.setF8(psfKey,   s.getF8(psfKey)/fmag0)
+                            s.setF8(apKey,    s.getF8(apKey)/fmag0)
+                            s.setF8(modKey,   s.getF8(modKey)/fmag0)
+                            s.setF8(instKey,  s.getF8(instKey)/fmag0)
+
                             # flux errors
-                            psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),
-                                                                     fmag0, fmag0err)
-                            apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),
-                                                                     fmag0, fmag0err)
-                            modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(),
-                                                                     fmag0, fmag0err)
-                            instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),
-                                                                     fmag0, fmag0err)
-                            s.setPsfFluxErr(psfFluxErr)
-                            s.setApFluxErr(apFluxErr)
-                            s.setModelFluxErr(modFluxErr)
-                            s.setInstFluxErr(instFluxErr)
-                            
+                            psfFluxErr  = qaDataUtils.calibFluxError(s.getF8(psfKey), s.getF8(psfErrKey),
+                                                                     fmag0, fmag0Err)
+                            s.setF8(psfErrKey, psfFluxErr)
+
+                            apFluxErr   = qaDataUtils.calibFluxError(s.getF8(psfKey),  s.getF8(apErrKey),
+                                                                     fmag0, fmag0Err)
+                            s.setF8(apErrKey, apFluxErr)
+
+                            modFluxErr  = qaDataUtils.calibFluxError(s.getF8(modKey), s.getF8(modErrKey),
+                                                                     fmag0, fmag0Err)
+                            s.setF8(modErrKey, modFluxErr)
+
+                            instFluxErr = qaDataUtils.calibFluxError(s.getF8(instKey),  s.getF8(instErrKey),
+                                                                     fmag0, fmag0Err)
+                            s.setF8(instErrKey, instFluxErr)
+
+                                                        
                             if True: #re.search("lsst", self.cameraInfo.name):
                                 s.setRa((180.0/numpy.pi)*s.getRa())
                                 s.setDec((180.0/numpy.pi)*s.getDec())
@@ -306,74 +368,132 @@ class ButlerQaData(QaData):
                 calib = calibDict[dataKey]
 
                 if not calib is None:
-                    fmag0, fmag0err = calib.getFluxMag0()
+                    fmag0, fmag0Err = calib.getFluxMag0()
                 else:
                     print "Warning: no calib available, fluxes uncalibrated."
-                    fmag0, fmag0err = 1.0, 1.0
+                    fmag0, fmag0Err = 1.0, 1.0
+
+
+                catObj = pqaSource.Catalog()
+                cat  = catObj.catalog
+
+                raKey  = catObj.keyDict['Ra']     
+                decKey = catObj.keyDict['Dec']    
+                xKey   = catObj.keyDict['XAstrom']
+                yKey   = catObj.keyDict['YAstrom']
+
+                ixxKey = catObj.keyDict['Ixx']
+                iyyKey = catObj.keyDict['Iyy']
+                ixyKey = catObj.keyDict['Ixy']
+
+                intCenKey  = catObj.keyDict['FlagPixInterpCen']     
+                negKey     = catObj.keyDict['FlagNegative']    
+                edgeKey    = catObj.keyDict['FlagPixEdge']     
+                badCenKey  = catObj.keyDict['FlagBadCentroid'] 
+                satCenKey  = catObj.keyDict['FlagPixSaturCen']     
+                extKey     = catObj.keyDict['Extendedness']
+
+
+                psfKey = catObj.keyDict['PsfFlux']
+                apKey  = catObj.keyDict['ApFlux']
+                modKey = catObj.keyDict['ModelFlux']
+                instKey = catObj.keyDict['InstFlux']
+            
+                psfErrKey = catObj.keyDict['PsfFluxErr']
+                apErrKey  = catObj.keyDict['ApFluxErr']
+                modErrKey = catObj.keyDict['ModelFluxErr']
+                instErrKey = catObj.keyDict['InstFluxErr']
                     
                 for s in sourceCatalog:
-                    s.setApFlux(s.getApFlux()/fmag0)
-                    s.setPsfFlux(s.getPsfFlux()/fmag0)
-                    s.setModelFlux(s.getModelFlux()/fmag0)
-                    s.setInstFlux(s.getInstFlux()/fmag0)
+                    rec = cat.addNew()
+                    rec.setId(s.getId())
 
+                    rec.setF8(raKey,    float(s.getRa()))
+                    rec.setF8(decKey,   float(s.getDec()))
+                    rec.setF8(xKey,     float(s.getX())) #Astrom()))
+                    rec.setF8(yKey,     float(s.getY())) #Astrom()))
+                    
+                    # fluxes
+                    rec.setF8(psfKey,   float(s.getPsfFlux())/fmag0)
+                    rec.setF8(apKey,    float(s.getApFlux())/fmag0)
+                    rec.setF8(modKey,   float(s.getModelFlux())/fmag0)
+                    rec.setF8(instKey,  float(s.getInstFlux())/fmag0)
+
+                    # shapes
+                    rec.setF8(ixxKey,   float(s.getIxx()))
+                    rec.setF8(iyyKey,   float(s.getIyy()))
+                    rec.setF8(ixyKey,   float(s.getIxy()))
+                    
+                    # flags
+                    rec.setF8(intCenKey, s.get('flags.pixel.interpolated.center')+0.0)
+                    rec.setF8(negKey,    s.get('flags.negative')+0.0)
+                    rec.setF8(edgeKey,   s.get('flags.pixel.edge')+0.0)
+                    rec.setF8(badCenKey, s.get('flags.badcentroid')+0.0)
+                    rec.setF8(satCenKey, s.get('flags.pixel.saturated.center')+0.0)
+                    rec.setF8(extKey,    s.get('classification.extendedness')+0.0)
+                    
+                    
                     # flux errors
-                    psfFluxErr  = qaDataUtils.calibFluxError(s.getPsfFlux(),   s.getPsfFluxErr(),
-                                                             fmag0, fmag0err)
-                    apFluxErr   = qaDataUtils.calibFluxError(s.getApFlux(),    s.getApFluxErr(),
-                                                             fmag0, fmag0err)
-                    modFluxErr  = qaDataUtils.calibFluxError(s.getModelFlux(), s.getModelFluxErr(),
-                                                             fmag0, fmag0err)
-                    instFluxErr = qaDataUtils.calibFluxError(s.getInstFlux(),  s.getInstFluxErr(),
-                                                             fmag0, fmag0err)
-                    s.setPsfFluxErr(psfFluxErr)
-                    s.setApFluxErr(apFluxErr)
-                    s.setModelFluxErr(modFluxErr)
-                    s.setInstFluxErr(instFluxErr)
+                    psfFluxErr  = qaDataUtils.calibFluxError(float(s.getPsfFlux()), float(s.getPsfFluxErr()),
+                                                             fmag0, fmag0Err)
+                    rec.setF8(psfErrKey, psfFluxErr)
+
+                    apFluxErr   = qaDataUtils.calibFluxError(float(s.getApFlux()),  float(s.getApFluxErr()),
+                                                             fmag0, fmag0Err)
+                    rec.setF8(apErrKey, apFluxErr)
+                    
+                    modFluxErr  = qaDataUtils.calibFluxError(float(s.getModelFlux()), float(s.getModelFluxErr()),
+                                                             fmag0, fmag0Err)
+                    rec.setF8(modErrKey, modFluxErr)
+                    
+                    instFluxErr = qaDataUtils.calibFluxError(float(s.getInstFlux()),  float(s.getInstFluxErr()),
+                                                             fmag0, fmag0Err)
+                    rec.setF8(instErrKey, instFluxErr)
 
 
-                self.sourceSetCache[dataKey] = sourceSetTmp
-                ssDict[dataKey] = copy.copy(sourceSetTmp)
+                self.sourceSetCache[dataKey] = catObj.catalog
+                ssDict[dataKey] = copy.copy(catObj.catalog)
                 self.dataIdLookup[dataKey] = dataId
 
 
-                # now see if we have 'source' to slurb out the blobs
-                sourceFile = self.outButler.get('source_filename', dataId)[0]
-                if os.path.exists(sourceFile):
+                if False:
+                    # now see if we have 'source' to slurp out the blobs
+                    sourceFile = self.outButler.get('source_filename', dataId)[0]
+                    if os.path.exists(sourceFile):
 
-                    fits = pyfits.open(sourceFile)
-                    table = fits[1].data
-                    columns = fits[1].columns.names
-                    fits.close()
+                        fits = pyfits.open(sourceFile)
+                        table = fits[1].data
+                        columns = fits[1].columns.names
+                        fits.close()
 
-                    haveShape = False
-                    shapeColumns = []
-                    for column in columns:
-                        if re.search(self.shapeAlg, column):
-                            haveShape = True
-                            srcCol = re.sub("shape_"+self.shapeAlg+"_", "", column)
-                            shapeColumns.append(srcCol)
+                        haveShape = False
+                        shapeColumns = []
+                        for column in columns:
+                            if re.search(self.shapeAlg, column):
+                                haveShape = True
+                                srcCol = re.sub("shape_"+self.shapeAlg+"_", "", column)
+                                shapeColumns.append(srcCol)
 
-                    if haveShape:
-                        prefix = "shape_"+self.shapeAlg+"_"
+                        if haveShape:
+                            prefix = "shape_"+self.shapeAlg+"_"
 
-                        # single pass through to store by ID
-                        rowById = {}
-                        for i in range(len(table)):
-                            row = table[i]
-                            objId = row.field('objId')
-                            rowById[objId] = row
+                            # single pass through to store by ID
+                            rowById = {}
+                            for i in range(len(table)):
+                                row = table[i]
+                                objId = row.field('objId')
+                                rowById[objId] = row
 
-                        # go through all sources and reset the shapes accordingly
-                        for s in self.sourceSetCache[dataKey]:
-                            row = rowById[s.getId()]
-                            
-                            for column in shapeColumns:
-                                value = row.field(prefix+column)
-                                setterName = "set"+column.title()
-                                if hasattr(s, setterName):
-                                    setMethod = getattr(s, setterName)
-                                    setMethod(value)
+                            # go through all sources and reset the shapes accordingly
+                            for s in self.sourceSetCache[dataKey]:
+                                row = rowById[s.getId()]
+
+                                for column in shapeColumns:
+                                    value = row.field(prefix+column)
+                                    setterName = "set"+column.title()
+                                    if hasattr(s, setterName):
+                                        setMethod = getattr(s, setterName)
+                                        setMethod(value)
                             
  
             else:

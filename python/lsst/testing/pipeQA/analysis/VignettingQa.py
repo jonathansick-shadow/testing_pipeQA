@@ -143,7 +143,11 @@ class VignettingQa(qaAna.QaAnalysis):
 
                 # Calculate stats
                 dmags = self.dmag.get(raftId, ccdId)
-                med   = num.median(dmags)
+                if len(dmags) > 0:
+                    med = num.median(dmags)
+                else:
+                    med = 0.0
+                    
                 std   = 0.0
                 if len(dmags) > 1:
                     stat  = afwMath.makeStatistics(dmags, afwMath.IQRANGE)

@@ -32,7 +32,7 @@ class QaAnalysis(object):
         @param label   a label for particular TestSet
         """
         
-        group = dataId['visit']
+        group = dataId[data.cameraInfo.dataIdTranslationMap['visit']]
         filter = data.getFilterBySensor(dataId)
         # all sensors have the same filter, so just grab one
         key = filter.keys()[0]

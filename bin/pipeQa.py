@@ -396,6 +396,7 @@ if __name__ == '__main__':
         'raft': opts.raft,
         'snap': opts.snap,
         }
+        
     rerun = opts.rerun
     dataset, = args
 

@@ -206,8 +206,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     intcen = s.getF8(self.sCatDummy.FlagPixInterpCenKey)
                     satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getF8(self.sCatDummy.FlagPixEdgeKey)
-                    
+
                     if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
+
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
@@ -219,11 +220,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         #    print "isStar: ", star
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
-			    self.diff.append(raft, ccd, m1 - m2)
-			    self.mag.append(raft, ccd, m1)
-			    self.x.append(raft, ccd, s.getF8(self.sCatDummy.XAstromKey))
-			    self.y.append(raft, ccd, s.getF8(self.sCatDummy.YAstromKey))
-			    self.star.append(raft, ccd, star)
+                            self.diff.append(raft, ccd, m1 - m2)
+                            self.mag.append(raft, ccd, m1)
+                            self.x.append(raft, ccd, s.getF8(self.sCatDummy.XAstromKey))
+                            self.y.append(raft, ccd, s.getF8(self.sCatDummy.YAstromKey))
+                            self.star.append(raft, ccd, star)
                     
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.addMetadata('magType1', self.magType1)
@@ -582,17 +583,25 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         ylim3 = [0.001, 0.99]
 
         #####
-
+        
         sp1 = fig.fig.add_subplot(221)
         sp1.plot(mag[whereCut], diff[whereCut], "r.", ms=size, label=ccd)
         sp1.plot(mag[whereOther], diff[whereOther], "k.", ms=size, label=ccd)
         sp1.set_ylabel(tag, fontsize = 10)
 
         #####
-
         sp2 = fig.fig.add_subplot(222, sharex = sp1)
-        sp2.plot(mag[whereCut],   derr[whereCut],   "r.", ms=size, label=ccd)
-        sp2.plot(mag[whereOther], derr[whereOther], "k.", ms=size, label=ccd)
+
+        def noNeg(xIn):
+            x = numpy.array(xIn)
+            if len(x) > 1:
+                xMax = x.max()
+            else:
+                xMax = 1.0e-4
+            return x.clip(1.0e-5, xMax)
+        
+        sp2.plot(mag[whereCut],   noNeg(derr[whereCut]), "r.", ms=size, label=ccd)
+        sp2.plot(mag[whereOther], noNeg(derr[whereOther]), "k.", ms=size, label=ccd)
         sp2.set_ylabel('Error Bars', fontsize = 10)
 
         #####
@@ -615,8 +624,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             binstd.append(stdDmag)
             binmerr.append(avgEbar)
         # Shows the 2 curves   
-        sp3.plot(binmag, binstd, 'r-', label="Phot RMS")
-        sp3.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
+        sp3.plot(binmag, noNeg(binstd), 'r-', label="Phot RMS")
+        sp3.plot(binmag, noNeg(binmerr), 'b--', label="Avg Error Bar")
         sp3.set_xlabel(tag1, fontsize = 10)
 
         #####
@@ -634,8 +643,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         whereCut    = numpy.where((errbarmag < self.magCut))[0]
         whereOther  = numpy.where((errbarmag > self.magCut))[0]
         
-        sp4.plot(errbarmag[whereCut], errbarresid[whereCut], 'ro', ms = 3, label="Err Underestimate")
-        sp4.plot(errbarmag[whereOther], errbarresid[whereOther], 'ko', ms = 3)
+        sp4.plot(errbarmag[whereCut], noNeg(errbarresid[whereCut]), 'ro', ms = 3, label="Err Underestimate")
+        sp4.plot(errbarmag[whereOther], noNeg(errbarresid[whereOther]), 'ko', ms = 3)
         sp4.set_xlabel(tag1, fontsize = 10)
 
         #### CONFIG
@@ -655,6 +664,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
         qaFigUtils.qaSetp(sp3.get_xticklabels()+sp3.get_yticklabels(), fontsize=8)
         qaFigUtils.qaSetp(sp4.get_xticklabels()+sp4.get_yticklabels(), fontsize=8)
+
 
         sp1.set_xlim(xlim)
         sp1.set_ylim(ylim)
@@ -700,7 +710,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         # data for one ccd
         if mode == 'fourPanel':
             figsize = (6.5, 5.0)
-        
+
+            
         fig = qaFig.QaFigure(size=figsize)
         fig.fig.subplots_adjust(left=0.09, right=0.93, bottom=0.125)
 
