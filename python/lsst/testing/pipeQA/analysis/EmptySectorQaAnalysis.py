@@ -305,9 +305,16 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         if len(x) == 0:
             x = numpy.array([0.0])
             y = numpy.array([0.0])
+
+        summaryLabel = "matched"
         if len(xmat) == 0:
-            xmat = numpy.array([0.0])
-            ymat = numpy.array([0.0])
+            if len(x) == 0 or not summary:
+                xmat = numpy.array([0.0])
+                ymat = numpy.array([0.0])
+            else:
+                summaryLabel = "detected"
+                xmat = x
+                ymat = y
 
         figsize = (4.0, 4.0)
 
@@ -320,9 +327,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         ncol = None
         if summary:
             ms = 0.1
-            if len(xmat) < 100000:
-                ms = 0.1
-            ax.plot(xmat, ymat, "k.", ms=ms, label="matched")
+            if len(xmat) < 10000:
+                ms = 0.2
+            ax.plot(xmat, ymat, "k.", ms=ms, label=summaryLabel)
             ncol = 1
         else:
             ax.plot(x, y, "k.", ms=2.0, label="detected")

@@ -166,7 +166,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     f2  = self._getFlux(self.magType2, s, sref)
                     df1 = self._getFluxErr(self.magType1, s, sref)
                     df2 = self._getFluxErr(self.magType2, s, sref)
-                    
+
                     #badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
                     intcen = s.getF8(self.sCatDummy.FlagPixInterpCenKey)
                     satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
@@ -545,15 +545,18 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
     def derrFigure(self, args):
         mag0, diff0, star0, derr0, areaLabel, raft, ccd, figsize, xlim, ylim, xlim2, ylim2, ylimStep, \
               tag1, tag, mode = args
+
+        eps = 1.0e-5
+        
         conv  = colors.ColorConverter()
         size  = 2.0
         red   = conv.to_rgba('r')
         black = conv.to_rgba('k')
-        mode = "stars"  # this better be the case!
+        mode = "stars"  # this better be the case!        
         if len(mag0) == 0:
             mag0 = numpy.array([xlim[1]])
-            diff0 = numpy.array([0.0])
-            derr0 = numpy.array([0.0])
+            diff0 = numpy.array([eps])
+            derr0 = numpy.array([eps])
             star0 = numpy.array([0])
 
         fig = qaFig.QaFigure(size=figsize)
@@ -561,8 +564,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         if len(mag0) == 0:
             mag0 = numpy.array([xlim[1]])
-            diff0 = numpy.array([0.0])
-            derr0 = numpy.array([0.0])
+            diff0 = numpy.array([eps])
+            derr0 = numpy.array([eps])
             star0 = numpy.array([0])
 
         whereStarGal = numpy.where(star0 > 0)[0]
@@ -572,9 +575,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         star = star0[whereStarGal]
 
         if len(mag) == 0:
-            mag = numpy.array([0.0])
-            diff = numpy.array([0.0])
-            derr = numpy.array([0.0])
+            mag = numpy.array([eps])
+            diff = numpy.array([eps])
+            derr = numpy.array([eps])
             star = numpy.array([0])
 
         whereCut = numpy.where((mag < self.magCut))[0]
@@ -600,7 +603,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             else:
                 xMax = 1.0e-4
             return x.clip(1.0e-5, xMax)
-        
+
+
         sp2.plot(mag[whereCut],   noNeg(derr[whereCut]), "r.", ms=size, label=ccd)
         sp2.plot(mag[whereOther], noNeg(derr[whereOther]), "k.", ms=size, label=ccd)
         sp2.set_ylabel('Error Bars', fontsize = 10)
@@ -685,6 +689,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         mag0, diff0, star0, areaLabel, raft, ccd, figsize, xlim, ylim, xlim2, ylim2, ylimStep, \
               tag1, tag, mode = args
 
+        eps = 1.0e-5
+        
         conv = colors.ColorConverter()
         size = 2.0
 
@@ -704,9 +710,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         #print trendCoeffs        
         if len(mag0) == 0:
             mag0 = numpy.array([xlim[1]])
-            diff0 = numpy.array([0.0])
-            x0    = numpy.array([0.0])
-            y0    = numpy.array([0.0])
+            diff0 = numpy.array([eps])
+            x0    = numpy.array([eps])
+            y0    = numpy.array([eps])
             star0 = numpy.array([0])
 
         #################
@@ -753,10 +759,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             star = star0[whereStarGal]
 
             if len(x) == 0:
-                mag = numpy.array([0.0])
-                diff = numpy.array([0.0])
-                x = numpy.array([0.0])
-                y = numpy.array([0.0])
+                mag = numpy.array([eps])
+                diff = numpy.array([eps])
+                x = numpy.array([eps])
+                y = numpy.array([eps])
                 star = numpy.array([0])
                 
 
@@ -764,7 +770,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             whereOther = numpy.where((mag > self.magCut))[0]
 
             xTrend = numpy.array(xlim)
-            ax_1.plot(xTrend, numpy.array([0.0, 0.0]), "-k", lw=1.0)
+            ax_1.plot(xTrend, numpy.array([eps, eps]), "-k", lw=1.0)
 
             ax_1.text(1.02*xlim[0], 0.87*ylim[1], starGalLabel, size='x-small', horizontalalignment='left')
             for ax in [ax_1, ax_2]:

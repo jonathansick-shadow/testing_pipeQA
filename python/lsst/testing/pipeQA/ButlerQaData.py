@@ -3,7 +3,7 @@ import sys, os, re, copy
 import lsst.daf.persistence             as dafPersist
 import lsst.afw.detection               as afwDet
 import lsst.afw.image                   as afwImage
-import lsst.meas.astrom                 as measAst
+import lsst.meas.astrom                 as measAstrom
 import lsst.afw.geom                    as afwGeom
 import lsst.afw.cameraGeom              as cameraGeom
 import lsst.meas.algorithms             as measAlg
@@ -220,7 +220,12 @@ class ButlerQaData(QaData):
                 #persistableMatchVector = self.outButler.get('icMatch', dataId)
 
                 #matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
-                matches, calib, refsources = [], None, []
+                #matches, calib, refsources = [], None, []
+
+                if True:
+                    matches = measAstrom.astrom.readMatches(self.outButler, dataId)
+                else:
+                    matches = []
                 
                 self.matchListCache[dataKey] = {
                     'orphan' : [],
@@ -240,13 +245,13 @@ class ButlerQaData(QaData):
                         srefIn, sIn, dist = m
                         if ((not srefIn is None) and (not sIn is None)):
 
-                            if not matchListDict.has_key(key):
+                            if not matchListDict.has_key(dataKey):
                                 refCatObj = pqaSource.RefCatalog()
                                 refCat    = refCatObj.catalog
                                 catObj    = pqaSource.Catalog()
                                 cat       = catObj.catalog
 
-                                matchListDict[key] = []
+                                matchListDict[dataKey] = []
 
                                 refRaKey   = refCatObj.keyDict['Ra']
                                 refDecKey  = refCatObj.keyDict['Dec']
@@ -265,17 +270,25 @@ class ButlerQaData(QaData):
                                 modErrKey  = catObj.keyDict['ModelFluxErr']
                                 instErrKey = catObj.keyDict['InstFluxErr']
 
+                                intCenKey  = catObj.keyDict['FlagPixInterpCen']     
+                                negKey     = catObj.keyDict['FlagNegative']    
+                                edgeKey    = catObj.keyDict['FlagPixEdge']     
+                                badCenKey  = catObj.keyDict['FlagBadCentroid'] 
+                                satCenKey  = catObj.keyDict['FlagPixSaturCen']     
+                                extKey     = catObj.keyDict['Extendedness']
+                                
 
-                            matchList = matchListDict[key]
+                            matchList = matchListDict[dataKey]
 
                             # reference objects
                             sref = refCat.addNew()
 
                             sref.setId(sref.getId()) # this should be refobjId
-                            sref.setF8(refRaKey, srefIn.getRa())
-                            sref.setF8(refDecKey, srefIn.getDec())
-                            mag = 1.0 # Where is this?
-                            flux = 10**(-mag/2.5)
+                            sref.setF8(refRaKey, float(srefIn.getRa()))
+                            sref.setF8(refDecKey, float(srefIn.getDec()))
+                            #mag = 1.0 # Where is this?
+                            flux = srefIn.get('flux') #10**(-mag/2.5)
+
                             sref.setF8(refPsfKey, flux)
                             sref.setF8(refApKey, flux)
                             sref.setF8(refModKey, flux)
@@ -283,14 +296,27 @@ class ButlerQaData(QaData):
 
                             # sources
                             s = cat.addNew()
-                            s.setId(srcId)
-                            isStar = 1
+                            s.setId(sIn.getId())
+                            isStar = srefIn.get('stargal')+0.0
                             s.setF8(catObj.keyDict['Extendedness'], isStar)
 
+                            s.setF8(catObj.keyDict['XAstrom'], sIn.getX())
+                            s.setF8(catObj.keyDict['YAstrom'], sIn.getY())
+                            s.setF8(catObj.keyDict['Ra'], float(sIn.getRa()))
+                            s.setF8(catObj.keyDict['Dec'], float(sIn.getDec()))
+                            s.setF8(psfKey,  sIn.getPsfFlux())
+                            s.setF8(apKey,   sIn.getApFlux())
+                            s.setF8(modKey,  sIn.getModelFlux())
+                            s.setF8(instKey, sIn.getInstFlux())
 
-                            #sref.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
+                            s.setF8(intCenKey, sIn.get('flags.pixel.interpolated.center')+0.0)
+                            s.setF8(negKey,    sIn.get('flags.negative')+0.0)
+                            s.setF8(edgeKey,   sIn.get('flags.pixel.edge')+0.0)
+                            s.setF8(badCenKey, sIn.get('flags.badcentroid')+0.0)
+                            s.setF8(satCenKey, sIn.get('flags.pixel.saturated.center')+0.0)
+                            s.setF8(extKey,    sIn.get('classification.extendedness')+0.0)
 
-                            fmag0, fmag0Err = calib[key].getFluxMag0()
+                            fmag0, fmag0Err = calib.getFluxMag0()
 
                             # fluxes
                             s.setF8(psfKey,   s.getF8(psfKey)/fmag0)
@@ -299,19 +325,19 @@ class ButlerQaData(QaData):
                             s.setF8(instKey,  s.getF8(instKey)/fmag0)
 
                             # flux errors
-                            psfFluxErr  = qaDataUtils.calibFluxError(s.getF8(psfKey), s.getF8(psfErrKey),
+                            psfFluxErr  = qaDataUtils.calibFluxError(sIn.getPsfFlux(), sIn.getPsfFluxErr(),
                                                                      fmag0, fmag0Err)
                             s.setF8(psfErrKey, psfFluxErr)
 
-                            apFluxErr   = qaDataUtils.calibFluxError(s.getF8(psfKey),  s.getF8(apErrKey),
+                            apFluxErr   = qaDataUtils.calibFluxError(sIn.getApFlux(),  sIn.getApFluxErr(),
                                                                      fmag0, fmag0Err)
                             s.setF8(apErrKey, apFluxErr)
 
-                            modFluxErr  = qaDataUtils.calibFluxError(s.getF8(modKey), s.getF8(modErrKey),
+                            modFluxErr  = qaDataUtils.calibFluxError(sIn.getModelFlux(), sIn.getModelFluxErr(),
                                                                      fmag0, fmag0Err)
                             s.setF8(modErrKey, modFluxErr)
 
-                            instFluxErr = qaDataUtils.calibFluxError(s.getF8(instKey),  s.getF8(instErrKey),
+                            instFluxErr = qaDataUtils.calibFluxError(sIn.getInstFlux(),  sIn.getInstFluxErr(),
                                                                      fmag0, fmag0Err)
                             s.setF8(instErrKey, instFluxErr)
 
@@ -360,9 +386,9 @@ class ButlerQaData(QaData):
             self.printStartLoad("Loading SourceSets for: " + dataKey + "...")
             
             # make sure we actually have the output file
-            isWritten = self.outButler.datasetExists('src', dataId)
+            isWritten = self.outButler.datasetExists('icSrc', dataId)
             if isWritten:
-                sourceCatalog = self.outButler.get('src', dataId)
+                sourceCatalog = self.outButler.get('icSrc', dataId)
 
                 calibDict = self.getCalibBySensor(dataId)
                 calib = calibDict[dataKey]

@@ -102,7 +102,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
-
+                
                 if not (s.getF8(sCatSchema.find('FlagPixInterpCen').key)):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
