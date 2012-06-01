@@ -196,20 +196,20 @@ class CompletenessQa(qaAna.QaAnalysis):
                     for m in mdict:
                         sref, s, dist = m
                         if fluxType == "psf":
-                            fref  = sref.getF8(refPsfKey)
-                            f     = s.getF8(psfKey)
-                            ferr  = s.getF8(psfErrKey)
+                            fref  = sref.getD(refPsfKey)
+                            f     = s.getD(psfKey)
+                            ferr  = s.getD(psfErrKey)
                         else:
-                            fref  = sref.getF8(refPsfKey)
-                            f     = s.getF8(apKey)
-                            ferr  = s.getF8(apErrKey)
+                            fref  = sref.getD(refPsfKey)
+                            f     = s.getD(apKey)
+                            ferr  = s.getD(apErrKey)
 
 
                         if (fref > 0.0 and f > 0.0):
                             # Use known catalog mag
                             mrefmag  = -2.5*num.log10(fref)
                             if num.isfinite(mrefmag):
-                                if s.getF8(extKey) > 0.0:
+                                if s.getD(extKey) > 0.0:
                                     galaxies.append(mrefmag)
                                 else:
                                     stars.append(mrefmag)
@@ -233,9 +233,9 @@ class CompletenessQa(qaAna.QaAnalysis):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.getF8(psfKey)
+                        f = orphan.getD(psfKey)
                     else:
-                        f = orphan.getF8(apKey)
+                        f = orphan.getD(apKey)
                     if f > 0.0:
                         orphans.append(-2.5 * num.log10(f))
                 self.orphan.set(raftId, ccdId, num.array(orphans))

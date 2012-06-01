@@ -97,17 +97,17 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [x*numpy.pi/180.0 for x in [s.getF8(raKey), s.getF8(decKey),
-                                                sref.getF8(refRaKey), sref.getF8(refDecKey)]]
+                    [x*numpy.pi/180.0 for x in [s.getD(raKey), s.getF8(decKey),
+                                                sref.getD(refRaKey), sref.getF8(refDecKey)]]
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
 
-                if not (s.getF8(sCatSchema.find('FlagPixInterpCen').key)):
+                if not (s.getD(sCatSchema.find('FlagPixInterpCen').key)):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
-                    self.x.append(raft, ccd, s.getF8(xKey))
-                    self.y.append(raft, ccd, s.getF8(yKey))
+                    self.x.append(raft, ccd, s.getD(xKey))
+                    self.y.append(raft, ccd, s.getD(yKey))
                     
                     
         testSet = self.getTestSet(data, dataId)

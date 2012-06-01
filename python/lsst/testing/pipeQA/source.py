@@ -37,14 +37,14 @@ class _RefCatalog(object):
 
         self.keyDict = {}
         #for sm in setMethods0:
-        #    key = self.schema.addField(sm, type="F8")
+        #    key = self.schema.addField(sm, type="D")
         #    self.keyDict[sm] = key
             
         self.setKeys = []
         for sm in setMethods:
             if sm == 'Id':
                 continue
-            key = self.schema.addField(sm, type="F8")
+            key = self.schema.addField(sm, type="D")
             self.setKeys.append(key)
             self.keyDict[sm] = key
             setattr(self, sm+"Key", key)
@@ -120,14 +120,14 @@ class _Catalog(object):
 
         setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
 
-        #self.schema.addField('Id', type="I8")
+        #self.schema.addField('Id', type="L")
 
         self.setKeys = []
         self.keyDict = {}
         for sm in setMethods:
             if sm == 'Id':
                 continue
-            key = self.schema.addField(sm, type="F8")
+            key = self.schema.addField(sm, type="D")
             self.setKeys.append(key)
             self.keyDict[sm] = key
             setattr(self, sm+"Key", key)
