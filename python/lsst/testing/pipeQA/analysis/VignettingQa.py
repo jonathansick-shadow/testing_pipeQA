@@ -40,15 +40,15 @@ class VignettingQa(qaAna.QaAnalysis):
             
         
         if mType=="psf":
-            return s.getF8(self.sCatDummy.PsfFluxKey)
+            return s.getD(self.sCatDummy.PsfFluxKey)
         elif mType=="ap":
-            return s.getF8(self.sCatDummy.ApFluxKey)
+            return s.getD(self.sCatDummy.ApFluxKey)
         elif mType=="mod":
-            return s.getF8(self.sCatDummy.ModelFluxKey)
+            return s.getD(self.sCatDummy.ModelFluxKey)
         elif mType=="cat":
-            return sref.getF8(self.srefCatDummy.PsfFluxKey)
+            return sref.getD(self.srefCatDummy.PsfFluxKey)
         elif mType=="inst":
-            return s.getF8(self.sCatDummy.InstFluxKey)
+            return s.getD(self.sCatDummy.InstFluxKey)
         
         
     def free(self):
@@ -108,15 +108,15 @@ class VignettingQa(qaAna.QaAnalysis):
                 for m in mdict:
                     sref, s, dist = m
 
-                    if s.getF8(self.sCatDummy.ExtendednessKey): # if non-stellar
+                    if s.getD(self.sCatDummy.ExtendednessKey): # if non-stellar
                         continue
 
                     f1 = self._getFlux(self.magType1, s, sref)
                     f2 = self._getFlux(self.magType2, s, sref)
 
-                    intcen = s.getF8(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getF8(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
                     
                     if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1 = -2.5*num.log10(f1)
@@ -131,13 +131,13 @@ class VignettingQa(qaAna.QaAnalysis):
 
                             if data.cameraInfo.name == 'lsstSim':
                                 # XY switched
-                                xmm     = centerXm + (s.getF8(self.sCatDummy.YAstromKey) - centerXp)*pixelSize
-                                ymm     = centerYm + (s.getF8(self.sCatDummy.XAstromKey) - centerYp)*pixelSize
+                                xmm     = centerXm + (s.getD(self.sCatDummy.YAstromKey) - centerXp)*pixelSize
+                                ymm     = centerYm + (s.getD(self.sCatDummy.XAstromKey) - centerYp)*pixelSize
                                 radiusp = num.sqrt(xmm**2 + ymm**2) / pixelSize
                             else:
                                 # XY not switch, and pixel centers not in mm
-                                xmm     = centerXm + (s.getF8(self.sCatDummy.XAstromKey) - centerXp)
-                                ymm     = centerYm + (s.getF8(self.sCatDummy.YAstromKey) - centerYp)
+                                xmm     = centerXm + (s.getD(self.sCatDummy.XAstromKey) - centerXp)
+                                ymm     = centerYm + (s.getD(self.sCatDummy.YAstromKey) - centerYp)
                                 radiusp = num.sqrt(xmm**2 + ymm**2)
                             self.radius.append(raftId, ccdId, radiusp)
 

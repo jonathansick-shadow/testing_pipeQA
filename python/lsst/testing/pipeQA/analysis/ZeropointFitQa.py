@@ -113,27 +113,27 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 for m in mdict:
                     sref, s, dist = m
                     if fluxType == "psf":
-                        fref  = sref.getF8(self.srefCatDummy.PsfFluxKey)
-                        f     = s.getF8(self.sCatDummy.PsfFluxKey)
-                        ferr  = s.getF8(self.sCatDummy.PsfFluxErrKey)
+                        fref  = sref.getD(self.srefCatDummy.PsfFluxKey)
+                        f     = s.getD(self.sCatDummy.PsfFluxKey)
+                        ferr  = s.getD(self.sCatDummy.PsfFluxErrKey)
                     else:
-                        fref  = sref.getF8(self.srefCatDummy.PsfFluxKey)
-                        f     = s.getF8(self.sCatDummy.ApFluxKey)
-                        ferr  = s.getF8(self.sCatDummy.ApFluxErrKey)
+                        fref  = sref.getD(self.srefCatDummy.PsfFluxKey)
+                        f     = s.getD(self.sCatDummy.ApFluxKey)
+                        ferr  = s.getD(self.sCatDummy.ApFluxErrKey)
 
                     # un-calibrate the magnitudes
                     f *= fmag0
                     
-                    intcen = s.getF8(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getF8(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
 
                     if (fref > 0.0 and f > 0.0 and not (intcen or satcen or edge)):
                         mrefmag  = -2.5*num.log10(fref)
                         mimgmag  = -2.5*num.log10(f)
                         mimgmerr =  2.5 / num.log(10.0) * ferr / f
     
-                        star = 0 if s.getF8(self.sCatDummy.ExtendednessKey) else 1
+                        star = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
                         
                         if num.isfinite(mrefmag) and num.isfinite(mimgmag):
                             if star:
@@ -163,9 +163,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.getF8(self.sCatDummy.PsfFluxKey)
+                        f = orphan.getD(self.sCatDummy.PsfFluxKey)
                     else:
-                        f = orphan.getF8(self.sCatDummy.ApFluxKey)
+                        f = orphan.getD(self.sCatDummy.ApFluxKey)
                     if f > 0.0:
                         # un-calibrate the magnitudes
                         f *= fmag0
