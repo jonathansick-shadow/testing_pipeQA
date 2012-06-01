@@ -95,14 +95,16 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                              shapeAlg=policy.get('shapeAlgorithm'))
 
 
-    dataIdInput = data.cameraInfo.adaptDataId(dataIdInput)    
-
+    # convert this input format visit,raft,ccd to the names used by the instrument
+    dataIdInput = data.cameraInfo.dataIdStandardToCamera(dataIdInput)    
+    
     # take what we need for this camera, ignore the rest
     dataId = {}
     for name in data.dataIdNames:
         if dataIdInput.has_key(name):
             dataId[name] = dataIdInput[name]
 
+    
     # if they requested a key that doesn't exist for this camera ... throw
     for k, v in dataIdInput.items():
         if (not k in data.dataIdNames) and (v != '.*'):
@@ -242,13 +244,14 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
         visit_t0 = time.time()
         
         dataIdVisit = copy.copy(dataId)
-        dataIdVisit[data.cameraInfo.dataIdTranslationMap['visit']] = visit
+        data.cameraInfo.setDataId(dataIdVisit, 'visit', visit)
 
         # now break up the run into eg. rafts or ccds
         #  ... if we only run one raft or ccd at a time, we use less memory
         brokenDownDataIdList = data.breakDataId(dataIdVisit, breakBy)
 
         for thisDataId in brokenDownDataIdList:
+            
 
             for a in analysisList:
 

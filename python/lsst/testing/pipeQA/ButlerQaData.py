@@ -130,7 +130,7 @@ class ButlerQaData(QaData):
         dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
-            visits.append(str(dataId[self.cameraInfo.dataIdTranslationMap['visit']]))
+            visits.append(self.cameraInfo.dataIdCameraToStandard(dataId)['visit'])
         return sorted(set(visits))
     
 
@@ -693,6 +693,7 @@ class ButlerQaData(QaData):
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
             dataKey = self._dataTupleToString(dataTuple)
+
             self.loadCalexp(dataId)
             if cache.has_key(dataKey):
                 entryDict[dataKey] = cache[dataKey]

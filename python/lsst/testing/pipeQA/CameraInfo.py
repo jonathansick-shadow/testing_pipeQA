@@ -1,4 +1,5 @@
 import os, re
+import copy
 import eups
 import numpy
 
@@ -53,23 +54,106 @@ class CameraInfo(object):
                 self.raftCcdKeys.append([raftName, ccdName])
 
         self.dataIdTranslationMap = {
-            # input  : return
+            # standard  : camera
             'visit'  : 'visit',
             'snap'   : 'snap',
             'raft'   : 'raft',
             'sensor' : 'sensor',
             }
 
+
+    def dataIdCameraToStandard(self, dataIdIn):
+        """Put this camera dataId in standard visit,raft,sensor format"""
+
+        dataId = copy.copy(dataIdIn)
         
-    def adaptDataId(self, dataId):
         transMap = self.dataIdTranslationMap
-        for k, v in transMap.items():
-            if dataId.has_key(k) and k != v:
-                dataId[v] = dataId[k]
-                del dataId[k]
-        return dataId
-    
+
+        for sKey, cKey in transMap.items():
+
+            # it may be a simple string
+            if isinstance(cKey, str):
+                if dataId.has_key(cKey) and cKey != sKey:
+                    dataId[sKey] = dataId[cKey]
+                    del dataId[cKey]
+
+            # or it may be a list e.g. visit might be coded ('-' sep.) to map to run-frame
+            elif isinstance(cKey, list):
+                haveKeys = True
+                values = []
+                for c in cKey:
+                    if not dataId.has_key(c):
+                        haveKeys = False
+                    else:
+                        values.append(dataId[c])
+
+                if haveKeys:
+                    dataId[sKey] = "-".join(map(str, values))
+                    for c in cKey:
+                        del dataId[c]
+                else:
+                    raise KeyError, "Can't map "+",".join(cKey)+" to "+sKey+". "+str(dataId)
                 
+
+        return dataId
+
+        
+        
+    def dataIdStandardToCamera(self, dataIdIn):
+        """ Convert an input dataId (visit,raft,sensor) to use key,value pairs for this specific camera. """
+
+        dataId = copy.copy(dataIdIn)
+        # check all keys in the translation map
+        transMap = self.dataIdTranslationMap
+        for inKey, outKey in transMap.items():
+
+            # if we have this key, and it's has to be remapped ...
+            if dataId.has_key(inKey) and inKey != outKey:
+
+                # it may be a simple string
+                if isinstance(outKey, str):
+                    dataId[outKey] = dataId[inKey]
+                    
+                # or it may be a list e.g. visit might be coded ('-' sep.) to map to run-frame
+                elif isinstance(outKey, list):
+                    
+                    # value for inKey must be '-' joined or '.*'
+                    if dataId[inKey] == '.*':
+                        dataId[inKey] = '-'.join(['.*']*len(outKey))
+                    if not re.search('-', dataId[inKey]):
+                        raise ValueError, "Combined keys must be dash '-' separated."
+                    inValues = dataId[inKey].split('-')
+
+                    # inValues must have the same number of values as outKey
+                    if len(inValues) != len(outKey):
+                        raise IndexError, "Can't map %s.  %d keys != %d values" % (inKey, len(outKey), len(inValues))
+                    for i in range(len(outKey)):
+                        dataId[outKey[i]] = inValues[i]
+                        
+                del dataId[inKey]
+        return dataId
+
+
+    def setDataId(self, dataId, key, value):
+        if dataId.has_key(key):
+            dataId[key] = value
+        else:
+            cKey = self.dataIdTranslationMap[key]
+            if isinstance(cKey, str):
+                dataId[cKey] = value
+            elif isinstance(cKey, list):
+                # make sure value can be split
+                if not re.search("-", value):
+                    raise ValueError, "Cannot split split "+value+" into "+str(cKey)
+
+                values = value.split("-")
+                if len(values) != len(cKey):
+                    raise IndexError, "Number of values and keys don't match: "+ str(cKey)+" "+str(values)
+
+                for i in range(len(cKey)):
+                    dataId[cKey[i]] = values[i]
+                    
+        
     def getDetectorName(self, raft, ccd):
         ccdId = self.detectors[ccd].getId()
         name = re.sub("\s+", "_", ccdId.getName())
@@ -457,10 +541,9 @@ class SdssCameraInfo(CameraInfo):
         self.doLabel = True
 
         self.dataIdTranslationMap = {
-            'visit' : 'run',
-            'snap'  : 'band', 
-            'raft'  : 'frame',
-            'ccd'   : 'camcol',
+            'visit' : ['run', 'frame'],
+            'raft'  : 'camcol',
+            'ccd'   : 'band',
             }
     
     def getRoots(self, baseDir, output=None):

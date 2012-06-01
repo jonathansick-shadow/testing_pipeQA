@@ -31,8 +31,10 @@ class QaAnalysis(object):
         @param dataId  a dataId dictionary
         @param label   a label for particular TestSet
         """
+
+        dataIdStd = data.cameraInfo.dataIdCameraToStandard(dataId)
+        group = dataIdStd['visit']
         
-        group = dataId[data.cameraInfo.dataIdTranslationMap['visit']]
         filter = data.getFilterBySensor(dataId)
         # all sensors have the same filter, so just grab one
         key = filter.keys()[0]
@@ -45,13 +47,18 @@ class QaAnalysis(object):
         else:
             label = self.__class__.__name__
 
-        tsId = group + "-" + filterName
+        tsIdLabel = "visit-filter"
+        tsId = group+ '-' + filterName
+        if data.cameraInfo.name == 'sdss':
+            tsId = group
+            
         if not self.testSets.has_key(tsId):
             self.testSets[tsId] = testCode.TestSet(label, group=tsId, clean=self.clean,
                                                    wwwCache=self.wwwCache)
             self.testSets[tsId].addMetadata('dataset', data.getDataName())
-            self.testSets[tsId].addMetadata('visit-filter', tsId)
+            self.testSets[tsId].addMetadata(tsIdLabel, tsId)
 
+            
         return self.testSets[tsId]
 
 
