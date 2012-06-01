@@ -97,8 +97,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [x*numpy.pi/180.0 for x in [s.getD(raKey), s.getF8(decKey),
-                                                sref.getD(refRaKey), sref.getF8(refDecKey)]]
+                    [x*numpy.pi/180.0 for x in [s.getD(raKey), s.getD(decKey),
+                                                sref.getD(refRaKey), sref.getD(refDecKey)]]
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
