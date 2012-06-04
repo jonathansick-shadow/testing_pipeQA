@@ -6,9 +6,9 @@ definitions: {
 
     shapeAlgorithm: {
         type: string
-	description: "Shape Algorithm to load."
-	maxOccurs: 1
-	default: "HSM_REGAUSS"
+        description: "Shape Algorithm to load."
+        maxOccurs: 1
+        default: "HSM_REGAUSS"
         allowed: {
             value:        "HSM_REGAUSS"
             description:  "Hirata-Seljac-Mandelbaum Regaussianization"
@@ -275,7 +275,7 @@ definitions: {
         type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
         maxOccurs: 5
-        default: "lsstSim" "cfht"
+        default: "lsstSim" "cfht" "sdss"
     }
 
     completeMinMag: {

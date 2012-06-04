@@ -329,6 +329,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             ms = 0.1
             if len(xmat) < 10000:
                 ms = 0.2
+            if len(xmat) < 1000:
+                ms = 0.5
             ax.plot(xmat, ymat, "k.", ms=ms, label=summaryLabel)
             ncol = 1
         else:

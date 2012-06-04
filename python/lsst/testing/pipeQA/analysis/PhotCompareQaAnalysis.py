@@ -207,7 +207,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     satcen = s.getF8(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getF8(self.sCatDummy.FlagPixEdgeKey)
 
-                    if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
+                    if ((f1 > 0.0 and f2 > 0.0) and True): #not (intcen or satcen or edge)):
 
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
