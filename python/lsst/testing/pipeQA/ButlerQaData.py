@@ -111,10 +111,9 @@ class ButlerQaData(QaData):
         self.availableDataTuples = self.outButler.queryMetadata(cameraInfo.rawName, self.dataIdNames,
                                                                 format=self.dataIdNames)
 
-        # of the data available, get a list of the ones the user actually wants us
-        #  to run.  A bit sketchy here ... kwargs contains non-idname info as well.
-        self.dataTuples = self._regexMatchDataIds(dataIdRegexDict, self.availableDataTuples)
-
+        # We don't know the dataIds at construction, so the commented-out code would be a no-op
+        #self.dataTuples = self._regexMatchDataIds(dataIdRegexDict, self.availableDataTuples)
+        self.dataTuples = self.availableDataTuples
         
     def initCache(self):
 
@@ -136,7 +135,7 @@ class ButlerQaData(QaData):
         """
         visits = []
 
-        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples)
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples, verbose=True)
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
             visits.append(self.cameraInfo.dataIdCameraToStandard(dataId)['visit'])
@@ -214,7 +213,6 @@ class ButlerQaData(QaData):
             dataKey = self._dataTupleToString(dataTuple)
             
             if self.matchListCache[useRef].has_key(dataKey):
-                #matchListDict[dataKey] = copy.copy(self.matchListCache[useRef][dataKey])
                 typeDict[dataKey] = copy.copy(self.matchListCache[useRef][dataKey])
                 continue
 
@@ -239,15 +237,7 @@ class ButlerQaData(QaData):
 
                 self.printStartLoad("Loading MatchList for: " + dataKey + "...")
                 
-                #persistableMatchVector = self.outButler.get('icMatch', dataId)
-
-                #matches, calib, refsources = qaDataUtils.getCalibObjects(self.outButler, filterName, dataId)
-                #matches, calib, refsources = [], None, []
-
-                if True:
-                    matches = measAstrom.astrom.readMatches(self.outButler, dataId)
-                else:
-                    matches = []
+                matches = measAstrom.astrom.readMatches(self.outButler, dataId)
                 
                 sourcesDict    = self.getSourceSetBySensor(dataId)
                 refObjectsDict = self.getRefObjectSetBySensor(dataId)
@@ -300,10 +290,9 @@ class ButlerQaData(QaData):
                         sref = refCat.addNew()
 
                         sref.setId(srefIn.getId()) # this should be refobjId
-                        sref.setF8(refRaKey, float(srefIn.getRa()))
-                        sref.setF8(refDecKey, float(srefIn.getDec()))
-                        #mag = 1.0 # Where is this?
-                        flux = srefIn.get('flux') #10**(-mag/2.5)
+                        sref.setF8(refRaKey, srefIn.getRa().asDegrees())
+                        sref.setF8(refDecKey, srefIn.getDec().asDegrees())
+                        flux = srefIn.get('flux')
 
                         sref.setF8(refPsfKey, flux)
                         sref.setF8(refApKey, flux)
@@ -318,8 +307,8 @@ class ButlerQaData(QaData):
 
                         s.setF8(catObj.keyDict['XAstrom'], sIn.getX())
                         s.setF8(catObj.keyDict['YAstrom'], sIn.getY())
-                        s.setF8(catObj.keyDict['Ra'], float(sIn.getRa()))
-                        s.setF8(catObj.keyDict['Dec'], float(sIn.getDec()))
+                        s.setF8(catObj.keyDict['Ra'], sIn.getRa().asDegrees())
+                        s.setF8(catObj.keyDict['Dec'], sIn.getDec().asDegrees())
                         s.setF8(psfKey,  sIn.getPsfFlux())
                         s.setF8(apKey,   sIn.getApFlux())
                         s.setF8(modKey,  sIn.getModelFlux())
@@ -362,16 +351,9 @@ class ButlerQaData(QaData):
                         else:
                             multiplicity[s.getId()] = 1
 
-                        if True: #re.search("lsst", self.cameraInfo.name):
-                            s.setRa((180.0/numpy.pi)*s.getRa())
-                            s.setDec((180.0/numpy.pi)*s.getDec())
-                            sref.setRa((180.0/numpy.pi)*sref.getRa())
-                            sref.setDec((180.0/numpy.pi)*sref.getDec())
-
                         matchList.append([sref, s, dist])
                         mainMatchList.append([sref, s, dist])
 
-                #matchListDict[dataKey] = copy.copy(matchList)
                 self.dataIdLookup[dataKey] = dataId
                 
 
@@ -379,9 +361,6 @@ class ButlerQaData(QaData):
                 ######
                 ######
                 # Determine which are orphans, blends, straight matches, and non-detections
-
-                #for key in matchListDict.keys():
-                #matchList = matchListDict[dataKey]
 
                 sources    = sourcesDict[dataKey]
                 if refObjectsDict.has_key(dataKey):
@@ -587,46 +566,6 @@ class ButlerQaData(QaData):
                 ssDict[dataKey] = copy.copy(catObj.catalog)
                 self.dataIdLookup[dataKey] = dataId
 
-
-                if False:
-                    # now see if we have 'source' to slurp out the blobs
-                    sourceFile = self.outButler.get('source_filename', dataId)[0]
-                    if os.path.exists(sourceFile):
-
-                        fits = pyfits.open(sourceFile)
-                        table = fits[1].data
-                        columns = fits[1].columns.names
-                        fits.close()
-
-                        haveShape = False
-                        shapeColumns = []
-                        for column in columns:
-                            if re.search(self.shapeAlg, column):
-                                haveShape = True
-                                srcCol = re.sub("shape_"+self.shapeAlg+"_", "", column)
-                                shapeColumns.append(srcCol)
-
-                        if haveShape:
-                            prefix = "shape_"+self.shapeAlg+"_"
-
-                            # single pass through to store by ID
-                            rowById = {}
-                            for i in range(len(table)):
-                                row = table[i]
-                                objId = row.field('objId')
-                                rowById[objId] = row
-
-                            # go through all sources and reset the shapes accordingly
-                            for s in self.sourceSetCache[dataKey]:
-                                row = rowById[s.getId()]
-
-                                for column in shapeColumns:
-                                    value = row.field(prefix+column)
-                                    setterName = "set"+column.title()
-                                    if hasattr(s, setterName):
-                                        setMethod = getattr(s, setterName)
-                                        setMethod(value)
-                            
  
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
@@ -709,9 +648,6 @@ class ButlerQaData(QaData):
         for k, sro in sroDict.items():
             self.refObjectCache[k] = sroDict[k]
 
-        #for k,v in sroDict.items():
-        #    print k, len(v)
-            
         return sroDict
 
 
@@ -730,7 +666,7 @@ class ButlerQaData(QaData):
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
             dataKey = self._dataTupleToString(dataTuple)
-            
+
             if self.calexpCache.has_key(dataKey):
                 continue
 
@@ -739,10 +675,6 @@ class ButlerQaData(QaData):
             if self.outButler.datasetExists('calexp_md', dataId):
                 calexp_md = self.outButler.get('calexp_md', dataId)
                 
-                #self.wcsCache[dataKey]      = calexp.getWcs()
-                #self.detectorCache[dataKey] = calexp.getDetector()
-                #self.filterCache[dataKey]   = calexp.getFilter()
-                #self.calibCache[dataKey]    = calexp.getCalib()
                 self.wcsCache[dataKey]      = afwImage.makeWcs(calexp_md)
 
                 ccdName = calexp_md.getAsString('DETNAME').strip()
@@ -754,23 +686,11 @@ class ButlerQaData(QaData):
                     raftName = ""
                 raftName = raftName.strip()
 
-
-                #raftId = cameraGeom.Id(raftName)
-                #ccdId = cameraGeom.Id(ccdName)
-                #ccdDetector = cameraGeom.Detector(ccdId)
-                #raftDetector = cameraGeom.Detector(raftId)
-                #ccdDetector.setParent(raftDetector)
-                #self.raftDetectorCache[dataKey] = raftDetector
-                #self.detectorCache[dataKey] = ccdDetector
-
-                #raftName = "R:"+rowDict['raftName']
-                #ccdName = raftName + " S:"+rowDict['ccdName']
                 self.detectorCache[dataKey] = self.cameraInfo.detectors[ccdName] #ccdDetector
                 if len(raftName) > 0:
                     self.raftDetectorCache[dataKey] = self.cameraInfo.detectors[raftName]
 
                 
-                #self.detectorCache[dataKey] = cameraGeom.Detector()
                 self.filterCache[dataKey]   = afwImage.Filter(calexp_md)
                 self.calibCache[dataKey]    = afwImage.Calib(calexp_md)
 
@@ -857,7 +777,7 @@ class ButlerQaData(QaData):
     #  the ones which match regexes for the corresponding data type
     # so user can say eg. raft='0,\d', visit='855.*', etc
     #######################################################################
-    def _regexMatchDataIds(self, dataIdRegexDict, availableDataTuples):
+    def _regexMatchDataIds(self, dataIdRegexDict, availableDataTuples, verbose=False):
         """Match available data with regexes in a dataId dictionary        
         
         @param dataIdRegexDict dataId dict of regular expressions for data to be handled.
@@ -879,10 +799,12 @@ class ButlerQaData(QaData):
                 # if it doesn't match, this frame isn't to be run.
                 if not re.search(str(regexForThisId),  str(dataId)):
                     match = False
-
+                    break
+                
                 # ignore the guiding ccds on the hsc camera
                 if re.search('^hsc.*', self.cameraInfo.name) and dataIdName == 'ccd' and dataId > 99:
                     match = False
+                    break
 
             if match:
                 dataTuples.append(dataTuple)

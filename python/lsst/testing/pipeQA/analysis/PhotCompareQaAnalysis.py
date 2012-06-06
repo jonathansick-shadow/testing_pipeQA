@@ -130,8 +130,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
     def test(self, data, dataId):
 
-        t0 = time.time()
-        
         # get data
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)       
@@ -336,13 +334,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         comment = "slope for all ccds (mag lt %.1f, nstar=%d) limits=(%.1f,%.1f sigma)" % (self.magCut, len(allDiffs), self.slopeLimits[0], self.slopeLimits[1])
         testSet.addTest( testCode.Test(label, lineCoeffs[0], slopeLimits, comment, areaLabel="all"))
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "PhotCompareQaAnalysis-"+self.magType1+"-"+self.magType2, "test-runtime", dt)
 
     def plot(self, data, dataId, showUndefined=False):
 
-        t0 = time.time()
-        
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.setUseCache(self.useCache)
 
@@ -537,9 +531,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 tag1, tag, dtag,
                 ])
 
-
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "PhotCompareQaAnalysis-"+self.magType1+"-"+self.magType2, "plot-runtime", dt)
 
 
     def derrFigure(self, args):

@@ -381,7 +381,7 @@ def getCalibObjects(butler, filterName, dataId):
     keepi = []
     for i in xrange(len(refsources)):
         ra, dec = refsources[i].getRa(), refsources[i].getDec() # ra,dec in Rads
-        x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(180/numpy.pi*ra, 180/numpy.pi*dec)))
+        x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(numpy.degrees(ra), numpy.degrees(dec))))
 
         if x < 0 or y < 0 or x > W or y > H:
             continue

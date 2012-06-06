@@ -56,8 +56,6 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         
     def test(self, data, dataId):
 
-        t0 = time.time()
-
         # get data
         self.ssDict           = data.getSourceSetBySensor(dataId)
 
@@ -160,13 +158,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         testSet.addTest(test)
 
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "EmptySectorQaAnalysis", "test-runtime", dt)
-
-
     def plot(self, data, dataId, showUndefined=False):
 
-        t0 = time.time()
         
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -292,8 +285,6 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                               "Pixel coordinates of all (black) and matched (red) objects", areaLabel=label)
             del allFig
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "EmptySectorQaAnalysis", "plot-runtime", dt)
             
 
     def standardFigure(self, x, y, xmat, ymat, limits, summary=False):

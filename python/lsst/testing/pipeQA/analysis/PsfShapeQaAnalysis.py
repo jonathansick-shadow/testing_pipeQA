@@ -56,8 +56,6 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         
     def test(self, data, dataId):
 
-        t0 = time.time()
-        
         # get data
         self.ssDict        = data.getSourceSetBySensor(dataId)
         self.detector      = data.getDetectorBySensor(dataId)
@@ -186,13 +184,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             testSet.addTest( testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel) )
 
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "PsfShapeQaAnalysis", "test-runtime", dt)
-            
     def plot(self, data, dataId, showUndefined=False):
 
-        t0 = time.time()
-        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
@@ -220,7 +213,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                                                 10*vLen*self.ellipMedians.get(raft, ccd),
                                                 self.ellipMedians.get(raft, ccd)]
                     ellipFig.map[raft][ccd] = "ell/theta=%.3f/%.0f" % (self.ellipMedians.get(raft, ccd),
-                                                                       (180/numpy.pi)*self.thetaMedians.get(raft, ccd))
+                                                                       numpy.degrees(self.thetaMedians.get(raft, ccd)))
                 if not self.fwhm.get(raft, ccd) is None:
                     fwhm = self.fwhm.get(raft, ccd)
                     fwhmFig.data[raft][ccd] = fwhm
@@ -353,8 +346,6 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             testSet.addFigure(allFig, "psfEllip.png", "PSF ellipticity "+label, areaLabel=label)
             del allFig
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "PsfShapeQaAnalysis", "plot-runtime", dt)
 
     def standardFigure(self, t, x, y, dx, dy, color, limits, vLen, summary=False, sm=None, fwhm=None):
 

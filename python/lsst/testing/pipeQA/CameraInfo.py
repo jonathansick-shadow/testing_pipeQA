@@ -60,8 +60,14 @@ class CameraInfo(object):
             'raft'   : 'raft',
             'sensor' : 'sensor',
             }
+        self.dataIdDbNames = {
+            'visit' : 'visit',
+            'raft'  : 'raftName',
+            'sensor' : 'sensorName',
+            'snap'  : 'snap',
+            }
 
-
+        
     def dataIdCameraToStandard(self, dataIdIn):
         """Put this camera dataId in standard visit,raft,sensor format"""
 
@@ -519,7 +525,12 @@ class SdssCameraInfo(CameraInfo):
         except Exception, e:
             print "Failed to import lsst.obs.sdss", e
             mapper = None
-        dataInfo       = [['run', 1], ['band', 0], ['frame',0], ['camcol', 0]]
+
+        messingWithNames = True
+        if messingWithNames:
+            dataInfo       = [['run', 1], ['band', 0], ['field',0], ['camcol', 0]]
+        else:
+            dataInfo       = [['run', 1], ['band', 0], ['frame',0], ['camcol', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SDSS_DIR'):
@@ -540,12 +551,34 @@ class SdssCameraInfo(CameraInfo):
         
         self.doLabel = True
 
-        self.dataIdTranslationMap = {
-            'visit' : ['run', 'frame'],
-            'raft'  : 'camcol',
-            'ccd'   : 'band',
-            }
-    
+        if messingWithNames:
+            self.dataIdTranslationMap = {
+                'visit' : ['run', 'field'],
+                'raft'  : 'camcol',
+                'ccd'   : 'band',
+                }
+
+            self.dataIdDbNames = {
+                'run' : 'run',
+                'field' : 'field',
+                'camcol' : 'camcol',
+                'band'   : 'filterName',
+                }
+        else:
+            self.dataIdTranslationMap = {
+                'visit' : ['run', 'frame'],
+                'raft'  : 'camcol',
+                'ccd'   : 'band',
+                }
+
+            self.dataIdDbNames = {
+                'run' : 'run',
+                'frame' : 'frame',
+                'camcol' : 'camcol',
+                'band'   : 'filterName',
+                }
+            
+            
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 

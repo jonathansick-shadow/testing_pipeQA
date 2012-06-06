@@ -64,7 +64,6 @@ class VignettingQa(qaAna.QaAnalysis):
         del self.rmsOffset
 
     def test(self, data, dataId):
-        t0 = time.time()
         
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
@@ -167,13 +166,9 @@ class VignettingQa(qaAna.QaAnalysis):
                 test = testCode.Test(label, std, self.rmsLimits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "VignettingQa", "test-runtime", dt)
                 
     def plot(self, data, dataId, showUndefined = False):
 
-        t0 = time.time()
-        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache) #cache
         isFinalDataId = False
@@ -339,7 +334,5 @@ class VignettingQa(qaAna.QaAnalysis):
             del fig
 
         
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "VignettingQa", "plot-runtime", dt)
                 
                 

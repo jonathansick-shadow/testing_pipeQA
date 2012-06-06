@@ -36,7 +36,7 @@ else:
 
         def __init__(self, *sroStuff):
 
-            if len(sroStuff) == 11:
+            if len(sroStuff) == 10:
                 self.refObjectId = sroStuff[0]
                 self.isStar = sroStuff[1]
                 self.radec = numpy.array(sroStuff[2:4])
@@ -46,7 +46,7 @@ else:
                 self.refObjectId = 0
                 self.isStar = 0
                 self.radec = numpy.zeros(2, dtype=numpy.float64)
-                self.mag = numpy.zeros(5, dtype=numpy.float32)
+                self.mag = numpy.zeros(6, dtype=numpy.float32)
 
             else:
                 raise NotImplementedError, "Cannot instantiate SimRefObject with" + \

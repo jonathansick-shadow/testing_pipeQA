@@ -871,13 +871,27 @@ class DbQaData(QaData):
         @param dataIdRegex dataId dict containing regular expressions of data to retrieve.
         """
 
-        sql = "select distinct visit from Science_Ccd_Exposure"
+
+        columnsTmp = zip(*self.cameraInfo.dataInfo)[0]
+        visitLike = zip(*self.cameraInfo.dataInfo)[1]
+        dbNames = []
+        columns = []
+        for i in range(len(columnsTmp)):
+            c = columnsTmp[i]
+            n = visitLike[i]
+            if not re.search("snap", c) and n > 0:
+                columns.append(self.cameraInfo.dataIdDbNames[c])
+                dbNames.append([c, self.cameraInfo.dataIdDbNames[c]])
+                
+        sql = "select distinct "+",".join(columns)+" from Science_Ccd_Exposure"
         sql += "   where "
         haveAllKeys = True
 
         whereList = []
-        for keyNames in [['visit', 'visit'], ['raft', 'raftName'], ['sensor', 'ccdName']]:
+        for keyNames in dbNames:
             key, sqlName = keyNames
+            if re.search("snap", key):
+                continue
             if dataIdRegex.has_key(key):
                 whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
             else:
@@ -885,9 +899,16 @@ class DbQaData(QaData):
         sql += " and ".join(whereList)
 
         results = self.dbInterface.execute(sql)
-        visits = map(str, zip(*results)[0])
-        return sorted(visits)
 
+        visits = []
+        for r in results:
+            dataId = {}
+            for i in range(len(columns)):
+                dataId[columns[i]] = str(r[i])
+            visits.append(self.cameraInfo.dataIdCameraToStandard(dataId)['visit'])
+        
+        return sorted(set(visits))
+        
 
     def breakDataId(self, dataIdRegex, breakBy):
         """Take a dataId with regexes and return a list of dataId regexes
@@ -1009,12 +1030,6 @@ class DbQaData(QaData):
             if not self.detectorCache.has_key(key):
                 raftName = "R:"+rowDict['raftName']
                 ccdName = raftName + " S:"+rowDict['ccdName']
-                #raftId = cameraGeom.Id(rowDict['raft']) #cameraGeom.Id(raftName)
-                #ccdId = cameraGeom.Id(rowDict['ccd']) #cameraGeom.Id(ccdName)
-                #ccdDetector = cameraGeom.Detector(ccdId)
-                #raftDetector = cameraGeom.Detector(raftId)
-                #ccdDetector.setParent(raftDetector)
-                #self.raftDetectorCache[key] = self.cameraInfo.camera.findDetector(raftId) #raftDetector
                 self.detectorCache[key] = self.cameraInfo.detectors[ccdName] #ccdDetector
                 self.raftDetectorCache[key] = self.cameraInfo.detectors[raftName]
 
@@ -1100,12 +1115,30 @@ class DbQaData(QaData):
 # Factory for dbQaData
 # - curently only lsstSim is available by database, so this is a trivial factory
 ###################################################
-def makeDbQaData(label, rerun=None, **kwargs):
+def makeDbQaData(label, rerun=None, camera=None, **kwargs):
     """Factory for a DbQaData object.
     
     @param database The name of the database to connect to
     @param rerun The data rerun to use
     """
-    return DbQaData(label, rerun, qaCamInfo.LsstSimCameraInfo())
+
+
+    cameraInfos = {
+#       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
+        "hsc" : qaCamInfo.HscCameraInfo(),
+        "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
+        "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
+        "sdss" : qaCamInfo.SdssCameraInfo(),
+        "lsstsim": qaCamInfo.LsstSimCameraInfo(),
+        }
+
+    
+    cameraToUse = None
+    if not camera is None:
+        cameraToUse = cameraInfos[camera]
+    else:
+        cameraToUse = cameraInfos['lsstsim']
+   
+    return DbQaData(label, rerun, cameraToUse)
 
 
