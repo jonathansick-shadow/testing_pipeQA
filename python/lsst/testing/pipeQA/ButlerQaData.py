@@ -294,61 +294,61 @@ class ButlerQaData(QaData):
                         sref = refCat.addNew()
 
                         sref.setId(srefIn.getId()) # this should be refobjId
-                        sref.setF8(refRaKey, srefIn.getRa().asDegrees())
-                        sref.setF8(refDecKey, srefIn.getDec().asDegrees())
+                        sref.setD(refRaKey, srefIn.getRa().asDegrees())
+                        sref.setD(refDecKey, srefIn.getDec().asDegrees())
                         flux = srefIn.get('flux')
 
-                        sref.setF8(refPsfKey, flux)
-                        sref.setF8(refApKey, flux)
-                        sref.setF8(refModKey, flux)
-                        sref.setF8(refInstKey, flux)
+                        sref.setD(refPsfKey, flux)
+                        sref.setD(refApKey, flux)
+                        sref.setD(refModKey, flux)
+                        sref.setD(refInstKey, flux)
 
                         # sources
                         s = cat.addNew()
                         s.setId(sIn.getId())
                         isStar = srefIn.get('stargal')+0.0
-                        s.setF8(catObj.keyDict['Extendedness'], isStar)
+                        s.setD(catObj.keyDict['Extendedness'], isStar)
 
-                        s.setF8(catObj.keyDict['XAstrom'], sIn.getX())
-                        s.setF8(catObj.keyDict['YAstrom'], sIn.getY())
-                        s.setF8(catObj.keyDict['Ra'], sIn.getRa().asDegrees())
-                        s.setF8(catObj.keyDict['Dec'], sIn.getDec().asDegrees())
-                        s.setF8(psfKey,  sIn.getPsfFlux())
-                        s.setF8(apKey,   sIn.getApFlux())
-                        s.setF8(modKey,  sIn.getModelFlux())
-                        s.setF8(instKey, sIn.getInstFlux())
+                        s.setD(catObj.keyDict['XAstrom'], sIn.getX())
+                        s.setD(catObj.keyDict['YAstrom'], sIn.getY())
+                        s.setD(catObj.keyDict['Ra'], sIn.getRa().asDegrees())
+                        s.setD(catObj.keyDict['Dec'], sIn.getDec().asDegrees())
+                        s.setD(psfKey,  sIn.getPsfFlux())
+                        s.setD(apKey,   sIn.getApFlux())
+                        s.setD(modKey,  sIn.getModelFlux())
+                        s.setD(instKey, sIn.getInstFlux())
 
-                        s.setF8(intCenKey, sIn.get('flags.pixel.interpolated.center')+0.0)
-                        s.setF8(negKey,    sIn.get('flags.negative')+0.0)
-                        s.setF8(edgeKey,   sIn.get('flags.pixel.edge')+0.0)
-                        s.setF8(badCenKey, sIn.get('flags.badcentroid')+0.0)
-                        s.setF8(satCenKey, sIn.get('flags.pixel.saturated.center')+0.0)
-                        s.setF8(extKey,    sIn.get('classification.extendedness')+0.0)
+                        s.setD(intCenKey, sIn.get('flags.pixel.interpolated.center')+0.0)
+                        s.setD(negKey,    sIn.get('flags.negative')+0.0)
+                        s.setD(edgeKey,   sIn.get('flags.pixel.edge')+0.0)
+                        s.setD(badCenKey, sIn.get('flags.badcentroid')+0.0)
+                        s.setD(satCenKey, sIn.get('flags.pixel.saturated.center')+0.0)
+                        s.setD(extKey,    sIn.get('classification.extendedness')+0.0)
 
                         fmag0, fmag0Err = calib.getFluxMag0()
 
                         # fluxes
-                        s.setF8(psfKey,   s.getF8(psfKey)/fmag0)
-                        s.setF8(apKey,    s.getF8(apKey)/fmag0)
-                        s.setF8(modKey,   s.getF8(modKey)/fmag0)
-                        s.setF8(instKey,  s.getF8(instKey)/fmag0)
+                        s.setD(psfKey,   s.getD(psfKey)/fmag0)
+                        s.setD(apKey,    s.getD(apKey)/fmag0)
+                        s.setD(modKey,   s.getD(modKey)/fmag0)
+                        s.setD(instKey,  s.getD(instKey)/fmag0)
 
                         # flux errors
                         psfFluxErr  = qaDataUtils.calibFluxError(sIn.getPsfFlux(), sIn.getPsfFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setF8(psfErrKey, psfFluxErr)
+                        s.setD(psfErrKey, psfFluxErr)
 
                         apFluxErr   = qaDataUtils.calibFluxError(sIn.getApFlux(),  sIn.getApFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setF8(apErrKey, apFluxErr)
+                        s.setD(apErrKey, apFluxErr)
 
                         modFluxErr  = qaDataUtils.calibFluxError(sIn.getModelFlux(), sIn.getModelFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setF8(modErrKey, modFluxErr)
+                        s.setD(modErrKey, modFluxErr)
 
                         instFluxErr = qaDataUtils.calibFluxError(sIn.getInstFlux(),  sIn.getInstFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setF8(instErrKey, instFluxErr)
+                        s.setD(instErrKey, instFluxErr)
 
                         if multiplicity.has_key(s.getId()):
                             multiplicity[s.getId()] += 1
@@ -523,47 +523,47 @@ class ButlerQaData(QaData):
                     rec = cat.addNew()
                     rec.setId(s.getId())
 
-                    rec.setF8(raKey,    float(s.getRa()))
-                    rec.setF8(decKey,   float(s.getDec()))
-                    rec.setF8(xKey,     float(s.getX())) #Astrom()))
-                    rec.setF8(yKey,     float(s.getY())) #Astrom()))
+                    rec.setD(raKey,    float(s.getRa()))
+                    rec.setD(decKey,   float(s.getDec()))
+                    rec.setD(xKey,     float(s.getX())) #Astrom()))
+                    rec.setD(yKey,     float(s.getY())) #Astrom()))
                     
                     # fluxes
-                    rec.setF8(psfKey,   float(s.getPsfFlux())/fmag0)
-                    rec.setF8(apKey,    float(s.getApFlux())/fmag0)
-                    rec.setF8(modKey,   float(s.getModelFlux())/fmag0)
-                    rec.setF8(instKey,  float(s.getInstFlux())/fmag0)
+                    rec.setD(psfKey,   float(s.getPsfFlux())/fmag0)
+                    rec.setD(apKey,    float(s.getApFlux())/fmag0)
+                    rec.setD(modKey,   float(s.getModelFlux())/fmag0)
+                    rec.setD(instKey,  float(s.getInstFlux())/fmag0)
 
                     # shapes
-                    rec.setF8(ixxKey,   float(s.getIxx()))
-                    rec.setF8(iyyKey,   float(s.getIyy()))
-                    rec.setF8(ixyKey,   float(s.getIxy()))
+                    rec.setD(ixxKey,   float(s.getIxx()))
+                    rec.setD(iyyKey,   float(s.getIyy()))
+                    rec.setD(ixyKey,   float(s.getIxy()))
                     
                     # flags
-                    rec.setF8(intCenKey, s.get('flags.pixel.interpolated.center')+0.0)
-                    rec.setF8(negKey,    s.get('flags.negative')+0.0)
-                    rec.setF8(edgeKey,   s.get('flags.pixel.edge')+0.0)
-                    rec.setF8(badCenKey, s.get('flags.badcentroid')+0.0)
-                    rec.setF8(satCenKey, s.get('flags.pixel.saturated.center')+0.0)
-                    rec.setF8(extKey,    s.get('classification.extendedness')+0.0)
+                    rec.setD(intCenKey, s.get('flags.pixel.interpolated.center')+0.0)
+                    rec.setD(negKey,    s.get('flags.negative')+0.0)
+                    rec.setD(edgeKey,   s.get('flags.pixel.edge')+0.0)
+                    rec.setD(badCenKey, s.get('flags.badcentroid')+0.0)
+                    rec.setD(satCenKey, s.get('flags.pixel.saturated.center')+0.0)
+                    rec.setD(extKey,    s.get('classification.extendedness')+0.0)
                     
                     
                     # flux errors
                     psfFluxErr  = qaDataUtils.calibFluxError(float(s.getPsfFlux()), float(s.getPsfFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setF8(psfErrKey, psfFluxErr)
+                    rec.setD(psfErrKey, psfFluxErr)
 
                     apFluxErr   = qaDataUtils.calibFluxError(float(s.getApFlux()),  float(s.getApFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setF8(apErrKey, apFluxErr)
+                    rec.setD(apErrKey, apFluxErr)
                     
                     modFluxErr  = qaDataUtils.calibFluxError(float(s.getModelFlux()), float(s.getModelFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setF8(modErrKey, modFluxErr)
+                    rec.setD(modErrKey, modFluxErr)
                     
                     instFluxErr = qaDataUtils.calibFluxError(float(s.getInstFlux()),  float(s.getInstFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setF8(instErrKey, instFluxErr)
+                    rec.setD(instErrKey, instFluxErr)
 
 
                 self.sourceSetCache[dataKey] = catObj.catalog

@@ -84,14 +84,14 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             filter = self.filter[key].getName()
             
             for s in ss:
-                self.x.append(raft, ccd, s.getF8(xKey))
-                self.y.append(raft, ccd, s.getF8(yKey))
+                self.x.append(raft, ccd, s.getD(xKey))
+                self.y.append(raft, ccd, s.getD(yKey))
                 
             if self.matchListDictSrc.has_key(key):
                 for m in self.matchListDictSrc[key]['matched']:
                     sref, s, dist = m
-                    self.xmat.append(raft, ccd, s.getF8(xKey))
-                    self.ymat.append(raft, ccd, s.getF8(yKey))
+                    self.xmat.append(raft, ccd, s.getD(xKey))
+                    self.ymat.append(raft, ccd, s.getD(yKey))
 
                     
         # create a testset

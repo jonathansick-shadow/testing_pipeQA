@@ -257,7 +257,7 @@ class CameraInfo(object):
         cbbox   = ccd.getAllPixels(True)
         cwidth  = cbbox.getMaxX() - cbbox.getMinX()
         cheight = cbbox.getMaxY() - cbbox.getMinY()
-        if abs(yaw - numpy.pi/2.0) < 1.0e-3:  # nQuart == 1 or nQuart == 3:
+        if abs(yaw.asRadians() - numpy.pi/2.0) < 1.0e-3:  # nQuart == 1 or nQuart == 3:
             ctmp = cwidth
             cwidth = cheight
             cheight = ctmp

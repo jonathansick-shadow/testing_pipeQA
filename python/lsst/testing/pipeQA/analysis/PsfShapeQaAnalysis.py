@@ -88,9 +88,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
             fwhmTmp = 0.0
             for s in ss:
-                ixx = s.getF8(self.sCatDummy.IxxKey)
-                iyy = s.getF8(self.sCatDummy.IyyKey)
-                ixy = s.getF8(self.sCatDummy.IxyKey)
+                ixx = s.getD(self.sCatDummy.IxxKey)
+                iyy = s.getD(self.sCatDummy.IyyKey)
+                ixy = s.getD(self.sCatDummy.IxyKey)
 
                 tmp = 0.25*(ixx-iyy)**2 + ixy**2
                 if tmp < 0:
@@ -112,17 +112,17 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     theta += numpy.pi
                     
                 #print ixx, iyy, ixy, a2, b2, ellip, theta
-                isStar = 0 if s.getF8(self.sCatDummy.ExtendednessKey) else 1
+                isStar = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
 
-                flux = s.getF8(self.sCatDummy.PsfFluxKey)
+                flux = s.getD(self.sCatDummy.PsfFluxKey)
                 mag = 99.0
                 if flux > 0:
-                    mag = -2.5*numpy.log10(s.getF8(self.sCatDummy.PsfFluxKey))
+                    mag = -2.5*numpy.log10(s.getD(self.sCatDummy.PsfFluxKey))
                 if numpy.isfinite(ellip) and numpy.isfinite(theta) and isStar and mag < 20:
                     self.ellip.append(raft, ccd, ellip)
                     self.theta.append(raft, ccd, theta)
-                    self.x.append(raft, ccd, s.getF8(self.sCatDummy.XAstromKey))
-                    self.y.append(raft, ccd, s.getF8(self.sCatDummy.YAstromKey))
+                    self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
+                    self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
                     fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
             nFwhm = len(self.x.get(raft,ccd))
