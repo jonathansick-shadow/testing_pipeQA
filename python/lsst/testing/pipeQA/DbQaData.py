@@ -132,8 +132,17 @@ class DbQaData(QaData):
         sql += ' where '
         haveAllKeys = True
 
+
+        # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
+        # eg. visit vs. run-field, raft vs. camcol ...
+        sceNames = [
+            [x[0], "sce."+x[1]]
+            for x in self.cameraInfo.dataIdDbNames.items() if not re.search("snap", x[0])
+            ]
+        nDataId = len(sceNames)
+        
         idWhereList = []
-        for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+        for keyNames in sceNames:
             key, sqlName = keyNames
             if dataIdRegex.has_key(key):
                 likeEqual = self._sqlLikeEqual(sqlName, dataIdRegex[key])
@@ -148,12 +157,12 @@ class DbQaData(QaData):
         if not re.search("\%", idWhere) and haveAllKeys:
             dataIdCopy = copy.copy(dataIdRegex)
             dataIdCopy['snap'] = "0"
-            key = self._dataIdToString(dataIdCopy)
+            key = self._dataIdToString(dataIdCopy, defineFully=True)
             if self.matchListCache[useRef].has_key(key):
                 return {key : self.matchListCache[useRef][key]}
 
         # if the dataIdRegex is identical to an earlier query, we must already have all the data
-        dataIdStr = self._dataIdToString(dataIdRegex)
+        dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)
         if self.matchQueryCache[useRef].has_key(dataIdStr):
             matchListDict = {}
             # get only the ones that match the request
@@ -169,7 +178,7 @@ class DbQaData(QaData):
 
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName, sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.sourceId, '%(filterName)
+        sql  = 'select '+ ",".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.sourceId, '%(filterName)
         sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce,'
@@ -192,11 +201,16 @@ class DbQaData(QaData):
         for row in results:
 
 
-            nFields = 10
-            visit, raft, sensor, mag, ra, dec, isStar, refObjId, srcId, nMatches = row[0:nFields]
-            dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
+            nFields = 7 + nDataId
+            
+            mag, ra, dec, isStar, refObjId, srcId, nMatches = row[nDataId:nFields]
+            dataIdTmp = {}
+            for j in range(nDataId):
+                idName = sceNames[j][0]
+                dataIdTmp[idName] = row[j]
 
-            key = self._dataIdToString(dataIdTmp)            
+
+            key = self._dataIdToString(dataIdTmp, defineFully=True)            
             self.dataIdLookup[key] = dataIdTmp
 
             if not matchListDict.has_key(key):
@@ -233,7 +247,11 @@ class DbQaData(QaData):
             sref.setId(refObjId)
             sref.setF8(refRaKey, ra)
             sref.setF8(refDecKey, dec)
+            # clip at -30
+            if mag < -30:
+                mag = -30
             flux = 10**(-mag/2.5)
+
             sref.setF8(refPsfKey, flux)
             sref.setF8(refApKey, flux)
             sref.setF8(refModKey, flux)
@@ -385,14 +403,20 @@ class DbQaData(QaData):
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr  = ",".join(selectList)
 
+        # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
+        # eg. visit vs. run-field, raft vs. camcol ...
+        sceNames = [
+            [x[0], "sce."+x[1]]
+            for x in self.cameraInfo.dataIdDbNames.items() if not re.search("snap", x[0])
+            ]
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select sce.visit, sce.raftName, sce.ccdName, s.sourceId,'+selectStr
+        sql  = 'select '+",".join(zip(*sceNames)[1])+',s.sourceId,'+selectStr
         sql += '  from Source as s, Science_Ccd_Exposure as sce'
         sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
         haveAllKeys = True
 
-        for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+        for keyNames in sceNames:
             key, sqlName = keyNames
             if dataIdRegex.has_key(key):
                 sql += '    and '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
@@ -405,12 +429,12 @@ class DbQaData(QaData):
         if not re.search("\%", sql) and haveAllKeys:
             dataIdCopy = copy.copy(dataIdRegex)
             dataIdCopy['snap'] = "0"
-            key = self._dataIdToString(dataIdCopy)
+            key = self._dataIdToString(dataIdCopy, defineFully=True)
             if self.sourceSetCache.has_key(key):
                 return {key : self.sourceSetCache[key]}
 
         # if the dataIdRegex is identical to an earlier query, we must already have all the data
-        dataIdStr = self._dataIdToString(dataIdRegex)
+        dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)
         if self.queryCache.has_key(dataIdStr):
             ssDict = {}
             # get only the ones that match the request
@@ -447,10 +471,16 @@ class DbQaData(QaData):
 
         for row in results:
 
+            # get the values for the dataId
+            i = 0
+            dataIdTmp = {}
+            for idName, dbName in sceNames:
+                dataIdTmp[idName] = row[i]
+                i += 1
+            sid = row[i]
+            nIdKeys = i+1
 
-            visit, raft, sensor, sid = row[0:4]
-            dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
-            key = self._dataIdToString(dataIdTmp)
+            key = self._dataIdToString(dataIdTmp, defineFully=True)
             self.dataIdLookup[key] = dataIdTmp
 
             s = ssDict[key].addNew()
@@ -458,7 +488,7 @@ class DbQaData(QaData):
             s.setId(sid)
             
             i = 0
-            for value in row[4:]:
+            for value in row[nIdKeys:]:
                 if not value is None:
                     setKey = catObj.setKeys[i]
                     #print value, type(value)
@@ -507,10 +537,18 @@ class DbQaData(QaData):
 
 
     def getDataIdsFromRegex(self, dataIdRegex):
+
+
+        # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
+        # eg. visit vs. run-field, raft vs. camcol ...
+        sceNames = [
+            [x[0], "sce."+x[1]]
+            for x in self.cameraInfo.dataIdDbNames.items() if not re.search("snap", x[0])
+            ]
         
         haveAllKeys = True
         sqlDataId = []
-        for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+        for keyNames in sceNames:
             key, sqlName = keyNames
             if dataIdRegex.has_key(key):
                 sqlDataId.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
@@ -518,15 +556,21 @@ class DbQaData(QaData):
                 haveAllKeys = False
         sqlDataId = " and ".join(sqlDataId)
 
-        sql  = "select sce.visit, sce.raftName, sce.ccdName"
+        sql  = "select "+",".join(zip(*sceNames)[1])
         sql += "  from Science_Ccd_Exposure as sce "
         sql += "  where " + sqlDataId
 
         dataIdList = []
         results  = self.dbInterface.execute(sql)
+        nIds = len(sceNames)
         for r in results:
-            visit, raft, ccd = map(str, r[0:3])
-            dataIdList.append({'visit':visit, 'raft':raft, 'sensor':ccd, 'snap':'0'})
+            dataId = {}
+            i = 0
+            for idName, dbName in sceNames:
+                dataId[idName] = r[i]
+                i += 1
+
+            dataIdList.append(dataId)
             
         return dataIdList
 
@@ -537,7 +581,7 @@ class DbQaData(QaData):
 
 
         # If the dataIdEntry is identical to an earlier query, we must already have all the data
-        dataIdStr = self._dataIdToString(dataIdRegex)      # E.g. visit862826551-snap.*-raft.*-sensor.*
+        dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)  # E.g. visit862826551-snap.*-raft.*-sensor.*
 
         if self.visitMatchQueryCache.has_key(matchDatabase):
             if self.visitMatchQueryCache[matchDatabase].has_key(matchVisit):
@@ -563,7 +607,7 @@ class DbQaData(QaData):
 
         for dataIdEntry in dataIdList:
             visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
-            dataIdEntryStr = self._dataIdToString(dataIdEntry) # E.g. visit862826551-snap0-raft30-sensor20
+            dataIdEntryStr = self._dataIdToString(dataIdEntry, defineFully=True) # E.g. visit862826551-snap0-raft30-sensor20
 
             haveAllKeys = True
             sqlDataId = []
@@ -699,17 +743,32 @@ class DbQaData(QaData):
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
 
+        # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
+        # eg. visit vs. run-field, raft vs. camcol ...
+        sceNames = [
+            [x[0], "sce."+x[1]]
+            for x in self.cameraInfo.dataIdDbNames.items() if not re.search("snap", x[0])
+            ]
+
+        
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
+        # figure out if we have yMag
+        keyList = []
+        sql = "show columns from RefObject;"
+        results = self.dbInterface.execute(sql)
+        for r in results:
+            keyList.append(r[0])
+        haveYmag = 'yMag' in keyList
+        
         sroFields = simRefObj.fields
+        if not haveYmag:
+            sroFields = [x for x in sroFields if x != 'yMag']
         sroFieldStr = ",".join(["sro."+field for field in sroFields])
 
-        oldWay = False
-        nStep = 3
-
         # if the dataIdEntry is identical to an earlier query, we must already have all the data
-        dataIdStr = self._dataIdToString(dataIdRegex)
+        dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)
         if self.refObjectQueryCache.has_key(dataIdStr):
             # get only the ones that match the request
             sroDict = {}
@@ -720,86 +779,69 @@ class DbQaData(QaData):
 
 
         # get a list of matching dataIds 
-        if oldWay:
-            dataIdList = [dataIdRegex]
-        else:
-            dataIdList = self.getDataIdsFromRegex(dataIdRegex)
+        dataIdList = self.getDataIdsFromRegex(dataIdRegex)
             
 
         # Load each of the dataIds
         sroDict = {}
         for dataIdEntry in dataIdList:
 
-            dataIdEntryStr = self._dataIdToString(dataIdEntry)
+            dataIdEntryStr = self._dataIdToString(dataIdEntry, defineFully=True)
             
             haveAllKeys = True
             sqlDataId = []
-            for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+            for keyNames in sceNames:
                 key, sqlName = keyNames
                 if dataIdEntry.has_key(key):
                     sqlDataId.append(self._sqlLikeEqual(sqlName, dataIdEntry[key]))
                 else:
                     haveAllKeys = False
             sqlDataId = " and ".join(sqlDataId)
-            
-            # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-            if oldWay:
-                sql  = 'select sce.visit, sce.raftName, sce.ccdName, %s' % (sroFieldStr)
-                sql += '  from RefObject as sro, '
-                sql += '       Science_Ccd_Exposure as sce '
-                sql += '  where (scisql_s2PtInCPoly(sro.ra, sro.decl,'
-                sql += '         scisql_s2CPolyToBin('
-                sql += '          sce.llcRa, sce.llcDecl, '
-                sql += '          sce.ulcRa, sce.ulcDecl, '
-                sql += '          sce.urcRa, sce.urcDecl, '
-                sql += '          sce.lrcRa, sce.lrcDecl)) = 1) '
-                sql += '        and ' + sqlDataId
-
-            else:
-                if nStep == 2:
-                    sql  = 'SELECT scisql_s2CPolyToBin('
-                    sql += '   sce.llcRa, sce.llcDecl, '
-                    sql += '   sce.lrcRa, sce.lrcDecl, '
-                    sql += '   sce.urcRa, sce.urcDecl, '
-                    sql += '   sce.ulcRa, sce.ulcDecl) '
-                    sql += 'FROM Science_Ccd_Exposure as sce '
-                    sql += 'WHERE %s ' % (sqlDataId)
-                    #sq += '   (sce.visit = 887252941) AND'
-                    #sq += '   (sce.raftName = \'2,2\') AND'
-                    #sq += '   (sce.ccdName = \'1,1\');'
-                    sql += 'INTO @poly; '
-
-                    sql2 = 'SELECT %s ' % (sroFieldStr)
-                    sql2 += 'FROM '
-                    sql2 += '    RefObject AS sro '
-                    sql2 += 'WHERE '
-                    sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
 
 
-                elif nStep == 3:
-                    sql  = 'SELECT poly FROM Science_Ccd_Exposure as sce '
-                    sql += 'WHERE %s ' % (sqlDataId) 
-                    sql += 'INTO @poly;'
 
-                    sql2 = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
+            nStep = 2
 
-                    sql3  = 'SELECT %s ' % (sroFieldStr)
-                    sql3 += 'FROM RefObject AS sro INNER JOIN '
-                    sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
-                    sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
+            if nStep == 2:
+                sql  = 'SELECT scisql_s2CPolyToBin('
+                sql += '   sce.corner1Ra, sce.corner1Decl, '
+                sql += '   sce.corner2Ra, sce.corner2Decl, '
+                sql += '   sce.corner3Ra, sce.corner3Decl, '
+                sql += '   sce.corner4Ra, sce.corner4Decl) '
+                sql += 'FROM Science_Ccd_Exposure as sce '
+                sql += 'WHERE %s ' % (sqlDataId)
+                #sq += '   (sce.visit = 887252941) AND'
+                #sq += '   (sce.raftName = \'2,2\') AND'
+                #sq += '   (sce.ccdName = \'1,1\');'
+                sql += 'INTO @poly; '
 
-        
-            #print sql
-            #if not oldWay:
-            #    print sql2
+                sql2 = 'SELECT %s ' % (sroFieldStr)
+                sql2 += 'FROM '
+                sql2 += '    RefObject AS sro '
+                sql2 += 'WHERE '
+                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
+
+            # use a 3 step query
+            elif nStep == 3:
+                sql  = 'SELECT poly FROM Science_Ccd_Exposure as sce '
+                sql += 'WHERE %s ' % (sqlDataId) 
+                sql += 'INTO @poly;'
+
+                sql2 = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
+
+                sql3  = 'SELECT %s ' % (sroFieldStr)
+                sql3 += 'FROM RefObject AS sro INNER JOIN '
+                sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
+                sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
+
             
             # if there are no regexes (ie. actual wildcard expressions),
             #  we can check the cache, otherwise must run the query
 
             if not re.search("\%", sql) and haveAllKeys:
                 dataIdCopy = copy.copy(dataIdEntry)
-                dataIdCopy['snap'] = "0"
-                key = self._dataIdToString(dataIdCopy)
+
+                key = self._dataIdToString(dataIdCopy, defineFully=True)
                 if self.refObjectCache.has_key(key):
                     sroDict[key] = self.refObjectCache[key]
                     continue
@@ -807,44 +849,39 @@ class DbQaData(QaData):
                         
             self.printStartLoad("Loading RefObjects for: " + dataIdEntryStr + "...")
 
-            # run the query
-            if oldWay:
-                results  = self.dbInterface.execute(sql)
-            else:
-                if nStep == 2:
-                    self.dbInterface.execute(sql)
-                    results = self.dbInterface.execute(sql2)
-                elif nStep == 3:
-                    self.dbInterface.execute(sql)
-                    self.dbInterface.execute(sql2)
-                    results = self.dbInterface.execute(sql3)
+            # run the queries
+            if nStep == 2:
+                self.dbInterface.execute(sql)
+                results = self.dbInterface.execute(sql2)
+            elif nStep == 3:
+                self.dbInterface.execute(sql)
+                self.dbInterface.execute(sql2)
+                results = self.dbInterface.execute(sql3)
                     
 
             # parse results and put them in a sourceSet
-            visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
+            raftName, ccdName = self.cameraInfo.getRaftAndSensorNames(dataIdEntry)
+            #visit, raft, sensor = dataIdEntry['visit'], dataIdEntry['raft'], dataIdEntry['sensor']
             wcs = self.getWcsBySensor(dataIdEntry)[dataIdEntryStr]
-            raftName = self.cameraInfo.raftKeyToName(raft)
-            ccdName = self.cameraInfo.ccdKeyToName(sensor)
+            #raftName = self.cameraInfo.raftKeyToName(raft)
+            #ccdName = self.cameraInfo.ccdKeyToName(sensor)
             bbox = self.cameraInfo.getBbox(raftName, ccdName)
             
             for row in results:
-                if oldWay:
-                    visit, raft, sensor = row[0:3]
-                    sroStuff = row[3:]
-                else:
-                    sroStuff = row[:] #row[3:]
+                sroStuff = list(row[:])
+                if not haveYmag:
+                    sroStuff.append(0.0) # dummy yMag
 
                 # ignore things near the edge
                 # ... they wouldn't be detected, and we should know about them
-                if True: #False:
-                    ra, dec = sroStuff[2], sroStuff[3]
-                    x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(ra, dec)))
-                    if qaDataUtils.atEdge(bbox, x, y):
-                        continue
+                ra, dec = sroStuff[2], sroStuff[3]
+                x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(ra, dec)))
+                if qaDataUtils.atEdge(bbox, x, y):
+                   continue
 
                 
-                dataIdTmp = {'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
-                key = self._dataIdToString(dataIdTmp)
+                dataIdTmp = dataIdEntry #{'visit':str(visit), 'raft':raft, 'sensor':sensor, 'snap':'0'}
+                key = self._dataIdToString(dataIdTmp, defineFully=True)
                 self.dataIdLookup[key] = dataIdTmp
 
                 if not sroDict.has_key(key):
@@ -925,10 +962,18 @@ class DbQaData(QaData):
             return [dataIdRegex]
 
 
-        sql = "select visit, raftName, ccdName from Science_Ccd_Exposure"
+        # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
+        # eg. visit vs. run-field, raft vs. camcol ...
+        sceNames = [
+            [x[0], "sce."+x[1]]
+            for x in self.cameraInfo.dataIdDbNames.items() if not re.search("snap", x[0])
+            ]
+        
+
+        sql = "select "+",".join(zip(*sceNames)[1])+" from Science_Ccd_Exposure as sce"
         sql += "   where "
         whereList = []
-        for keyNames in [['visit', 'visit'], ['raft', 'raftName'], ['sensor', 'ccdName']]:
+        for keyNames in sceNames:
             key, sqlName = keyNames
             if dataIdRegex.has_key(key):
                 whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
@@ -937,23 +982,25 @@ class DbQaData(QaData):
         results = self.dbInterface.execute(sql)
 
         dataIdDict = {}
-        ccdConvention = 'ccd'
-        if not dataIdRegex.has_key('ccd'):
-            ccdConvention = 'sensor'
+        #ccdConvention = 'ccd'
+        #if not dataIdRegex.has_key('ccd'):
+        #    ccdConvention = 'sensor'
             
         for r in results:
-            visit, raft, ccd = r
+
+            i = 0
+            thisDataId = {}
+            for idName, dbName in sceNames:
+                thisDataId[idName] = r[i]
+                i += 1
+            
             if breakBy == 'raft':
                 # handle lsst/hsc different naming conventions
-                ccd = dataIdRegex[ccdConvention]
+                ccd = dataIdRegex[self.cameraInfo.dataIdTranslationMap['sensor']]
 
-            key = str(visit) + str(raft) + str(ccd)
-            dataIdDict[key] = {
-                'visit': str(visit),
-                'raft' : raft,
-                ccdConvention : ccd,
-                'snap': '0'
-                }
+            key = self._dataIdToString(thisDataId, defineFully=True)
+            dataIdDict[key] = thisDataId
+
 
         # store the list of broken dataIds 
         self.brokenDataIdList = []
@@ -973,7 +1020,15 @@ class DbQaData(QaData):
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        selectList = ["sce."+x for x in qaDataUtils.getSceDbNames()]
+        # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
+        # eg. visit vs. run-field, raft vs. camcol ...
+        sceDataIdNames = [
+            #[x[0], "sce."+x[1]]
+            x for x in self.cameraInfo.dataIdDbNames.items() if not re.search("snap", x[0])
+            ]
+
+        
+        selectList = ["sce."+x for x in qaDataUtils.getSceDbNames(sceDataIdNames)]
         selectStr = ",".join(selectList)
 
         sql  = 'select '+selectStr
@@ -983,7 +1038,7 @@ class DbQaData(QaData):
         haveAllKeys = True
 
         whereList = []
-        for keyNames in [['visit', 'sce.visit'], ['raft', 'sce.raftName'], ['sensor', 'sce.ccdName']]:
+        for keyNames in [[x[0], "sce."+x[1]] for x in sceDataIdNames]:
             key, sqlName = keyNames
             if dataIdRegex.has_key(key):
                 whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
@@ -996,12 +1051,12 @@ class DbQaData(QaData):
         if not re.search("\%", sql) and haveAllKeys:
             dataIdCopy = copy.copy(dataIdRegex)
             dataIdCopy['snap'] = "0"
-            key = self._dataIdToString(dataIdCopy)
+            key = self._dataIdToString(dataIdCopy, defineFully=True)
             if self.calexpQueryCache.has_key(key):
                 return
 
         # if the dataIdRegex is identical to an earlier query, we must already have all the data
-        dataIdStr = self._dataIdToString(dataIdRegex)
+        dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)
         if self.calexpQueryCache.has_key(dataIdStr) and self.calexpQueryCache[dataIdStr]:
             return
 
@@ -1012,11 +1067,15 @@ class DbQaData(QaData):
 
         for row in results:
 
-            rowDict = dict(zip(qaDataUtils.getSceDbNames(), row))
+            rowDict = dict(zip(qaDataUtils.getSceDbNames(sceDataIdNames), row))
 
-            visit, raft, sensor = rowDict['visit'], rowDict['raftName'], rowDict['ccdName']
-            dataIdTmp = {'visit':visit, 'raft':raft, 'sensor':sensor, 'snap':'0'}
-            key = self._dataIdToString(dataIdTmp)
+            dataIdTmp = {}
+            for idName, dbName in sceDataIdNames:
+                dataIdTmp[idName] = rowDict[dbName]
+                
+            #visit, raft, sensor = rowDict['visit'], rowDict['raftName'], rowDict['ccdName']
+            #dataIdTmp = {'visit':visit, 'raft':raft, 'sensor':sensor, 'snap':'0'}
+            key = self._dataIdToString(dataIdTmp, defineFully=True)
             self.dataIdLookup[key] = dataIdTmp
             
             #print rowDict
@@ -1028,8 +1087,7 @@ class DbQaData(QaData):
                 self.wcsCache[key] = wcs
 
             if not self.detectorCache.has_key(key):
-                raftName = "R:"+rowDict['raftName']
-                ccdName = raftName + " S:"+rowDict['ccdName']
+                raftName, ccdName = self.cameraInfo.getRaftAndSensorNames(dataIdTmp)
                 self.detectorCache[key] = self.cameraInfo.detectors[ccdName] #ccdDetector
                 self.raftDetectorCache[key] = self.cameraInfo.detectors[raftName]
 
@@ -1044,7 +1102,7 @@ class DbQaData(QaData):
 
             self.calexpCache[key] = rowDict
             self.calexpQueryCache[key] = True
-        
+
         self.calexpQueryCache[dataIdStr] = True
         
         self.printStopLoad()
@@ -1060,8 +1118,7 @@ class DbQaData(QaData):
 
         # get the datasets corresponding to the request
         self.loadCalexp(dataIdRegex)
-        dataIdStr = self._dataIdToString(dataIdRegex
-                                         )
+        dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)
         entryDict = {}
         for dataKey in cache.keys():
             if re.search(dataIdStr, dataKey):
@@ -1095,11 +1152,19 @@ class DbQaData(QaData):
         """Utility to convert a dataId regex to an sql 'where' clause.
         """
 
+        regex = str(regex)
+        
         clause = ""
+        # just a number
         if re.search('^\d+$', regex):
             clause += field + " = %s" % (regex)
+        # comma-sep numbers
         elif re.search('^[\d,]+$', regex):
             clause += field + " = '%s'" % (regex)
+        # if it's a filter
+        elif re.search('^[ugrizy]$', regex):
+            clause += field + " = '%s'" % (regex)            
+        # .*  ?  % followed/preceeding by comma-sep numbers
         elif re.search('^(\.\*|\?|\%)[\d,]*$', regex) or re.search('^[\d,]*(\.\*|\?|\%)$', regex):
             regexSql = re.sub("(\.\*|\?)", "%", regex)
             clause += field + " like '%s'" % (regexSql)

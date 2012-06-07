@@ -205,16 +205,16 @@ def getCalexpNameLookup():
     return nameLookup
 
 
-def getSceNameList():
+def getSceNameList(dataIdNames):
     """Associate SourceCcdExposure names to database columns in a list of pairs. """
     
-    nameList = [
-        ['scienceCcdExposureId', 'scienceCcdExposureId' ],
-        ['visit',                'visit'                ],
-        ['raft',                 'raft'                 ],
-        ['raftName',             'raftName'             ],
-        ['ccd',                  'ccd'                  ],
-        ['ccdName',              'ccdName'              ],
+    nameList = [ ['scienceCcdExposureId', 'scienceCcdExposureId' ] ] + dataIdNames
+    nameList += [
+        #['visit',                'visit'                ],
+        #['raft',                 'raft'                 ],
+        #['raftName',             'raftName'             ],
+        #['ccd',                  'ccd'                  ],
+        #['ccdName',              'ccdName'              ],
         ['filterId',             'filterId'             ],
         ['filterName',           'filterName'           ],
         ['ra',                   'ra'                   ],
@@ -255,9 +255,9 @@ def getSceNameList():
         ]
     return nameList
 
-def getSceDbNames():
+def getSceDbNames(dataIdNames):
     """Get SourceCcdExposure database column names."""
-    return zip(*getSceNameList())[1]
+    return zip(*getSceNameList(dataIdNames))[1]
 
 
 

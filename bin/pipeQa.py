@@ -107,8 +107,10 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
     
     # convert this input format visit,raft,ccd to the names used by the instrument
+    dataIdOrig = copy.copy(dataIdInput) # good to have for debugging
     dataIdInput = data.cameraInfo.dataIdStandardToCamera(dataIdInput)    
 
+    data.reduceAvailableDataTupleList(dataIdInput)
     
     # take what we need for this camera, ignore the rest
     dataId = {}
@@ -390,7 +392,7 @@ if __name__ == '__main__':
 
     dataId = {
         'visit': visits,
-        'ccd': opts.ccd,
+        'sensor': opts.ccd,
         'raft': opts.raft,
         'snap': opts.snap,
         }

@@ -48,7 +48,7 @@ class QaAnalysis(object):
             label = self.__class__.__name__
 
         tsIdLabel = "visit-filter"
-        tsId = group+ '-' + filterName
+        tsId = str(group)+ '-' + filterName
         if data.cameraInfo.name == 'sdss':
             tsId = group
             

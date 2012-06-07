@@ -63,10 +63,12 @@ class CameraInfo(object):
         self.dataIdDbNames = {
             'visit' : 'visit',
             'raft'  : 'raftName',
-            'sensor' : 'sensorName',
+            'sensor' : 'ccdName',
             'snap'  : 'snap',
             }
 
+    def standardToDbName(self, name):
+        return self.dataIdDbNames[self.dataIdTranslationMap[name]]
         
     def dataIdCameraToStandard(self, dataIdIn):
         """Put this camera dataId in standard visit,raft,sensor format"""
@@ -227,7 +229,17 @@ class CameraInfo(object):
                 if re.search(ccd, c):
                     return c
         return None
-        
+
+    def getRaftAndSensorNames(self, dataId):
+        raftName = "R:"+str(dataId[self.dataIdTranslationMap['raft']])
+        ccdName = raftName + " S:"+str(dataId[self.dataIdTranslationMap['sensor']])
+        return raftName, ccdName
+
+
+    def getSensorName(self, raft, ccd):
+        ccdName = raftName + " S:"+str(rowDict[self.cameraInfo.standardToDbName('sensor')])
+        pass
+    
     def getBbox(self, raftName, ccdName):
 
         raft = self.rafts[raftName]
@@ -303,7 +315,7 @@ class LsstSimCameraInfo(CameraInfo):
             'visit'  : 'visit',
             'snap'   : 'snap',
             'raft'   : 'raft',
-            'ccd'    : 'sensor',
+            'sensor'    : 'sensor',
             }
         
     def getRoots(self, baseDir, output=None):
@@ -528,9 +540,9 @@ class SdssCameraInfo(CameraInfo):
 
         messingWithNames = True
         if messingWithNames:
-            dataInfo       = [['run', 1], ['band', 0], ['field',0], ['camcol', 0]]
+            dataInfo       = [['run', 1], ['filter', 0], ['field',1], ['camcol', 0]]
         else:
-            dataInfo       = [['run', 1], ['band', 0], ['frame',0], ['camcol', 0]]
+            dataInfo       = [['run', 1], ['band', 0], ['frame',1], ['camcol', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SDSS_DIR'):
@@ -555,20 +567,20 @@ class SdssCameraInfo(CameraInfo):
             self.dataIdTranslationMap = {
                 'visit' : ['run', 'field'],
                 'raft'  : 'camcol',
-                'ccd'   : 'band',
+                'sensor'   : 'filter',
                 }
 
             self.dataIdDbNames = {
                 'run' : 'run',
                 'field' : 'field',
                 'camcol' : 'camcol',
-                'band'   : 'filterName',
+                'filter'   : 'filterName',
                 }
         else:
             self.dataIdTranslationMap = {
                 'visit' : ['run', 'frame'],
                 'raft'  : 'camcol',
-                'ccd'   : 'band',
+                'sensor'   : 'band',
                 }
 
             self.dataIdDbNames = {
@@ -578,7 +590,13 @@ class SdssCameraInfo(CameraInfo):
                 'band'   : 'filterName',
                 }
             
-            
+
+    def getRaftAndSensorNames(self, dataId):
+        raftName = str(dataId[self.dataIdTranslationMap['raft']])
+        ccdName =  str(dataId[self.dataIdTranslationMap['sensor']]) + raftName
+        return raftName, ccdName
+
+    
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 

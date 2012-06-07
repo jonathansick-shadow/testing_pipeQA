@@ -111,9 +111,13 @@ class ButlerQaData(QaData):
         self.availableDataTuples = self.outButler.queryMetadata(cameraInfo.rawName, self.dataIdNames,
                                                                 format=self.dataIdNames)
 
-        # We don't know the dataIds at construction, so the commented-out code would be a no-op
-        #self.dataTuples = self._regexMatchDataIds(dataIdRegexDict, self.availableDataTuples)
+        # availableDataTuples may be a *very* *large* list.  Be sure to call reduceAvailableDataTupleList
         self.dataTuples = self.availableDataTuples
+
+    
+    def reduceAvailableDataTupleList(self, dataIdRegexDict):
+        """Reduce availableDataTupleList by keeping only dataIds that match the input regex."""
+        self.dataTuples = self._regexMatchDataIds(dataIdRegexDict, self.availableDataTuples)
         
     def initCache(self):
 

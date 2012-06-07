@@ -394,7 +394,7 @@ class QaData(object):
         return tuple(dataList)
 
 
-    def _dataIdToString(self, dataId):
+    def _dataIdToString(self, dataId, defineFully=False):
         """Convert a dataId dict to a string.
 
         @param dataId The dataId to be converted
@@ -405,11 +405,19 @@ class QaData(object):
             dataIdName = self.dataIdNames[i]
             if dataId.has_key(dataIdName):
                 s.append( dataIdName + re.sub("[,]", "", str(dataId[dataIdName])))
+            elif defineFully:
+                if dataIdName == 'snap':
+                    s.append(dataIdName + "0")
+                else:
+                    s.append( dataIdName + ".*" )
         #x = self._dataTupleToString(self._dataIdToDataTuple(dataId))
         s = "-".join(s)
         #print x, s
         return s
+
     
+    def reduceAvailableDataTupleList(self, dataIdRegexDict):
+        pass
 
     def keyStringsToVisits(self, keyList):
         """Extract a list of visits from a list of sensor keys.
@@ -432,41 +440,47 @@ class QaData(object):
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-        pass
+        raise NotImplementedError, "Must define getSourceSet in derived QaData class."
     def getSourceSetBySensor(self, dataIdRegex):
         """Get a dict of all Sources matching dataId, with sensor name as dict keys.
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-        pass
+        raise NotImplementedError, "Must define getSourceSetBySensor in derived QaData class."
+
     def getMatchListBySensor(self, dataIdRegex):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-        pass
+        raise NotImplementedError, "Must define getMatchListBySensor in derived QaData class."
+
     def getCalexpEntryBySensor(self, cache, dataIdRegex):
         """Fill and return the dict for a specified calexp cache.
 
         @param cache The cache dictionary to return
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-        pass
+        raise NotImplementedError, "Must define getCalexpEntryBySensor in derived QaData class."
+
     def getVisits(self, dataIdRegex):
         """Get a list of all visits matching dataIdRegex
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-        pass
+        raise NotImplementedError, "Must define getVisits in derived QaData class."
+
     def loadCalexp(self, dataIdRegex):
         """Load the calexp data for data matching dataIdRegex.
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
-        pass
+        raise NotImplementedError, "Must define loadCalexp in derived QaData class."
+
     def breakDataId(self, dataId, breakBy):
         """Take a dataId with regexes and return a list of dataId regexes
         which break the dataId by raft, or ccd.
 
         @param breakBy   'visit', 'raft', or 'ccd'
         """
+        raise NotImplementedError, "Must define breakDataId in derived QaData class."
