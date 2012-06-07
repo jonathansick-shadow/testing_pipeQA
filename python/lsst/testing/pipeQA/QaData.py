@@ -147,12 +147,13 @@ class QaData(object):
 
     def cachePerformance(self, dataIdStr, test, label, value):
         if isinstance(dataIdStr, dict):
-            dataIdStr = self._dataIdToString(dataIdStr)
+            dataIdStr = self._dataIdToString(dataIdStr, defineFully=True)
             
         if not self.performCache.has_key(dataIdStr):
             self.performCache[dataIdStr] = {}
         if not self.performCache[dataIdStr].has_key(test):
             self.performCache[dataIdStr][test] = {}
+        if not self.performCache[dataIdStr].has_key('total'):
             self.performCache[dataIdStr]['total'] = {}
             
         if not self.performCache[dataIdStr][test].has_key(label):
@@ -166,7 +167,7 @@ class QaData(object):
         
     def getPerformance(self, dataIdStr, test, label):
         if isinstance(dataIdStr, dict):
-            dataIdStr = self._dataIdToString(dataIdStr)
+            dataIdStr = self._dataIdToString(dataIdStr, defineFully=True)
         if self.performCache.has_key(dataIdStr):
             if self.performCache[dataIdStr].has_key(test):
                 if self.performCache[dataIdStr][test].has_key(label):
@@ -213,7 +214,7 @@ class QaData(object):
         @param accessors  List of accessor method names (as string without 'get' prepended)
         """
 
-        dataIdStr = self._dataIdToString(dataIdRegex)
+        dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)
 
         # if they want a specific dataId and we have it ....
         ssTDict = {}
