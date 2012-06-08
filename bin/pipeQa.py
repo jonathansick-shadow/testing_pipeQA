@@ -109,8 +109,6 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
     # convert this input format visit,raft,ccd to the names used by the instrument
     dataIdOrig = copy.copy(dataIdInput) # good to have for debugging
     dataIdInput = data.cameraInfo.dataIdStandardToCamera(dataIdInput)    
-
-    data.reduceAvailableDataTupleList(dataIdInput)
     
     # take what we need for this camera, ignore the rest
     dataId = {}
@@ -118,6 +116,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
         if dataIdInput.has_key(name):
             dataId[name] = dataIdInput[name]
 
+    data.reduceAvailableDataTupleList(dataId)
     
     # if they requested a key that doesn't exist for this camera ... throw
     for k, v in dataIdInput.items():
@@ -210,7 +209,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
         
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
-
+    
     visits = []
     if len(visitList) > 0:
         for v in visitsTmp:
@@ -252,7 +251,6 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
     testset = pipeQA.TestSet(group="", label="QA-failures"+groupTag, wwwCache=wwwCache)
     for visit in visits:
 
-        
         visit_t0 = time.time()
         
         dataIdVisit = copy.copy(dataId)
@@ -264,7 +262,6 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
         for thisDataId in brokenDownDataIdList:
             
-
             for a in analysisList:
 
                 test_t0 = time.time()

@@ -139,7 +139,8 @@ class ButlerQaData(QaData):
         """
         visits = []
 
-        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples, verbose=True)
+        dataTuplesToFetch = self._regexMatchDataIds(dataIdRegex, self.dataTuples, verbose=False)
+
         for dataTuple in dataTuplesToFetch:
             dataId = self._dataTupleToDataId(dataTuple)
             visits.append(self.cameraInfo.dataIdCameraToStandard(dataId)['visit'])
@@ -792,7 +793,8 @@ class ButlerQaData(QaData):
         # Put matches in a list of tuples, eg. [(vis1,sna1,raf1,sen1),(vis2,sna2,raf2,sen2)] 
         dataTuples = []
         for dataTuple in availableDataTuples:
-
+            if verbose:
+                print dataTuple
             # start true and fail if any dataId keys fail ... eg. 'visit' doesn't match
             match = True
             for i in range(len(self.dataIdNames)):
