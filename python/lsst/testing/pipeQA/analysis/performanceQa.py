@@ -172,6 +172,7 @@ class performanceQa(qaAna.QaAnalysis):
             runtimeData, runtimeMap       = testSet.unpickle(runtimeBase, [None, None])
             runtimeFig    = qaFig.FpaQaFigure(data.cameraInfo, data=runtimeData, map=runtimeMap)
 
+            #print "min/max", mintime, maxtime
             for raft, ccdDict in runtimeFig.data.items():
                 for ccd, value in ccdDict.items():
 
@@ -185,14 +186,16 @@ class performanceQa(qaAna.QaAnalysis):
 
             testSet.pickle(runtimeBase, [runtimeFig.data, runtimeFig.map])
 
-
+            runArray = runtimeFig.getArray()
+            mintime, maxtime = runArray.min()-1.0, runArray.max()+1.0
+            
             # make the figures and add them to the testSet
             # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
             if not self.delaySummary or isFinalDataId:
                 runtimeFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
-                                      vlimits=[0, 3600], 
+                                      vlimits=[mintime, maxtime], 
                                       title="Runtime [Sec]",
-                                      failLimits=[0, 3600])
+                                      failLimits=[mintime, maxtime])
                 testSet.addFigure(runtimeFig, runtimeBase+".png",
                                   "Runtime", navMap=True)
                 del runtimeFig

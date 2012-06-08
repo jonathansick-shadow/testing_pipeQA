@@ -1,7 +1,6 @@
 import sys, os, re, copy, time
 import numpy
 
-import lsst.ap.cluster as apCluster
 
 #######################################################################
 #
@@ -163,7 +162,7 @@ class QaData(object):
             
         self.performCache[dataIdStr][test][label]    += value
         self.performCache[dataIdStr]['total'][label] += value
-
+        #print 'd', dataIdStr, "l",label, "p",self.performCache[dataIdStr]['total'][label], 'v',value
         
     def getPerformance(self, dataIdStr, test, label):
         if isinstance(dataIdStr, dict):
@@ -328,6 +327,7 @@ class QaData(object):
         @param pointsPerLeaf who knows?
         @param leafExtentThresholdArcsec Drawing a blank here too.
         """
+        import lsst.ap.cluster as apCluster
         
         policy = pexPolicy.Policy()
         policy.set("epsilonArcsec", epsilonArcsec)

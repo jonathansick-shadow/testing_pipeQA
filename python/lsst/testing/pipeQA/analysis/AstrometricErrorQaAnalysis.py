@@ -349,6 +349,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             qaFigUtil.make_densityContour(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
                                           log=True, percentiles=True, normed=False, levels=[0.5])
             c0 = Circle((0.0, 0.0), radius=0.0, facecolor='none', edgecolor=green, zorder=3, label="50%")
+            ax.vlines(0.0, limRose[0], limRose[1], linestyle='dashed')
+            ax.hlines(0.0, xlimRose[0], xlimRose[1], linestyle='dashed')
             ax.add_patch(c0)
         else:
             z = numpy.zeros(len(dx))
@@ -367,6 +369,9 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
             ax.add_patch(c50)
 
+            ax.vlines(0.0, limRose[0], limRose[1], linestyle='dashed')
+            ax.hlines(0.0, xlimRose[0], xlimRose[1], linestyle='dashed')
+            
 
         fp = fm.FontProperties(size="xx-small")
         ax.legend(prop=fp)
