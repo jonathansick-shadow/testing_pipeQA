@@ -61,6 +61,7 @@ class CompletenessQa(qaAna.QaAnalysis):
         del self.depth
         if hasMinuit:
             del self.fit
+        del self.faintest
 
     def limitingMag(self, raftId, ccdId):
         if hasMinuit:
@@ -174,7 +175,8 @@ class CompletenessQa(qaAna.QaAnalysis):
         extKey = sCatSchema.find('Extendedness').key
         
         refPsfKey = srefCatSchema.find('PsfFlux').key
-            
+
+        self.faintest = 0.0
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
@@ -207,6 +209,9 @@ class CompletenessQa(qaAna.QaAnalysis):
                             # Use known catalog mag
                             mrefmag  = -2.5*num.log10(fref)
                             if num.isfinite(mrefmag):
+                                if mrefmag > self.faintest:
+                                    self.faintest == mrefmag
+                                    
                                 if s.getD(extKey) > 0.0:
                                     galaxies.append(mrefmag)
                                 else:
@@ -218,8 +223,11 @@ class CompletenessQa(qaAna.QaAnalysis):
                 # Non-detections
                 undetectedStars = []
                 undetectedGalaxies = []
+
                 for nondet in self.matchListDictSrc[key]['undetected']:
                     mag = nondet.getMag(filterName)
+                    if mag > self.faintest:
+                        self.faintest = mag
                     if nondet.getIsStar():
                         undetectedStars.append(mag)
                     else:
@@ -235,7 +243,10 @@ class CompletenessQa(qaAna.QaAnalysis):
                     else:
                         f = orphan.getD(apKey)
                     if f > 0.0:
-                        orphans.append(-2.5 * num.log10(f))
+                        orphmag = -2.5*num.log10(f)
+                        orphans.append(orphmag)
+                        if orphmag > self.faintest:
+                            self.faintest = orphmag
                 self.orphan.set(raftId, ccdId, num.array(orphans))
 
                 ############ Calculate limiting mag
@@ -248,8 +259,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                 comment = "magnitude where star completeness drops below 0.5"
                 test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
-
-
+                
     def plot(self, data, dataId, showUndefined = False):
         
         testSet = self.getTestSet(data, dataId)
@@ -258,6 +268,13 @@ class CompletenessQa(qaAna.QaAnalysis):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
+        # override self.limits to use the faintest mag as an upper limit, if upper limit is 99.0
+        # put the new limits in a different variable so we do this on a visit-by-visit basis
+        # ie. ... don't set it permanently in self.limits or every visit will use that.
+        limitsToUse = [self.limits[0], self.limits[1]]
+        if abs(self.limits[1] - 99.0) < 1.0e-3:
+            limitsToUse[1] = self.faintest
+            
         # fpa figure
         filebase = "completenessDepth"
         depthData, depthMap = testSet.unpickle(filebase, default=[None, None])
@@ -291,13 +308,13 @@ class CompletenessQa(qaAna.QaAnalysis):
                 vmin = self.limits[0]
                 vmax = self.limits[1]
         else:
-            vmin, vmax = 1.0*self.limits[0], 1.0*self.limits[1]
+            vmin, vmax = 1.0*limitsToUse[0], 1.0*limitsToUse[1]
 
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
             depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
                                 title="Photometric Depth", cmapOver=red, cmapUnder=blue,
-                                failLimits=self.limits)
+                                failLimits=limitsToUse)
             testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
 
         del depthFig

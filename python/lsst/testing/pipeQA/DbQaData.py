@@ -247,6 +247,7 @@ class DbQaData(QaData):
             sref.setId(refObjId)
             sref.setD(refRaKey, ra)
             sref.setD(refDecKey, dec)
+
             # clip at -30
             if mag < -30:
                 mag = -30

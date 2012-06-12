@@ -204,8 +204,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
-
-                    if ((f1 > 0.0 and f2 > 0.0) and True): #not (intcen or satcen or edge)):
+                    
+                    if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
 
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
@@ -275,7 +275,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 std = stat.getValue(afwMath.STDEVCLIP)
                 n = stat.getValue(afwMath.NPOINT)
 
-		derrmed = afwMath.makeStatistics(derr, afwMath.MEDIAN).getValue(afwMath.MEDIAN)
+                derrmed = afwMath.makeStatistics(derr, afwMath.MEDIAN).getValue(afwMath.MEDIAN)
 
                 # get trendlines for stars/galaxies
                 # for alldata, use trendline for stars
@@ -347,7 +347,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         xlim = [14.0, 25.0]
         ylimStep = 0.4
         ylim = [-ylimStep, ylimStep]
-	aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
+        aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
 
         tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
         tag  = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
