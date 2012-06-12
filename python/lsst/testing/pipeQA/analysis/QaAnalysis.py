@@ -2,6 +2,7 @@ import os
 import lsst.testing.pipeQA.figures as qaFig
 import numpy
 import cPickle as pickle
+import eups
 
 import lsst.testing.pipeQA.TestCode as testCode
 
@@ -57,7 +58,11 @@ class QaAnalysis(object):
                                                    wwwCache=self.wwwCache)
             self.testSets[tsId].addMetadata('dataset', data.getDataName())
             self.testSets[tsId].addMetadata(tsIdLabel, tsId)
-
+            pqaVersion = eups.getSetupVersion('testing_pipeQA')
+            dqaVersion = eups.getSetupVersion('testing_displayQA')
+            self.testSets[tsId].addMetadata('PipeQA', pqaVersion)
+            self.testSets[tsId].addMetadata('DisplayQA', dqaVersion)
+            
             
         return self.testSets[tsId]
 
