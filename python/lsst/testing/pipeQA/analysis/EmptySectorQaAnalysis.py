@@ -56,8 +56,6 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         
     def test(self, data, dataId):
 
-        t0 = time.time()
-
         # get data
         self.ssDict           = data.getSourceSetBySensor(dataId)
 
@@ -160,13 +158,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         testSet.addTest(test)
 
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "EmptySectorQaAnalysis", "test-runtime", dt)
-
-
     def plot(self, data, dataId, showUndefined=False):
 
-        t0 = time.time()
         
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -292,8 +285,6 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                               "Pixel coordinates of all (black) and matched (red) objects", areaLabel=label)
             del allFig
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "EmptySectorQaAnalysis", "plot-runtime", dt)
             
 
     def standardFigure(self, x, y, xmat, ymat, limits, summary=False):
@@ -305,9 +296,16 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         if len(x) == 0:
             x = numpy.array([0.0])
             y = numpy.array([0.0])
+
+        summaryLabel = "matched"
         if len(xmat) == 0:
-            xmat = numpy.array([0.0])
-            ymat = numpy.array([0.0])
+            if len(x) == 0 or not summary:
+                xmat = numpy.array([0.0])
+                ymat = numpy.array([0.0])
+            else:
+                summaryLabel = "detected"
+                xmat = x
+                ymat = y
 
         figsize = (4.0, 4.0)
 
@@ -320,9 +318,11 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         ncol = None
         if summary:
             ms = 0.1
-            if len(xmat) < 100000:
-                ms = 0.1
-            ax.plot(xmat, ymat, "k.", ms=ms, label="matched")
+            if len(xmat) < 10000:
+                ms = 0.2
+            if len(xmat) < 1000:
+                ms = 0.5
+            ax.plot(xmat, ymat, "k.", ms=ms, label=summaryLabel)
             ncol = 1
         else:
             ax.plot(x, y, "k.", ms=2.0, label="detected")

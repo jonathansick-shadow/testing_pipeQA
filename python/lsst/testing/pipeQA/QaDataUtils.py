@@ -205,16 +205,16 @@ def getCalexpNameLookup():
     return nameLookup
 
 
-def getSceNameList():
+def getSceNameList(dataIdNames):
     """Associate SourceCcdExposure names to database columns in a list of pairs. """
     
-    nameList = [
-        ['scienceCcdExposureId', 'scienceCcdExposureId' ],
-        ['visit',                'visit'                ],
-        ['raft',                 'raft'                 ],
-        ['raftName',             'raftName'             ],
-        ['ccd',                  'ccd'                  ],
-        ['ccdName',              'ccdName'              ],
+    nameList = [ ['scienceCcdExposureId', 'scienceCcdExposureId' ] ] + dataIdNames
+    nameList += [
+        #['visit',                'visit'                ],
+        #['raft',                 'raft'                 ],
+        #['raftName',             'raftName'             ],
+        #['ccd',                  'ccd'                  ],
+        #['ccdName',              'ccdName'              ],
         ['filterId',             'filterId'             ],
         ['filterName',           'filterName'           ],
         ['ra',                   'ra'                   ],
@@ -255,9 +255,9 @@ def getSceNameList():
         ]
     return nameList
 
-def getSceDbNames():
+def getSceDbNames(dataIdNames):
     """Get SourceCcdExposure database column names."""
-    return zip(*getSceNameList())[1]
+    return zip(*getSceNameList(dataIdNames))[1]
 
 
 
@@ -381,7 +381,7 @@ def getCalibObjects(butler, filterName, dataId):
     keepi = []
     for i in xrange(len(refsources)):
         ra, dec = refsources[i].getRa(), refsources[i].getDec() # ra,dec in Rads
-        x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(180/numpy.pi*ra, 180/numpy.pi*dec)))
+        x, y = wcs.skyToPixel(afwCoord.Coord(afwGeom.PointD(numpy.degrees(ra), numpy.degrees(dec))))
 
         if x < 0 or y < 0 or x > W or y > H:
             continue

@@ -56,8 +56,6 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         
     def test(self, data, dataId, fluxType = "psf"):
 
-        t0 = time.time()
-        
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
 
@@ -192,13 +190,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 test = testCode.Test(label, zpt, [None, 0], comment, areaLabel=areaLabel)
                 testSet.addTest(test)
                 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "ZeropointFitQa", "test-runtime", dt)
             
     def plot(self, data, dataId, showUndefined=False):
 
-        t0 = time.time()
-        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
@@ -344,8 +338,6 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             testSet.addFigure(allFig, "zeropointFit.png", "zeropoint fit "+label, areaLabel=label)
             del allFig
             
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "ZeropointFitQa", "plot-runtime", dt)
 
     def standardFigure(self,
                        mrefGmag, mimgGmag, mimgGmerr,

@@ -36,34 +36,45 @@ def getMemUsageThisPid(size="rss"):
 
 
 
-def tryThis(func, data, thisDataId, visit, test, testset):
+def tryThis(func, data, thisDataId, visit, test, testset, exceptExit):
 
     funcName = func.__name__
-    if thisDataId.has_key('raft'):
-        label = "v%s_r%s_s%s_%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention], test, funcName)
-    else:
-        label = "v%s_s%s_%s_%s" % (visit, thisDataId[data.ccdConvention], test, funcName)
-
     
-    failed = False
-    s = ""
-    try:
+    if exceptExit:
         if funcName == 'free':
             func()
         else:
             func(data, thisDataId)
-    except Exception, e:
-        failed = True
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        s = traceback.format_exception(exc_type, exc_value,
-                                       exc_traceback)
-        
-        print "Warning: Exception in QA processing of %s: %s" % (label, str(e))
-        #print "       :", "".join(s)
 
-    if failed:
-        testset.addTest(label, 1, [0, 0], "QA exception thrown (%s)" % (str(thisDataId)),
-                        backtrace="".join(s))
+            
+    else:
+    
+        if thisDataId.has_key('raft'):
+            label = "v%s_r%s_s%s_%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention],
+                                           test, funcName)
+        else:
+            label = "v%s_s%s_%s_%s" % (visit, thisDataId[data.ccdConvention], test, funcName)
+
+
+        failed = False
+        s = ""
+        try:
+            if funcName == 'free':
+                func()
+            else:
+                func(data, thisDataId)
+        except Exception, e:
+            failed = True
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            s = traceback.format_exception(exc_type, exc_value,
+                                           exc_traceback)
+
+            print "Warning: Exception in QA processing of %s: %s" % (label, str(e))
+            #print "       :", "".join(s)
+
+        if failed:
+            testset.addTest(label, 1, [0, 0], "QA exception thrown (%s)" % (str(thisDataId)),
+                            backtrace="".join(s))
 
 
 
@@ -91,24 +102,26 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
     policy  = pexPolicy.Policy.createPolicy(policyFile, policyFile.getRepositoryPath(), True)
 
 
-    data = pipeQA.makeQaData(dataset, rerun=rerun, retrievalType=camera,
+    data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
                              shapeAlg=policy.get('shapeAlgorithm'))
 
-    if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
-        dataIdInput['sensor'] = dataIdInput['ccd']
-        del dataIdInput['ccd']
-
+    
+    # convert this input format visit,raft,ccd to the names used by the instrument
+    dataIdOrig = copy.copy(dataIdInput) # good to have for debugging
+    dataIdInput = data.cameraInfo.dataIdStandardToCamera(dataIdInput)    
+    
     # take what we need for this camera, ignore the rest
     dataId = {}
     for name in data.dataIdNames:
         if dataIdInput.has_key(name):
             dataId[name] = dataIdInput[name]
 
+    data.reduceAvailableDataTupleList(dataId)
+    
     # if they requested a key that doesn't exist for this camera ... throw
     for k, v in dataIdInput.items():
         if (not k in data.dataIdNames) and (v != '.*'):
             raise Exception("Key "+k+" not available for this dataset (camera="+data.cameraInfo.name+")")
-
 
     
     analysisList = []
@@ -196,7 +209,7 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
         
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
-
+    
     visits = []
     if len(visitList) > 0:
         for v in visitsTmp:
@@ -204,7 +217,6 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                 visits.append(v)
     else:
         visits = visitsTmp
-
 
     groupTag = ""
     if not groupInfo is None:
@@ -241,16 +253,15 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
         visit_t0 = time.time()
         
-
         dataIdVisit = copy.copy(dataId)
-        dataIdVisit['visit'] = visit
+        data.cameraInfo.setDataId(dataIdVisit, 'visit', visit)
 
         # now break up the run into eg. rafts or ccds
         #  ... if we only run one raft or ccd at a time, we use less memory
         brokenDownDataIdList = data.breakDataId(dataIdVisit, breakBy)
 
         for thisDataId in brokenDownDataIdList:
-
+            
             for a in analysisList:
 
                 test_t0 = time.time()
@@ -262,45 +273,30 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                 print "Running " + test + "  visit:" + str(visit) + "  ("+date+")"
                 sys.stdout.flush() # clear the buffer before the fork
 
-                # For debugging, it's useful to exit on failure, and get
-                # the full traceback
-                memory = 0
-                if exceptExit:
-                    a.test(data, thisDataId)
-                    if forkFigure:
-                        pid = os.fork()
-                        if pid == 0:
-                            a.plot(data, thisDataId)
-                            sys.exit()
-                        else:
-                            os.waitpid(pid, 0)
-                    else:
-                        a.plot(data, thisDataId)
-                    memory = getMemUsageThisPid()
-                    a.free()
-
-                # otherwise, we want to continue gracefully
-                else:
-
-                    # try the test() method
-                    tryThis(a.test, data, thisDataId, visit, test, testset)
-                        
-                    if forkFigure:
-                        pid = os.fork()
-                        if pid == 0:
-                            # try the plot() method
-                            tryThis(a.plot, data, thisDataId, visit, test, testset)
-                            sys.exit(0)
-                        else:
-                            os.waitpid(pid, 0)
-                    else:
+                # try the test() method
+                t0 = time.time()
+                tryThis(a.test, data, thisDataId, visit, test, testset, exceptExit)
+                data.cachePerformance(thisDataId, test, "test-runtime", time.time() - t0)
+                
+                t0 = time.time()
+                if forkFigure:
+                    pid = os.fork()
+                    if pid == 0:
                         # try the plot() method
-                        tryThis(a.plot, data, thisDataId, visit, test, testset)
-                    # try the free() method
-                    memory = getMemUsageThisPid()
-                    tryThis(a.free, data, thisDataId, visit, test, testset)
+                        tryThis(a.plot, data, thisDataId, visit, test, testset, exceptExit)
+                        sys.exit(0)
+                    else:
+                        os.waitpid(pid, 0)
+                else:
+                    # try the plot() method
+                    tryThis(a.plot, data, thisDataId, visit, test, testset, exceptExit)
+                data.cachePerformance(thisDataId, test, "plot-runtime", time.time() - t0)
+                
+                # try the free() method
+                tryThis(a.free, data, thisDataId, visit, test, testset, exceptExit)
 
                     
+                memory = getMemUsageThisPid()
                 test_tf = time.time()
                 tstamp = time.mktime(datetime.datetime.now().timetuple())
                 idstamp = ""
@@ -393,10 +389,11 @@ if __name__ == '__main__':
 
     dataId = {
         'visit': visits,
-        'ccd': opts.ccd,
+        'sensor': opts.ccd,
         'raft': opts.raft,
         'snap': opts.snap,
         }
+        
     rerun = opts.rerun
     dataset, = args
 

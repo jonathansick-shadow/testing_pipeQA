@@ -130,8 +130,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
     def test(self, data, dataId):
 
-        t0 = time.time()
-        
         # get data
         self.detector      = data.getDetectorBySensor(dataId)
         self.filter        = data.getFilterBySensor(dataId)       
@@ -166,7 +164,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     f2  = self._getFlux(self.magType2, s, sref)
                     df1 = self._getFluxErr(self.magType1, s, sref)
                     df2 = self._getFluxErr(self.magType2, s, sref)
-                    
+
                     #badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
                     intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
@@ -208,6 +206,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
                     
                     if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
+
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
@@ -219,13 +218,14 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         #    print "isStar: ", star
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
-			    self.diff.append(raft, ccd, m1 - m2)
-			    self.mag.append(raft, ccd, m1)
-			    self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
-			    self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
-			    self.star.append(raft, ccd, star)
-                    
+                            self.diff.append(raft, ccd, m1 - m2)
+                            self.mag.append(raft, ccd, m1)
+                            self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
+                            self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
+                            self.star.append(raft, ccd, star)
+
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
+
         testSet.addMetadata('magType1', self.magType1)
         testSet.addMetadata('magType2', self.magType2)
         testSet.addMetadata({"Description": self.description})
@@ -275,7 +275,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 std = stat.getValue(afwMath.STDEVCLIP)
                 n = stat.getValue(afwMath.NPOINT)
 
-		derrmed = afwMath.makeStatistics(derr, afwMath.MEDIAN).getValue(afwMath.MEDIAN)
+                derrmed = afwMath.makeStatistics(derr, afwMath.MEDIAN).getValue(afwMath.MEDIAN)
 
                 # get trendlines for stars/galaxies
                 # for alldata, use trendline for stars
@@ -334,13 +334,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         comment = "slope for all ccds (mag lt %.1f, nstar=%d) limits=(%.1f,%.1f sigma)" % (self.magCut, len(allDiffs), self.slopeLimits[0], self.slopeLimits[1])
         testSet.addTest( testCode.Test(label, lineCoeffs[0], slopeLimits, comment, areaLabel="all"))
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "PhotCompareQaAnalysis-"+self.magType1+"-"+self.magType2, "test-runtime", dt)
 
     def plot(self, data, dataId, showUndefined=False):
 
-        t0 = time.time()
-        
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.setUseCache(self.useCache)
 
@@ -351,7 +347,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         xlim = [14.0, 25.0]
         ylimStep = 0.4
         ylim = [-ylimStep, ylimStep]
-	aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
+        aspRatio = (xlim[1]-xlim[0])/(ylim[1]-ylim[0])
 
         tag1 = "m$_{\mathrm{"+self.magType1.upper()+"}}$"
         tag  = "m$_{\mathrm{"+self.magType1.upper()+"}}$ - m$_{\mathrm{"+self.magType2.upper()+"}}$"
@@ -536,22 +532,22 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 ])
 
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "PhotCompareQaAnalysis-"+self.magType1+"-"+self.magType2, "plot-runtime", dt)
-
 
     def derrFigure(self, args):
         mag0, diff0, star0, derr0, areaLabel, raft, ccd, figsize, xlim, ylim, xlim2, ylim2, ylimStep, \
               tag1, tag, mode = args
+
+        eps = 1.0e-5
+        
         conv  = colors.ColorConverter()
         size  = 2.0
         red   = conv.to_rgba('r')
         black = conv.to_rgba('k')
-        mode = "stars"  # this better be the case!
+        mode = "stars"  # this better be the case!        
         if len(mag0) == 0:
             mag0 = numpy.array([xlim[1]])
-            diff0 = numpy.array([0.0])
-            derr0 = numpy.array([0.0])
+            diff0 = numpy.array([eps])
+            derr0 = numpy.array([eps])
             star0 = numpy.array([0])
 
         fig = qaFig.QaFigure(size=figsize)
@@ -559,8 +555,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         if len(mag0) == 0:
             mag0 = numpy.array([xlim[1]])
-            diff0 = numpy.array([0.0])
-            derr0 = numpy.array([0.0])
+            diff0 = numpy.array([eps])
+            derr0 = numpy.array([eps])
             star0 = numpy.array([0])
 
         whereStarGal = numpy.where(star0 > 0)[0]
@@ -570,9 +566,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         star = star0[whereStarGal]
 
         if len(mag) == 0:
-            mag = numpy.array([0.0])
-            diff = numpy.array([0.0])
-            derr = numpy.array([0.0])
+            mag = numpy.array([eps])
+            diff = numpy.array([eps])
+            derr = numpy.array([eps])
             star = numpy.array([0])
 
         whereCut = numpy.where((mag < self.magCut))[0]
@@ -582,17 +578,26 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         ylim3 = [0.001, 0.99]
 
         #####
-
+        
         sp1 = fig.fig.add_subplot(221)
         sp1.plot(mag[whereCut], diff[whereCut], "r.", ms=size, label=ccd)
         sp1.plot(mag[whereOther], diff[whereOther], "k.", ms=size, label=ccd)
         sp1.set_ylabel(tag, fontsize = 10)
 
         #####
-
         sp2 = fig.fig.add_subplot(222, sharex = sp1)
-        sp2.plot(mag[whereCut],   derr[whereCut],   "r.", ms=size, label=ccd)
-        sp2.plot(mag[whereOther], derr[whereOther], "k.", ms=size, label=ccd)
+
+        def noNeg(xIn):
+            x = numpy.array(xIn)
+            if len(x) > 1:
+                xMax = x.max()
+            else:
+                xMax = 1.0e-4
+            return x.clip(1.0e-5, xMax)
+
+
+        sp2.plot(mag[whereCut],   noNeg(derr[whereCut]), "r.", ms=size, label=ccd)
+        sp2.plot(mag[whereOther], noNeg(derr[whereOther]), "k.", ms=size, label=ccd)
         sp2.set_ylabel('Error Bars', fontsize = 10)
 
         #####
@@ -615,8 +620,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             binstd.append(stdDmag)
             binmerr.append(avgEbar)
         # Shows the 2 curves   
-        sp3.plot(binmag, binstd, 'r-', label="Phot RMS")
-        sp3.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
+        sp3.plot(binmag, noNeg(binstd), 'r-', label="Phot RMS")
+        sp3.plot(binmag, noNeg(binmerr), 'b--', label="Avg Error Bar")
         sp3.set_xlabel(tag1, fontsize = 10)
 
         #####
@@ -634,8 +639,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         whereCut    = numpy.where((errbarmag < self.magCut))[0]
         whereOther  = numpy.where((errbarmag > self.magCut))[0]
         
-        sp4.plot(errbarmag[whereCut], errbarresid[whereCut], 'ro', ms = 3, label="Err Underestimate")
-        sp4.plot(errbarmag[whereOther], errbarresid[whereOther], 'ko', ms = 3)
+        sp4.plot(errbarmag[whereCut], noNeg(errbarresid[whereCut]), 'ro', ms = 3, label="Err Underestimate")
+        sp4.plot(errbarmag[whereOther], noNeg(errbarresid[whereOther]), 'ko', ms = 3)
         sp4.set_xlabel(tag1, fontsize = 10)
 
         #### CONFIG
@@ -656,6 +661,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         qaFigUtils.qaSetp(sp3.get_xticklabels()+sp3.get_yticklabels(), fontsize=8)
         qaFigUtils.qaSetp(sp4.get_xticklabels()+sp4.get_yticklabels(), fontsize=8)
 
+
         sp1.set_xlim(xlim)
         sp1.set_ylim(ylim)
        
@@ -674,9 +680,13 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         mag0, diff0, star0, areaLabel, raft, ccd, figsize, xlim, ylim, xlim2, ylim2, ylimStep, \
               tag1, tag, mode = args
 
+        eps = 1.0e-5
+        
         conv = colors.ColorConverter()
         size = 2.0
-        
+
+        xlimDefault = [14.0, 25.0]
+
         red = conv.to_rgba('r')
         black = conv.to_rgba('k')
 
@@ -688,19 +698,20 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         trendCoeffs = lineFit[0], lineFit[2]
         trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
         trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
-	#print trendCoeffs        
+        #print trendCoeffs        
         if len(mag0) == 0:
             mag0 = numpy.array([xlim[1]])
-            diff0 = numpy.array([0.0])
-            x0    = numpy.array([0.0])
-            y0    = numpy.array([0.0])
+            diff0 = numpy.array([eps])
+            x0    = numpy.array([eps])
+            y0    = numpy.array([eps])
             star0 = numpy.array([0])
 
         #################
         # data for one ccd
         if mode == 'fourPanel':
             figsize = (6.5, 5.0)
-        
+
+            
         fig = qaFig.QaFigure(size=figsize)
         fig.fig.subplots_adjust(left=0.09, right=0.93, bottom=0.125)
 
@@ -725,7 +736,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             if mode == 'all':
                 starGalLabels = ["all data"]
                 whereStarGals = [numpy.where(star0 > -1)[0] ]
-        
+
+
         for iSet in range(len(axSets)):
             ax_1, ax_2, ax_3   = axSets[iSet]
             starGalLabel = starGalLabels[iSet]
@@ -738,10 +750,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             star = star0[whereStarGal]
 
             if len(x) == 0:
-                mag = numpy.array([0.0])
-                diff = numpy.array([0.0])
-                x = numpy.array([0.0])
-                y = numpy.array([0.0])
+                mag = numpy.array([eps])
+                diff = numpy.array([eps])
+                x = numpy.array([eps])
+                y = numpy.array([eps])
                 star = numpy.array([0])
                 
 
@@ -749,14 +761,13 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             whereOther = numpy.where((mag > self.magCut))[0]
 
             xTrend = numpy.array(xlim)
-            ax_1.plot(xTrend, numpy.array([0.0, 0.0]), "-k", lw=1.0)
+            ax_1.plot(xTrend, numpy.array([eps, eps]), "-k", lw=1.0)
 
             ax_1.text(1.02*xlim[0], 0.87*ylim[1], starGalLabel, size='x-small', horizontalalignment='left')
             for ax in [ax_1, ax_2]:
                 ax.plot(mag[whereOther], diff[whereOther], "k.", ms=size, label=ccd)
                 ax.plot(mag[whereCut], diff[whereCut], "r.", ms=size, label=ccd)
                 ax.set_xlabel(tag1, size='small')
-
 
             norm = colors.Normalize(vmin=-0.05, vmax=0.05, clip=True)
             cdict = {'red': ((0.0, 0.0, 0.0),
@@ -779,8 +790,14 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             sizes = numpy.clip(sizes, minSize, maxSize)
             xyplot = ax_3.scatter(x, y, s=sizes, c=diff, marker='o',
                                   cmap=my_cmap, norm=norm, edgecolors='none')
-            ax_3.set_xlim([x0.min(), x0.max()])
-            ax_3.set_ylim([y0.min(), y0.max()])
+
+            if len(x0) > 1:
+                ax_3.set_xlim([x0.min(), x0.max()])
+                ax_3.set_ylim([y0.min(), y0.max()])
+            else:
+                ax_3.set_xlim(xlimDefault)
+                ax_3.set_ylim(xlimDefault)
+                
             ax_3.set_xlabel("x", size='x-small')
             #ax_3.set_ylabel("y", labelpad=20, y=1.0, size='x-small', rotation=0.0)
             cb = fig.fig.colorbar(xyplot)
@@ -793,7 +810,6 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 t.set_size('xx-small')
             #for t in ax_3.get_yticklabels():
             #    t.set_size('xx-small')
-                
             
             lineVals = numpy.lib.polyval(trendCoeffs, xTrend)
             lineValsLo = numpy.lib.polyval(trendCoeffsLo, xTrend)
@@ -818,10 +834,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             ax_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
                       [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
             ax_1.set_ylabel(tag, size="small")
-            ax_1.set_xlim(xlim)
-            ax_2.set_xlim(xlim2)
-            ax_1.set_ylim(ylim)
-            ax_2.set_ylim(ylim2)
+            ax_1.set_xlim(xlim if xlim[0] != xlim[1] else xlimDefault)
+            ax_2.set_xlim(xlim2 if xlim2[0] != xlim2[1] else xlimDefault)
+            ax_1.set_ylim(ylim if ylim[0] != ylim[1] else [-0.1, 0.1])
+            ax_2.set_ylim(ylim2 if ylim2[0] != ylim2[1] else [-0.1, 0.1])
 
             # move the y axis on right panel
             #ax_3.yaxis.set_label_position('right')
@@ -919,7 +935,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         ####################
         # data for all ccds
+        haveData = True
         if len(allMags) == 0:
+            haveData = False
             allMags = numpy.array([xlim[1]])
             allDiffs = numpy.array([0.0])
             #allColor = [black]
@@ -1005,7 +1023,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
     
             # Lower plots
             #
-        
+
         #allColor = numpy.array(allColor)
         for ax in [ax0_1, ax0_2]:
             ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
@@ -1056,8 +1074,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
         ax0_1b.semilogy()
         ax0_2b.semilogy()
-        ax0_1b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
-        ax0_2b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+
+        if haveData:
+            ax0_1b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+            ax0_2b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+
 
         qaFigUtils.qaSetp(ax0_1.get_xticklabels()+ax0_2.get_xticklabels(), visible=False)
         qaFigUtils.qaSetp(ax0_1.get_yticklabels()+ax0_2.get_yticklabels(), fontsize=11)

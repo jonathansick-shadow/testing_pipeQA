@@ -64,7 +64,6 @@ class VignettingQa(qaAna.QaAnalysis):
         del self.rmsOffset
 
     def test(self, data, dataId):
-        t0 = time.time()
         
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
@@ -143,7 +142,11 @@ class VignettingQa(qaAna.QaAnalysis):
 
                 # Calculate stats
                 dmags = self.dmag.get(raftId, ccdId)
-                med   = num.median(dmags)
+                if len(dmags) > 0:
+                    med = num.median(dmags)
+                else:
+                    med = 0.0
+                    
                 std   = 0.0
                 if len(dmags) > 1:
                     stat  = afwMath.makeStatistics(dmags, afwMath.IQRANGE)
@@ -163,13 +166,9 @@ class VignettingQa(qaAna.QaAnalysis):
                 test = testCode.Test(label, std, self.rmsLimits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
 
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "VignettingQa", "test-runtime", dt)
                 
     def plot(self, data, dataId, showUndefined = False):
 
-        t0 = time.time()
-        
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache) #cache
         isFinalDataId = False
@@ -284,7 +283,8 @@ class VignettingQa(qaAna.QaAnalysis):
 
         if self.useCache:
             testSet.shelve(cacheLabel, shelfData)
-        
+
+            
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
 
@@ -302,11 +302,12 @@ class VignettingQa(qaAna.QaAnalysis):
                 radiiAll  = num.append(radiiAll  , radii)
                 idsAll    = num.append(idsAll    , ids)
                 labelsAll = num.append(labelsAll , labels)
-            
+
             ymin = num.max([dmagsAll.min(),-0.5])
             ymax = num.min([dmagsAll.max(), 0.5])
             ylim = [ymin, ymax]
-            
+            if ymin == ymax:
+                ylim = [ymin - 0.1, ymax + 0.1]
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
@@ -322,7 +323,6 @@ class VignettingQa(qaAna.QaAnalysis):
             qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
 
             label = "all"
-
             ddmag = 0.0005
             drad  = 0.005 * (max(radiiAll) - min(radiiAll))
             for i in range(len(dmagsAll)):
@@ -335,7 +335,5 @@ class VignettingQa(qaAna.QaAnalysis):
             del fig
 
         
-        dt = time.time() - t0
-        data.cachePerformance(dataId, "VignettingQa", "plot-runtime", dt)
                 
                 

@@ -6,9 +6,9 @@ definitions: {
 
     shapeAlgorithm: {
         type: string
-	description: "Shape Algorithm to load."
-	maxOccurs: 1
-	default: "HSM_REGAUSS"
+        description: "Shape Algorithm to load."
+        maxOccurs: 1
+        default: "HSM_REGAUSS"
         allowed: {
             value:        "HSM_REGAUSS"
             description:  "Hirata-Seljac-Mandelbaum Regaussianization"
@@ -81,8 +81,8 @@ definitions: {
         type: string
         description: "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis"
         maxOccurs: 1
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     emptySectorMaxMissing: {
@@ -97,8 +97,8 @@ definitions: {
     doAstromQa: {
         type: string
         description: "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis"
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     astromQaMaxErr: {
@@ -114,15 +114,15 @@ definitions: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 1
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     photCompareTypes: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 8
-        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst" "inst cat" "mod cat" "mod inst"
+        default: "psf cat" "psf ap" "ap cat" "psf inst"
         allowed: {
             value:        "psf cat"
             description:  "Compare Psf magnitudes to catalog magnitudes"
@@ -135,7 +135,7 @@ definitions: {
             value:        "psf mod"
             description:  "Compare Psf and model magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "ap cat"
             description:  "Compare Psf and model magnitudes"
         }
@@ -143,15 +143,15 @@ definitions: {
             value:        "psf inst"
             description:  "Compare PSF and instrument magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "inst cat"
             description:  "Compare Inst (Gaussian) and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod cat"
             description:  "Compare model and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod inst"
             description:  "Separate stars/gxys for model and inst (Gaussian) magnitudes"
         }
@@ -251,8 +251,8 @@ definitions: {
     doPsfShapeQa: {
         type: string
         description: "Psf Shape: qaAnalysis.PsfShapeQaAnalysis"
-        maxOccurs: 4
-        default: "lsstSim" "hscSim" "suprimecam" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
     }
 
     psfEllipMax: {
@@ -274,8 +274,8 @@ definitions: {
     doCompleteQa: {
         type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
-        maxOccurs: 4
-        default: "lsstSim" "cfht"
+        maxOccurs: 5
+        default: "lsstSim" "cfht" "sdss"
     }
 
     completeMinMag: {
@@ -289,7 +289,7 @@ definitions: {
         type: double
         description: "Maximum reasonable photometric depth"
         maxOccurs: 1
-        default: 25.0
+        default: 99.0
     }
 
     ###
@@ -297,8 +297,8 @@ definitions: {
     doVignettingQa: {
         type: string
         description: "Vignetting testing: qaAnalysis.VignettingQa"
-        maxOccurs: 4
-        default: "lsstSim" "cfht" "suprimecam" "hscSim"
+        maxOccurs: 5
+        default: "lsstSim" "cfht" "suprimecam" "hscSim" "sdss"
     }
 
     vigMaxMedian: {

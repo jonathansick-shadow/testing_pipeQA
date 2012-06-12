@@ -69,6 +69,8 @@ def lineFit(x, y, dy=None):
     """A standard linear least squares line fitter with errors and chi2."""
     
     N = len(x)
+    if N < 2:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
     no_err = False
     if dy is None:
