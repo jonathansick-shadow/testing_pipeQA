@@ -122,7 +122,7 @@ definitions: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 8
-        default: "psf cat" "psf ap" "psf mod" "ap cat" "psf inst" "inst cat" "mod cat" "mod inst"
+        default: "psf cat" "psf ap" "ap cat" "psf inst"
         allowed: {
             value:        "psf cat"
             description:  "Compare Psf magnitudes to catalog magnitudes"
@@ -135,7 +135,7 @@ definitions: {
             value:        "psf mod"
             description:  "Compare Psf and model magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "ap cat"
             description:  "Compare Psf and model magnitudes"
         }
@@ -143,15 +143,15 @@ definitions: {
             value:        "psf inst"
             description:  "Compare PSF and instrument magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "inst cat"
             description:  "Compare Inst (Gaussian) and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod cat"
             description:  "Compare model and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod inst"
             description:  "Separate stars/gxys for model and inst (Gaussian) magnitudes"
         }
@@ -289,7 +289,7 @@ definitions: {
         type: double
         description: "Maximum reasonable photometric depth"
         maxOccurs: 1
-        default: 25.0
+        default: 99.0
     }
 
     ###
