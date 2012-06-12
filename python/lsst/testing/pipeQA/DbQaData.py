@@ -363,6 +363,7 @@ class DbQaData(QaData):
                     if multiplicity[soid] == 1:
                         matched.append(matchListById[soid])
                     else:
+                        #print -2.5*numpy.log10(so.getD(psfKey)), multiplicity[soid]
                         blended.append(matchListById[soid])
                         
             self.printMidLoad('\n        %s: Undet, orphan, matched, blended = %d %d %d %d' % (

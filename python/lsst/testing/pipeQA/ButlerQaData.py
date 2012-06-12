@@ -232,7 +232,7 @@ class ButlerQaData(QaData):
             isWritten = self.outButler.datasetExists('icMatch', dataId) and \
                 self.outButler.datasetExists('calexp', dataId)
             multiplicity = {}
-            mainMatchList = []
+            matchList = []
             
             if not isWritten:
                 print str(dataTuple) + " output file missing.  Skipping."
@@ -357,7 +357,6 @@ class ButlerQaData(QaData):
                             multiplicity[s.getId()] = 1
 
                         matchList.append([sref, s, dist])
-                        mainMatchList.append([sref, s, dist])
 
                 self.dataIdLookup[dataKey] = dataId
                 
@@ -744,7 +743,9 @@ class ButlerQaData(QaData):
 
                 
             else:
-                print str(dataTuple) + " calib output file missing.  skipping."
+                calibFilename = self.outButler.get('calexp_filename', dataId)
+                print "\nSkipping " + str(dataTuple) + ". Calib output file missing:"
+                print "   "+str(calibFilename)
                 
 
             self.printStopLoad()

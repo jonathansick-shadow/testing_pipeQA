@@ -283,7 +283,8 @@ class VignettingQa(qaAna.QaAnalysis):
 
         if self.useCache:
             testSet.shelve(cacheLabel, shelfData)
-        
+
+            
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
 
@@ -301,11 +302,12 @@ class VignettingQa(qaAna.QaAnalysis):
                 radiiAll  = num.append(radiiAll  , radii)
                 idsAll    = num.append(idsAll    , ids)
                 labelsAll = num.append(labelsAll , labels)
-            
+
             ymin = num.max([dmagsAll.min(),-0.5])
             ymax = num.min([dmagsAll.max(), 0.5])
             ylim = [ymin, ymax]
-            
+            if ymin == ymax:
+                ylim = [ymin - 0.1, ymax + 0.1]
             fig = qaFig.QaFigure(size=(4.0,4.0))
             sp1 = fig.fig.add_subplot(111)
             sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
@@ -321,7 +323,6 @@ class VignettingQa(qaAna.QaAnalysis):
             qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
 
             label = "all"
-
             ddmag = 0.0005
             drad  = 0.005 * (max(radiiAll) - min(radiiAll))
             for i in range(len(dmagsAll)):

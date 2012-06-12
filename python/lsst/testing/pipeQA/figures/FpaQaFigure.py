@@ -243,6 +243,7 @@ class FpaQaFigure(QaFigure):
         @param failColor        Color to use to mark failed sensors.
         """
 
+        
         if vlimits is None:
             arr = self.getDataArray()
             vlimits = [arr.min(), arr.max()]
@@ -307,8 +308,6 @@ class FpaQaFigure(QaFigure):
         cb = self.fig.colorbar(p)
         sp.add_collection(p)
 
-        
-
         ##############################
         # put a histogram on the side
         if useHist:
@@ -318,20 +317,24 @@ class FpaQaFigure(QaFigure):
             left = right+0.05
             axH = self.fig.add_axes([left, bottom, histWidth, top-bottom])
             binwid = float(vlimits[1] - vlimits[0])/nbins
-            if binwid > 0.0:
+            if binwid > 0.0 and len(finiteValues) > 0:
                 eps = 1.0e-4*binwid
+                #print finiteValues, nbins, vlimits
                 nu, bu, pu = axH.hist(finiteValues, bins=nbins,
                                       range=[vlimits[0]-eps,vlimits[1]+eps],
                                       orientation='horizontal', color='#aaaaaa', fill=True)
+                #nu = numpy.array([1.0])
                 axH.set_ylim(vlimits)
-                axH.set_xlim([0, 1.2*nu.max()])
+                xmax = 1.2*nu.max()
+                if xmax <= 0.0:
+                    xmax = 1.0
+                axH.set_xlim([0, xmax])
+
             axH.set_xlabel('')
             axH.set_ylabel('')
             axH.set_xticklabels([])
             axH.set_yticklabels([])
             self.fig.sca(sp)
-
-        
 
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
@@ -496,7 +499,7 @@ class VectorFpaQaFigure(FpaQaFigure):
             left = right+0.05
             axH = self.fig.add_axes([left, bottom, histWidth, top-bottom])
             binwid = float(vlimits[1] - vlimits[0])/nbins
-            if binwid > 0.0:
+            if binwid > 0.0 and len(finiteValues) > 0:
                 eps = 1.0e-4*binwid
                 nu, bu, pu = axH.hist(finiteValues, bins=nbins,
                                       range=[vlimits[0]-eps,vlimits[1]+eps],
