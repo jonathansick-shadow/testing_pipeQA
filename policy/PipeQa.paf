@@ -122,7 +122,7 @@ definitions: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 8
-        default: "psf cat" "psf ap" "ap cat" "psf inst"
+        default: "psf cat" "psf ap" "ap cat" "psf inst" "psf mod" "mod cat"
         allowed: {
             value:        "psf cat"
             description:  "Compare Psf magnitudes to catalog magnitudes"
