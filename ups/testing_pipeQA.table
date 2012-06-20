@@ -1,9 +1,12 @@
-setupRequired(ap >= 4.7.1.0+1)
-setupRequired(numpy >= 1.6.1+2)
+setupRequired(testing_displayQA >= 4.9.0.0)
+setupRequired(meas_astrom >= 4.9.0.0+1)
+setupRequired(ap >= 4.8.0.3+4)
+setupRequired(numpy >= 1.6.1+4)
 
 setupOptional(obs_lsstSim)
 setupOptional(obs_cfht)
 setupOptional(obs_subaru)
+setupOptional(obs_sdss)
 
 envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
 envAppend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
