@@ -84,7 +84,11 @@ class CompletenessQa(qaAna.QaAnalysis):
         x       = magbins[w]
         n       = 1.0 * histFound[0][w]
         d       = 1.0 * histAll[0][w]
-        y       = n / d  
+        y       = n / d
+
+        binsize = self.bins[1] - self.bins[0]
+        x = num.append(x, x[-1] + binsize)
+        y = num.append(y, 0.0)
 
         for i in num.arange(len(y) - 1, 1, -1):
             if y[i] <= 0.5 and y[i-1] > 0.5:

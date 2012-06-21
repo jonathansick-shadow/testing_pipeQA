@@ -336,7 +336,7 @@ class DbQaData(QaData):
             for ma in matchList:
                 matRef.append(ma[0].getId())
                 matSrc.append(ma[1].getId())
-                
+            
             refIds = set(refIds)
             srcIds = set(srcIds)
             matRef = set(matRef)
