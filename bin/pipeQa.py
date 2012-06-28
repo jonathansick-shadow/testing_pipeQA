@@ -312,7 +312,10 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
             raftName = ""
             if thisDataId.has_key('raft'):
                 raftName = thisDataId['raft']+"-"
-            ccdName = thisDataId[data.ccdConvention]
+            ccdName = ""
+            if thisDataId.has_key('ccd'):
+                ccdName = thisDataId[data.ccdConvention]
+
             progset.addTest(visit, 0, [1, 1], "Processing. Done %s%s." % (raftName,ccdName))
         progset.addTest(visit, 1, [1, 1], "Done processing.")
 

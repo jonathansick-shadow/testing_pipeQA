@@ -205,7 +205,7 @@ def getCalexpNameLookup():
     return nameLookup
 
 
-def getSceNameList(dataIdNames):
+def getSceNameList(dataIdNames, replacements={}):
     """Associate SourceCcdExposure names to database columns in a list of pairs. """
     
     nameList = [ ['scienceCcdExposureId', 'scienceCcdExposureId' ] ] + dataIdNames
@@ -253,11 +253,18 @@ def getSceNameList(dataIdNames):
         ['fluxMag0Sigma',        'fluxMag0Sigma'        ],
         ['fwhm',                 'fwhm'                 ],
         ]
+
+    for k,v in replacements.items():
+        for arr in nameList:
+            a, b = arr
+            if a == k:
+                arr[1] = v
+                
     return nameList
 
-def getSceDbNames(dataIdNames):
+def getSceDbNames(dataIdNames, replacements={}):
     """Get SourceCcdExposure database column names."""
-    return zip(*getSceNameList(dataIdNames))[1]
+    return zip(*getSceNameList(dataIdNames, replacements))[1]
 
 
 

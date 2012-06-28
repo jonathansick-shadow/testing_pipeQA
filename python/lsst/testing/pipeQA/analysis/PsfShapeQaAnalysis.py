@@ -242,7 +242,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         else:
             vlimMax = self.limitsFwhm[1]
 
-        
+        if vlimMax < vlimMin:
+            vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
+
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
             ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,

@@ -92,7 +92,10 @@ class performanceQa(qaAna.QaAnalysis):
             self.mem.set(raft, ccd, mem)
 
             testRuntime = data.getPerformance(dataId, 'total', 'test-runtime')
+            if testRuntime is None:
+                testRuntime = 0.0
             self.testRuntime.set(raft, ccd, testRuntime)
+
             plotRuntime = data.getPerformance(dataId, 'total', 'plot-runtime')
             # if running with plot() forked, plot times are not defined.
             if plotRuntime is None:
