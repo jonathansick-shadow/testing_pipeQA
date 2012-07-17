@@ -66,6 +66,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         # create containers for data in the focal plane
         self.x     = raftCcdData.RaftCcdVector(self.detector)
         self.y     = raftCcdData.RaftCcdVector(self.detector)
+        self.ra    = raftCcdData.RaftCcdVector(self.detector)
+        self.dec   = raftCcdData.RaftCcdVector(self.detector)
         self.ellip = raftCcdData.RaftCcdVector(self.detector)
         self.theta = raftCcdData.RaftCcdVector(self.detector)
 
@@ -123,6 +125,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     self.theta.append(raft, ccd, theta)
                     self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
                     self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
+                    self.ra.append(raft, ccd, s.getD(self.sCatDummy.RaKey))
+                    self.dec.append(raft, ccd, s.getD(self.sCatDummy.DecKey))
                     fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
             nFwhm = len(self.x.get(raft,ccd))
@@ -285,15 +289,21 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             dy = eLen*numpy.sin(t)
             x = self.x.get(raft, ccd)
             y = self.y.get(raft, ccd)
+            #x = self.ra.get(raft, ccd)
+            #y = self.dec.get(raft, ccd)
 
             fwhm = self.fwhm.get(raft, ccd)
             
             print "plotting ", ccd
 
-            xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
+            if data.cameraInfo.name == 'coadd':
+                xlo, ylo, xhi, yhi = x.min(), y.min(), x.max(), y.max()
+            else:
+                xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
             limits = [xlo, xhi, ylo, yhi]
             
-            fig = self.standardFigure(t, x, y, dx, dy, 'k', [0, xhi-xlo, 0, yhi-ylo], vLen, fwhm=fwhm)
+            fig = self.standardFigure(t, x, y, dx, dy, 'k', [0, xhi-xlo, 0, yhi-ylo], vLen, fwhm=fwhm,
+                                      cameraName=data.cameraInfo.name)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "psfEllip.png",
                           "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen),
@@ -333,7 +343,11 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
             xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
             for raft,ccd in data.cameraInfo.raftCcdKeys:
-                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+                if data.cameraInfo.name == 'coadd':
+                    xxlo, yylo, xxhi, yyhi = xAll.min(), yAll.min(), xAll.max(), yAll.max()
+                else:
+                    xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+
                 if xxlo < xlo: xlo = xxlo
                 if xxhi > xhi: xhi = xxhi
                 if yylo < ylo: ylo = yylo
@@ -341,7 +355,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                 
 
             allFig = self.standardFigure(tAll, xAll, yAll, dxAll, dyAll, colorAll, [xlo, xhi, ylo, yhi],
-                                         5.0*vLen, summary=True, sm=sm)
+                                         5.0*vLen, summary=True, sm=sm, cameraName=data.cameraInfo.name)
             del tAll, xAll, yAll, dxAll, dyAll
             
             label = "all"
@@ -349,7 +363,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             del allFig
 
 
-    def standardFigure(self, t, x, y, dx, dy, color, limits, vLen, summary=False, sm=None, fwhm=None):
+    def standardFigure(self, t, x, y, dx, dy, color, limits, vLen, summary=False, sm=None, fwhm=None,
+                       cameraName='dummy'):
 
         figsize = (5.0, 4.0)
         xlo, xhi, ylo, yhi = limits
@@ -373,13 +388,24 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
         if summary:
             vmin, vmax = sm.get_clim()
+            colorset = list(set(color))
+
+            # add a dummy point to get the color bar not to be singular
+            if len(colorset) == 1:
+                x = numpy.append(x, 0.5*(x.min()+x.max()) )
+                y = numpy.append(y, 0.5*(y.min()+y.max()))
+                dx = numpy.append(dx, 0.0)
+                dy = numpy.append(dy, 0.0)
+                color = numpy.append(color, colorset[0]+0.01)
+                
             q = ax.quiver(x, y, vLen*dx, vLen*dy, color=sm.to_rgba(color),
                           scale=2.0*vLen, angles='xy', pivot='middle',
                           headlength=1.0, headwidth=1.0, width=0.002) 
-            ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
+            ax.quiverkey(q, 1.1, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
                          fontproperties={'size':"small"}, labelpos='E', color='k')
             q.set_array(color)
             cb = fig.fig.colorbar(q) #, ax)
+            
             cb.ax.set_xlabel("FWHM$_{\mathrm{xc,yc}}$", size="small")
             cb.ax.xaxis.set_label_position('top')
             for tick in cb.ax.get_yticklabels():
@@ -391,10 +417,19 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
                          fontproperties={'size':"small"}, labelpos='E', color='k')
             ax.set_title("PSF Shape (FWHM$_{\mathrm{xc,yc}}$=%.2f)"%(fwhm))
-            
-        ax.set_xlabel("x [pixels]") #, position=(0.4, 0.0))
 
-        ax.set_ylabel("y [pixels]")
+        
+        if cameraName == 'coadd':
+            ax.set_xlabel("x [coadd pixels]") #, position=(0.4, 0.0))
+            ax.set_ylabel("y [coadd pixels]")
+            otext = ax.xaxis.get_offset_text()
+            otext.set_size('x-small')
+            xlim = [x.min(), x.max()]
+            ylim = [y.min(), y.max()]
+        else:
+            ax.set_xlabel("x [pixels]") #, position=(0.4, 0.0))
+            ax.set_ylabel("y [pixels]")
+            
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         for tic in ax.get_xticklabels() + ax.get_yticklabels():

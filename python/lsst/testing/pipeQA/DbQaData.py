@@ -224,6 +224,7 @@ class DbQaData(QaData):
             nFields = 7 + nDataId
             
             mag, ra, dec, isStar, refObjId, srcId, nMatches = row[nDataId:nFields]
+            #print mag, ra, dec, isStar, refObjId, srcId
             dataIdTmp = {}
             for j in range(nDataId):
                 idName = sceNames[j][0]
@@ -267,7 +268,7 @@ class DbQaData(QaData):
             sref.setId(refObjId)
             sref.setD(refRaKey, ra)
             sref.setD(refDecKey, dec)
-
+            
             # clip at -30
             if mag < -30:
                 mag = -30
@@ -517,6 +518,7 @@ class DbQaData(QaData):
                     if isinstance(value, str) and len(value) == 1:
                         value = 1.0 if ord(value) else 0.0
                     s.setD(setKey, value)
+                    #print catObj.setNames[i], value
                 i += 1
 
             # calibrate it
@@ -525,6 +527,12 @@ class DbQaData(QaData):
             if (fmag0 == 0.0):
                 continue
 
+            pf, af, sf = s.getD(psfKey), s.getD(apKey), s.getD(modKey)
+
+            #if pf > 1000.0:
+            #    print dataIdTmp
+            #    print "%8.2f %8.2f %8.2f    %8.4f %8.4f" % (pf, af, sf, pf/af - 1.0, pf/sf - 1.0)
+            
             # fluxes
             s.setD(psfKey,   s.getD(psfKey)/fmag0)
             s.setD(apKey,    s.getD(apKey)/fmag0)

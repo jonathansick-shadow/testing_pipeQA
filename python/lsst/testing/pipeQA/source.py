@@ -123,12 +123,14 @@ class _Catalog(object):
         #self.schema.addField('Id', type="L")
 
         self.setKeys = []
+        self.setNames = []
         self.keyDict = {}
         for sm in setMethods:
             if sm == 'Id':
                 continue
             key = self.schema.addField(sm, type="D")
             self.setKeys.append(key)
+            self.setNames.append(sm)
             self.keyDict[sm] = key
             setattr(self, sm+"Key", key)
 

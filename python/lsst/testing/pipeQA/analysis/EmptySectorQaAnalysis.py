@@ -114,6 +114,11 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             xmat, ymat = self.xmat.get(raft, ccd), self.ymat.get(raft, ccd)
             xwid, ywid = self.size.get(raft, ccd)
 
+            xlo, ylo = 0.0, 0.0
+            if data.cameraInfo.name == 'coadd':
+                xlo, ylo, xhi, yhi = x.min(), y.min(), x.max(), y.max()
+                xwid, ywid = xhi-xlo, yhi-ylo
+                
             def countEmptySectors(x, y):
                 counts = numpy.zeros([self.nx, self.ny])
                 for i in range(len(x)):
@@ -124,8 +129,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                 nEmpty = len(whereEmpty)
                 return nEmpty
 
-            nEmpty = countEmptySectors(x, y)
-            nEmptyMat = countEmptySectors(xmat, ymat)
+            nEmpty = countEmptySectors(x - xlo, y - ylo)
+            nEmptyMat = countEmptySectors(xmat - xlo, ymat - ylo)
             self.emptySectors.set(raft, ccd, nEmpty)
             self.emptySectorsMat.set(raft, ccd, nEmptyMat)
             
@@ -228,8 +233,13 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             xmat, ymat = self.xmat.get(raft, ccd), self.ymat.get(raft, ccd)
             xwid, ywid = self.size.get(raft, ccd)
 
+            if data.cameraInfo.name == 'coadd':
+                xlo, ylo, xhi, yhi = x.min(), y.min(), x.max(), y.max()
+            else:
+                xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
+            
             print "plotting ", ccd
-            fig = self.standardFigure(x, y, xmat, ymat, [0, xwid, 0, ywid])
+            fig = self.standardFigure(x, y, xmat, ymat, [xlo, xhi, ylo, yhi], cameraName=data.cameraInfo.name)
 
             # add the plot to the testSet
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
@@ -238,8 +248,6 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                               areaLabel=areaLabel)
             del fig
 
-            xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
-            
             shelfData[ccd] = [x+xlo, y+ylo, xmat+xlo, ymat+ylo, [xlo, xhi, ylo, yhi]]
 
 
@@ -270,14 +278,19 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
             xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
             for raft,ccd in data.cameraInfo.raftCcdKeys:
-                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+                if data.cameraInfo.name == 'coadd':
+                    xxlo, yylo, xxhi, yyhi = x.min(), y.min(), x.max(), y.max()
+                else:
+                    xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+
                 if xxlo < xlo: xlo = xxlo
                 if xxhi > xhi: xhi = xxhi
                 if yylo < ylo: ylo = yylo
                 if yyhi > yhi: yhi = yyhi
                 
             
-            allFig = self.standardFigure(xAll, yAll, xmatAll, ymatAll, [xlo, xhi, ylo, yhi], summary=True)
+            allFig = self.standardFigure(xAll, yAll, xmatAll, ymatAll, [xlo, xhi, ylo, yhi], summary=True,
+                                         cameraName=data.cameraInfo.name)
             del xAll, yAll, xmatAll, ymatAll
             
             label = "all"
@@ -287,7 +300,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
             
 
-    def standardFigure(self, x, y, xmat, ymat, limits, summary=False):
+    def standardFigure(self, x, y, xmat, ymat, limits, summary=False, cameraName=None):
 
         xlo, xhi, ylo, yhi = limits
         xwid, ywid = xhi - xlo, yhi - ylo
@@ -319,9 +332,9 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         if summary:
             ms = 0.1
             if len(xmat) < 10000:
-                ms = 0.2
-            if len(xmat) < 1000:
                 ms = 0.5
+            if len(xmat) < 1000:
+                ms = 0.7
             ax.plot(xmat, ymat, "k.", ms=ms, label=summaryLabel)
             ncol = 1
         else:
@@ -333,8 +346,15 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
         ax.set_xlim([xlo, xhi])
         ax.set_ylim([ylo, yhi])
-        ax.set_xlabel("x [pixel]", size='x-small')
-        ax.set_ylabel("y [pixel]", size='x-small')
+        if cameraName == 'coadd':
+            ax.set_xlabel("x [coadd pixel]", size='x-small')
+            ax.set_ylabel("y [coadd pixel]", size='x-small')
+            otext = ax.xaxis.get_offset_text()
+            otext.set_size('x-small')
+        else:
+            ax.set_xlabel("x [pixel]", size='x-small')
+            ax.set_ylabel("y [pixel]", size='x-small')
+            
         ax.legend(prop=fm.FontProperties(size ="xx-small"), ncol=ncol, loc="upper center")
         for tic in ax.get_xticklabels() + ax.get_yticklabels():
             tic.set_size("x-small")
@@ -344,10 +364,10 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             # show the regions
             for i in range(self.nx):
                 xline = (i+1)*xwid/self.nx
-                ax.axvline(xline, color="k")
+                ax.axvline(xlo + xline, color="k")
             for i in range(self.ny):
                 yline = (i+1)*ywid/self.ny
-                ax.axhline(yline, color="k")
+                ax.axhline(ylo + yline, color="k")
 
             # add map areas to allow mouseover tooltip showing pixel coords
             dx, dy = 20, 20  # on a 4kx4k ccd, < +/-20 pixels is tough to hit with a mouse
