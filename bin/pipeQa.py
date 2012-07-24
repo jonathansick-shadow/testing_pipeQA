@@ -140,9 +140,9 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
         analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4, useCache=keep,
                                                              wwwCache=wwwCache, delaySummary=delaySummary))
     if data.cameraInfo.name in policy.getStringArray("doAstromQa"):
-        analysisList.append(qaAnalysis.AstrometricErrorQaAnalysis(policy.get("astromQaMaxErr"),
-                                                                  useCache=keep, wwwCache=wwwCache,
-                                                                  delaySummary=delaySummary))
+        analysisList.append(qaAnalysis.AstrometricErrorQa(policy.get("astromQaMaxErr"),
+                                                          useCache=keep, wwwCache=wwwCache,
+                                                          delaySummary=delaySummary))
     if data.cameraInfo.name in policy.getStringArray("doPhotCompareQa"):
         magCut   = policy.get("photCompareMagCut")
         deltaMin = policy.get("photCompareDeltaMin")
