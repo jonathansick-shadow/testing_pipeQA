@@ -200,7 +200,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
             print "plotting ", ccd
 
-            fig = self.standardFigure(x, y, dx, dy, data)
+            fig = self.standardFigure(x, y, dx, dy, data, raft=raft, ccd=ccd)
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
             del fig
@@ -239,7 +239,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             
 
         
-    def standardFigure(self, x, y, dx, dy, data, gridVectors=False):
+    def standardFigure(self, x, y, dx, dy, data, gridVectors=False, raft=None, ccd=None):
 
 
         #
@@ -256,7 +256,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             dx = numpy.array([0.0])
             dy = numpy.array([0.0])
 
-        if data.cameraInfo.name == 'coadd':
+        if gridVectors or data.cameraInfo.name == 'coadd':
             xlo, ylo, xhi, yhi = x.min(), y.min(), x.max(), y.max()
         else:
             xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)

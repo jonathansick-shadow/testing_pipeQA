@@ -61,7 +61,7 @@ class Timer(object):
 class DbQaData(QaData):
     #Qa__init__(self, label, rerun, dataInfo):
 
-    def __init__(self, database, rerun, cameraInfo):
+    def __init__(self, database, rerun, cameraInfo, **kwargs):
         """
         @param database The name of the database to connect to
         @param rerun The data rerun to use
@@ -73,25 +73,74 @@ class DbQaData(QaData):
 
         self.refStr = {'obj' : ('Obj', 'object'), 'src' : ('Src', 'source') }
 
-        self.sceTable = 'Science_Ccd_Exposure'
-        self.sceId    = 'scienceCcdExposureId'
-        self.sceTable = 'GoodSeeingCoadd'
-        self.sceId    = 'goodSeeingCoaddId'
+        self.coaddTable  = kwargs.get('coaddTable', 'goodSeeing')
 
-        self.sTable = 'Source'
-        self.sTable = 'GoodSeeingSource'
-        self.sId    = 'sourceId'
-        self.sId    = 'goodSeeingSourceId'
+        coaddTables = ['goodSeeing', 'chiSquared', 'deep', 'keith']
+        if not self.coaddTable in coaddTables:
+            raise ValueError, "coaddTable must be on of: %s" % (", ".join(coaddTables))
 
-        self.romTable = 'Ref%sMatch'
-        self.romTable = 'RefGoodSeeingSrcMatch'
+        if self.coaddTable == 'chiSquared' and cameraInfo.name == 'coadd':
+            cameraInfo.setFilterless()
         
-        self.sceReplace = {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : 'goodSeeingCoaddId' }
+        self.useForced   = kwargs.get('forced', False)
+        forced = ''
+        if self.useForced:
+            if not cameraInfo.name == 'coadd':
+                raise RuntimeError, "Forced photometry only supported for coadds."
+            forced = 'Forced'
 
+            
+        cTabUpper = self.coaddTable[0].title() + self.coaddTable[1:]
+            
+        # define the tables to use for this camera
+        self.sceTables = {
+            'lsstSim'  : 'Science_Ccd_Exposure',
+            'sdss'  : 'Science_Ccd_Exposure',
+            'coadd' : '%sCoadd' % (cTabUpper),
+            }
+                          
+        self.sceIds = {
+            'lsstSim'  : 'scienceCcdExposureId',
+            'sdss'  : 'scienceCcdExposureId',
+            'coadd' : '%sCoaddId' % (self.coaddTable),
+            }
+
+        self.sTables = {
+            'lsstSim'  : 'Source',
+            'sdss'  : 'Source',
+            'coadd' : '%s%sSource' % (cTabUpper, forced),
+            }
+
+        self.sIds = {
+            'lsstSim'  : 'sourceId',
+            'sdss'  : 'sourceId',
+            'coadd' : '%sSourceId' % (self.coaddTable),
+            }
+        
+        self.romTables = {
+            'lsstSim'  : 'Ref%sMatch',
+            'sdss'  : 'Ref%sMatch',
+            'coadd' : 'Ref%sSrcMatch' % (cTabUpper),
+            }
+        self.sceReplacements = {
+            'lsstSim'  : {}, #'fwhm' : 'fwhm',         'scienceCcdExposureId' : 'scienceCcdExposureId' },
+            'sdss'  : {}, #'fwhm' : 'fwhm',         'scienceCcdExposureId' : 'scienceCcdExposureId' },
+            'coadd' : {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : '%sCoaddId' % (cTabUpper) },
+            }
+
+        
+        defaultCamera = 'lsstSim'
+        self.sceTable = self.sceTables.get(cameraInfo.name, defaultCamera)
+        self.sceId    = self.sceIds.get(cameraInfo.name, defaultCamera)
+        self.sTable   = self.sTables.get(cameraInfo.name, defaultCamera)
+        self.sId      = self.sIds.get(cameraInfo.name, defaultCamera)
+        self.romTable = self.romTables.get(cameraInfo.name, defaultCamera)
+        self.sceReplace = self.sceReplacements.get(cameraInfo.name, defaultCamera)
         
         # handle backward compatibility of database names
         keyList = []
         sql = "show columns from "+self.sTable+";"
+
         results = self.dbInterface.execute(sql)
         for r in results:
             keyList.append(r[0])
@@ -1227,12 +1276,12 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
 
     cameraInfos = {
 #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
-        "hsc" : qaCamInfo.HscCameraInfo(),
-        "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
-        "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
-        "sdss" : qaCamInfo.SdssCameraInfo(),
-        "coadd" : qaCamInfo.CoaddCameraInfo(),
-        "lsstsim": qaCamInfo.LsstSimCameraInfo(),
+        "hsc"            : qaCamInfo.HscCameraInfo(),
+        "suprimecam"     : qaCamInfo.SuprimecamCameraInfo(),
+        "suprimecam-old" : qaCamInfo.SuprimecamCameraInfo(True),
+        "sdss"           : qaCamInfo.SdssCameraInfo(),
+        "coadd"          : qaCamInfo.CoaddCameraInfo(),
+        "lsstSim"        : qaCamInfo.LsstSimCameraInfo(),
         }
 
     
@@ -1240,8 +1289,8 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
     if not camera is None:
         cameraToUse = cameraInfos[camera]
     else:
-        cameraToUse = cameraInfos['lsstsim']
+        cameraToUse = cameraInfos['lsstSim']
    
-    return DbQaData(label, rerun, cameraToUse)
+    return DbQaData(label, rerun, cameraToUse, **kwargs)
 
 

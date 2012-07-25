@@ -688,6 +688,11 @@ class CoaddCameraInfo(CameraInfo):
             }
             
 
+    def setFilterless(self):
+        self.dataIdTranslationMap['visit'] = ['tract', 'patch']
+        del self.dataIdDbNames['filterName']
+        self.dataInfo = self.dataInfo[0:2]
+        
     def getRaftAndSensorNames(self, dataId):
         ccdName =  'pseudo' #str(dataId['tract']) + '-' + str(dataId['patch'])
         return None, ccdName
