@@ -5,6 +5,8 @@ import numpy
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
+    
+
 
 ####################################################################
 #
@@ -39,7 +41,7 @@ class CameraInfo(object):
             return
 
         self.rawName = "raw"
-        
+
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
             raftName = raft.getId().getName().strip()
@@ -652,23 +654,29 @@ class CoaddCameraInfo(CameraInfo):
 
     def __init__(self):
         try:
-            import lsst.obs.coadd        as obsCoadd
-            mapper = obsCoadd.CoaddMapper
+            #import lsst.obs.coadd        as obsCoadd
+            mapper = None #obsCoadd.CoaddMapper
         except Exception, e:
             print "Failed to import lsst.obs.coadd", e
             mapper = None
         dataInfo       = [['tract', 1], ['patch', 1], ['filterName', 1]]
 
-        #simdir        = eups.productDir("obs_subaru")
-        if os.environ.has_key('OBS_COADD_DIR'):
-            simdir         = os.environ['OBS_COADD_DIR']
-            cameraGeomPaf = os.path.join(simdir, "description", "Full_geom.paf")
-            if not os.path.exists(cameraGeomPaf):
-                raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
-            cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
-        else:
-            camera           = None
+        simdir        = os.environ['TESTING_PIPEQA_DIR']
+        cameraGeomPaf = os.path.join(simdir, "policy", "Full_coadd_geom.paf")
+        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+
+        # obs_coadd not going to be used
+        if False:
+            if os.environ.has_key('OBS_COADD_DIR'):
+                simdir         = os.environ['OBS_COADD_DIR']
+                cameraGeomPaf = os.path.join(simdir, "description", "Full_geom.paf")
+                if not os.path.exists(cameraGeomPaf):
+                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
+                cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+                camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+            else:
+                camera           = None
 
 
         CameraInfo.__init__(self, "coadd", dataInfo, mapper, camera)
