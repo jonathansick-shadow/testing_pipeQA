@@ -115,33 +115,47 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.medThetaRad  = raftCcdData.RaftCcdData(self.detector)
 
         for raft,  ccd in self.dRa.raftCcdKeys():
-            dRa  = self.dRa.get(raft, ccd)
-            dDec = self.dDec.get(raft, ccd)
-            
-            errArcsec = 206265.0*numpy.sqrt(dRa**2 + dDec**2)
-            #errArcsec = 3600.0*numpy.sqrt(dRa**2 + dDec**2)
-            thetaRad  = numpy.arctan2(dDec, dRa)
+            dRa  = self.dRa.get(raft, ccd).copy()
+            dDec = self.dDec.get(raft, ccd).copy()
 
-            if len(errArcsec) > 0:
-                stat  = afwMath.makeStatistics(errArcsec, afwMath.NPOINT | afwMath.MEDIAN)
-                medErrArcsec = stat.getValue(afwMath.MEDIAN)
-                stat  = afwMath.makeStatistics(thetaRad, afwMath.NPOINT | afwMath.MEDIAN)
-                medThetaRad = stat.getValue(afwMath.MEDIAN)
+            dRaMed = numpy.median(dRa)
+            dDecMed = numpy.median(dDec)
+
+            sysErrArcsec = 206265.0*numpy.sqrt(dRaMed**2 + dDecMed**2)
+            sysThetaRad  = numpy.arctan2(dDecMed, dRaMed)
+            
+            dRa  -= dRaMed
+            dDec -= dDecMed
+            
+            rmsErrArcsec = 206265.0*numpy.sqrt(dRa**2 + dDec**2)
+            #errArcsec = 3600.0*numpy.sqrt(dRa**2 + dDec**2)
+            rmsThetaRad  = numpy.arctan2(dDec, dRa)
+
+            if len(rmsErrArcsec) > 0:
+                stat  = afwMath.makeStatistics(rmsErrArcsec, afwMath.NPOINT | afwMath.MEDIAN)
+                medRmsErrArcsec = stat.getValue(afwMath.MEDIAN)
+                stat  = afwMath.makeStatistics(rmsThetaRad, afwMath.NPOINT | afwMath.MEDIAN)
+                medRmsThetaRad = stat.getValue(afwMath.MEDIAN)
                 n = stat.getValue(afwMath.NPOINT)
             else:
-                medErrArcsec = -1.0
-                medThetaRad = 0.0
+                medRmsErrArcsec = -1.0
+                medRmsThetaRad = 0.0
                 n = 0
 
-            self.medErrArcsec.set(raft, ccd, medErrArcsec)
-            self.medThetaRad.set(raft, ccd, medThetaRad)
+            self.medErrArcsec.set(raft, ccd, sysErrArcsec)
+            self.medThetaRad.set(raft, ccd, sysThetaRad)
             
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            label = "median astrometry error "
+            label = "median systematic astrometry error "
             comment = "median sqrt(dRa^2+dDec^2) (arcsec, nstar=%d)" % (n)
-            test = testCode.Test(label, medErrArcsec, self.limits, comment, areaLabel=areaLabel)
+            test = testCode.Test(label, sysErrArcsec, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
 
+            label = "median random astrometry error "
+            comment = "median sqrt((dRa-dRaMed)^2+(dDec-dDecMed)^2) (arcsec, nstar=%d)" % (n)
+            test = testCode.Test(label, medRmsErrArcsec, self.limits, comment, areaLabel=areaLabel)
+            testSet.addTest(test)
+            
         
     def plot(self, data, dataId, showUndefined=False):
 
