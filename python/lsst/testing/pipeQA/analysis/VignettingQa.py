@@ -11,6 +11,8 @@ import lsst.meas.algorithms as measAlg
 import QaAnalysisUtils as qaAnaUtil
 import lsst.afw.math as afwMath
 
+import QaPlotUtils as qaPlotUtil
+
 class VignettingQa(qaAna.QaAnalysis):
     def __init__(self, maxMedian, maxRms, maxMag, **kwargs):
         qaAna.QaAnalysis.__init__(self, **kwargs)
@@ -230,110 +232,56 @@ class VignettingQa(qaAna.QaAnalysis):
 
         cacheLabel = "vignetting_dmag" #cache
         shelfData = {}
-        
+
+        # make any individual (ie. per sensor) plots
         for raft, ccd in self.dmag.raftCcdKeys():
+
             dmags = self.dmag.get(raft, ccd)
             radii = self.radius.get(raft, ccd)
-
-            ymin, ymax = -0.5, 0.5
-            if len(dmags) > 0:
-                ymin = num.max([dmags.min(),-0.5])
-                ymax = num.min([dmags.max(), 0.5])
-            ylim = [ymin, ymax]
-            
             ids   = self.ids.get(raft, ccd)
+            med   = self.medianOffset.get(raft, ccd)
+            std   = self.rmsOffset.get(raft, ccd)
 
-            if len(dmags) == 0:
-                dmags = num.array([0.0])
-                radii = num.array([0.0])
-                ids   = num.array([0])
-
-            print "Plotting ", ccd
-            fig = qaFig.QaFigure(size=(4.0,4.0))
-            sp1 = fig.fig.add_subplot(111)
-            sp1.plot(radii, dmags, 'ro', ms=2.0)
-            sp1.set_ylim(ylim)
-
-            ddmag = 0.001
-            drad  = 0.01 * (max(radii) - min(radii))
-            for i in range(len(dmags)):
-                info = "nolink:sourceId=%s" % (ids[i])
-                area = (radii[i]-drad, dmags[i]-ddmag, radii[i]+drad, dmags[i]+ddmag)
-                fig.addMapArea("no_label_info", area, info, axes=sp1)
-
-            med = self.medianOffset.get(raft, ccd)
-            std = self.rmsOffset.get(raft, ccd)
-                
-            sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
-            sp1.axhline(y=med, c = 'b', linestyle = '-')
-            sp1.axhspan(ymin = med-std, ymax = med+std, fc = 'b', alpha = 0.15)
-            sp1x2 = sp1.twinx()
-            ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
-            ylab.set_rotation(-90)
-            sp1.set_xlabel('Dist from focal plane center (pixels)', fontsize=10)
-            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
-            qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
-                        
-            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+areaLabel,
-                              areaLabel=areaLabel)
-            del fig
+            dataDict = {'dmags' : dmags, 'radii' : radii, 'ids' : ids,
+                        'offsetStats' : [med, std],
+                        'magTypes' : [self.magType1, self.magType2],
+                        'summary' : False,
+                        }
             
-            shelfData[ccd] = [dmags, radii, ids, num.array([areaLabel]*len(dmags))]
+            print "plotting ", ccd
+            import VignettingQaPlot as plotModule
+            label = data.cameraInfo.getDetectorName(raft, ccd)
+            caption = "Delta magnitude vs. radius " + label
+            pngFile = cacheLabel+".png"
 
-        if self.useCache:
-            testSet.shelve(cacheLabel, shelfData)
+            if self.lazyPlot.lower() in ['sensor', 'all']:
+                testSet.addLazyFigure(dataDict, pngFile, caption,
+                                      plotModule, areaLabel=label, plotargs="")
+            else:
+                testSet.cacheLazyData(dataDict, pngFile, areaLabel=label)
+                fig = plotModule.plot(dataDict)
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
 
             
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
 
-            # unstash the values
-            if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel)
 
-            dmagsAll  = num.array([0.0])
-            radiiAll  = num.array([0.0])
-            idsAll    = num.array([0])
-            labelsAll = num.array([""])
-            for k,v in shelfData.items():
-                dmags, radii, ids, labels = v
-                dmagsAll  = num.append(dmagsAll  , dmags)
-                radiiAll  = num.append(radiiAll  , radii)
-                idsAll    = num.append(idsAll    , ids)
-                labelsAll = num.append(labelsAll , labels)
+            import VignettingQaPlot as plotModule
+            label = 'all'
+            caption = "Delta magnitude vs. radius "+label
+            pngFile = cacheLabel + ".png"
 
-            ymin = num.max([dmagsAll.min(),-0.5])
-            ymax = num.min([dmagsAll.max(), 0.5])
-            ylim = [ymin, ymax]
-            if ymin == ymax:
-                ylim = [ymin - 0.1, ymax + 0.1]
-            fig = qaFig.QaFigure(size=(4.0,4.0))
-            sp1 = fig.fig.add_subplot(111)
-            sp1.plot(radiiAll, dmagsAll, 'ro', ms=2, alpha = 0.5)
+            if self.lazyPlot in ['all']:
+                testSet.addLazyFigure({}, pngFile, caption,
+                                      plotModule, areaLabel=label, plotargs="")
+            else:
+                dataDict, isSummary = qaPlotUtil.unshelveGlob(cacheLabel+"-all.png", testSet=testSet)
+                dataDict['summary'] = True
+                fig = plotModule.plot(dataDict)                
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
+
+
             
-            sp1.set_ylim(ylim)
-            
-            sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
-            sp1x2 = sp1.twinx()
-            ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
-            ylab.set_rotation(-90)
-            sp1.set_xlabel('Dist from focal plane center (pixels)', fontsize=10)
-            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
-            qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
-
-            label = "all"
-            ddmag = 0.0005
-            drad  = 0.005 * (max(radiiAll) - min(radiiAll))
-            for i in range(len(dmagsAll)):
-                info = "sourceId=%s" % (idsAll[i])
-                area = (radiiAll[i]-drad, dmagsAll[i]-ddmag, radiiAll[i]+drad, dmagsAll[i]+ddmag)
-                fig.addMapArea(labelsAll[i], area, info, axes=sp1)
-
-            del radiiAll, dmagsAll, idsAll, labelsAll, shelfData
-            testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+label, areaLabel=label)
-            del fig
-
-        
-                
-                

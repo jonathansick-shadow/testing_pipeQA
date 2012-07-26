@@ -9,7 +9,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 class QaAnalysis(object):
     """Baseclass for analysis classes."""
 
-    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False):
+    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False, lazyPlot='sensor'):
         """
         @param testLabel   A name for this kind of analysis test.
         """
@@ -23,8 +23,14 @@ class QaAnalysis(object):
         self.clean    = not useCache
         self.wwwCache = wwwCache
         self.delaySummary = delaySummary
+
+        options = ['none', 'sensor', 'all']
+        if not lazyPlot in options:
+            raise ValueError, "lazyPlot must be: ", ",".join(options)
         
-    
+        self.lazyPlot  = lazyPlot
+
+        
     def getTestSet(self, data, dataId, label=None):
         """Get a TestSet object in the correct group.
 

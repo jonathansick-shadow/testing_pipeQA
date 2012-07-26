@@ -84,9 +84,11 @@ def tryThis(func, data, thisDataId, visit, test, testset, exceptExit):
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matchVisits=None, testRegex=".*", camera=None,
+def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matchVisits=None,
+         testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
-         groupInfo=None, delaySummary=False, forkFigure=False):
+         groupInfo=None, delaySummary=False, forkFigure=False,
+         lazyPlot='sensor'):
 
     visitList = []
     if isinstance(dataIdInput['visit'], list):
@@ -129,20 +131,22 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
         zptMin = policy.get("zptQaMetricMin")
         zptMax = policy.get("zptQaMetricMax")
         analysisList.append(qaAnalysis.ZeropointQaAnalysis(zptMin, zptMax, useCache=keep, wwwCache=wwwCache,
-                                                           delaySummary=delaySummary))
+                                                           delaySummary=delaySummary, lazyPlot=lazyPlot))
     if data.cameraInfo.name in policy.getStringArray("doZptFitQa"):
         offsetMin = policy.get("zptFitQaOffsetMin")
         offsetMax = policy.get("zptFitQaOffsetMax")
         analysisList.append(qaAnalysis.ZeropointFitQa(offsetMin, offsetMax, useCache=keep, wwwCache=wwwCache,
-                                                      delaySummary=delaySummary))
+                                                      delaySummary=delaySummary, lazyPlot=lazyPlot))
     if data.cameraInfo.name in policy.getStringArray("doEmptySectorQa"):
         maxMissing = policy.get("emptySectorMaxMissing")
         analysisList.append(qaAnalysis.EmptySectorQaAnalysis(maxMissing, nx = 4, ny = 4, useCache=keep,
-                                                             wwwCache=wwwCache, delaySummary=delaySummary))
+                                                             wwwCache=wwwCache, delaySummary=delaySummary,
+                                                             lazyPlot=lazyPlot))
     if data.cameraInfo.name in policy.getStringArray("doAstromQa"):
-        analysisList.append(qaAnalysis.AstrometricErrorQa(policy.get("astromQaMaxErr"),
-                                                          useCache=keep, wwwCache=wwwCache,
-                                                          delaySummary=delaySummary))
+        analysisList.append(qaAnalysis.AstrometricErrorQaAnalysis(policy.get("astromQaMaxErr"),
+                                                                  useCache=keep, wwwCache=wwwCache,
+                                                                  delaySummary=delaySummary,
+                                                                  lazyPlot=lazyPlot))
     if data.cameraInfo.name in policy.getStringArray("doPhotCompareQa"):
         magCut   = policy.get("photCompareMagCut")
         deltaMin = policy.get("photCompareDeltaMin")
@@ -160,20 +164,24 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
                                                                  rmsMax, derrMax, slopeMin, slopeMax, starGxyToggle,
                                                                  useCache=keep,
                                                                  wwwCache=wwwCache,
-                                                                 delaySummary=delaySummary))
+                                                                 delaySummary=delaySummary,
+                                                                 lazyPlot=lazyPlot))
     if data.cameraInfo.name in policy.getStringArray("doPsfShapeQa"):
         analysisList.append(qaAnalysis.PsfShapeQaAnalysis(policy.get("psfEllipMax"),
                                                           policy.get("psfFwhmMax"), useCache=keep,
-                                                          wwwCache=wwwCache, delaySummary=delaySummary))
+                                                          wwwCache=wwwCache, delaySummary=delaySummary,
+                                                          lazyPlot=lazyPlot))
     if data.cameraInfo.name in policy.getStringArray("doCompleteQa"):
         analysisList.append(qaAnalysis.CompletenessQa(policy.get("completeMinMag"),
                                                       policy.get("completeMaxMag"), useCache=keep,
-                                                      wwwCache=wwwCache, delaySummary=delaySummary))
+                                                      wwwCache=wwwCache, delaySummary=delaySummary,
+                                                      lazyPlot=lazyPlot))
     if data.cameraInfo.name in policy.getStringArray("doVignettingQa"):
         analysisList.append(qaAnalysis.VignettingQa(policy.get("vigMaxMedian"),
                                                     policy.get("vigMagRms"),
                                                     policy.get("vigMaxMag"), useCache=keep,
-                                                    wwwCache=wwwCache, delaySummary=delaySummary))
+                                                    wwwCache=wwwCache, delaySummary=delaySummary,
+                                                    lazyPlot=lazyPlot))
 
     # allow command line override
     if (data.cameraInfo.name in policy.getStringArray("doVisitQa")) or doVisitQa:
@@ -205,7 +213,8 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
     # always run performance summary
     analysisList.append(qaAnalysis.performanceQa(useCache=keep, wwwCache=wwwCache,
-                                                 delaySummary=delaySummary))
+                                                 delaySummary=delaySummary,
+                                                 lazyPlot=lazyPlot                                                 ))
         
     # split by visit, and handle specific requests
     visitsTmp = data.getVisits(dataId)
@@ -361,7 +370,9 @@ if __name__ == '__main__':
                       help="Trace level for lsst.testing.pipeQA")
     parser.add_option("-v", "--visit", default=".*",
                       help="Specify visit as regex OR color separated list. (default=%default)")
-
+    parser.add_option("-z", "--lazy", default='sesnor',
+                      help="Figures to be generated dynamically online [options: none, sensor, all] (default=%default)")
+    
     # visit-to-visit
     parser.add_option("--doVisitQa", default=False, action='store_true',
                       help="Do visit-to-visit pipeQA, overriding the policy default")
@@ -415,5 +426,5 @@ if __name__ == '__main__':
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
          breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary,
-         forkFigure=opts.forkFigure)
+         forkFigure=opts.forkFigure, lazyPlot=opts.lazy)
         

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-import shelve
-
 import numpy
 import matplotlib
 
@@ -219,7 +217,8 @@ def plot(data):
 
 if __name__ == '__main__':
     filename, = sys.argv[1:2]
-    shelf = shelve.open(filename+".shelve")
-    fig = plot(shelf)
-    shelf.close()
+    data, isSummary = qaPlotUtil.unshelveGlob(filename)
+    if isSummary:
+        data['gridVectors'] = True
+    fig = plot(data)
     fig.savefig(filename)

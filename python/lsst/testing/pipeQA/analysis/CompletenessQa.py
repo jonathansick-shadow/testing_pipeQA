@@ -11,6 +11,8 @@ import RaftCcdData as raftCcdData
 
 import lsst.testing.pipeQA.source as pqaSource
 
+import QaPlotUtils as qaPlotUtil
+
 import matplotlib.ticker as ticker
 from matplotlib.font_manager import FontProperties
 import matplotlib.patches as patches
@@ -340,158 +342,54 @@ class CompletenessQa(qaAna.QaAnalysis):
 
             print "Plotting ", ccd
             label = data.cameraInfo.getDetectorName(raft, ccd)
-            fig = self.standardFigure(label, orphan, depth,
-                                      matchedStar, blendedStar, undetectedStar,
-                                      matchedGalaxy, blendedGalaxy, undetectedGalaxy)
 
-            testSet.addFigure(fig, "completeness.png", "Photometric detections "+label, areaLabel=label)
-            del fig
+            dataDict = {
+                'title'                     :        label           ,
+                'orphan'                    :        orphan          ,
+                'depth'                     :        depth           ,
+                'matchedStar'               :        matchedStar     ,
+                'blendedStar'               :        blendedStar     ,
+                'undetectedStar'            :        undetectedStar  ,
+                'matchedGalaxy'             :        matchedGalaxy   ,
+                'blendedGalaxy'             :        blendedGalaxy   ,
+                'undetectedGalaxy'          :        undetectedGalaxy,
+                'bins'                      :        self.bins.tolist(),
+                }
 
-
-            shelfData[ccd] = [orphan, depth,
-                              matchedStar, blendedStar, undetectedStar,
-                              matchedGalaxy, blendedGalaxy, undetectedGalaxy]
+            import CompletenessQaPlot as plotModule
+            caption = "Photometric detections " + label
+            pngFile = cacheLabel + ".png"
             
-        if self.useCache:
-            testSet.shelve(cacheLabel, shelfData)
+
+            if self.lazyPlot.lower() in ['sensor', 'all']:
+                testSet.addLazyFigure(dataDict, pngFile, caption,
+                                      plotModule, areaLabel=label, plotargs="")
+            else:
+                testSet.cacheLazyData(dataDict, pngFile, areaLabel=label)
+                fig = plotModule.plot(dataDict)
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
+
+                
 
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
 
-            # unstash the values
-            if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel)
-
-            orphanAll           = num.array([])
-            depthAll            = num.array([])
-            matchedStarAll      = num.array([])
-            blendedStarAll      = num.array([])
-            undetectedStarAll   = num.array([])
-            matchedGalaxyAll    = num.array([])
-            blendedGalaxyAll    = num.array([])
-            undetectedGalaxyAll = num.array([])
-            for k,v in shelfData.items():
-                orphan, depth = v[0:2]
-                matchedStar, blendedStar, undetectedStar = v[2:5]
-                matchedGalaxy, blendedGalaxy, undetectedGalaxy = v[5:8]
-                orphanAll           = num.append(orphanAll           , orphan)
-                depthAll            = num.append(depthAll            , depth)
-                matchedStarAll      = num.append(matchedStarAll      , matchedStar)
-                blendedStarAll      = num.append(blendedStarAll      , blendedStar)
-                undetectedStarAll   = num.append(undetectedStarAll   , undetectedStar)
-                matchedGalaxyAll    = num.append(matchedGalaxyAll    , matchedGalaxy)
-                blendedGalaxyAll    = num.append(blendedGalaxyAll    , blendedGalaxy)
-                undetectedGalaxyAll = num.append(undetectedGalaxyAll , undetectedGalaxy)
-
-            allFig = self.standardFigure("All Sensors", orphanAll, depthAll.mean(),
-                                         matchedStarAll, blendedStarAll, undetectedStarAll,
-                                         matchedGalaxyAll, blendedGalaxyAll, undetectedGalaxyAll)
-
-            del orphanAll, depthAll, \
-                matchedStarAll, blendedStarAll, undetectedStarAll, \
-                matchedGalaxyAll, blendedGalaxyAll, undetectedGalaxyAll
+            label = 'all'
+            import CompletenessQaPlot as plotModule
+            caption = "Photometric detections " + label
+            pngFile = "completeness.png"
             
-            label = "all"
-            testSet.addFigure(allFig, "completeness.png", "Photometric detections "+label, areaLabel=label)
-            del allFig
+            if self.lazyPlot in ['all']:
+                testSet.addLazyFigure(dataDict, cacheLabel+".png", caption,
+                                      plotModule, areaLabel=label, plotargs="")
+            else:
+                dataDict, isSummary = qaPlotUtil.unshelveGlob(cacheLabel+"-all.png", testSet=testSet)
+                dataDict['title'] = 'All Sensors'
+                fig = plotModule.plot(dataDict)                
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
+
+                
             
-
-    def standardFigure(self, title, orphan, depth,
-                       matchedStar, blendedStar, undetectedStar,
-                       matchedGalaxy, blendedGalaxy, undetectedGalaxy):
-
-
-        fig = qaFig.QaFigure()
-        sp1 = fig.fig.add_subplot(211)
-        fig.fig.subplots_adjust(left=0.13)
-        sp2 = fig.fig.add_subplot(212, sharex = sp1)
-
-        # Stacked histogram
-        orphanHist         = num.histogram(orphan, bins=self.bins)
-        matchedStarHist    = num.histogram(matchedStar, bins=self.bins)
-        blendedStarHist    = num.histogram(blendedStar, bins=self.bins)
-        undetectedStarHist = num.histogram(undetectedStar, bins=self.bins)
-        # For bar, you send the coordinate of the left corner of the bar
-        barbins    = orphanHist[1][:-1]
-        width      = 1.0 * (orphanHist[1][1] - orphanHist[1][0])
-        orphanBar  = sp1.bar(barbins, orphanHist[0], width=width, color='r', alpha = 0.5, label = 'Orphan', capsize = 1)
-        bottom     = orphanHist[0]
-        matchedBar = sp1.bar(barbins, matchedStarHist[0], width=width, color='g', alpha=0.5, label='Matched',
-                             bottom=bottom, capsize=1)
-        bottom    += matchedStarHist[0]
-        blendedBar = sp1.bar(barbins, blendedStarHist[0], width=width, color='cyan', alpha=0.5, label='Blended',
-                             bottom=bottom, capsize=1)
-        bottom    += blendedStarHist[0]
-        unmatBar   = sp1.bar(barbins, undetectedStarHist[0], width=width, color='b', alpha=0.5, label='Unmatched',
-                             bottom=bottom, capsize=1)
-
-        ymax = num.max(orphanHist[0] + matchedStarHist[0] + blendedStarHist[0] + undetectedStarHist[0])
-        sp1.set_ylim([0, 1.4*ymax])
-
-        sp1x2           = sp1.twinx()
-        allStars        = num.concatenate((matchedStar, blendedStar, undetectedStar))
-        foundStars      = num.concatenate((matchedStar, blendedStar))
-        histAll         = num.histogram(allStars, bins=self.bins)
-        histFound       = num.histogram(foundStars, bins=self.bins)
-
-        magbins = 0.5 * (histAll[1][1:] + histAll[1][:-1])
-        w       = num.where(histAll[0] != 0)
-        x       = magbins[w]
-        n       = 1.0 * histFound[0][w]
-        d       = 1.0 * histAll[0][w]
-        y       = n / d  
-        sp1x2.plot(x, y)
-        sp1x2.set_ylim([0.0, 1.4])
-        sp1x2.set_ylabel('(Match+Blend)/Tot', fontsize=8)
-        sp1x2.axhline(y = 0.5, c='k', linestyle='-.', alpha = 0.75)
-        sp1x2.axhline(y = 1.0, c='k', linestyle='-.', alpha = 0.75)
-        sp1x2.axvline(x = depth, c='k', linestyle='-', alpha = 0.75)
-        sp1x2.text(depth-1.0, 1.2, "%.2f" % (depth), fontsize=8,
-                   horizontalalignment='right', verticalalignment='center')
-        fa = patches.FancyArrow(depth-0.8, 1.2, 0.8, 0.0, length_includes_head=True,
-                                overhang=0.2, head_length=0.2, head_width=0.04)
-        sp1x2.add_patch(fa)
-        
-        qaFigUtils.qaSetp(sp1x2.get_xticklabels(), visible=False)
-        qaFigUtils.qaSetp(sp1x2.get_yticklabels(), fontsize = 6)
-
-        sp1.set_ylabel('N Stars', fontsize=10)
-        if False: #1.4*ymax > 1000:
-            sp1.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2g"))
-            for t in sp1.get_yticklabels():
-                print t.get_text()
-                t.set_text(re.sub("\+0", "", t.get_text()))
-        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 6)
-
-        ##############
-
-        orphanHist        = num.histogram(orphan, bins=self.bins)
-        matchedGalHist    = num.histogram(matchedGalaxy, bins=self.bins)
-        blendedGalHist    = num.histogram(blendedGalaxy, bins=self.bins)
-        undetectedGalHist = num.histogram(undetectedGalaxy, bins=self.bins)
-        orphanBar  = sp2.bar(barbins, orphanHist[0], width=width, color='r', alpha = 0.5, label = 'Orphan', capsize = 1, log=False)
-        bottom     = orphanHist[0]
-        matchedBar = sp2.bar(barbins, matchedGalHist[0], width=width, color='g', alpha=0.5, label='Matched',
-                             bottom=bottom, capsize=1, log=False)
-        bottom    += matchedGalHist[0]
-        blendedBar = sp2.bar(barbins, blendedGalHist[0], width=width, color='cyan', alpha=0.5, label='Blended',
-                             bottom=bottom, capsize=1, log=False)
-        bottom    += blendedGalHist[0]
-        unmatBar   = sp2.bar(barbins, undetectedGalHist[0], width=width, color='b', alpha=0.5, label='Unmatched',
-                             bottom=bottom, capsize=1, log=False)
-
-        sp2.set_xlabel('Mag', fontsize=10)
-        sp2.set_ylabel('N Gals', fontsize=10)
-        qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize = 6)
-        qaFigUtils.qaSetp(sp2.get_yticklabels(), rotation = 45.0)
-        sp2.legend(numpoints = 1, prop=FontProperties(size='x-small'), loc = 'upper left')
-        #sp2.set_ylim(0.75, 999)
-        #sp2.semilogy()
-
-        sp1.set_xlim(14, 26)
-
-        fig.fig.suptitle('%s Stacked histogram' % (title), fontsize = 11)
-
-        return fig
-
 

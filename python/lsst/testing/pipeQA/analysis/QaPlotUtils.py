@@ -1,4 +1,5 @@
-
+import os
+import glob, re, shelve
 import numpy
 
 from matplotlib.font_manager import FontProperties
@@ -6,6 +7,32 @@ from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
 import matplotlib.cm as cm
+
+
+def unshelveGlob(filename, testSet=None):
+
+    if testSet:
+        filename = os.path.join(testSet.wwwDir, filename)
+    
+    data = {}
+    n = 0
+
+    fsub = re.sub("-all", "*", filename)
+    for f in glob.glob(fsub):
+        if re.search("-all", f):
+            continue
+        shelf = shelve.open(f+".shelve")
+        for k,v in shelf.items():
+            if not data.has_key(k):
+                data[k] = v
+            else:
+                if isinstance(v, numpy.ndarray):
+                    data[k] = numpy.append(data[k], v)
+        shelf.close()
+        n += 1
+    isSummary = fsub != filename
+    return data, isSummary
+    
 
 
 def binDistrib(x, y, dy, binSizeX = 0.5, minPts = 2):
