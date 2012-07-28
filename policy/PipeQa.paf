@@ -223,7 +223,7 @@ definitions: {
             value:        "psf mod"
             description:  "Separate stars/gxys for Psf and model magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "ap cat"
             description:  "Separate stars/gxys for Psf and model magnitudes"
         }
@@ -231,15 +231,15 @@ definitions: {
             value:        "psf inst"
             description:  "Separate stars/gxys for PSF and instrument magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "inst cat"
             description:  "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod cat"
             description:  "Separate stars/gxys for model and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod inst"
             description:  "Separate stars/gxys for model and inst (Gaussian) magnitudes"
         }
