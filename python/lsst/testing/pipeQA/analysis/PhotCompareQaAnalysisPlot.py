@@ -14,6 +14,8 @@ from matplotlib.patches import Circle
 
 
 import QaPlotUtils as qaPlotUtil
+import QaAnalysisUtils as qaAnaUtil
+
 
 def plot(data):
 
@@ -39,7 +41,7 @@ def plot(data):
     trend     = data['trend']
     magCut    = data['magCut']
 
-    figType       = data['figure']
+    figType       = data['figType']
 
     if figType == 'standard':
         return standardFigure(mag0, diff0, star0, derr0, areaLabel, raft, ccd,
@@ -49,6 +51,11 @@ def plot(data):
         return derrFigure(mag0, diff0, star0, derr0, areaLabel,
                           raft, ccd, figsize, xlim, ylim, xlim2, ylim2,
                           ylimStep, tag1, tag, mode, x, y, trend, magCut)
+
+    if figType == 'summary':
+        return summaryFigure(mag0, diff0, star0, derr0, areaLabel,
+                             raft, ccd, figsize, xlim, ylim, xlim2, ylim2,
+                             ylimStep, tag1, tag, mode, x, y, trend, magCut)
 
     
 def standardFigure(*args):
@@ -385,13 +392,227 @@ def derrFigure(*args):
 
 
 
+def summaryFigure(*summaryArgs):
+
+    # many of these are not needed, but for simplicity all the same args get passed
+    # to the plot functions standardFigure(), derrFigure(), and summaryFigure()
+    mag0, diff0, star0, derr0, areaLabel, raft, ccd, figsize, xlim, ylim, xlim2, ylim2, ylimStep, \
+        tag1, tag, mode, x, y, trend, magCut = summaryArgs
+
+    allMags = mag0
+    allDiffs = diff0
+    allStars = star0
+    allDerr = derr0
+    
+    size = 2.0
+
+    # dmag vs mag
+    fig0 = figure.Figure(figsize=figsize)
+    canvan = FigCanvas(fig0)
+    
+    fig0.subplots_adjust(left=0.125, bottom=0.125)
+    rect0_1  = [0.125, 0.35, 0.478-0.125, 0.9-0.35]
+    rect0_2  = [0.548, 0.35, 0.9-0.548, 0.9-0.35]
+    rect0_1b = [0.125, 0.125, 0.478-0.125, 0.2]
+    rect0_2b = [0.548, 0.125, 0.9-0.548, 0.2]
+    ax0_1 = fig0.add_axes(rect0_1)
+    ax0_2 = fig0.add_axes(rect0_2)
+    ax0_1b = fig0.add_axes(rect0_1b, sharex = ax0_1)
+    ax0_2b = fig0.add_axes(rect0_2b, sharex = ax0_2)
+
+    w = numpy.where( (allMags < magCut) & (allStars > 0))[0]
+    wStar = numpy.where(allStars > 0)[0]
+    wGxy = numpy.where(allStars == 0)[0]
+
+    if len(w) > 0:
+        lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
+        trendCoeffs = lineFit[0], lineFit[2]
+        trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
+        trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
+    else:
+        trendCoeffs = [0.0, 0.0]
+        trendCoeffsLo = [0.0, 0.0]
+        trendCoeffsHi = [0.0, 0.0]
+
+    ####################
+    # data for all ccds
+    haveData = True
+    if len(allMags) == 0:
+        haveData = False
+        allMags = numpy.array([xlim[1]])
+        allDiffs = numpy.array([0.0])
+        #allColor = [black]
+        #allLabels = ["no_valid_data"]
+        trendCoeffs = [0.0, 0.0]
+        trendCoeffsLo = [0.0, 0.0]
+        trendCoeffsHi = [0.0, 0.0]
+    else:
+        #
+        # Lower plots
+
+        mStar = allMags[wStar]
+        dStar = allDiffs[wStar]
+        eStar = allDerr[wStar]
+
+        binmag  = []
+        binstd  = []
+        binmerr = []
+        xmin = xlim[0]
+        xmax = xlim[1]
+        bins1 = numpy.arange(xmin, xmax, 0.5)
+        for i in range(1, len(bins1)):
+            idx = numpy.where((mStar>bins1[i-1])&(mStar<bins1[i]))[0]
+            if len(idx) == 0:
+                continue
+            #avgMag  = afwMath.makeStatistics(mStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            avgMag = mStar[idx].mean()
+            #stdDmag = 0.741 * afwMath.makeStatistics(dStar[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
+            stdDmag = dStar[idx].std()
+            #avgEbar = afwMath.makeStatistics(eStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            avgEbar = eStar[idx].mean()
+            binmag.append(avgMag)
+            binstd.append(stdDmag)
+            binmerr.append(avgEbar)
+        # Shows the 2 curves
+        ax0_1b.plot(binmag, binstd, 'r-', label="Phot RMS")
+        ax0_1b.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
+
+        binmag = numpy.array(binmag)
+        binstd = numpy.array(binstd)
+        binmerr = numpy.array(binmerr)
+
+        medresid = 0.0
+        idx         = numpy.where( (binstd > binmerr) & (binmag < magCut) )[0]
+        if len(idx) == 0:
+            medresid = 0.0
+        else:
+            brightmag   = binmag[idx]
+            brightresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
+            medresid    = numpy.median(brightresid)
+            if numpy.isnan(medresid) or medresid == None:
+               medresid = 0.0
+
+        #label       = "Quad error"
+        #comment     = "Median value to add in quadrature to star phot error bars (mag < %.2f)" % (magCut)
+        #testSet.addTest( testCode.Test(label, medresid, derrLimits, comment, areaLabel="all"))
+
+        # SECOND SUBPANEL
+
+        binmag  = []
+        binstd  = []
+        binmerr = []
+        xmin2 = xlim2[0]
+        xmax2 = xlim2[1]
+        bins2 = numpy.arange(xmin2, xmax2, 0.5)
+        for i in range(1, len(bins2)):
+            idx = numpy.where((mStar>bins2[i-1])&(mStar<bins2[i]))[0]
+            if len(idx) == 0:
+                continue
+            #avgMag  = afwMath.makeStatistics(mStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            #stdDmag = 0.741 * afwMath.makeStatistics(dStar[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
+            #avgEbar = afwMath.makeStatistics(eStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
+            avgMag = mStar[idx].mean()
+            stdDmag = dStar[idx].std()
+            avgEbar = eStar[idx].mean()
+            binmag.append(avgMag)
+            binstd.append(stdDmag)
+            binmerr.append(avgEbar)
+
+        binmag = numpy.array(binmag)
+        binstd = numpy.array(binstd)
+        binmerr = numpy.array(binmerr)
+
+        idx         = numpy.where( (binstd > binmerr) )[0]
+        errbarmag   = binmag[idx]
+        errbarresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
+        ax0_2b.plot(errbarmag, errbarresid, 'ko', ms = 3, label="Err Underestimate")
+
+
+        # Lower plots
+        #
+
+    #allColor = numpy.array(allColor)
+    for ax in [ax0_1, ax0_2]:
+        ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
+        ax.plot(allMags[wGxy], allDiffs[wGxy], "bo", ms=size, label="galaxies", alpha=0.5)
+        ax.plot(allMags[wStar], allDiffs[wStar], "ro", ms=size, label="stars", alpha=0.5)
+        # 99 is the 'no-data' values
+        if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
+            ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
+            ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
+            ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
+
+    # show outliers railed at the ylims
+    wStarOutlier = numpy.where((numpy.abs(allDiffs) > ylim2[1]) & (allStars > 0))[0]
+    wGxyOutlier = numpy.where((numpy.abs(allDiffs) > ylim2[1]) & (allStars == 0))[0]
+    clip = 0.99
+    ax0_2.plot(allMags[wStarOutlier], numpy.clip(allDiffs[wStarOutlier], clip*ylim2[0], clip*ylim2[1]),
+               'r.', ms=size)
+    ax0_2.plot(allMags[wGxyOutlier], numpy.clip(allDiffs[wGxyOutlier], clip*ylim2[0], clip*ylim2[1]),
+               'g.', ms=size)
+    ax0_2.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+
+    dmag = 0.1
+    ddiff1 = 0.01
+    ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
+    if False:
+        for j in xrange(len(allMags)):
+            area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
+            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
+            area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
+            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
+
+
+    del allMags
+    del allDiffs
+    #del allColor
+    #del allLabels
+
+    # move the yaxis ticks/labels to the other side
+    ax0_2.yaxis.set_label_position('right')
+    ax0_2.yaxis.set_ticks_position('right')
+    ax0_2b.yaxis.set_label_position('right')
+    ax0_2b.yaxis.set_ticks_position('right')
+
+    ax0_1b.set_xlabel(tag1, fontsize=12)
+    ax0_2b.set_xlabel(tag1, fontsize=12)
+
+    ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
+               [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
+
+    ax0_1b.semilogy()
+    ax0_2b.semilogy()
+
+    if haveData:
+        ax0_1b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+        ax0_2b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
+
+
+    qaPlotUtil.qaSetp(ax0_1.get_xticklabels()+ax0_2.get_xticklabels(), visible=False)
+    qaPlotUtil.qaSetp(ax0_1.get_yticklabels()+ax0_2.get_yticklabels(), fontsize=11)
+    qaPlotUtil.qaSetp(ax0_1b.get_yticklabels()+ax0_2b.get_yticklabels(), fontsize=10)
+
+    for ax in [ax0_1, ax0_2]:
+        ax.set_ylabel(tag)
+
+    ax0_1.set_xlim(xlim)
+    ax0_2.set_xlim(xlim2)
+    ax0_1.set_ylim(ylim)
+    ax0_2.set_ylim(ylim2)
+
+    ax0_1b.set_ylim(0.001, 0.99)
+    ax0_2b.set_ylim(0.001, 0.99)
+
+    return fig0
+
+
+
+
 
 if __name__ == '__main__':
     filename, mode, figType = sys.argv[1:4]
     data, isSummary = qaPlotUtil.unshelveGlob(filename)
     data['mode'] = mode
-    data['figure'] = figType
-    if isSummary:
-        data['summary'] = True
+    data['figType'] = figType
     fig = plot(data)
     fig.savefig(filename)

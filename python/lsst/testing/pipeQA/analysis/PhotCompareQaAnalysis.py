@@ -495,6 +495,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                 }
 
             
+            masterToggle = None            
             if self.starGalaxyToggle:
 
                 masterToggle = '0_stars'
@@ -512,7 +513,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                           toggle=toggle,
                                           masterToggle=masterToggle)
                 else:
-                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle)
+                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle,
+                                          masterToggle=masterToggle)
+                    dataDict['mode'] = 'stars'
+                    dataDict['figType'] = 'standard'
                     fig = plotModule.plot(dataDict)
                     testSet.addFigure(fig, pngFile, caption, areaLabel=label, toggle=toggle)
                     del fig
@@ -527,7 +531,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                           toggle=toggle,
                                           masterToggle=masterToggle)
                 else:
-                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle)
+                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle,
+                                          masterToggle=masterToggle)
+                    dataDict['mode'] = 'galaxies'
+                    dataDict['figType'] = 'standard'
                     fig = plotModule.plot(dataDict)
                     testSet.addFigure(fig, pngFile, caption, areaLabel=label, toggle=toggle)
                     del fig
@@ -542,7 +549,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                           toggle=toggle,
                                           masterToggle=masterToggle)
                 else:
-                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle)
+                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle,
+                                          masterToggle=masterToggle)
+                    dataDict['mode'] = 'all'
+                    dataDict['figType'] = 'standard'
                     fig = plotModule.plot(dataDict)
                     testSet.addFigure(fig, pngFile, caption, areaLabel=label, toggle=toggle)
                     del fig
@@ -557,7 +567,10 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                                           toggle=toggle,
                                           masterToggle=masterToggle)
                 else:
-                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle)
+                    testSet.cacheLazyData(dataDict, pngFile, areaLabel=label, toggle=toggle,
+                                          masterToggle=masterToggle)
+                    dataDict['mode'] = 'stars'
+                    dataDict['figType'] = 'derr'
                     fig = plotModule.plot(dataDict)
                     testSet.addFigure(fig, pngFile, caption, areaLabel=label, toggle=toggle)
                     del fig
@@ -574,266 +587,37 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
                 if self.lazyPlot.lower() in ['sensor', 'all']:
                     testSet.addLazyFigure(dataDict, pngFile, caption,
-                                          plotModule, areaLabel=label, plotargs="")
+                                          plotModule, areaLabel=label, plotargs="all standard")
                 else:
                     testSet.cacheLazyData(dataDict, pngFile, areaLabel=label)
+                    dataDict['mode'] = 'all'
+                    dataDict['figType'] = 'standard'
                     fig = plotModule.plot(dataDict)
                     testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                     del fig
 
-                
-            # append values to arrays for a plot showing all data
-            shelfData[ccd] = [mag0, diff0, star0, derr0, [areaLabel]*len(mag0)]
-            
-        # stash values
-        if self.useCache:
-            testSet.shelve(figbase, shelfData)
 
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
 
-            self.summaryFigure([
-                data, figbase, testSet, shelfData, figsize,
-                xlim, ylim, xlim2, ylim2,
-                tag1, tag, dtag,
-                ])
 
+            import PhotCompareQaAnalysisPlot as plotModule
+            label = 'all'
+            caption = dtag+" vs. "+self.magType1
+            pngFile = figbase+".png"
+            
+            if self.lazyPlot in ['all']:
+                testSet.addLazyFigure({}, pngFile, caption,
+                                      plotModule, areaLabel=label, plotargs="all summary",
+                                      masterToggle=masterToggle)
+            else:
+                dataDict, isSummary = qaPlotUtil.unshelveGlob(figbase+"-all.png", testSet=testSet)
+                dataDict['mode'] = 'all'
+                dataDict['figType'] = 'summary'
+                fig = plotModule.plot(dataDict)                
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
 
+            
 
                     
-    def summaryFigure(self, summaryArgs):
-
-        data, figbase, testSet, shelfData, figsize, xlim, ylim, xlim2, ylim2, tag1, tag, dtag = summaryArgs
-
-        size = 2.0
-        
-        # unstash the values
-        if self.useCache:
-            shelfData = testSet.unshelve(figbase)
-
-        #colorId = {}
-        #i = 0
-        #for k in sorted(data.cameraInfo.sensors.keys()):
-        #    colorId[k] = i
-        #    i += 1
-
-        allDerr = numpy.array([])
-        allMags = numpy.array([])
-        allDiffs = numpy.array([])
-        allStars = numpy.array([])
-        #allColor = numpy.array([])
-        allLabels = numpy.array([])
-        allCcds = []
-        for k,v in shelfData.items():
-            allCcds.append(k)
-            mags, diffs, stars, derr, arealabels = v
-            allDerr = numpy.append(allDerr, derr)
-            allMags = numpy.append(allMags, mags)
-            allDiffs = numpy.append(allDiffs, diffs)
-            allStars = numpy.append(allStars, stars)
-            #allColor = numpy.append(allColor, colorId[k]*numpy.ones(len(mags)))
-            allLabels = numpy.append(allLabels, arealabels)
-
-        # figure out the color map
-        #colorIdList = []
-        #for ccd in allCcds:
-        #    clr = colorId[ccd]
-        #    colorIdList.append(clr)
-        #minColorId = numpy.min(colorIdList)
-        #maxColorId = numpy.max(colorIdList)
-        #norm = colors.Normalize(vmin=minColorId, vmax=maxColorId)
-        #sm = cm.ScalarMappable(norm, cmap=cm.jet)
-        #allColor = sm.to_rgba(allColor)
-
-        # dmag vs mag
-        fig0 = qaFig.QaFigure(size=figsize)
-        fig0.fig.subplots_adjust(left=0.125, bottom=0.125)
-        rect0_1  = [0.125, 0.35, 0.478-0.125, 0.9-0.35]
-        rect0_2  = [0.548, 0.35, 0.9-0.548, 0.9-0.35]
-        rect0_1b = [0.125, 0.125, 0.478-0.125, 0.2]
-        rect0_2b = [0.548, 0.125, 0.9-0.548, 0.2]
-        ax0_1 = fig0.fig.add_axes(rect0_1)
-        ax0_2 = fig0.fig.add_axes(rect0_2)
-        ax0_1b = fig0.fig.add_axes(rect0_1b, sharex = ax0_1)
-        ax0_2b = fig0.fig.add_axes(rect0_2b, sharex = ax0_2)
-
-        w = numpy.where( (allMags < self.magCut) & (allStars > 0))[0]
-        wStar = numpy.where(allStars > 0)[0]
-        wGxy = numpy.where(allStars == 0)[0]
-
-        if len(w) > 0:
-            lineFit = qaAnaUtil.robustPolyFit(allMags[w], allDiffs[w], 1)
-            trendCoeffs = lineFit[0], lineFit[2]
-            trendCoeffsLo = lineFit[0]+lineFit[1], lineFit[2]-lineFit[3]
-            trendCoeffsHi = lineFit[0]-lineFit[1], lineFit[2]+lineFit[3]
-        else:
-            trendCoeffs = [0.0, 0.0]
-            trendCoeffsLo = [0.0, 0.0]
-            trendCoeffsHi = [0.0, 0.0]
-
-        ####################
-        # data for all ccds
-        haveData = True
-        if len(allMags) == 0:
-            haveData = False
-            allMags = numpy.array([xlim[1]])
-            allDiffs = numpy.array([0.0])
-            #allColor = [black]
-            allLabels = ["no_valid_data"]
-            trendCoeffs = [0.0, 0.0]
-            trendCoeffsLo = [0.0, 0.0]
-            trendCoeffsHi = [0.0, 0.0]
-        else:
-            #
-            # Lower plots
-
-            mStar = allMags[wStar]
-            dStar = allDiffs[wStar]
-            eStar = allDerr[wStar]
-
-            binmag  = []
-            binstd  = []
-            binmerr = []
-            xmin = xlim[0]
-            xmax = xlim[1]
-            bins1 = numpy.arange(xmin, xmax, 0.5)
-            for i in range(1, len(bins1)):
-                idx = numpy.where((mStar>bins1[i-1])&(mStar<bins1[i]))[0]
-                if len(idx) == 0:
-                    continue
-                avgMag  = afwMath.makeStatistics(mStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
-                stdDmag = 0.741 * afwMath.makeStatistics(dStar[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
-                avgEbar = afwMath.makeStatistics(eStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
-                binmag.append(avgMag)
-                binstd.append(stdDmag)
-                binmerr.append(avgEbar)
-            # Shows the 2 curves
-            ax0_1b.plot(binmag, binstd, 'r-', label="Phot RMS")
-            ax0_1b.plot(binmag, binmerr, 'b--', label="Avg Error Bar")
-
-            binmag = numpy.array(binmag)
-            binstd = numpy.array(binstd)
-            binmerr = numpy.array(binmerr)
-
-            medresid = 0.0
-            idx         = numpy.where( (binstd > binmerr) & (binmag < self.magCut) )[0]
-            if len(idx) == 0:
-                medresid = 0.0
-            else:
-                brightmag   = binmag[idx]
-                brightresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
-                medresid    = numpy.median(brightresid)
-                if numpy.isnan(medresid) or medresid == None:
-                   medresid = 0.0
-
-            label       = "Quad error"
-            comment     = "Median value to add in quadrature to star phot error bars (mag < %.2f)" % (self.magCut)
-            testSet.addTest( testCode.Test(label, medresid, self.derrLimits, comment, areaLabel="all"))
-
-            # SECOND SUBPANEL
- 
-            binmag  = []
-            binstd  = []
-            binmerr = []
-            xmin2 = xlim2[0]
-            xmax2 = xlim2[1]
-            bins2 = numpy.arange(xmin2, xmax2, 0.5)
-            for i in range(1, len(bins2)):
-                idx = numpy.where((mStar>bins2[i-1])&(mStar<bins2[i]))[0]
-                if len(idx) == 0:
-                    continue
-                avgMag  = afwMath.makeStatistics(mStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
-                stdDmag = 0.741 * afwMath.makeStatistics(dStar[idx], afwMath.IQRANGE).getValue(afwMath.IQRANGE)
-                avgEbar = afwMath.makeStatistics(eStar[idx], afwMath.MEAN).getValue(afwMath.MEAN)
-                binmag.append(avgMag)
-                binstd.append(stdDmag)
-                binmerr.append(avgEbar)
-
-            binmag = numpy.array(binmag)
-            binstd = numpy.array(binstd)
-            binmerr = numpy.array(binmerr)
-
-            idx         = numpy.where( (binstd > binmerr) )[0]
-            errbarmag   = binmag[idx]
-            errbarresid = numpy.sqrt(binstd[idx]**2 - binmerr[idx]**2)
-            ax0_2b.plot(errbarmag, errbarresid, 'ko', ms = 3, label="Err Underestimate")
-
-    
-            # Lower plots
-            #
-
-        #allColor = numpy.array(allColor)
-        for ax in [ax0_1, ax0_2]:
-            ax.plot(xlim2, [0.0, 0.0], "-k", lw=1.0)  # show an x-axis at y=0
-            ax.plot(allMags[wGxy], allDiffs[wGxy], "bo", ms=size, label="galaxies", alpha=0.5)
-            ax.plot(allMags[wStar], allDiffs[wStar], "ro", ms=size, label="stars", alpha=0.5)
-            # 99 is the 'no-data' values
-            if abs(trendCoeffs[0] - 99.0) > 1.0e-6:
-                ax.plot(xlim2, numpy.polyval(trendCoeffs, xlim2), "-k", lw=1.0)
-                ax.plot(xlim2, numpy.polyval(trendCoeffsLo, xlim2), "--k", lw=1.0)
-                ax.plot(xlim2, numpy.polyval(trendCoeffsHi, xlim2), "--k", lw=1.0)
-
-        # show outliers railed at the ylims
-        wStarOutlier = numpy.where((numpy.abs(allDiffs) > ylim2[1]) & (allStars > 0))[0]
-        wGxyOutlier = numpy.where((numpy.abs(allDiffs) > ylim2[1]) & (allStars == 0))[0]
-        clip = 0.99
-        ax0_2.plot(allMags[wStarOutlier], numpy.clip(allDiffs[wStarOutlier], clip*ylim2[0], clip*ylim2[1]),
-                   'r.', ms=size)
-        ax0_2.plot(allMags[wGxyOutlier], numpy.clip(allDiffs[wGxyOutlier], clip*ylim2[0], clip*ylim2[1]),
-                   'g.', ms=size)
-        ax0_2.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
-        
-        dmag = 0.1
-        ddiff1 = 0.01
-        ddiff2 = ddiff1*(ylim2[1]-ylim2[0])/(ylim[1]-ylim[0]) # rescale for larger y range
-        for j in xrange(len(allMags)):
-            area = (allMags[j]-dmag, allDiffs[j]-ddiff1, allMags[j]+dmag, allDiffs[j]+ddiff1)
-            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_1)
-            area = (allMags[j]-dmag, allDiffs[j]-ddiff2, allMags[j]+dmag, allDiffs[j]+ddiff2)
-            fig0.addMapArea(allLabels[j], area, "%.3f_%.3f"% (allMags[j], allDiffs[j]), axes=ax0_2)
-
-
-        del allMags
-        del allDiffs
-        #del allColor
-        del allLabels
-
-        # move the yaxis ticks/labels to the other side
-        ax0_2.yaxis.set_label_position('right')
-        ax0_2.yaxis.set_ticks_position('right')
-        ax0_2b.yaxis.set_label_position('right')
-        ax0_2b.yaxis.set_ticks_position('right')
-
-        ax0_1b.set_xlabel(tag1, fontsize=12)
-        ax0_2b.set_xlabel(tag1, fontsize=12)
-        
-        ax0_2.plot([xlim[0], xlim[1], xlim[1], xlim[0], xlim[0]],
-                   [ylim[0], ylim[0], ylim[1], ylim[1], ylim[0]], '-k')
-
-        ax0_1b.semilogy()
-        ax0_2b.semilogy()
-
-        if haveData:
-            ax0_1b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
-            ax0_2b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
-
-
-        qaPlotUtil.qaSetp(ax0_1.get_xticklabels()+ax0_2.get_xticklabels(), visible=False)
-        qaPlotUtil.qaSetp(ax0_1.get_yticklabels()+ax0_2.get_yticklabels(), fontsize=11)
-        qaPlotUtil.qaSetp(ax0_1b.get_yticklabels()+ax0_2b.get_yticklabels(), fontsize=10)
-
-        for ax in [ax0_1, ax0_2]:
-            ax.set_ylabel(tag)
-
-        ax0_1.set_xlim(xlim)
-        ax0_2.set_xlim(xlim2)
-        ax0_1.set_ylim(ylim)
-        ax0_2.set_ylim(ylim2)
-
-        ax0_1b.set_ylim(0.001, 0.99)
-        ax0_2b.set_ylim(0.001, 0.99)
-
-        testSet.addFigure(fig0, figbase+".png", dtag+" vs. "+self.magType1, areaLabel="all")
-
-        del fig0
-
