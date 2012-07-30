@@ -254,12 +254,12 @@ def getSceNameList(dataIdNames, replacements={}):
         ['fwhm',                 'fwhm'                 ],
         ]
 
-    for k,v in replacements.items():
-        for arr in nameList:
-            a, b = arr
-            if a == k:
-                arr[1] = v
-                
+    
+    for arr in nameList:
+        a, b = arr
+        if a in replacements:
+            arr[1] = replacements[a]
+            
     return nameList
 
 def getSceDbNames(dataIdNames, replacements={}):

@@ -5,6 +5,7 @@ import numpy
 
 import time
 
+import lsst.afw.geom                as afwGeom
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
 
@@ -121,27 +122,29 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             dRaMed = numpy.median(dRa)
             dDecMed = numpy.median(dDec)
 
-            sysErrArcsec = 206265.0*numpy.sqrt(dRaMed**2 + dDecMed**2)
+            sysErr = numpy.sqrt(dRaMed**2 + dDecMed**2)*afwGeom.radians
+            sysErrArcsec = sysErr.asArcseconds()
             sysThetaRad  = numpy.arctan2(dDecMed, dRaMed)
             
             dRa  -= dRaMed
             dDec -= dDecMed
-            
-            rmsErrArcsec = 206265.0*numpy.sqrt(dRa**2 + dDec**2)
-            #errArcsec = 3600.0*numpy.sqrt(dRa**2 + dDec**2)
+
+            rmsErr = numpy.sqrt(dRa**2 + dDec**2)
             rmsThetaRad  = numpy.arctan2(dDec, dRa)
 
-            if len(rmsErrArcsec) > 0:
-                stat  = afwMath.makeStatistics(rmsErrArcsec, afwMath.NPOINT | afwMath.MEDIAN)
-                medRmsErrArcsec = stat.getValue(afwMath.MEDIAN)
+            if len(rmsErr) > 0:
+                stat  = afwMath.makeStatistics(rmsErr, afwMath.NPOINT | afwMath.MEDIAN)
+                medRmsErr = stat.getValue(afwMath.MEDIAN)
                 stat  = afwMath.makeStatistics(rmsThetaRad, afwMath.NPOINT | afwMath.MEDIAN)
                 medRmsThetaRad = stat.getValue(afwMath.MEDIAN)
                 n = stat.getValue(afwMath.NPOINT)
             else:
-                medRmsErrArcsec = -1.0
+                medRmsErr = -1.0
                 medRmsThetaRad = 0.0
                 n = 0
-
+                
+            medRmsErr = medRmsErr*afwGeom.radians
+            
             self.medErrArcsec.set(raft, ccd, sysErrArcsec)
             self.medThetaRad.set(raft, ccd, sysThetaRad)
             
@@ -153,7 +156,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
             label = "median random astrometry error "
             comment = "median sqrt((dRa-dRaMed)^2+(dDec-dDecMed)^2) (arcsec, nstar=%d)" % (n)
-            test = testCode.Test(label, medRmsErrArcsec, self.limits, comment, areaLabel=areaLabel)
+            test = testCode.Test(label, medRmsErr.asArcseconds(), self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
             
         
