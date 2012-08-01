@@ -82,11 +82,9 @@ class DbQaData(QaData):
         if self.coaddTable == 'chiSquared' and cameraInfo.name == 'coadd':
             cameraInfo.setFilterless()
         
-        self.useForced   = kwargs.get('forced', False)
+        self.useForced   = kwargs.get('useForced', False)
         forced = ''
         if self.useForced:
-            if not cameraInfo.name == 'coadd':
-                raise RuntimeError, "Forced photometry only supported for coadds."
             forced = 'Forced'
 
             
@@ -107,19 +105,19 @@ class DbQaData(QaData):
 
         self.sTables = {
             'lsstSim'  : 'Source',
-            'sdss'  : 'Source',
+            'sdss'  : '%s%sSource'% ((cTabUpper, forced) if self.useForced else ('','')),
             'coadd' : '%s%sSource' % (cTabUpper, forced),
             }
 
         self.sIds = {
             'lsstSim'  : 'sourceId',
-            'sdss'  : 'sourceId',
+            'sdss'  : self.coaddTable+forced+'SourceId' if self.useForced else 'sourceId',
             'coadd' : '%sSourceId' % (self.coaddTable),
             }
         
         self.romTables = {
             'lsstSim'  : 'Ref%sMatch',
-            'sdss'  : 'Ref%sMatch',
+            'sdss'  : 'Ref'+cTabUpper+forced+'%sMatch' if self.useForced else 'Ref%sMatch',
             'coadd' : 'Ref%sSrcMatch' % (cTabUpper),
             }
         self.sceReplacements = {
@@ -128,6 +126,8 @@ class DbQaData(QaData):
             'coadd' : {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : '%sCoaddId' % (cTabUpper) },
             }
 
+        if self.useForced:
+            self.sceReplacements['sdss'] = {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : '%s%sSourceId' % (self.coaddTable,forced) }
         
         defaultCamera = 'lsstSim'
         self.sceTable = self.sceTables.get(cameraInfo.name, defaultCamera)
@@ -136,6 +136,8 @@ class DbQaData(QaData):
         self.sId      = self.sIds.get(cameraInfo.name, defaultCamera)
         self.romTable = self.romTables.get(cameraInfo.name, defaultCamera)
         self.sceReplace = self.sceReplacements.get(cameraInfo.name, defaultCamera)
+
+        print self.sceTable, self.sceId, self.sTable, self.sId, self.romTable, self.sceReplace
         
         # handle backward compatibility of database names
         keyList = []
