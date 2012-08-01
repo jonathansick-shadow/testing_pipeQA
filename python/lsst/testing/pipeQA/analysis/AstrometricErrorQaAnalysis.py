@@ -119,8 +119,12 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             dRa  = self.dRa.get(raft, ccd).copy()
             dDec = self.dDec.get(raft, ccd).copy()
 
-            dRaMed = numpy.median(dRa)
-            dDecMed = numpy.median(dDec)
+            if len(dRa) > 0:
+                dRaMed = numpy.median(dRa)
+                dDecMed = numpy.median(dDec)
+            else:
+                dRaMed = 0.0
+                dDecMed = 0.0
 
             sysErr = numpy.sqrt(dRaMed**2 + dDecMed**2)*afwGeom.radians
             sysErrArcsec = sysErr.asArcseconds()
@@ -306,6 +310,10 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         if gridVectors:
             nx, ny = 8, 8
             xstep, ystep = (xlim[1]-xlim[0])/nx, (ylim[1]-ylim[0])/ny
+            if xstep == 0:
+                xstep = 1.0;
+            if ystep == 0:
+                ystep = 1.0;
             xgrid = [[0.0]*nx for i in range(ny)]
             ygrid = [[0.0]*nx for i in range(ny)]
             ngrid = [[0]*nx for i in range(ny)]

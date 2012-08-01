@@ -111,13 +111,13 @@ class DbQaData(QaData):
 
         self.sIds = {
             'lsstSim'  : 'sourceId',
-            'sdss'  : self.coaddTable+forced+'SourceId' if self.useForced else 'sourceId',
+            'sdss'  : self.coaddTable+'SourceId' if self.useForced else 'sourceId',
             'coadd' : '%sSourceId' % (self.coaddTable),
             }
         
         self.romTables = {
             'lsstSim'  : 'Ref%sMatch',
-            'sdss'  : 'Ref'+cTabUpper+forced+'%sMatch' if self.useForced else 'Ref%sMatch',
+            'sdss'  : 'Ref'+cTabUpper+'%sMatch' if self.useForced else 'Ref%sMatch',
             'coadd' : 'Ref%sSrcMatch' % (cTabUpper),
             }
         self.sceReplacements = {
@@ -126,8 +126,6 @@ class DbQaData(QaData):
             'coadd' : {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : '%sCoaddId' % (cTabUpper) },
             }
 
-        if self.useForced:
-            self.sceReplacements['sdss'] = {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : '%s%sSourceId' % (self.coaddTable,forced) }
         
         defaultCamera = 'lsstSim'
         self.sceTable = self.sceTables.get(cameraInfo.name, defaultCamera)
