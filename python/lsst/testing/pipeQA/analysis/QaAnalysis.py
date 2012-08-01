@@ -26,7 +26,7 @@ class QaAnalysis(object):
 
         options = ['none', 'sensor', 'all']
         if not lazyPlot in options:
-            raise ValueError, "lazyPlot must be: ", ",".join(options)
+            raise ValueError, "lazyPlot must be: "+ ",".join(options) + " You said: "+lazyPlot
         
         self.lazyPlot  = lazyPlot
 

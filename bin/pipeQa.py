@@ -370,7 +370,7 @@ if __name__ == '__main__':
                       help="Trace level for lsst.testing.pipeQA")
     parser.add_option("-v", "--visit", default=".*",
                       help="Specify visit as regex OR color separated list. (default=%default)")
-    parser.add_option("-z", "--lazy", default='sesnor',
+    parser.add_option("-z", "--lazy", default='sensor',
                       help="Figures to be generated dynamically online [options: none, sensor, all] (default=%default)")
     
     # visit-to-visit
