@@ -5,6 +5,7 @@ import numpy
 
 import time
 
+import lsst.afw.geom                as afwGeom
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
 
@@ -115,33 +116,53 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.medThetaRad  = raftCcdData.RaftCcdData(self.detector)
 
         for raft,  ccd in self.dRa.raftCcdKeys():
-            dRa  = self.dRa.get(raft, ccd)
-            dDec = self.dDec.get(raft, ccd)
-            
-            errArcsec = 206265.0*numpy.sqrt(dRa**2 + dDec**2)
-            #errArcsec = 3600.0*numpy.sqrt(dRa**2 + dDec**2)
-            thetaRad  = numpy.arctan2(dDec, dRa)
+            dRa  = self.dRa.get(raft, ccd).copy()
+            dDec = self.dDec.get(raft, ccd).copy()
 
-            if len(errArcsec) > 0:
-                stat  = afwMath.makeStatistics(errArcsec, afwMath.NPOINT | afwMath.MEDIAN)
-                medErrArcsec = stat.getValue(afwMath.MEDIAN)
-                stat  = afwMath.makeStatistics(thetaRad, afwMath.NPOINT | afwMath.MEDIAN)
-                medThetaRad = stat.getValue(afwMath.MEDIAN)
+            if len(dRa) > 0:
+                dRaMed = numpy.median(dRa)
+                dDecMed = numpy.median(dDec)
+            else:
+                dRaMed = 0.0
+                dDecMed = 0.0
+
+            sysErr = numpy.sqrt(dRaMed**2 + dDecMed**2)*afwGeom.radians
+            sysErrArcsec = sysErr.asArcseconds()
+            sysThetaRad  = numpy.arctan2(dDecMed, dRaMed)
+            
+            dRa  -= dRaMed
+            dDec -= dDecMed
+
+            rmsErr = numpy.sqrt(dRa**2 + dDec**2)
+            rmsThetaRad  = numpy.arctan2(dDec, dRa)
+
+            if len(rmsErr) > 0:
+                stat  = afwMath.makeStatistics(rmsErr, afwMath.NPOINT | afwMath.MEDIAN)
+                medRmsErr = stat.getValue(afwMath.MEDIAN)
+                stat  = afwMath.makeStatistics(rmsThetaRad, afwMath.NPOINT | afwMath.MEDIAN)
+                medRmsThetaRad = stat.getValue(afwMath.MEDIAN)
                 n = stat.getValue(afwMath.NPOINT)
             else:
-                medErrArcsec = -1.0
-                medThetaRad = 0.0
+                medRmsErr = -1.0
+                medRmsThetaRad = 0.0
                 n = 0
-
-            self.medErrArcsec.set(raft, ccd, medErrArcsec)
-            self.medThetaRad.set(raft, ccd, medThetaRad)
+                
+            medRmsErr = medRmsErr*afwGeom.radians
+            
+            self.medErrArcsec.set(raft, ccd, sysErrArcsec)
+            self.medThetaRad.set(raft, ccd, sysThetaRad)
             
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            label = "median astrometry error "
+            label = "median systematic astrometry error "
             comment = "median sqrt(dRa^2+dDec^2) (arcsec, nstar=%d)" % (n)
-            test = testCode.Test(label, medErrArcsec, self.limits, comment, areaLabel=areaLabel)
+            test = testCode.Test(label, sysErrArcsec, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
 
+            label = "median random astrometry error "
+            comment = "median sqrt((dRa-dRaMed)^2+(dDec-dDecMed)^2) (arcsec, nstar=%d)" % (n)
+            test = testCode.Test(label, medRmsErr.asArcseconds(), self.limits, comment, areaLabel=areaLabel)
+            testSet.addTest(test)
+            
         
     def plot(self, data, dataId, showUndefined=False):
 
@@ -200,7 +221,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
             print "plotting ", ccd
 
-            fig = self.standardFigure(x, y, dx, dy)
+            fig = self.standardFigure(x, y, dx, dy, data, raft=raft, ccd=ccd)
             label = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "astromError.png", "Astrometric error"+label, areaLabel=label)
             del fig
@@ -229,7 +250,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 dxAll  = numpy.append(dxAll , dx)
                 dyAll  = numpy.append(dyAll , dy)
 
-            allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, gridVectors=True)
+            allFig = self.standardFigure(xAll, yAll, dxAll, dyAll, data, gridVectors=True)
+
             del xAll, yAll, dxAll, dyAll
             
             label = "all"
@@ -238,7 +260,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             
 
         
-    def standardFigure(self, x, y, dx, dy, gridVectors=False):
+    def standardFigure(self, x, y, dx, dy, data, gridVectors=False, raft=None, ccd=None):
 
 
         #
@@ -255,14 +277,22 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             dx = numpy.array([0.0])
             dy = numpy.array([0.0])
 
-        # round up to nearest 1024 for limits
-        xmax, ymax = x.max(), y.max()
-        if len(x) > 1:
-            xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
-            ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
+        if gridVectors or data.cameraInfo.name == 'coadd':
+            xlo, ylo, xhi, yhi = x.min(), y.min(), x.max(), y.max()
         else:
-            xlim = [0, 1.0]
-            ylim = [0, 1.0]
+            xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
+        xlim = [xlo, xhi]
+        ylim = [ylo, yhi]
+            
+        # round up to nearest 1024 for limits
+        if False:
+            xmax, ymax = x.max(), y.max()
+            if len(x) > 1:
+                xlim = [0, 1024*int(xmax/1024.0 + 0.5)]
+                ylim = [0, 1024*int(ymax/1024.0 + 0.5)]
+            else:
+                xlim = [0, 1.0]
+                ylim = [0, 1.0]
 
         r = numpy.sqrt(dx**2 + dy**2)
         rmax = 1.2 # r.max()
@@ -279,12 +309,16 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         # for the 'all' plot, just show avg vectors in grid cells
         if gridVectors:
             nx, ny = 8, 8
-            xstep, ystep = xlim[1]/nx, ylim[1]/ny
+            xstep, ystep = (xlim[1]-xlim[0])/nx, (ylim[1]-ylim[0])/ny
+            if xstep == 0:
+                xstep = 1.0;
+            if ystep == 0:
+                ystep = 1.0;
             xgrid = [[0.0]*nx for i in range(ny)]
             ygrid = [[0.0]*nx for i in range(ny)]
             ngrid = [[0]*nx for i in range(ny)]
             for i in range(len(x)):
-                ix, iy = int(x[i]/xstep), int(y[i]/ystep)
+                ix, iy = int((x[i]-xlim[0])/xstep), int((y[i]-ylim[0])/ystep)
                 if ix >= 0 and ix < nx and iy >= 0 and iy < ny:
                     xgrid[ix][iy] += dx[i]
                     ygrid[ix][iy] += dy[i]
@@ -293,8 +327,8 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             xt, yt, dxt, dyt = [],[],[],[]
             for ix in range(nx):
                 for iy in range(ny):
-                    xt.append(xstep*(ix+0.5))
-                    yt.append(ystep*(iy+0.5))
+                    xt.append(xlim[0] + xstep*(ix+0.5))
+                    yt.append(ylim[0] + ystep*(iy+0.5))
                     if ngrid[ix][iy] > 0:
                         xval = xgrid[ix][iy]/ngrid[ix][iy]
                         yval = ygrid[ix][iy]/ngrid[ix][iy]
@@ -319,12 +353,19 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         ax.xaxis.set_major_locator(MaxNLocator(8))
         ax.yaxis.set_major_locator(MaxNLocator(8))
 
-        ax.set_xlabel("x [pixels]")
-        ax.set_ylabel("y [pixels]")
+        if data.cameraInfo.name == 'coadd':
+            ax.set_xlabel("x [coadd pixels]")
+            ax.set_ylabel("y [coadd pixels]")
+        else:
+            ax.set_xlabel("x [pixels]")
+            ax.set_ylabel("y [pixels]")
+
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         for tic in ax.get_xticklabels() + ax.get_yticklabels():
             tic.set_size("x-small")
+        for tic in ax.get_xticklabels():
+            tic.set_rotation(22)
 
 
         ################

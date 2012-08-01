@@ -84,9 +84,11 @@ def tryThis(func, data, thisDataId, visit, test, testset, exceptExit):
 #
 #############################################################
 
-def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matchVisits=None, testRegex=".*", camera=None,
+def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matchVisits=None,
+         testRegex=".*", camera=None,
          exceptExit=False, keep=False, wwwCache=True, breakBy='visit',
-         groupInfo=None, delaySummary=False, forkFigure=False):
+         groupInfo=None, delaySummary=False, forkFigure=False,
+         useForced=False, coaddTable='goodSeeing'):
 
     visitList = []
     if isinstance(dataIdInput['visit'], list):
@@ -103,7 +105,8 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
 
 
     data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
-                             shapeAlg=policy.get('shapeAlgorithm'))
+                             shapeAlg=policy.get('shapeAlgorithm'),
+                             useForced=useForced, coaddTable=coaddTable)
 
     
     # convert this input format visit,raft,ccd to the names used by the instrument
@@ -312,7 +315,10 @@ def main(dataset, dataIdInput, rerun=None, doVisitQa=False, matchDset=None, matc
             raftName = ""
             if thisDataId.has_key('raft'):
                 raftName = thisDataId['raft']+"-"
-            ccdName = thisDataId[data.ccdConvention]
+            ccdName = ""
+            if thisDataId.has_key('ccd'):
+                ccdName = thisDataId[data.ccdConvention]
+
             progset.addTest(visit, 0, [1, 1], "Processing. Done %s%s." % (raftName,ccdName))
         progset.addTest(visit, 1, [1, 1], "Done processing.")
 
@@ -345,6 +351,8 @@ if __name__ == '__main__':
                       help="Don't capture exceptions, fail and exit (default=%default)")
     parser.add_option("-f", "--forkFigure", default=False, action='store_true',
                       help="Make figures in separate process (default=%default)")
+    parser.add_option("-F", "--forced", default=False, action='store_true',
+                      help="Use forced photometry (default=%default)")
     parser.add_option("-g", "--group", default=None,
                       help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%default)")
     parser.add_option("-k", "--keep", default=False, action="store_true",
@@ -357,6 +365,8 @@ if __name__ == '__main__':
                       help="Specify snap as regex (default=%default)")
     parser.add_option("-t", "--test", default=".*",
                       help="Regex specifying which QaAnalysis to run (default=%default)")
+    parser.add_option("-T", "--coaddTable", default="goodSeeing",
+                      help="Specify coadd table to use (default=%default)")
     parser.add_option("-V", "--verbosity", default=1,
                       help="Trace level for lsst.testing.pipeQA")
     parser.add_option("-v", "--visit", default=".*",
@@ -415,5 +425,5 @@ if __name__ == '__main__':
          testRegex=opts.test,          camera=opts.camera,
          exceptExit=opts.exceptExit,   keep=opts.keep,      wwwCache=wwwCache,
          breakBy=opts.breakBy, groupInfo=opts.group, delaySummary=opts.delaySummary,
-         forkFigure=opts.forkFigure)
+         forkFigure=opts.forkFigure, useForced=opts.forced, coaddTable=opts.coaddTable)
         

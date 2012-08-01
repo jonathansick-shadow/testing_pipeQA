@@ -63,7 +63,12 @@ class QaAnalysis(object):
             self.testSets[tsId].addMetadata('PipeQA', pqaVersion)
             self.testSets[tsId].addMetadata('DisplayQA', dqaVersion)
             
-            
+            if hasattr(data, 'coaddTable') and not data.coaddTable is None:
+                self.testSets[tsId].addMetadata('coaddTable', data.coaddTable)
+            if hasattr(data, 'useForced'):
+                self.testSets[tsId].addMetadata('forced', "True" if data.useForced else "False")
+                
+                
         return self.testSets[tsId]
 
 
