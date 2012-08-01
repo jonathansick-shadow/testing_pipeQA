@@ -5,8 +5,6 @@ sourceClass = 'python'
 if os.environ.has_key('SOURCECLASS'):
     if re.search('afw', os.environ['SOURCECLASS']):
         sourceClass = 'afw'
-    elif re.search('c\+\+', os.environ['SOURCECLASS']):
-        sourceClass = 'c++'
     else:
         sourceClass = 'python'
         
@@ -99,10 +97,6 @@ class _RefSource(object):
 
 if useRefSource == 'afw':
     from lsst.afw.detection import Source as RefSource
-elif useRefSource == 'c++':
-    import pipeQaLib as pipeQaLib
-    RefSource = pipeQaLib.Source
-    RefSourceSet = pipeQaLib.SourceSet
 else:
     RefSource = _RefSource
     RefCatalog = _RefCatalog
@@ -313,10 +307,6 @@ if useSource == 'afw':
     Catalog = _Catalog
     Source = _Source
     
-elif useSource == 'c++':
-    import pipeQaLib as pipeQaLib
-    Source = pipeQaLib.Source
-    SourceSet = pipeQaLib.SourceSet
     
 else:
     Source = _Source
