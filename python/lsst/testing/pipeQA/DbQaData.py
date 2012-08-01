@@ -135,7 +135,6 @@ class DbQaData(QaData):
         self.romTable = self.romTables.get(cameraInfo.name, defaultCamera)
         self.sceReplace = self.sceReplacements.get(cameraInfo.name, defaultCamera)
 
-        print self.sceTable, self.sceId, self.sTable, self.sId, self.romTable, self.sceReplace
         
         # handle backward compatibility of database names
         keyList = []
