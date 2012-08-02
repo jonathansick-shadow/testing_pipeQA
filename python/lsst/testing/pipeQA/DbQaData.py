@@ -244,12 +244,15 @@ class DbQaData(QaData):
         if re.search('%s', romTable):
             romTable = self.romTable % (self.refStr[useRef][0])
 
+        useIndex = ''
+        if self.cameraInfo.name == 'sdss' and self.useForced:
+            useIndex = 'use index()'
             
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
         sql  = 'select '+ ",".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId)
         sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
-        sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce,'
+        sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce %s,' % (useIndex)
         sql += '    '+romTable+' as rom, RefObject as sro' 
         sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
         sql += '    and (s.'+self.sId+' = rom.'+self.sId+') and (rom.refObjectId = sro.refObjectId)'
@@ -261,6 +264,7 @@ class DbQaData(QaData):
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
         
         # run the query
+        #print sql
         results  = self.dbInterface.execute(sql)
 
         # parse results and put them in a sourceSet
