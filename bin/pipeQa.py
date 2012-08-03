@@ -52,9 +52,11 @@ def tryThis(func, data, thisDataId, visit, test, testset, exceptExit):
         if thisDataId.has_key('raft'):
             label = "v%s_r%s_s%s_%s_%s" % (visit, thisDataId['raft'], thisDataId[data.ccdConvention],
                                            test, funcName)
-        else:
+        elif thisDataId.has_key(data.ccdConvention):
             label = "v%s_s%s_%s_%s" % (visit, thisDataId[data.ccdConvention], test, funcName)
-
+        else:
+            label = "v%s_%s_%s" % (visit, test, funcName)
+            
 
         failed = False
         s = ""

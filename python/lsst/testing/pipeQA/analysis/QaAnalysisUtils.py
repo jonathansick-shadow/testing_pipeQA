@@ -36,9 +36,9 @@ def lineFit(x, y, dy=None):
         aa = ( Sxx*Sy - Sx*Sxy ) / Delta
         var_aa = Sxx/Delta
         var_bb = S / Delta
-        
-    rms_aa = numpy.sqrt(var_aa)
-    rms_bb = numpy.sqrt(var_bb)
+
+    rms_aa = numpy.sqrt(numpy.abs(var_aa))
+    rms_bb = numpy.sqrt(numpy.abs(var_bb))
 
     # coefficient of correlation
     if no_err:
