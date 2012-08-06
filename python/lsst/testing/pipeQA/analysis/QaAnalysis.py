@@ -73,7 +73,12 @@ class QaAnalysis(object):
                 self.testSets[tsId].addMetadata('coaddTable', data.coaddTable)
             if hasattr(data, 'useForced'):
                 self.testSets[tsId].addMetadata('forced', "True" if data.useForced else "False")
-                
+
+            key = data._dataIdToString(dataId, defineFully=True)
+            sqlCache = data.sqlCache['match'].get(key, "")
+            self.testSets[tsId].addMetadata("SQL match", sqlCache)
+            sqlCache = data.sqlCache['src'].get(key, "")
+            self.testSets[tsId].addMetadata("SQL src" ,  sqlCache)
                 
         return self.testSets[tsId]
 

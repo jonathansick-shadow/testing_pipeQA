@@ -188,7 +188,7 @@ class DbQaData(QaData):
 
         setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
-        selectStr  = ",".join(selectList)
+        selectStr  = ", ".join(selectList)
         
         sql  = 'select sce.filterId, sce.filterName from '+self.sceTable+' as sce'
         sql += ' where '
@@ -245,11 +245,11 @@ class DbQaData(QaData):
             romTable = self.romTable % (self.refStr[useRef][0])
 
         useIndex = ''
-        if self.cameraInfo.name == 'sdss' and self.useForced:
+        if self.cameraInfo.name == 'sdss': # and self.useForced:
             useIndex = 'use index()'
             
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select '+ ",".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId)
+        sql  = 'select '+ ", ".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId)
         sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
         sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce %s,' % (useIndex)
@@ -266,7 +266,9 @@ class DbQaData(QaData):
         # run the query
         #print sql
         results  = self.dbInterface.execute(sql)
-
+        
+        self.sqlCache['match'][dataIdStr] = sql
+        
         # parse results and put them in a sourceSet
         multiplicity = {}
         matchListDict = {}
@@ -449,6 +451,8 @@ class DbQaData(QaData):
             typeDict[key]['blended']    = blended
             typeDict[key]['undetected'] = undetected
 
+            typeDict[key]['sql'] = sql
+            
             # cache it
             self.matchListCache[useRef][key] = typeDict[key]
             
@@ -476,7 +480,7 @@ class DbQaData(QaData):
 
         setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
-        selectStr  = ",".join(selectList)
+        selectStr  = ", ".join(selectList)
 
         # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
         # eg. visit vs. run-field, raft vs. camcol ...
@@ -486,7 +490,7 @@ class DbQaData(QaData):
             ]
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select '+",".join(zip(*sceNames)[1])+',s.'+self.sId+','+selectStr
+        sql  = 'select '+", ".join(zip(*sceNames)[1])+', s.'+self.sId+', '+selectStr
         sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce'
         sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
         haveAllKeys = True
@@ -524,6 +528,7 @@ class DbQaData(QaData):
 
         # run the query
         results  = self.dbInterface.execute(sql)
+        self.sqlCache['src'][dataIdStr] = sql
         calib = self.getCalibBySensor(dataIdRegex)
 
         
@@ -638,7 +643,7 @@ class DbQaData(QaData):
                 haveAllKeys = False
         sqlDataId = " and ".join(sqlDataId)
 
-        sql  = "select "+",".join(zip(*sceNames)[1])
+        sql  = "select "+", ".join(zip(*sceNames)[1])
         sql += "  from "+self.sceTable+" as sce "
         sql += "  where " + sqlDataId
 
@@ -712,7 +717,7 @@ class DbQaData(QaData):
             self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
             setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
             selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
-            selectStr = ",".join(selectList)
+            selectStr = ", ".join(selectList)
             sql3  = 'SELECT sce.visit, sce.raftName, sce.ccdName, sce.filterName, '                # 4 values
             sql3 += ' sce.fluxMag0, sce.fluxMag0Sigma,'                                            # 2 values
             sql3 += '   CASE WHEN sce.filterId = 0 THEN sro.uMag'
@@ -847,7 +852,7 @@ class DbQaData(QaData):
         sroFields = simRefObj.fields
         if not haveYmag:
             sroFields = [x for x in sroFields if x != 'yMag']
-        sroFieldStr = ",".join(["sro."+field for field in sroFields])
+        sroFieldStr = ", ".join(["sro."+field for field in sroFields])
 
         # if the dataIdEntry is identical to an earlier query, we must already have all the data
         dataIdStr = self._dataIdToString(dataIdRegex, defineFully=True)
@@ -1002,7 +1007,7 @@ class DbQaData(QaData):
                 columns.append(self.cameraInfo.dataIdDbNames[c])
                 dbNames.append([c, self.cameraInfo.dataIdDbNames[c]])
                 
-        sql = "select distinct "+",".join(columns)+" from "+self.sceTable
+        sql = "select distinct "+", ".join(columns)+" from "+self.sceTable
         sql += "   where "
         haveAllKeys = True
 
@@ -1052,7 +1057,7 @@ class DbQaData(QaData):
             ]
         
 
-        sql = "select "+",".join(zip(*sceNames)[1])+" from "+self.sceTable+" as sce"
+        sql = "select "+", ".join(zip(*sceNames)[1])+" from "+self.sceTable+" as sce"
         sql += "   where "
         whereList = []
         for keyNames in sceNames:
@@ -1111,7 +1116,7 @@ class DbQaData(QaData):
 
         
         selectList = ["sce."+x for x in qaDataUtils.getSceDbNames(sceDataIdNames, self.sceReplace)]
-        selectStr = ",".join(selectList)
+        selectStr = ", ".join(selectList)
 
         sql  = 'select '+selectStr
         sql += '  from '+self.sceTable+' as sce'

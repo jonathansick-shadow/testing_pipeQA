@@ -81,6 +81,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         refDecKey = srefCatSchema.find('Dec').key
 
         filter = None
+        key = None
         for key in self.matchListDictSrc.keys():
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
@@ -105,7 +106,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                     
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
-
+        
         self.medErrArcsec = raftCcdData.RaftCcdData(self.detector)
         self.medThetaRad  = raftCcdData.RaftCcdData(self.detector)
 
