@@ -32,7 +32,7 @@ from CameraInfo   import *
 # the QaData 
 from QaData       import *
 from ButlerQaData import *
-from DbQaData     import *
+#from DbQaData     import *
 from makeQaData   import *
 
 # QaAnalsys classes
@@ -41,6 +41,6 @@ from makeQaData   import *
 # QaFigure classes
 #from figures import *
 
-from DatabaseQuery import *
+#from DatabaseQuery import *
 #from QaFigures import *
 #from PipeQaUtils import *

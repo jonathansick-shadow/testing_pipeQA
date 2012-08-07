@@ -1,11 +1,7 @@
 import sys, os, re
 
-from DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
-
 import QaDataUtils as qaDataUtils
 
-from ButlerQaData  import makeButlerQaData
-from DbQaData      import makeDbQaData
 
 ###################################################
 # Factory for QaData
@@ -34,8 +30,14 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
         # see if we can connect to a database with name 'label'
         # NOTE: must update if/when non-lsst databases get used
         validDb = True
+
         try:
-            dbInterface = LsstSimDbInterface(DatabaseIdentity(label))
+            if not camera is None and re.search("^(suprimecam|hsc)", camera):
+                from HscDatabaseQuery import DbInterface, DatabaseIdentity
+                dbInterface = DbInterface(DatabaseIdentity(label))
+            else:
+                from DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
+                dbInterface = LsstSimDbInterface(DatabaseIdentity(label))
         except Exception, e:
             validDb = False
 
@@ -59,8 +61,37 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
     print "camera=", camera
     
     if re.search("^[Bb]utler$", retrievalType):
+        from ButlerQaData  import makeButlerQaData
         return makeButlerQaData(label, rerun, camera=camera, **kwargs)
     
     if re.search("^([Dd][Bb]|[Dd]atabase)$", retrievalType):
-        return makeDbQaData(label, rerun, camera=camera, **kwargs)
+
+
+        import CameraInfo as qaCamInfo
+        cameraInfos = {
+    #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
+            "hsc" : qaCamInfo.HscCameraInfo(),
+            "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
+            "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
+            "sdss" : qaCamInfo.SdssCameraInfo(),
+            "lsstsim": qaCamInfo.LsstSimCameraInfo(),
+            }
+
+
+        cameraToUse = None
+        if not camera is None:
+            cameraToUse = cameraInfos[camera]
+        else:
+            cameraToUse = cameraInfos['lsstsim']
+            camera = 'lsstsim'
+            
+        if re.search("^(hsc|suprimecam|suprimecam-old)$", camera):
+            from HscDbQaData      import HscDbQaData
+            return HscDbQaData(label, rerun, cameraToUse)
+        else:
+            from DbQaData      import DbQaData
+            return DbQaData(label, rerun, cameraToUse)
+
+
+
 

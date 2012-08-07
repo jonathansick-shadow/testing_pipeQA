@@ -231,8 +231,12 @@ class CameraInfo(object):
         return None
 
     def getRaftAndSensorNames(self, dataId):
-        raftName = "R:"+str(dataId[self.dataIdTranslationMap['raft']])
-        ccdName = raftName + " S:"+str(dataId[self.dataIdTranslationMap['sensor']])
+        raftName = ''
+        if self.dataIdTranslationMap.has_key('raft'):
+            raftName = "R:"+str(dataId[self.dataIdTranslationMap['raft']])
+        ccdName = raftName
+        if self.dataIdTranslationMap.has_key('sensor'):
+            ccdName += " S:"+str(dataId[self.dataIdTranslationMap['sensor']])
         return raftName, ccdName
 
 
@@ -492,6 +496,30 @@ class SuprimecamCameraInfo(CameraInfo):
 
         self.doLabel = True
         self.mit = mit
+
+        self.dataIdTranslationMap = {
+            # standard  : camera
+            'visit'  : 'visit',
+            'sensor' : 'ccd',
+            }
+        self.dataIdDbNames = {
+            'visit' : 'visit',
+            'ccd'   : 'ccdname',
+            }
+
+    def getRaftAndSensorNames(self, dataId):
+        #names = ['Sheeta', 'Ponyo', "Nausicaa", 'Satsuki', 'Chihiro', 'Kiki', 'Clarisse', 'Sophie', 'Fio', 'San']
+        names = ["Nausicaa", 'Kiki', 'Fio', 'Sophie', 'Sheeta', 'Satsuki', 'Chihiro', 'Clarisse', 'Ponyo', 'San']
+        ccdName = None
+        if dataId.has_key('ccd'):
+            dataIdUse = dataId['ccd']
+            if isinstance(dataId['ccd'], str):
+                dataIdUse = dataId['ccd'].strip()
+                if re.search('^\d+$', dataIdUse):
+                    dataIdUse = int(dataIdUse)
+            ccdName = names[dataIdUse]
+        return None, ccdName
+        
         
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary

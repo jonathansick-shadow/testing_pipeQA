@@ -97,11 +97,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
                 ra, dec, raRef, decRef = \
                     [numpy.radians(x) for x in [s.getD(raKey), s.getD(decKey),
                                                 sref.getD(refRaKey), sref.getD(refDecKey)]]
+
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
                 
                 if not (s.getD(sCatSchema.find('FlagPixInterpCen').key)):
+                    #print ra, dec, dRa, dDec, s.getD(xKey), s.getD(yKey), raRef, decRef
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
                     self.x.append(raft, ccd, s.getD(xKey))

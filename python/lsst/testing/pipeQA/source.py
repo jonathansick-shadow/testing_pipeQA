@@ -20,11 +20,13 @@ STAR          = 0x1
 SATUR_CENTER  = 0x2
 EDGE          = 0x4
 INTERP_CENTER = 0x8
+BAD_CENTROID  = 0x16
+NEGATIVE      = 0x32
 
 #################################################################
 # RefSource
 import lsst.afw.table  as afwTab
-import QaDataUtils as qaDataUtils
+import HscQaDataUtils as qaDataUtils
 
 class _RefCatalog(object):
     
@@ -37,7 +39,7 @@ class _RefCatalog(object):
 
         self.keyDict = {}
         #for sm in setMethods0:
-        #    key = self.schema.addField(sm, type="D")
+        #    key = self.schema.addField(sm, type="F8")
         #    self.keyDict[sm] = key
             
         self.setKeys = []
@@ -123,6 +125,7 @@ class _Catalog(object):
         #self.schema.addField('Id', type="L")
 
         self.setKeys = []
+        self.keyNames = []
         self.keyDict = {}
         for sm in setMethods:
             if sm == 'Id':
@@ -130,6 +133,7 @@ class _Catalog(object):
             key = self.schema.addField(sm, type="D")
             self.setKeys.append(key)
             self.keyDict[sm] = key
+            self.keyNames.append(sm)
             setattr(self, sm+"Key", key)
 
         self.table = afwTab.SourceTable.make(self.schema)

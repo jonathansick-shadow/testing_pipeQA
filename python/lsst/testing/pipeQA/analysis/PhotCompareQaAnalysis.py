@@ -179,6 +179,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         star = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
+                            #print m1, m2
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
@@ -204,7 +205,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
-                    
+
                     if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
 
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
@@ -212,18 +213,21 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
 
-                        star = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
-                        
+                        extend = s.getD(self.sCatDummy.ExtendednessKey)
+
+                        star = 0 if extend else 1
+
                         #if star:
                         #    print "isStar: ", star
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
+                            #print m1, m2
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
                             self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
                             self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
                             self.star.append(raft, ccd, star)
-
+                            
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
 
         testSet.addMetadata('magType1', self.magType1)
@@ -245,7 +249,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             mag0 = self.mag.get(raft, ccd)
             derr0 = self.derr.get(raft, ccd)
             star = self.star.get(raft, ccd)
-
+            
             wGxy = numpy.where((mag0 > 10) & (mag0 < self.magCut) &
                                (star == 0) & (numpy.abs(dmag0) < 1.0))[0]
             w = numpy.where((mag0 > 10) & (mag0 < self.magCut) & (star > 0))[0]
@@ -267,6 +271,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             n = 0
             lineFit = [[99.0, 0.0, 0.0, 0.0]]*3
             lineCoeffs = [[99.0, 0.0]]*3
+
             if len(dmag) > 0:
                 stat = afwMath.makeStatistics(dmag, afwMath.NPOINT | afwMath.MEANCLIP |
                                               afwMath.STDEVCLIP | afwMath.MEDIAN)

@@ -181,7 +181,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "psf fwhm (arcsec) "
             comment = "psf fwhm (arcsec)"
-            testSet.addTest( testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel) )
+            testSet.addTest( testCode.Test(label, fwhmTmp, self.limitsFwhm, comment, areaLabel=areaLabel) )
 
 
     def plot(self, data, dataId, showUndefined=False):
@@ -242,7 +242,10 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         else:
             vlimMax = self.limitsFwhm[1]
 
-        
+        if vlimMin > vlimMax:
+            vlimMax = vlimMin + 0.001*numpy.abs(vlimMin)
+            
+
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
             ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
