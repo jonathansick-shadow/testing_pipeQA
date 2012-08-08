@@ -1,8 +1,6 @@
 import sys, os, re, copy, time
 import numpy
 
-import lsst.ap.cluster as apCluster
-
 #######################################################################
 #
 #
@@ -273,6 +271,8 @@ class QaData(object):
                           minNeighbors = 1,
                           pointsPerLeaf = 100,
                           leafExtentThresholdArcsec = 0.5):
+        import lsst.ap.cluster as apCluster
+
         """Get apClusters for all Sources matching dataIdRegex.
 
         @param epsilonArcsec Matching distance

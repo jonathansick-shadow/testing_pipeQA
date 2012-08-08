@@ -1,4 +1,4 @@
-setupRequired(ap >= 4.7.1.0+1)
+setupOptional(ap)
 setupRequired(numpy >= 1.6.1+2)
 
 setupOptional(obs_lsstSim)
