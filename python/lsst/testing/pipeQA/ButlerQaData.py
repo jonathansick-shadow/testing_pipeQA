@@ -174,7 +174,11 @@ class ButlerQaData(QaData):
 
         for dataTuple in dataTuplesToFetch:
             thisDataId = self._dataTupleToDataId(dataTuple)
-            visit, raft, ccd = thisDataId['visit'], thisDataId['raft'], thisDataId[ccdConvention]
+            visit = thisDataId['visit']
+            raft = "NoRaft"
+            if 'raft' in thisDataId:
+                raft = thisDataId['raft']
+            ccd = thisDataId[ccdConvention]
             
             if breakBy == 'raft':
                 ccd = dataIdRegex[ccdConvention]
