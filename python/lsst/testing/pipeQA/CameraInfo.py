@@ -437,7 +437,7 @@ class HscCameraInfo(CameraInfo):
 
         self.doLabel = False
         
-    def getRoots(self, baseDir, output=None):
+    def getRoots(self, baseDir, output=None, rerun=None):
         """Get data directories in a dictionary
 
         @param baseDir The base directory where the registries can be found.
@@ -445,7 +445,11 @@ class HscCameraInfo(CameraInfo):
         baseOut = os.path.join(baseDir, "HSC")
         if not output is None:
             baseOut = output
-        return CameraInfo.getRoots(self, os.path.join(baseDir, "HSC"), os.path.join(baseDir, "CALIB"), baseOut)
+        data = os.path.join(baseDir, "HSC")
+        if rerun is not None:
+            data = os.path.join(data, "rerun", rerun)
+            baseOut = os.path.join(baseOut, "rerun", rerun)
+        return CameraInfo.getRoots(self, data, os.path.join(baseDir, "CALIB"), baseOut)
 
     def getDefaultRerun(self):
         return "pipeQA"
@@ -458,10 +462,9 @@ class HscCameraInfo(CameraInfo):
         @param rerun    The rerun of the data we want
         """
        
-        roots = self.getRoots(baseDir)
+        roots = self.getRoots(baseDir, rerun)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun=rerun, root=roots['output'], calibRoot=roots['calib'],
-                                registry=registry)
+        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
 
 ####################################################################
@@ -473,7 +476,7 @@ class SuprimecamCameraInfo(CameraInfo):
     def __init__(self, mit=False):
         try:
             import lsst.obs.suprimecam        as obsSuprimecam
-            mapper = obsSuprimecam.SuprimecamMapper
+            mapper = obsSuprimecam.SuprimecamMapperMit if mit else obsSuprimecam.SuprimecamMapper
         except Exception, e:
             print "Failed to import lsst.obs.suprimecam", e
             mapper = None
@@ -482,11 +485,10 @@ class SuprimecamCameraInfo(CameraInfo):
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SUBARU_DIR'):
             simdir         = os.environ['OBS_SUBARU_DIR']
-            cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
+            cameraGeomPaf = os.path.join(simdir, "suprimecam",
+                                         "Full_Suprimecam_MIT_geom.paf" if mit else "Full_Suprimecam_geom.paf")
             if not os.path.exists(cameraGeomPaf):
-                cameraGeomPaf = os.path.join(simdir, "suprimecam", "Full_Suprimecam_geom.paf")
-                if not os.path.exists(cameraGeomPaf):
-                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
+                raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
             camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
@@ -521,7 +523,7 @@ class SuprimecamCameraInfo(CameraInfo):
         return None, ccdName
         
         
-    def getRoots(self, baseDir, output=None):
+    def getRoots(self, baseDir, output=None, rerun=None):
         """Get data directories in a dictionary
 
         @param baseDir The base directory where the registries can be found.
@@ -530,6 +532,9 @@ class SuprimecamCameraInfo(CameraInfo):
         if not output is None:
             baseOut = output
         data = os.path.join(baseDir, "SUPA")
+        if rerun is not None:
+            data = os.path.join(data, "rerun", rerun)
+            baseOut = os.path.join(baseOut, "rerun", rerun)
         calib = os.path.join(baseDir, "SUPA", "CALIB")
         return CameraInfo.getRoots(self, data, calib, baseOut)
 
@@ -544,10 +549,9 @@ class SuprimecamCameraInfo(CameraInfo):
         @param rerun    The rerun of the data we want
         """
 
-        roots = self.getRoots(baseDir)
+        roots = self.getRoots(baseDir, rerun=rerun)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun=rerun, mit=self.mit, root=roots['output'],
-                                calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
     
 
 

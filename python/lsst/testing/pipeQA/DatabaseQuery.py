@@ -1,5 +1,4 @@
 import os
-import MySQLdb
 import lsst.pex.policy as pexPolicy
 import time
 from lsst.pex.logging import Trace
@@ -52,6 +51,7 @@ class LsstSimDbInterface(DatabaseInterface):
 
 
     def connect(self):
+        import MySQLdb
         self.db     = MySQLdb.connect(
             host   = self.dbId.mySqlHost,
             db     = self.dbId.mySqlDb,
