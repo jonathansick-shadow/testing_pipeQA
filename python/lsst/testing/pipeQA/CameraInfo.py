@@ -351,8 +351,8 @@ class SuprimecamCameraInfo(CameraInfo):
             simdir         = os.environ['OBS_SUBARU_DIR']
             cameraGeomPaf = os.path.join(simdir, "suprimecam",
                                          "Full_Suprimecam_MIT_geom.paf" if mit else "Full_Suprimecam_geom.paf")
-                if not os.path.exists(cameraGeomPaf):
-                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
+            if not os.path.exists(cameraGeomPaf):
+                raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
             camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
