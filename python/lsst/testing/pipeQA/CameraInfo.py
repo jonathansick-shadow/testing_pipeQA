@@ -340,7 +340,7 @@ class SuprimecamCameraInfo(CameraInfo):
     def __init__(self, mit=False):
         try:
             import lsst.obs.suprimecam        as obsSuprimecam
-            mapper = obsSuprimecam.SuprimecamMapper
+            mapper = obsSuprimecam.SuprimecamMapperMit if mit else obsSuprimecam.SuprimecamMapper
         except Exception, e:
             print "Failed to import lsst.obs.suprimecam", e
             mapper = None
@@ -349,9 +349,8 @@ class SuprimecamCameraInfo(CameraInfo):
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SUBARU_DIR'):
             simdir         = os.environ['OBS_SUBARU_DIR']
-            cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
-            if not os.path.exists(cameraGeomPaf):
-                cameraGeomPaf = os.path.join(simdir, "suprimecam", "Full_Suprimecam_geom.paf")
+            cameraGeomPaf = os.path.join(simdir, "suprimecam",
+                                         "Full_Suprimecam_MIT_geom.paf" if mit else "Full_Suprimecam_geom.paf")
                 if not os.path.exists(cameraGeomPaf):
                     raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
@@ -389,7 +388,7 @@ class SuprimecamCameraInfo(CameraInfo):
 
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun=rerun, mit=self.mit, root=roots['output'],
+        return self.mapperClass(rerun=rerun, root=roots['output'],
                                 calibRoot=roots['calib'], registry=registry)
     
 
