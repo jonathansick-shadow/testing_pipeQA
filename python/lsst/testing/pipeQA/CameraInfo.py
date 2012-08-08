@@ -304,7 +304,7 @@ class HscCameraInfo(CameraInfo):
 
         self.doLabel = False
         
-    def getRoots(self, baseDir, output=None):
+    def getRoots(self, baseDir, output=None, rerun=None):
         """Get data directories in a dictionary
 
         @param baseDir The base directory where the registries can be found.
@@ -312,7 +312,11 @@ class HscCameraInfo(CameraInfo):
         baseOut = os.path.join(baseDir, "HSC")
         if not output is None:
             baseOut = output
-        return CameraInfo.getRoots(self, os.path.join(baseDir, "HSC"), os.path.join(baseDir, "CALIB"), baseOut)
+        data = os.path.join(baseDir, "HSC")
+        if rerun is not None:
+            data = os.path.join(data, "rerun", rerun)
+            baseOut = os.path.join(baseOut, "rerun", rerun)
+        return CameraInfo.getRoots(self, data, os.path.join(baseDir, "CALIB"), baseOut)
 
     def getDefaultRerun(self):
         return "pipeQA"
@@ -325,10 +329,9 @@ class HscCameraInfo(CameraInfo):
         @param rerun    The rerun of the data we want
         """
        
-        roots = self.getRoots(baseDir)
+        roots = self.getRoots(baseDir, rerun)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun=rerun, root=roots['output'], calibRoot=roots['calib'],
-                                registry=registry)
+        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
 
 
 ####################################################################
@@ -363,7 +366,7 @@ class SuprimecamCameraInfo(CameraInfo):
         self.doLabel = True
         self.mit = mit
         
-    def getRoots(self, baseDir, output=None):
+    def getRoots(self, baseDir, output=None, rerun=None):
         """Get data directories in a dictionary
 
         @param baseDir The base directory where the registries can be found.
@@ -372,6 +375,9 @@ class SuprimecamCameraInfo(CameraInfo):
         if not output is None:
             baseOut = output
         data = os.path.join(baseDir, "SUPA")
+        if rerun is not None:
+            data = os.path.join(data, "rerun", rerun)
+            baseOut = os.path.join(baseOut, "rerun", rerun)
         calib = os.path.join(baseDir, "SUPA", "CALIB")
         return CameraInfo.getRoots(self, data, calib, baseOut)
 
@@ -386,10 +392,9 @@ class SuprimecamCameraInfo(CameraInfo):
         @param rerun    The rerun of the data we want
         """
 
-        roots = self.getRoots(baseDir)
+        roots = self.getRoots(baseDir, rerun=rerun)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(rerun=rerun, root=roots['output'],
-                                calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
     
 
 
