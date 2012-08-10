@@ -53,6 +53,7 @@ class CameraInfo(object):
                 self.nSensor += 1
                 self.raftCcdKeys.append([raftName, ccdName])
 
+                
         self.dataIdTranslationMap = {
             # standard  : camera
             'visit'  : 'visit',
@@ -435,6 +436,17 @@ class HscCameraInfo(CameraInfo):
             
         CameraInfo.__init__(self, "hscSim", dataInfo, mapper, camera)
 
+        self.dataIdTranslationMap = {
+            'visit' : 'visit',
+            'sensor'   : 'ccd',
+            }
+
+        self.dataIdDbNames = {
+            'visit'  : 'visit',
+            'ccd'    : 'ccdname',
+            }
+
+        
         self.doLabel = False
         
     def getRoots(self, baseDir, output=None, rerun=None):
