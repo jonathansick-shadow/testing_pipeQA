@@ -10,6 +10,7 @@ import lsst.pex.policy  as pexPolicy
 import lsst.meas.astrom as measAstrom
 import lsst.meas.algorithms.utils as maUtils
 
+
 def findDataInTestbed(label, raiseOnFailure=True):
     """Scan TESTBED_PATH directories to find a testbed dataset with a given name
 
@@ -49,31 +50,6 @@ def findDataInTestbed(label, raiseOnFailure=True):
     return testbedDir, testdataDir
 
 
-def setSourceBlobsNone(s):
-    """Free the blob structures (photometry,astrometry,shape) in Source to reduce object size. """
-    s.setPhotometry(None)
-    s.setAstrometry(None)
-    s.setShape(None)
-
-def setSourceSetBlobsNone(ss):
-    """Free the blob structures (photometry,astrometry,shape) for all Source in SourceSet. """
-    for s in ss:
-        setSourceBlobsNone(s)
-
-
-def setMatchListBlobsNone(matchList):
-    """Free the blob structures (photometry,astrometry,shape) for all Source in MatchList. """
-    
-    for s1, s2, d in matchList:
-        setSourceBlobsNone(s1)
-        setSourceBlobsNone(s2)
-
-
-
-
-
-
-
 
 
 
@@ -86,8 +62,8 @@ def getSourceSetNameList():
     
     accessors = [
         #["Id",                           "sourceId" ], #"objectId"                      ],
-        ["Ra",                           "ra",                           ],
-        ["Dec",                          "decl",                         ],
+        ["Ra",                           "ra2000",                           ],
+        ["Dec",                          "dec2000",                         ],
         #["RaErrForWcs",                  "raSigmaForWcs",                ],
         #["DecErrForWcs",                 "declSigmaForWcs",              ],
         #["RaErrForDetection",            "raSigmaForDetection",          ],
@@ -104,9 +80,9 @@ def getSourceSetNameList():
         #["YPeak",                        "yPeak",                        ],
         #["RaPeak",                       "raPeak",                       ],
         #["DecPeak",                      "declPeak",                     ],
-        ["XAstrom",                      "x",                      ],
+        ["XAstrom",                      "centroid_sdss_x",                      ],
         #["XAstromErr",                   "xAstromSigma",                 ],
-        ["YAstrom",                      "y",                      ],
+        ["YAstrom",                      "centroid_sdss_y",                      ],
         #["YAstromErr",                   "yAstromSigma",                 ],
         #["RaAstrom",                     "raAstrom",                     ],
         #["RaAstromErr",                  "raAstromSigma",                ],
@@ -114,16 +90,16 @@ def getSourceSetNameList():
         #["DecAstromErr",                 "declAstromSigma",              ],
         #["TaiMidPoint",                  "taiMidPoint",                  ],
         #["TaiRange",                     "taiRange",                     ],
-        ["PsfFlux",                      "psfFlux",                      ],
-        ["PsfFluxErr",                   "psfFluxSigma",                 ],
-        ["ApFlux",                       "apFlux",                       ],
-        ["ApFluxErr",                    "apFluxSigma",                  ],
-        ["ModelFlux",                    "modelFlux",                    ],
-        ["ModelFluxErr",                    "modelFluxSigma",                    ],
+        ["PsfFlux",                      "flux_psf",                      ],
+        ["PsfFluxErr",                   "flux_psf_e",                 ],
+        ["ApFlux",                       "flux_sinc",                       ],
+        ["ApFluxErr",                    "flux_sinc_e",                  ],
+        ["ModelFlux",                    "flux_gaussian",                    ],
+        ["ModelFluxErr",                 "flux_gaussian_e",                    ],
         #["ModelFlux",                    "flux_ESG",                 ], 
         #["ModelFluxErr",                 "flux_ESG_Sigma",               ],
-        ["InstFlux",                     "instFlux",                     ],
-        ["InstFluxErr",                     "instFluxSigma",                     ],
+        ["InstFlux",                     "flux_gaussian",                     ],
+        ["InstFluxErr",                     "flux_gaussian_e",                     ],
         #["InstFlux",                      "flux_Gaussian",                     ], 
         #["InstFluxErr",                  "flux_Gaussian_Sigma",                ],
         #["NonGrayCorrFlux",              "nonGrayCorrFlux",              ],
@@ -131,11 +107,11 @@ def getSourceSetNameList():
         #["AtmCorrFlux",                  "atmCorrFlux",                  ],
         #["AtmCorrFluxErr",               "atmCorrFluxSigma",             ],
         #["ApDia",                        "apDia",                        ],
-        ["Ixx",                          "shapeIxx",                          ],
+        ["Ixx",                          "shape_sdss_xx",                          ],
         #["IxxErr",                       "ixxSigma",                     ],
-        ["Iyy",                          "shapeIyy",                          ],
+        ["Iyy",                          "shape_sdss_yy",                          ],
         #["IyyErr",                       "iyySigma",                     ],
-        ["Ixy",                          "shapeIxy",                          ],
+        ["Ixy",                          "shape_sdss_xy",                          ],
         #["IxyErr",                       "ixySigma",                     ],
         #["PsfIxx",                       "psfIxx",                       ],
         #["PsfIxxErr",                    "psfIxxSigma",                  ],
@@ -160,12 +136,12 @@ def getSourceSetNameList():
         #["FlagForAssociation",           "flagForAssociation",           ],
         #["FlagForDetection",             "flagForDetection",             ],
         #["FlagForWcs",                   "flagForWcs",                   ],
-        ["FlagPixInterpCen",              "flagPixInterpCen",             ],
-        ["FlagNegative",                  "flagNegative",             ],
-        ["FlagPixEdge",                   "flagPixEdge",             ],
-        ["FlagBadCentroid",               "flagBadCentroid",             ],
-        ["FlagPixSaturCen",               "flagPixSaturCen",             ],
-        ["Extendedness",                  "extendedness",                 ],
+        ["FlagPixInterpCen",              "classification_extendedness",             ],
+        ["FlagNegative",                  "classification_extendedness",             ],
+        ["FlagPixEdge",                   "classification_extendedness",             ],
+        ["FlagBadCentroid",               "classification_extendedness",             ],
+        ["FlagPixSaturCen",               "classification_extendedness",             ],
+        ["Extendedness",                  "classification_extendedness",                 ],
         ]
     return accessors
 
@@ -178,8 +154,9 @@ def getSourceSetDbNames(replacementDict):
     rawList = list(zip(*getSourceSetNameList())[1])
     for k,v in replacementDict.items():
         matches = [i for i,x in enumerate(rawList) if x == k]
-        arg = matches[0]
-        rawList[arg] = v
+        if len(matches):
+            arg = matches[0]
+            rawList[arg] = v
     return rawList
         
 def getCalexpNameLookup():
@@ -200,6 +177,7 @@ def getCalexpNameLookup():
         'FLUXMAG0':             'fluxMag0'         ,
         'FLUXMAG0ERR':        'fluxMag0Sigma'      ,
         'SEEING':                 'fwhm'           ,
+        'EXPTIME':              'exptime'          ,
         }
 
     return nameLookup
@@ -208,29 +186,29 @@ def getCalexpNameLookup():
 def getSceNameList(dataIdNames):
     """Associate SourceCcdExposure names to database columns in a list of pairs. """
     
-    nameList = [ ['scienceCcdExposureId', 'scienceCcdExposureId' ] ] + dataIdNames
+    nameList = [ ['scienceCcdExposureId', 'frame_id' ] ] + dataIdNames
     nameList += [
         #['visit',                'visit'                ],
         #['raft',                 'raft'                 ],
         #['raftName',             'raftName'             ],
-        #['ccd',                  'ccd'                  ],
+        #['ccd',                  'ccdname'                  ],
         #['ccdName',              'ccdName'              ],
-        ['filterId',             'filterId'             ],
-        ['filterName',           'filterName'           ],
+        #['filterId',             'filterId'             ],
+        ['filterName',           'filter'           ],
         ['ra',                   'ra'                   ],
         ['decl',                 'decl'                 ],
         #['equinox',              'equinox'              ],
         #['raDeSys',              'raDeSys'              ],
         #['ctype1',               'ctype1'               ],
         #['ctype2',               'ctype2'               ],
-        ['crpix1',               'crpix1'               ],
-        ['crpix2',               'crpix2'               ],
-        ['crval1',               'crval1'               ],
-        ['crval2',               'crval2'               ],
-        ['cd1_1',                'cd1_1'                ],
-        ['cd1_2',                'cd1_2'                ],
-        ['cd2_1',                'cd2_1'                ],
-        ['cd2_2',                'cd2_2'                ],
+        #['crpix1',               'crpix1'               ],
+        #['crpix2',               'crpix2'               ],
+        #['crval1',               'crval1'               ],
+        #['crval2',               'crval2'               ],
+        #['cd1_1',                'cd1_1'                ],
+        #['cd1_2',                'cd1_2'                ],
+        #['cd2_1',                'cd2_1'                ],
+        #['cd2_2',                'cd2_2'                ],
         #['llcRa',                'llcRa'                ],
         #['llcDecl',              'llcDecl'              ],
         #['ulcRa',                'ulcRa'                ],
@@ -242,16 +220,17 @@ def getSceNameList(dataIdNames):
         #['taiMjd',               'taiMjd'               ],
         #['obsStart',             'obsStart'             ],
         #['expMidpt',             'expMidpt'             ],
-        #['expTime',              'expTime'              ],
+        ['expTime',              'exptime'              ],
         #['nCombine',             'nCombine'             ],
         #['binX',                 'binX'                 ],
         #['binY',                 'binY'                 ],
         #['readNoise',            'readNoise'            ],
         #['saturationLimit',      'saturationLimit'      ],
         #['gainEff',              'gainEff'              ],
-        ['fluxMag0',             'fluxMag0'             ],
-        ['fluxMag0Sigma',        'fluxMag0Sigma'        ],
-        ['fwhm',                 'fwhm'                 ],
+        ['zeropt',               'zeropt'               ],
+        ['fluxMag0',             'magzero'             ],
+        ['fluxMag0Sigma',        'magzero_rms'        ],
+        ['fwhm',                 'seeing'                 ],
         ]
     return nameList
 
