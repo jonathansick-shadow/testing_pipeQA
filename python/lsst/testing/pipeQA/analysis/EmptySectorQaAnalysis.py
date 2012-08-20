@@ -18,6 +18,8 @@ import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 from matplotlib.collections import LineCollection
 
+import QaPlotUtils as qaPlotUtil
+
 
 class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
@@ -114,6 +116,11 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             xmat, ymat = self.xmat.get(raft, ccd), self.ymat.get(raft, ccd)
             xwid, ywid = self.size.get(raft, ccd)
 
+            xlo, ylo = 0.0, 0.0
+            if data.cameraInfo.name == 'coadd':
+                xlo, ylo, xhi, yhi = x.min(), y.min(), x.max(), y.max()
+                xwid, ywid = xhi-xlo, yhi-ylo
+                
             def countEmptySectors(x, y):
                 counts = numpy.zeros([self.nx, self.ny])
                 for i in range(len(x)):
@@ -124,8 +131,8 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                 nEmpty = len(whereEmpty)
                 return nEmpty
 
-            nEmpty = countEmptySectors(x, y)
-            nEmptyMat = countEmptySectors(xmat, ymat)
+            nEmpty = countEmptySectors(x - xlo, y - ylo)
+            nEmptyMat = countEmptySectors(xmat - xlo, ymat - ylo)
             self.emptySectors.set(raft, ccd, nEmpty)
             self.emptySectorsMat.set(raft, ccd, nEmptyMat)
             
@@ -220,6 +227,18 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         cacheLabel = "pointPositions"
         shelfData = {}
 
+        xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
+        for raft,ccd in data.cameraInfo.raftCcdKeys:
+            if data.cameraInfo.name == 'coadd':
+                xtmp, ytmp = self.x.get(raft, ccd), self.y.get(raft, ccd)
+                xxlo, yylo, xxhi, yyhi = xtmp.min(), ytmp.min(), xtmp.max(), ytmp.max()
+            else:
+                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+            if xxlo < xlo: xlo = xxlo
+            if xxhi > xhi: xhi = xxhi
+            if yylo < ylo: ylo = yylo
+            if yyhi > yhi: yhi = yyhi
+
         # make any individual (ie. per sensor) plots
         for raft, ccd in self.emptySectors.raftCcdKeys():
 
@@ -228,137 +247,57 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             xmat, ymat = self.xmat.get(raft, ccd), self.ymat.get(raft, ccd)
             xwid, ywid = self.size.get(raft, ccd)
 
-            print "plotting ", ccd
-            fig = self.standardFigure(x, y, xmat, ymat, [0, xwid, 0, ywid])
-
-            # add the plot to the testSet
-            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            testSet.addFigure(fig, "pointPositions.png",
-                              "Pixel coordinates of all (black) and matched (red) detections.",
-                              areaLabel=areaLabel)
-            del fig
-
-            xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
+            if data.cameraInfo.name == 'coadd':
+                xmin, ymin, xmax, ymax = x.min(), y.min(), x.max(), y.max()
+                x -= xmin
+                y -= ymin
+                xmat -= xmin
+                ymat -= ymin
+                xxlo, yylo, xxhi, yyhi = xmin, ymin, xmax, ymax
+            else:
+                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+                
+            dataDict = {'x' : x+xxlo, 'y' : y+yylo, 'xmat' : xmat+xxlo, 'ymat' : ymat+yylo,
+                        'limits' : [0, xwid, 0, ywid],
+                        'summary' : False, 'alllimits' : [xlo, xhi, ylo, yhi],
+                        'bbox' : [xxlo, xxhi, yylo, yyhi],
+                        'nxn' : [self.nx, self.ny]}
             
-            shelfData[ccd] = [x+xlo, y+ylo, xmat+xlo, ymat+ylo, [xlo, xhi, ylo, yhi]]
+            print "plotting ", ccd
+            import EmptySectorQaAnalysisPlot as plotModule
+            label = data.cameraInfo.getDetectorName(raft, ccd)
+            caption = "Pixel coordinates of all (black) and matched (red) detections." + label
+            pngFile = cacheLabel+".png"
 
 
+            if self.lazyPlot.lower() in ['sensor', 'all']:
+                testSet.addLazyFigure(dataDict, pngFile, caption,
+                                      plotModule, areaLabel=label, plotargs="")
+            else:
+                testSet.cacheLazyData(dataDict, pngFile, areaLabel=label)
+                fig = plotModule.plot(dataDict)
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
 
-        if self.useCache:
-            testSet.shelve(cacheLabel, shelfData)
-
+            
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
 
-            # unstash the values
-            if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel)
 
-            xAll  = numpy.array([])
-            yAll  = numpy.array([])
-            xmatAll = numpy.array([])
-            ymatAll = numpy.array([])
-            
-            for k,v in shelfData.items():
-                #allCcds.append(k)
-                x, y, xmat, ymat, limits = v
-                xAll    = numpy.append(xAll  , x )
-                yAll    = numpy.append(yAll  , y )
-                xmatAll = numpy.append(xmatAll, xmat)
-                ymatAll = numpy.append(ymatAll, ymat)
+            import EmptySectorQaAnalysisPlot as plotModule
+            label = 'all'
+            caption = "Pixel coordinates of all (black) and matched (red) detections." + label
+            pngFile = "pointPositions.png"
 
-
-            xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
-            for raft,ccd in data.cameraInfo.raftCcdKeys:
-                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
-                if xxlo < xlo: xlo = xxlo
-                if xxhi > xhi: xhi = xxhi
-                if yylo < ylo: ylo = yylo
-                if yyhi > yhi: yhi = yyhi
-                
-            
-            allFig = self.standardFigure(xAll, yAll, xmatAll, ymatAll, [xlo, xhi, ylo, yhi], summary=True)
-            del xAll, yAll, xmatAll, ymatAll
-            
-            label = "all"
-            testSet.addFigure(allFig, "pointPositions.png",
-                              "Pixel coordinates of all (black) and matched (red) objects", areaLabel=label)
-            del allFig
-
-            
-
-    def standardFigure(self, x, y, xmat, ymat, limits, summary=False):
-
-        xlo, xhi, ylo, yhi = limits
-        xwid, ywid = xhi - xlo, yhi - ylo
-        
-        # handle no-data possibility
-        if len(x) == 0:
-            x = numpy.array([0.0])
-            y = numpy.array([0.0])
-
-        summaryLabel = "matched"
-        if len(xmat) == 0:
-            if len(x) == 0 or not summary:
-                xmat = numpy.array([0.0])
-                ymat = numpy.array([0.0])
+            if self.lazyPlot in ['all']:
+                testSet.addLazyFigure({}, cacheLabel+".png", caption,
+                                      plotModule, areaLabel=label, plotargs="")
             else:
-                summaryLabel = "detected"
-                xmat = x
-                ymat = y
+                dataDict, isSummary = qaPlotUtil.unshelveGlob(cacheLabel+"-all.png", testSet=testSet)
+                dataDict['summary'] = True
+                dataDict['limits'] = dataDict['alllimits']                
+                fig = plotModule.plot(dataDict)                
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
 
-        figsize = (4.0, 4.0)
-
-        ####################
-        # create the plot
-        fig = qaFig.QaFigure(size=figsize)
-        ax = fig.fig.add_subplot(111)
-        fig.fig.subplots_adjust(left=0.19) #, bottom=0.15)
-        
-        ncol = None
-        if summary:
-            ms = 0.1
-            if len(xmat) < 10000:
-                ms = 0.2
-            if len(xmat) < 1000:
-                ms = 0.5
-            ax.plot(xmat, ymat, "k.", ms=ms, label=summaryLabel)
-            ncol = 1
-        else:
-            ax.plot(x, y, "k.", ms=2.0, label="detected")
-            ax.plot(xmat, ymat, "ro", ms=4.0, label="matched",
-                    mfc='None', markeredgecolor='r')
-            ncol = 2
-
-
-        ax.set_xlim([xlo, xhi])
-        ax.set_ylim([ylo, yhi])
-        ax.set_xlabel("x [pixel]", size='x-small')
-        ax.set_ylabel("y [pixel]", size='x-small')
-        ax.legend(prop=fm.FontProperties(size ="xx-small"), ncol=ncol, loc="upper center")
-        for tic in ax.get_xticklabels() + ax.get_yticklabels():
-            tic.set_size("x-small")
-
-        # don't bother with this stuff for the final summary plot
-        if not summary:
-            # show the regions
-            for i in range(self.nx):
-                xline = (i+1)*xwid/self.nx
-                ax.axvline(xline, color="k")
-            for i in range(self.ny):
-                yline = (i+1)*ywid/self.ny
-                ax.axhline(yline, color="k")
-
-            # add map areas to allow mouseover tooltip showing pixel coords
-            dx, dy = 20, 20  # on a 4kx4k ccd, < +/-20 pixels is tough to hit with a mouse
-            for i in range(len(x)):
-                area = x[i]-dx, y[i]-dy, x[i]+dx, y[i]+dy
-                fig.addMapArea("no_label_info", area, "nolink:%.1f_%.1f"%(x[i],y[i]))
-
-            ax.set_title("Matched Detections by CCD Sector", size='small')
-        else:
-            ax.set_title("Matched Detections", size='small')
-
-
-        return fig
 

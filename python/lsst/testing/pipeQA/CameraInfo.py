@@ -5,6 +5,8 @@ import numpy
 
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
+    
+
 
 ####################################################################
 #
@@ -39,7 +41,7 @@ class CameraInfo(object):
             return
 
         self.rawName = "raw"
-        
+
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
             raftName = raft.getId().getName().strip()
@@ -247,10 +249,12 @@ class CameraInfo(object):
     
     def getBbox(self, raftName, ccdName):
 
-        raft = self.rafts[raftName]
-        # NOTE: all ccd coords are w.r.t. the *center* of the raft, not its LLC
-        rxc     = raft.getCenterPixel().getX()
-        ryc     = raft.getCenterPixel().getY()
+        rxc, ryc = 0.0, 0.0
+        if self.rafts.has_key(raftName):
+            raft = self.rafts[raftName]
+            # NOTE: all ccd coords are w.r.t. the *center* of the raft, not its LLC
+            rxc     = raft.getCenterPixel().getX()
+            ryc     = raft.getCenterPixel().getY()
 
         ccd   = self.sensors[ccdName]
         cxc     = ccd.getCenterPixel().getX()
@@ -682,6 +686,114 @@ class SdssCameraInfo(CameraInfo):
                                 calibRoot=roots['calib'], registry=registry)
     
 
+
+
+
+####################################################################
+#
+# SdssCameraInfo class
+#
+####################################################################
+class CoaddCameraInfo(CameraInfo):
+
+    def __init__(self):
+        try:
+            #import lsst.obs.coadd        as obsCoadd
+            mapper = None #obsCoadd.CoaddMapper
+        except Exception, e:
+            print "Failed to import lsst.obs.coadd", e
+            mapper = None
+        dataInfo       = [['tract', 1], ['patch', 1], ['filterName', 1]]
+
+        simdir        = os.environ['TESTING_PIPEQA_DIR']
+        cameraGeomPaf = os.path.join(simdir, "policy", "Full_coadd_geom.paf")
+        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+
+        # obs_coadd not going to be used
+        if False:
+            if os.environ.has_key('OBS_COADD_DIR'):
+                simdir         = os.environ['OBS_COADD_DIR']
+                cameraGeomPaf = os.path.join(simdir, "description", "Full_geom.paf")
+                if not os.path.exists(cameraGeomPaf):
+                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
+                cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
+                camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+            else:
+                camera           = None
+
+
+        CameraInfo.__init__(self, "coadd", dataInfo, mapper, camera)
+        
+        self.doLabel = True
+
+        self.dataIdTranslationMap = {
+            'visit' : ['tract','patch','filterName'],
+            'raft'  : None,
+            'sensor'   : None, #'filter',
+            }
+
+        self.dataIdDbNames = {
+            'patch' : 'patch',
+            'tract' : 'tract',
+            'filterName' : 'filterName',
+            }
+            
+
+    def setFilterless(self):
+        self.dataIdTranslationMap['visit'] = ['tract', 'patch']
+        del self.dataIdDbNames['filterName']
+        self.dataInfo = self.dataInfo[0:2]
+        
+    def getRaftAndSensorNames(self, dataId):
+        ccdName =  'pseudo' #str(dataId['tract']) + '-' + str(dataId['patch'])
+        return None, ccdName
+
+    
+    def getRoots(self, baseDir, output=None):
+        """Get data directories in a dictionary
+
+        @param baseDir The base directory where the registries can be found.
+        """
+        baseOut = baseDir
+        if not output is None:
+            baseOut = output
+        return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
+
+        
+
+    def verifyRegistries(self, baseDir):
+        """Verify that registry.sqlite files exist in the specified directory
+
+        @param baseDir  Directory to check for registries.
+        """
+        roots = self.getRoots(baseDir)
+        registry = os.path.join(roots['data'], "registry.sqlite3")
+        #calibRegistry = os.path.join(roots['data'], "registry.sqlite3")
+        return os.path.exists(registry)
+
+
+    
+    def getDefaultRerun(self):
+        return "pipeQA"
+    
+
+    def getMapper(self, baseDir, rerun=None):
+        """Get a mapper for data in specified directory
+
+        @param baseDir  Directory where the registry files are to be found.
+        @param rerun    The rerun of the data we want
+        """
+
+        roots = self.getRoots(baseDir)
+        registry, calibRegistry = self.getRegistries(baseDir)
+        return self.mapperClass(root=roots['output'],
+                                calibRoot=roots['calib'], registry=registry)
+    
+
+    
+
+    
     
 
 def getCameraInfoAvailable():
@@ -698,6 +810,7 @@ def getCameraInfoAvailable():
 
     all = [
         SdssCameraInfo,
+        CoaddCameraInfo,
         LsstSimCameraInfo,
         #CfhtCameraInfo,
         HscCameraInfo,

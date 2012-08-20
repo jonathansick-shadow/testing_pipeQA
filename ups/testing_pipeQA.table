@@ -4,8 +4,9 @@ setupOptional(mysql-python)
 
 
 setupOptional(obs_lsstSim)
-setupOptional(obs_cfht)
-setupOptional(obs_subaru)
+# Remove these for Summer2012 stack.
+# setupOptional(obs_cfht)
+# setupOptional(obs_subaru)
 setupOptional(obs_sdss)
 
 envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)

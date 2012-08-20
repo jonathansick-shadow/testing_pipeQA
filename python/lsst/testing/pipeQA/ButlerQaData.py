@@ -853,6 +853,7 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
         "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
         "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
         "sdss" : qaCamInfo.SdssCameraInfo(),
+        "coadd" : qaCamInfo.CoaddCameraInfo(),
         "lsstsim": qaCamInfo.LsstSimCameraInfo(),
         }
 

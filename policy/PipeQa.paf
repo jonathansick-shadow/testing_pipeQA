@@ -58,7 +58,7 @@ definitions: {
         type: string
         description: "Photometric Zeropoint: qaAnalysis.ZeropointFitQa"
         maxOccurs: 4
-        default: "lsstSim" "cfht"
+        default: "lsstSim" "cfht" "coadd"
     }
 
     zptFitQaOffsetMin: {
@@ -81,8 +81,8 @@ definitions: {
         type: string
         description: "Empty Sectors: qaAnalysis.EmptySectorQaAnalysis"
         maxOccurs: 1
-        maxOccurs: 5
-        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
+        maxOccurs: 6
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss" "coadd"
     }
 
     emptySectorMaxMissing: {
@@ -97,8 +97,8 @@ definitions: {
     doAstromQa: {
         type: string
         description: "Astrometric Error: qaAnalysis.AstrometricErrorQaAnalysis"
-        maxOccurs: 5
-        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
+        maxOccurs: 6
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss" "coadd"
     }
 
     astromQaMaxErr: {
@@ -114,8 +114,8 @@ definitions: {
         type: string
         description: "Photometric Error: qaAnalysis.PhotCompareQaAnalysis"
         maxOccurs: 1
-        maxOccurs: 5
-        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
+        maxOccurs: 6
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss" "coadd"
     }
 
     photCompareTypes: {
@@ -223,7 +223,7 @@ definitions: {
             value:        "psf mod"
             description:  "Separate stars/gxys for Psf and model magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "ap cat"
             description:  "Separate stars/gxys for Psf and model magnitudes"
         }
@@ -231,15 +231,15 @@ definitions: {
             value:        "psf inst"
             description:  "Separate stars/gxys for PSF and instrument magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "inst cat"
             description:  "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod cat"
             description:  "Separate stars/gxys for model and catalog magnitudes"
         }
-	allowed: {
+        allowed: {
             value:        "mod inst"
             description:  "Separate stars/gxys for model and inst (Gaussian) magnitudes"
         }
@@ -251,8 +251,8 @@ definitions: {
     doPsfShapeQa: {
         type: string
         description: "Psf Shape: qaAnalysis.PsfShapeQaAnalysis"
-        maxOccurs: 5
-        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss"
+        maxOccurs: 6
+        default: "lsstSim" "hscSim" "suprimecam" "cfht" "sdss" "coadd"
     }
 
     psfEllipMax: {
@@ -275,7 +275,7 @@ definitions: {
         type: string
         description: "Photometric Depth: qaAnalysis.CompletenessQa"
         maxOccurs: 5
-        default: "lsstSim" "cfht" "sdss"
+        default: "lsstSim" "cfht" "sdss" "coadd"
     }
 
     completeMinMag: {
@@ -297,8 +297,8 @@ definitions: {
     doVignettingQa: {
         type: string
         description: "Vignetting testing: qaAnalysis.VignettingQa"
-        maxOccurs: 5
-        default: "lsstSim" "cfht" "suprimecam" "hscSim" "sdss"
+        maxOccurs: 6
+        default: "lsstSim" "cfht" "suprimecam" "hscSim" "sdss" "coadd"
     }
 
     vigMaxMedian: {

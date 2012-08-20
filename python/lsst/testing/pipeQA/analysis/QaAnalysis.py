@@ -9,7 +9,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 class QaAnalysis(object):
     """Baseclass for analysis classes."""
 
-    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False):
+    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False, lazyPlot='sensor'):
         """
         @param testLabel   A name for this kind of analysis test.
         """
@@ -23,8 +23,14 @@ class QaAnalysis(object):
         self.clean    = not useCache
         self.wwwCache = wwwCache
         self.delaySummary = delaySummary
+
+        options = ['none', 'sensor', 'all']
+        if not lazyPlot in options:
+            raise ValueError, "lazyPlot must be: "+ ",".join(options) + " You said: "+lazyPlot
         
-    
+        self.lazyPlot  = lazyPlot
+
+        
     def getTestSet(self, data, dataId, label=None):
         """Get a TestSet object in the correct group.
 
@@ -63,7 +69,17 @@ class QaAnalysis(object):
             self.testSets[tsId].addMetadata('PipeQA', pqaVersion)
             self.testSets[tsId].addMetadata('DisplayQA', dqaVersion)
             
-            
+            if hasattr(data, 'coaddTable') and not data.coaddTable is None:
+                self.testSets[tsId].addMetadata('coaddTable', data.coaddTable)
+            if hasattr(data, 'useForced'):
+                self.testSets[tsId].addMetadata('forced', "True" if data.useForced else "False")
+
+            key = data._dataIdToString(dataId, defineFully=True)
+            sqlCache = data.sqlCache['match'].get(key, "")
+            self.testSets[tsId].addMetadata("SQL match", sqlCache)
+            sqlCache = data.sqlCache['src'].get(key, "")
+            self.testSets[tsId].addMetadata("SQL src" ,  sqlCache)
+                
         return self.testSets[tsId]
 
 

@@ -20,6 +20,7 @@ import matplotlib.font_manager as fm
 
 from matplotlib.collections import LineCollection
 
+import QaPlotUtils as qaPlotUtil
 
 class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
@@ -66,6 +67,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         # create containers for data in the focal plane
         self.x     = raftCcdData.RaftCcdVector(self.detector)
         self.y     = raftCcdData.RaftCcdVector(self.detector)
+        self.ra    = raftCcdData.RaftCcdVector(self.detector)
+        self.dec   = raftCcdData.RaftCcdVector(self.detector)
         self.ellip = raftCcdData.RaftCcdVector(self.detector)
         self.theta = raftCcdData.RaftCcdVector(self.detector)
 
@@ -123,6 +126,8 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
                     self.theta.append(raft, ccd, theta)
                     self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
                     self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
+                    self.ra.append(raft, ccd, s.getD(self.sCatDummy.RaKey))
+                    self.dec.append(raft, ccd, s.getD(self.sCatDummy.DecKey))
                     fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
             nFwhm = len(self.x.get(raft,ccd))
@@ -242,9 +247,9 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
         else:
             vlimMax = self.limitsFwhm[1]
 
-        if vlimMin > vlimMax:
-            vlimMax = vlimMin + 0.001*numpy.abs(vlimMin)
-            
+        if vlimMax < vlimMin:
+            vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
+
 
         if not self.delaySummary or isFinalDataId:
             print "plotting FPAs"
@@ -275,6 +280,15 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
         cacheLabel = "psfEllip"
         shelfData = {}
+
+        xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
+        for raft,ccd in data.cameraInfo.raftCcdKeys:
+            xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+            if xxlo < xlo: xlo = xxlo
+            if xxhi > xhi: xhi = xxhi
+            if yylo < ylo: ylo = yylo
+            if yyhi > yhi: yhi = yyhi
+
         
         i = 0
         xmin, xmax = 1.0e99, -1.0e99
@@ -286,125 +300,66 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             dy = eLen*numpy.sin(t)
             x = self.x.get(raft, ccd)
             y = self.y.get(raft, ccd)
+            #x = self.ra.get(raft, ccd)
+            #y = self.dec.get(raft, ccd)
 
             fwhm = self.fwhm.get(raft, ccd)
             
             print "plotting ", ccd
 
-            xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
-            limits = [xlo, xhi, ylo, yhi]
+
+            if data.cameraInfo.name == 'coadd':
+                xmin, ymin, xmax, ymax = x.min(), y.min(), x.max(), y.max()
+                x -= xmin
+                y -= ymin
+                xxlo, yylo, xxhi, yyhi = xmin, ymin, xmax, ymax
+                xlo, ylo, xhi, yhi = xmin, ymin, xmax, ymax
+            else:
+                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
+            limits = [xxlo, xxhi, yylo, yyhi]
+
+            dataDict = {
+                't' : t, 'x' : x+xxlo, 'y' : y+yylo, 'dx' : dx, 'dy' : dy,
+                'color' : 'k', 'limits' : [0, xxhi-xxlo, 0, yyhi-yylo],
+                'alllimits' : [xlo, xhi, ylo, yhi],
+                'bbox' : [xxlo, xxhi, yylo, yyhi],
+                'vLen' : vLen, 'fwhm' : numpy.array([fwhm]*len(t)), 'vlim' : [vlimMin, vlimMax],
+                'summary' : False,
+                }
+            label = data.cameraInfo.getDetectorName(raft, ccd)
+            import PsfShapeQaAnalysisPlot as plotModule
+            caption = "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen)
+            pngFile = cacheLabel + ".png"
             
-            fig = self.standardFigure(t, x, y, dx, dy, 'k', [0, xhi-xlo, 0, yhi-ylo], vLen, fwhm=fwhm)
-            areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-            testSet.addFigure(fig, "psfEllip.png",
-                          "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen),
-                          areaLabel=areaLabel)
+            if self.lazyPlot.lower() in ['sensor', 'all']:
+                testSet.addLazyFigure(dataDict, pngFile, caption,
+                                      plotModule, areaLabel=label, plotargs="")
+            else:
+                testSet.cacheLazyData(dataDict, pngFile, areaLabel=label)
+                fig = plotModule.plot(dataDict)
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
 
-            del fig
             
-            shelfData[ccd] = [t, x+xlo, y+ylo, dx, dy, fwhm]
-
-
-        if self.useCache:
-            testSet.shelve(cacheLabel, shelfData)
-
         if not self.delaySummary or isFinalDataId:
             print "plotting Summary figure"
-
-            # unstash the values
-            if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel)
-
-            tAll  = numpy.array([])
-            xAll  = numpy.array([])
-            yAll  = numpy.array([])
-            dxAll = numpy.array([])
-            dyAll = numpy.array([])
-            colorAll = numpy.array([])
-            for k,v in shelfData.items():
-                #allCcds.append(k)
-                t, x, y, dx, dy, fwhm = v
-                tAll   = numpy.append(tAll  , t )
-                xAll   = numpy.append(xAll  , x )
-                yAll   = numpy.append(yAll  , y )
-                dxAll  = numpy.append(dxAll , dx)
-                dyAll  = numpy.append(dyAll , dy)
-                clr = numpy.array([fwhm]*len(t))
-                colorAll = numpy.append(colorAll, clr)
-
-            xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
-            for raft,ccd in data.cameraInfo.raftCcdKeys:
-                xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
-                if xxlo < xlo: xlo = xxlo
-                if xxhi > xhi: xhi = xxhi
-                if yylo < ylo: ylo = yylo
-                if yyhi > yhi: yhi = yyhi
+                
+            label = 'all'
+            import PsfShapeQaAnalysisPlot as plotModule
+            caption = "PSF ellipticity " + label
+            pngFile = cacheLabel + ".png"
                 
 
-            allFig = self.standardFigure(tAll, xAll, yAll, dxAll, dyAll, colorAll, [xlo, xhi, ylo, yhi],
-                                         5.0*vLen, summary=True, sm=sm)
-            del tAll, xAll, yAll, dxAll, dyAll
-            
-            label = "all"
-            testSet.addFigure(allFig, "psfEllip.png", "PSF ellipticity "+label, areaLabel=label)
-            del allFig
-
-
-    def standardFigure(self, t, x, y, dx, dy, color, limits, vLen, summary=False, sm=None, fwhm=None):
-
-        figsize = (5.0, 4.0)
-        xlo, xhi, ylo, yhi = limits
-
-        if len(x) == 0:
-            x     = numpy.array([0.0])
-            y     = numpy.array([0.0])
-            dx    = numpy.array([0.0])
-            dy    = numpy.array([0.0])
-            color = numpy.array((0.0, 0.0, 0.0))
-
-        #xmax, ymax = x.max(), y.max()
-        xlim = [xlo, xhi] #[0, 1024*int(xmax/1024.0 + 0.5)]
-        ylim = [ylo, yhi] #[0, 1024*int(ymax/1024.0 + 0.5)]
-
-        fig = qaFig.QaFigure(size=figsize)
-        fig.fig.subplots_adjust(left=0.15, bottom=0.15)
-        ax = fig.fig.add_subplot(111)
-
-        
-
-        if summary:
-            vmin, vmax = sm.get_clim()
-            q = ax.quiver(x, y, vLen*dx, vLen*dy, color=sm.to_rgba(color),
-                          scale=2.0*vLen, angles='xy', pivot='middle',
-                          headlength=1.0, headwidth=1.0, width=0.002) 
-            ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
-                         fontproperties={'size':"small"}, labelpos='E', color='k')
-            q.set_array(color)
-            cb = fig.fig.colorbar(q) #, ax)
-            cb.ax.set_xlabel("FWHM$_{\mathrm{xc,yc}}$", size="small")
-            cb.ax.xaxis.set_label_position('top')
-            for tick in cb.ax.get_yticklabels():
-                tick.set_size("x-small")
-            ax.set_title("PSF Shape")
-        else:
-            q = ax.quiver(x, y, vLen*dx, vLen*dy, color=color, scale=2.0*vLen, angles='xy', pivot='middle',
-                          headlength=1.0, headwidth=1.0, width=0.002)
-            ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
-                         fontproperties={'size':"small"}, labelpos='E', color='k')
-            ax.set_title("PSF Shape (FWHM$_{\mathrm{xc,yc}}$=%.2f)"%(fwhm))
-            
-        ax.set_xlabel("x [pixels]") #, position=(0.4, 0.0))
-
-        ax.set_ylabel("y [pixels]")
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        for tic in ax.get_xticklabels() + ax.get_yticklabels():
-            tic.set_size("x-small")
-        for tic in ax.get_xticklabels():
-            tic.set_rotation(22)
-        for tic in ax.get_yticklabels():
-            tic.set_rotation(45)
-
-        return fig
+            if self.lazyPlot in ['all']:
+                testSet.addLazyFigure({}, cacheLabel+".png", caption,
+                                      plotModule, areaLabel=label, plotargs="")
+            else:
+                dataDict, isSummary = qaPlotUtil.unshelveGlob(cacheLabel+"-all.png", testSet=testSet)
+                dataDict['summary'] = True
+                dataDict['vLen'] = 5.0*vLen
+                dataDict['limits'] = [xlo, xhi, ylo, yhi]
+                fig = plotModule.plot(dataDict)                
+                testSet.addFigure(fig, pngFile, caption, areaLabel=label)
+                del fig
 
 
