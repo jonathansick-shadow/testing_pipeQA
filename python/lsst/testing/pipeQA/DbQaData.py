@@ -1182,21 +1182,12 @@ class DbQaData(QaData):
 # Factory for dbQaData
 # - curently only lsstSim is available by database, so this is a trivial factory
 ###################################################
-<<<<<<< HEAD
-def makeDbQaData(label, log, rerun=None, **kwargs):
-=======
 def makeDbQaData(label, rerun=None, camera=None, **kwargs):
->>>>>>> master
     """Factory for a DbQaData object.
     
     @param database The name of the database to connect to
     @param rerun The data rerun to use
     """
-<<<<<<< HEAD
-    return DbQaData(label, rerun, qaCamInfo.LsstSimCameraInfo(), log)
-=======
-
-
     cameraInfos = {
 #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
         "hsc" : qaCamInfo.HscCameraInfo(),
@@ -1214,6 +1205,3 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
         cameraToUse = cameraInfos['lsstsim']
    
     return DbQaData(label, rerun, cameraToUse)
->>>>>>> master
-
-
