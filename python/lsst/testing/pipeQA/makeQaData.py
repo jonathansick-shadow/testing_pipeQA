@@ -70,20 +70,22 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
         import CameraInfo as qaCamInfo
         cameraInfos = {
     #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
-            "hsc" : qaCamInfo.HscCameraInfo(),
-            "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
-            "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
-            "sdss" : qaCamInfo.SdssCameraInfo(),
-            "coadd"          : qaCamInfo.CoaddCameraInfo(),
-            "lsstsim": qaCamInfo.LsstSimCameraInfo(),
+            "hsc"            : [qaCamInfo.HscCameraInfo, []],
+            "suprimecam"     : [qaCamInfo.SuprimecamCameraInfo, []],
+            "suprimecam-old" : [qaCamInfo.SuprimecamCameraInfo, [True]],
+            "sdss"           : [qaCamInfo.SdssCameraInfo, []],
+            "coadd"          : [qaCamInfo.CoaddCameraInfo, []],
+            "lsstsim"        : [qaCamInfo.LsstSimCameraInfo, []],
             }
 
 
         cameraToUse = None
         if not camera is None:
-            cameraToUse = cameraInfos[camera]
+            cam, args = cameraInfos[camera]
+            cameraToUse = cam(*args)
         else:
-            cameraToUse = cameraInfos['lsstsim']
+            cam, args = cameraInfos['lsstsim']
+            cameraToUse = cam(*args)
             camera = 'lsstsim'
             
         if re.search("^(hsc|suprimecam|suprimecam-old)$", camera):
