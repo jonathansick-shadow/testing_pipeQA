@@ -20,6 +20,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
+<<<<<<< HEAD
 from PipeQaTask               import *
 from QaAnalysisTask           import *
 from EmptySectorQaTask        import *
@@ -29,6 +30,17 @@ from AstrometricErrorQaTask   import *
 from CompletenessQaTask       import *
 from ZeropointFitQaTask       import *
 from VignettingQaTask         import *
+=======
+from QaAnalysis                  import *
+from EmptySectorQaAnalysis       import *
+from PhotCompareQaAnalysis       import *
+from PsfShapeQaAnalysis          import *
+from AstrometricErrorQaAnalysis  import *
+from CompletenessQa              import *
+from ZeropointFitQa              import *
+from VignettingQa                import *
+from performanceQa               import *
+>>>>>>> master
 
 from VisitToVisitPhotQaTask   import *
 from VisitToVisitAstromQaTask import *

@@ -1,6 +1,8 @@
 import sys, os, re
 import numpy
 
+import time
+
 import lsst.afw.math                as afwMath
 import lsst.meas.algorithms         as measAlg
 import lsst.pex.config              as pexConfig
@@ -12,6 +14,8 @@ import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+
+import lsst.testing.pipeQA.source as pqaSource
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -55,9 +59,12 @@ class AstrometricErrorQaTask(QaAnalysisTask):
 
         del self.medErrArcsec
         del self.medThetaRad
+
+        del self.sCatDummy
+        del self.srefCatDummy
         
     def test(self, data, dataId):
-        
+
         # get data
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
         self.detector         = data.getDetectorBySensor(dataId)
@@ -72,6 +79,20 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         self.x    = raftCcdData.RaftCcdVector(self.detector)
         self.y    = raftCcdData.RaftCcdVector(self.detector)
 
+        self.sCatDummy = pqaSource.Catalog()
+        sCatDummy = self.sCatDummy.catalog
+        sCatSchema = sCatDummy.getSchema()
+        self.srefCatDummy  = pqaSource.RefCatalog()
+        srefCatDummy = self.srefCatDummy.catalog
+        srefCatSchema = srefCatDummy.getSchema()
+        
+        xKey      = sCatSchema.find('XAstrom').key
+        yKey      = sCatSchema.find('YAstrom').key
+        raKey     = sCatSchema.find('Ra').key
+        decKey    = sCatSchema.find('Dec').key
+        refRaKey  = srefCatSchema.find('Ra').key
+        refDecKey = srefCatSchema.find('Dec').key
+
         filter = None
         for key in self.matchListDictSrc.keys():
             raft = self.detector[key].getParent().getId().getName()
@@ -82,16 +103,17 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [x*numpy.pi/180.0 for x in [s.getRa(), s.getDec(), sref.getRa(), sref.getDec()]]
+                    [numpy.radians(x) for x in [s.getD(raKey), s.getD(decKey),
+                                                sref.getD(refRaKey), sref.getD(refDecKey)]]
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
-
-                if not (s.getFlagForDetection() & measAlg.Flags.INTERP_CENTER ):
+                
+                if not (s.getD(sCatSchema.find('FlagPixInterpCen').key)):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
-                    self.x.append(raft, ccd, s.getXAstrom())
-                    self.y.append(raft, ccd, s.getYAstrom())
+                    self.x.append(raft, ccd, s.getD(xKey))
+                    self.y.append(raft, ccd, s.getD(yKey))
                     
                     
         testSet = self.getTestSet(data, dataId)
@@ -128,7 +150,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             test = testCode.Test(label, medErrArcsec, self.limits, comment, areaLabel=areaLabel)
             testSet.addTest(test)
 
-
+        
     def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
@@ -152,7 +174,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
                     astErrArcsec = self.medErrArcsec.get(raft, ccd)
                     thetaRad = self.medThetaRad.get(raft, ccd)
                     astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
-                    astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, (180/numpy.pi)*thetaRad)
+                    astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, numpy.degrees(thetaRad))
                 
         testSet.pickle(medAstBase, [astFig.data, astFig.map])
         
@@ -223,6 +245,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             del allFig
             
 
+        
     def standardFigure(self, x, y, dx, dy, gridVectors=False):
 
 
@@ -334,6 +357,8 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             qaFigUtil.make_densityContour(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
                                           log=True, percentiles=True, normed=False, levels=[0.5])
             c0 = Circle((0.0, 0.0), radius=0.0, facecolor='none', edgecolor=green, zorder=3, label="50%")
+            ax.vlines(0.0, limRose[0], limRose[1], linestyle='dashed')
+            ax.hlines(0.0, xlimRose[0], xlimRose[1], linestyle='dashed')
             ax.add_patch(c0)
         else:
             z = numpy.zeros(len(dx))
@@ -352,6 +377,9 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             c50 = Circle((0.0, 0.0), radius=r50, facecolor='none', edgecolor=green, zorder=3, label="50%")
             ax.add_patch(c50)
 
+            ax.vlines(0.0, limRose[0], limRose[1], linestyle='dashed')
+            ax.hlines(0.0, xlimRose[0], xlimRose[1], linestyle='dashed')
+            
 
         fp = fm.FontProperties(size="xx-small")
         ax.legend(prop=fp)
@@ -406,5 +434,6 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         for tic in ax0.get_xticklabels() + ax0.get_yticklabels(): # + ax.get_xticklabels():
             tic.set_size("xx-small")
 
+            
         return fig
 
