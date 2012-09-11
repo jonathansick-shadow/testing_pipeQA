@@ -66,33 +66,33 @@ class PipeQaTask(pipeBase.Task):
         parser = argparse.ArgumentParser(usage=__doc__, formatter_class = argparse.RawDescriptionHelpFormatter)
         parser.add_argument("dataset", help="Dataset to use")
         parser.add_argument("-b", "--breakBy", default="visit",
-                            help="Break the run by 'visit','raft', or 'ccd' (default=%default)")
+                            help="Break the run by 'visit','raft', or 'ccd' (default=%(default)s)")
         parser.add_argument("-C", "--camera", default="lsstsim",
-                            help="Specify a camera and override auto-detection (default=%default)")
+                            help="Specify a camera and override auto-detection (default=%(default)s)")
         parser.add_argument("-c", "--ccd", default=".*",
-                            help="Specify ccd as regex (default=%default)")
+                            help="Specify ccd as regex (default=%(default)s)")
         parser.add_argument("-d", "--delaySummary", default=False, action="store_true",
-                            help="Delay making summary figures until all ccds are finished (default=%default)")
+                            help="Delay making summary figures until all ccds are finished (default=%(default)s)")
         parser.add_argument("-e", "--exceptExit", default=False, action='store_true',
-                            help="Don't capture exceptions, fail and exit (default=%default)")
+                            help="Don't capture exceptions, fail and exit (default=%(default)s)")
         parser.add_argument("-f", "--forkFigure", default=False, action='store_true',
-                            help="Make figures in separate process (default=%default)")
+                            help="Make figures in separate process (default=%(default)s)")
         parser.add_argument("-g", "--group", default=None,
-                            help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%default)")
+                            help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%(default)s)")
         parser.add_argument("-k", "--keep", default=False, action="store_true",
-                            help="Keep existing outputs (default=%default)")
+                            help="Keep existing outputs (default=%(default)s)")
         parser.add_argument("-r", "--raft", default=".*",
-                            help="Specify raft as regex (default=%default)")
+                            help="Specify raft as regex (default=%(default)s)")
         parser.add_argument("-R", "--rerun", default=None,
-                            help="Rerun to analyse - only valid for hsc/suprimecam (default=%default)")
+                            help="Rerun to analyse - only valid for hsc/suprimecam (default=%(default)s)")
         parser.add_argument("-s", "--snap", default=".*",
-                            help="Specify snap as regex (default=%default)")
+                            help="Specify snap as regex (default=%(default)s)")
         parser.add_argument("-t", "--test", default=".*",
-                            help="Regex specifying which QaAnalysis to run (default=%default)")
+                            help="Regex specifying which QaAnalysis to run (default=%(default)s)")
         parser.add_argument("-V", "--verbosity", default=1,
                             help="Trace level for lsst.testing.pipeQA")
         parser.add_argument("-v", "--visit", default=".*",
-                            help="Specify visit as regex OR color separated list. (default=%default)")
+                            help="Specify visit as regex OR color separated list. (default=%(default)s)")
         
         # visit-to-visit
         parser.add_argument("--doVisitQa", default=False, action='store_true',
@@ -104,7 +104,7 @@ class PipeQaTask(pipeBase.Task):
         
         
         parser.add_argument("--noWwwCache", default=False, action="store_true",
-                            help="Disable caching of pass/fail (needed to run in parallel) (default=%default)")
+                            help="Disable caching of pass/fail (needed to run in parallel) (default=%(default)s)")
 
         # and add in ability to override config
         parser.set_defaults(config = self.ConfigClass()) 
