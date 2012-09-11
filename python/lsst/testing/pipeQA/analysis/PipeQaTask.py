@@ -19,6 +19,7 @@ from .CompletenessQaTask import CompletenessQaTask
 from .VignettingQaTask import VignettingQaTask
 from .VisitToVisitPhotQaTask import VisitToVisitPhotQaTask
 from .VisitToVisitAstromQaTask import VisitToVisitAstromQaTask
+from .DemoQaTask import DemoQaTask
 
 class PipeQaConfig(pexConfig.Config): 
     doZptFitQa = pexConfig.Field(dtype = bool, doc = "Photometric Zeropoint: qaAnalysis.ZeropointFitQaTask", default = True)
@@ -30,6 +31,7 @@ class PipeQaConfig(pexConfig.Config):
     doCompleteQa = pexConfig.Field(dtype = bool, doc = "Photometric Depth: qaAnalysis.CompletenessQaTask", default = True)
     doVignettingQa = pexConfig.Field(dtype = bool, doc = "Vignetting testing: qaAnalysis.VignettingQaTask", default = True)
     doVisitQa = pexConfig.Field(dtype = bool, doc = "Visit to visit: qaAnalysis.VisitToVisitPhotQaTask and qaAnalysis.VisitToVisitAstromQaTask", default = False)
+    doDemoQa = pexConfig.Field(dtype = bool, doc = "Demo boilerplate code: qaAnalysis.DemoQaTask", default = False)
     
     zptFitQa = pexConfig.ConfigurableField(target = ZeropointFitQaTask, doc = "Quality of zeropoint fit")
     emptySectorQa = pexConfig.ConfigurableField(target = EmptySectorQaTask, doc = "Look for missing matches")
@@ -41,6 +43,7 @@ class PipeQaConfig(pexConfig.Config):
     vignettingQa = pexConfig.ConfigurableField(target = VignettingQaTask, doc = "Look for residual vignetting features")
     vvPhotQa = pexConfig.ConfigurableField(target = VisitToVisitPhotQaTask, doc = "Visit to visit photometry")
     vvAstromQa = pexConfig.ConfigurableField(target = VisitToVisitAstromQaTask, doc = "Visit to visit astrometry")
+    demoQa = pexConfig.ConfigurableField(target = DemoQaTask, doc = "Demo Qa")
 
     shapeAlgorithm = pexConfig.ChoiceField(
         dtype = str,
@@ -243,8 +246,6 @@ class PipeQaTask(pipeBase.Task):
             if (not k in data.dataIdNames) and (v != '.*'):
                 raise Exception("Key "+k+" not available for this dataset (camera="+data.cameraInfo.name+")")
     
-    
-        
         taskList = []
         # Simple ones
         for doTask, taskStr in ( (self.config.doZptFitQa, "zptFitQa"),
@@ -253,7 +254,8 @@ class PipeQaTask(pipeBase.Task):
                                  (self.config.doPerformanceQa, "performanceQa"),
                                  (self.config.doPsfShapeQa, "psfShapeQa"),
                                  (self.config.doCompleteQa, "completeQa"),
-                                 (self.config.doVignettingQa, "vignettingQa") ):
+                                 (self.config.doVignettingQa, "vignettingQa"),
+                                 (self.config.doDemoQa, "demoQa") ):
             if doTask and (data.cameraInfo.name in eval("self.config.%s.cameras" % (taskStr))):
                 taskList.append(self.makeSubtask(taskStr, useCache = keep, wwwCache = wwwCache, delaySummary = delaySummary, lazyPlot = lazy))
 

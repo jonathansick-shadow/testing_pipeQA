@@ -30,6 +30,7 @@ from CompletenessQaTask       import *
 from ZeropointFitQaTask       import *
 from VignettingQaTask         import *
 from PerformanceQaTask        import *
+from DemoQaTask               import *
 
 from VisitToVisitPhotQaTask   import *
 from VisitToVisitAstromQaTask import *
