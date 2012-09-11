@@ -177,7 +177,7 @@ class PipeQaTask(pipeBase.Task):
             visits = parsedCmd.visit.split(":")
         dataIdInput = {
             'visit': visits,
-            'ccd': parsedCmd.ccd,
+            'sensor': parsedCmd.ccd,
             'raft': parsedCmd.raft,
             'snap': parsedCmd.snap,
             }
@@ -239,7 +239,6 @@ class PipeQaTask(pipeBase.Task):
         data.reduceAvailableDataTupleList(dataId)
 
         # if they requested a key that doesn't exist for this camera ... throw
-        import pdb; pdb.set_trace()
         for k, v in dataIdInput.items():
             if (not k in data.dataIdNames) and (v != '.*'):
                 raise Exception("Key "+k+" not available for this dataset (camera="+data.cameraInfo.name+")")
