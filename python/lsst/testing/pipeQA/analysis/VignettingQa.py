@@ -115,9 +115,9 @@ class VignettingQa(qaAna.QaAnalysis):
                     f1 = self._getFlux(self.magType1, s, sref)
                     f2 = self._getFlux(self.magType2, s, sref)
 
-                    intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.get(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.get(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.get(self.sCatDummy.FlagPixEdgeKey)
                     
                     if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1 = -2.5*num.log10(f1)

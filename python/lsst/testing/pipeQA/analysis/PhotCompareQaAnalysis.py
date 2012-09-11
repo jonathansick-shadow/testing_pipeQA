@@ -84,15 +84,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             
         
         if mType=="psf":
-            return s.getD(self.sCatDummy.PsfFluxKey)
+            return s.get(self.sCatDummy.PsfFluxKey)
         elif mType=="ap":
-            return s.getD(self.sCatDummy.ApFluxKey)
+            return s.get(self.sCatDummy.ApFluxKey)
         elif mType=="mod":
-            return s.getD(self.sCatDummy.ModelFluxKey)
+            return s.get(self.sCatDummy.ModelFluxKey)
         elif mType=="cat":
-            return sref.getD(self.srefCatDummy.PsfFluxKey)
+            return sref.get(self.srefCatDummy.PsfFluxKey)
         elif mType=="inst":
-            return s.getD(self.sCatDummy.InstFluxKey)
+            return s.get(self.sCatDummy.InstFluxKey)
 
     def _getFluxErr(self, mType, s, sref):
 
@@ -102,15 +102,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             
         
         if mType=="psf":
-            return s.getD(self.sCatDummy.PsfFluxErrKey)
+            return s.get(self.sCatDummy.PsfFluxErrKey)
         elif mType=="ap":
-            return s.getD(self.sCatDummy.ApFluxErrKey)
+            return s.get(self.sCatDummy.ApFluxErrKey)
         elif mType=="mod":
-            return s.getD(self.sCatDummy.ModelFluxErrKey)
+            return s.get(self.sCatDummy.ModelFluxErrKey)
         elif mType=="cat":
             return 0.0
         elif mType=="inst":
-            return s.getD(self.sCatDummy.InstFluxErrKey)
+            return s.get(self.sCatDummy.InstFluxErrKey)
 
     def free(self):
         del self.x
@@ -168,9 +168,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     df2 = self._getFluxErr(self.magType2, s, sref)
 
                     #badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
-                    intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.get(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.get(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.get(self.sCatDummy.FlagPixEdgeKey)
                     
                     if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1  = -2.5*numpy.log10(f1)
@@ -178,15 +178,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
                         
-                        star = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
+                        star = 0 if s.get(self.sCatDummy.ExtendednessKey) else 1
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             #print m1, m2
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
-                            self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
-                            self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
+                            self.x.append(raft, ccd, s.get(self.sCatDummy.XAstromKey))
+                            self.y.append(raft, ccd, s.get(self.sCatDummy.YAstromKey))
                             self.star.append(raft, ccd, star)
 
         # if we're not asked for catalog fluxes, we can just use a sourceSet
@@ -204,9 +204,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     f2 = self._getFlux(self.magType2, s, s)
                     df1 = self._getFluxErr(self.magType1, s, s)
                     df2 = self._getFluxErr(self.magType2, s, s)
-                    intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.get(self.sCatDummy.FlagPixInterpCenKey)
+                    satcen = s.get(self.sCatDummy.FlagPixSaturCenKey)
+                    edge   = s.get(self.sCatDummy.FlagPixEdgeKey)
 
                     if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
 
@@ -215,7 +215,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
 
-                        extend = s.getD(self.sCatDummy.ExtendednessKey)
+                        extend = s.get(self.sCatDummy.ExtendednessKey)
 
                         star = 0 if extend else 1
 
@@ -226,8 +226,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
-                            self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
-                            self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
+                            self.x.append(raft, ccd, s.get(self.sCatDummy.XAstromKey))
+                            self.y.append(raft, ccd, s.get(self.sCatDummy.YAstromKey))
                             self.star.append(raft, ccd, star)
                             
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)

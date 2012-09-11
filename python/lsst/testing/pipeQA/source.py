@@ -114,21 +114,26 @@ class _Catalog(object):
     def __init__(self):
         self.schema = afwTab.SourceTable.makeMinimalSchema()
 
-        setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
+        setMethods, setTypes = qaDataUtils.getSourceSetAccessorsAndTypes()
 
         #self.schema.addField('Id', type="L")
 
         self.setKeys = []
         self.keyNames = []
         self.keyDict = {}
-        for sm in setMethods:
-            if sm == 'Id':
+
+        for i in range(len(setMethods)):
+            
+            name = setMethods[i]
+            typ = setTypes[i]
+            
+            if name == 'Id':
                 continue
-            key = self.schema.addField(sm, type="D")
+            key = self.schema.addField(name, type=typ)
             self.setKeys.append(key)
-            self.keyDict[sm] = key
-            self.keyNames.append(sm)
-            setattr(self, sm+"Key", key)
+            self.keyDict[name] = key
+            self.keyNames.append(name)
+            setattr(self, name+"Key", key)
 
         self.table = afwTab.SourceTable.make(self.schema)
         self.catalog = afwTab.SourceCatalog(self.table)
