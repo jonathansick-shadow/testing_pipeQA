@@ -1196,7 +1196,7 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
         "suprimecam": qaCamInfo.SuprimecamCameraInfo,
 #        "suprimecam-old": qaCamInfo.SuprimecamCameraInfo,
         "sdss" : qaCamInfo.SdssCameraInfo,
-        "lsstsim": qaCamInfo.LsstSimCameraInfo,
+        "lsstSim": qaCamInfo.LsstSimCameraInfo,
         }
 
     
@@ -1204,6 +1204,6 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
     if not camera is None:
         cameraToUse = cameraInfos[camera]()
     else:
-        cameraToUse = cameraInfos['lsstsim']()
+        cameraToUse = cameraInfos['lsstSim']()
    
     return DbQaData(label, rerun, cameraToUse)

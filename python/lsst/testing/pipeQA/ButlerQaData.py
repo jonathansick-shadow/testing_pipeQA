@@ -842,14 +842,14 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
     testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
     # make sure LsstSim is last in the list (its 'verifyRegistries()' will pass for all cameras)
-    cameraKeys = ["hsc", "suprimecam", "suprimecam-old", "sdss", "lsstsim"]
+    cameraKeys = ["hsc", "suprimecam", "suprimecam-old", "sdss", "lsstSim"]
     cameraInfos = {
 #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
         "hsc" : qaCamInfo.HscCameraInfo(),
         "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
         "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
         "sdss" : qaCamInfo.SdssCameraInfo(),
-        "lsstsim": qaCamInfo.LsstSimCameraInfo(),
+        "lsstSim": qaCamInfo.LsstSimCameraInfo(),
         }
 
     # try each camera ***in-order***

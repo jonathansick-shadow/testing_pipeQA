@@ -67,7 +67,7 @@ class PipeQaTask(pipeBase.Task):
         parser.add_argument("dataset", help="Dataset to use")
         parser.add_argument("-b", "--breakBy", default="visit",
                             help="Break the run by 'visit','raft', or 'ccd' (default=%(default)s)")
-        parser.add_argument("-C", "--camera", default="lsstsim",
+        parser.add_argument("-C", "--camera", default="lsstSim",
                             help="Specify a camera and override auto-detection (default=%(default)s)")
         parser.add_argument("-c", "--ccd", default=".*",
                             help="Specify ccd as regex (default=%(default)s)")
