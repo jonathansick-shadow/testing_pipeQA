@@ -17,7 +17,7 @@ class QaAnalysisTask(pipeBase.Task):
     ConfigClass  = QaAnalysisConfig
     _DefaultName = "qaAnalysis"
 
-    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False, *args, **kwargs):
+    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False, lazyPlot="sensor", *args, **kwargs):
         """
         @param testLabel   A name for this kind of analysis test.
         """
@@ -32,6 +32,11 @@ class QaAnalysisTask(pipeBase.Task):
         self.clean    = not useCache
         self.wwwCache = wwwCache
         self.delaySummary = delaySummary
+
+        options = ['none', 'sensor', 'all']
+        if not lazyPlot in options:
+            raise ValueError, "lazyPlot must be: "+ ",".join(options) + " You said: "+lazyPlot
+        self.lazyPlot  = lazyPlot
         
     
     def getTestSet(self, data, dataId, label=None):

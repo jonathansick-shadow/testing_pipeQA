@@ -77,6 +77,8 @@ class PipeQaTask(pipeBase.Task):
                             help="Don't capture exceptions, fail and exit (default=%(default)s)")
         parser.add_argument("-f", "--forkFigure", default=False, action='store_true',
                             help="Make figures in separate process (default=%(default)s)")
+        parser.add_argument("-F", "--forced", default=False, action='store_true',
+                            help="Use forced photometry (default=%(default)s)")
         parser.add_argument("-g", "--group", default=None,
                             help="Specify sub-group of visits to run 'groupSize:whichGroup' (default=%(default)s)")
         parser.add_argument("-k", "--keep", default=False, action="store_true",
@@ -89,11 +91,15 @@ class PipeQaTask(pipeBase.Task):
                             help="Specify snap as regex (default=%(default)s)")
         parser.add_argument("-t", "--test", default=".*",
                             help="Regex specifying which QaAnalysis to run (default=%(default)s)")
+        parser.add_argument("-T", "--coaddTable", default="goodSeeing",
+                            help="Specify coadd table to use (default=%(default)s)")
         parser.add_argument("-V", "--verbosity", default=1,
                             help="Trace level for lsst.testing.pipeQA")
         parser.add_argument("-v", "--visit", default=".*",
                             help="Specify visit as regex OR color separated list. (default=%(default)s)")
-        
+        parser.add_argument("-z", "--lazy", default='sensor',
+                            help="Figures to be generated dynamically online [options: none, sensor, all] (default=%(default)s)")
+
         # visit-to-visit
         parser.add_argument("--doVisitQa", default=False, action='store_true',
                             help="Do visit-to-visit pipeQA, overriding the policy default")
@@ -186,6 +192,9 @@ class PipeQaTask(pipeBase.Task):
         forkFigure   = parsedCmd.forkFigure
         wwwCache     = not parsedCmd.noWwwCache
         verbosity    = parsedCmd.verbosity
+        forced       = parsedCmd.forced
+        coaddTable   = parsedCmd.coaddTable
+        lazy         = parsedCmd.lazy
 
         # optional visitQA info
         matchDset    = parsedCmd.matchDataset
@@ -214,12 +223,9 @@ class PipeQaTask(pipeBase.Task):
             numpy.seterr(all="raise")
     
         data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
-                                 shapeAlg = self.config.shapeAlgorithm)
+                                 shapeAlg = self.config.shapeAlgorithm,
+                                 useForced=forced, coaddTable=coaddTable)
     
-        if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
-            dataIdInput['sensor'] = dataIdInput['ccd']
-            del dataIdInput['ccd']
-
         # convert this input format visit,raft,ccd to the names used by the instrument
         dataIdOrig = copy.copy(dataIdInput) # good to have for debugging
         dataIdInput = data.cameraInfo.dataIdStandardToCamera(dataIdInput)    
@@ -229,8 +235,11 @@ class PipeQaTask(pipeBase.Task):
         for name in data.dataIdNames:
             if dataIdInput.has_key(name):
                 dataId[name] = dataIdInput[name]
-    
+
+        data.reduceAvailableDataTupleList(dataId)
+
         # if they requested a key that doesn't exist for this camera ... throw
+        import pdb; pdb.set_trace()
         for k, v in dataIdInput.items():
             if (not k in data.dataIdNames) and (v != '.*'):
                 raise Exception("Key "+k+" not available for this dataset (camera="+data.cameraInfo.name+")")
@@ -247,7 +256,7 @@ class PipeQaTask(pipeBase.Task):
                                  (self.config.doCompleteQa, "completeQa"),
                                  (self.config.doVignettingQa, "vignettingQa") ):
             if doTask and (data.cameraInfo.name in eval("self.config.%s.cameras" % (taskStr))):
-                taskList.append(self.makeSubtask(taskStr, useCache = keep, wwwCache = wwwCache, delaySummary = delaySummary))
+                taskList.append(self.makeSubtask(taskStr, useCache = keep, wwwCache = wwwCache, delaySummary = delaySummary, lazyPlot = lazy))
 
         # Multiple permutations
         if self.config.doPhotCompareQa and (data.cameraInfo.name in self.config.photCompareQa.cameras):
@@ -255,7 +264,7 @@ class PipeQaTask(pipeBase.Task):
                 mag1, mag2 = types.split()
                 starGxyToggle = types in self.config.photCompareQa.starGalaxyToggle
                 taskList.append(self.makeSubtask("photCompareQa", magType1 = mag1, magType2 = mag2, starGalaxyToggle = starGxyToggle,
-                                                 useCache = keep, wwwCache = wwwCache, delaySummary = delaySummary))
+                                                 useCache = keep, wwwCache = wwwCache, delaySummary = delaySummary, lazyPlot = lazy))
 
         # Additional dependencies needed
         if self.config.doVisitQa:
@@ -273,11 +282,11 @@ class PipeQaTask(pipeBase.Task):
             if data.cameraInfo.name in self.config.vvPhotQa.cameras:
                 for mType in self.config.vvPhotQa.magTypes:
                     taskList.append(self.makeSubtask("vvPhotQa", matchDset = matchDset, matchVisits = matchVisits, mType = mType,
-                                                     useCache=keep, wwwCache=wwwCache, delaySummary=delaySummary))
+                                                     useCache=keep, wwwCache=wwwCache, delaySummary=delaySummary, lazyPlot = lazy))
 
             if data.cameraInfo.name in self.config.vvAstromQa.cameras:
                 taskList.append(self.makeSubtask("vvAstromQa", matchDset = matchDset, matchVisits = matchVisits, 
-                                                 useCache=keep, wwwCache=wwwCache, delaySummary=delaySummary))
+                                                 useCache=keep, wwwCache=wwwCache, delaySummary=delaySummary, lazyPlot = lazy))
     
         # Split by visit, and handle specific requests
         visitsTmp = data.getVisits(dataId)
