@@ -6,12 +6,13 @@ import numpy
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
 
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
-import lsst.testing.pipeQA.source as pqaSource
+from .QaAnalysisTask import QaAnalysisTask
+import lsst.pex.config as pexConfig
 
+import lsst.testing.pipeQA.source as pqaSource
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
@@ -27,11 +28,15 @@ def getMemUsageThisPid(size="rss"):
     return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
 
 
+class PerformanceQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PerformanceQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim"))
 
-class performanceQa(qaAna.QaAnalysis):
+class PerformanceQaTask(QaAnalysisTask):
+    ConfigClass = PerformanceQaConfig
+    _DefaultName = "performanceQa"
 
     def __init__(self, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
+        QaAnalysisTask.__init__(self, **kwargs)
 
         self.node = platform.node()
         self.dist = platform.dist() # a tuple e.g., ('redhat', '6.2', 'Santiago')
@@ -187,6 +192,8 @@ class performanceQa(qaAna.QaAnalysis):
             testSet.pickle(runtimeBase, [runtimeFig.data, runtimeFig.map])
 
             runArray = runtimeFig.getArray()
+            if len(runArray) == 0:
+                runArray = numpy.zeros(1)
             mintime, maxtime = runArray.min()-1.0, runArray.max()+1.0
             
             # make the figures and add them to the testSet

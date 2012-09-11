@@ -1,10 +1,4 @@
 import sys, os, re
-<<<<<<< HEAD:python/lsst/testing/pipeQA/analysis/PsfShapeQaTask.py
-=======
-import time
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
->>>>>>> master:python/lsst/testing/pipeQA/analysis/PsfShapeQaAnalysis.py
 import numpy
 
 import lsst.afw.math                as afwMath

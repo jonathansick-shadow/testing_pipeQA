@@ -61,13 +61,13 @@ class Timer(object):
 class DbQaData(QaData):
     #Qa__init__(self, label, rerun, dataInfo):
 
-    def __init__(self, database, rerun, cameraInfo, log):
+    def __init__(self, database, rerun, cameraInfo):
         """
         @param database The name of the database to connect to
         @param rerun The data rerun to use
         @param cameraInfo A cameraInfo object describing the camera for these data
         """
-        QaData.__init__(self, database, rerun, cameraInfo, log)
+        QaData.__init__(self, database, rerun, cameraInfo)
         self.dbId        = DatabaseIdentity(self.label)
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
@@ -86,7 +86,7 @@ class DbQaData(QaData):
         self.dbAliases = {
             #"flux_Gaussian" : "instFlux",
             #"flux_ESG"      : "modelFlux",
-            'instFlux' : 'instFlux',
+            'instFlux' : 'instFlux', 
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
@@ -1188,20 +1188,22 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
     @param database The name of the database to connect to
     @param rerun The data rerun to use
     """
+
+    # Don't execute Info(), otherwise you need other camera packages unnecessarily setup 
     cameraInfos = {
 #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
-        "hsc" : qaCamInfo.HscCameraInfo(),
-        "suprimecam": qaCamInfo.SuprimecamCameraInfo(),
-        "suprimecam-old": qaCamInfo.SuprimecamCameraInfo(True),
-        "sdss" : qaCamInfo.SdssCameraInfo(),
-        "lsstsim": qaCamInfo.LsstSimCameraInfo(),
+        "hsc" : qaCamInfo.HscCameraInfo,
+        "suprimecam": qaCamInfo.SuprimecamCameraInfo,
+#        "suprimecam-old": qaCamInfo.SuprimecamCameraInfo,
+        "sdss" : qaCamInfo.SdssCameraInfo,
+        "lsstsim": qaCamInfo.LsstSimCameraInfo,
         }
 
     
     cameraToUse = None
     if not camera is None:
-        cameraToUse = cameraInfos[camera]
+        cameraToUse = cameraInfos[camera]()
     else:
-        cameraToUse = cameraInfos['lsstsim']
+        cameraToUse = cameraInfos['lsstsim']()
    
     return DbQaData(label, rerun, cameraToUse)

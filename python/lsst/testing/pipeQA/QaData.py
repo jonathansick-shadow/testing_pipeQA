@@ -1,12 +1,6 @@
 import sys, os, re, copy, time
 import numpy
 
-<<<<<<< HEAD
-# Until ap gets upgraded
-#import lsst.ap.cluster as apCluster
-=======
->>>>>>> master
-
 #######################################################################
 #
 #
@@ -18,7 +12,7 @@ class QaData(object):
     #######################################################################
     #
     #######################################################################
-    def __init__(self, label, rerun, cameraInfo, log):
+    def __init__(self, label, rerun, cameraInfo):
         """
         @param label The name of this data set
         @param rerun The rerun to retrieve
@@ -29,7 +23,6 @@ class QaData(object):
         self.rerun = rerun
         self.cameraInfo = cameraInfo
         self.dataInfo = self.cameraInfo.dataInfo
-        self.log = log
         
         self.dataIdNames   = []
         self.dataIdDiscrim = []
@@ -94,7 +87,6 @@ class QaData(object):
             else:
                 self.loadStr += done
         #sys.stdout.flush()
-        self.log.log(self.log.INFO, self.loadStr)
         self.loadStr = ""
 
         self.loadDepth -= 1

@@ -12,6 +12,7 @@ import lsst.testing.pipeQA as pipeQA
 from .ZeropointFitQaTask import ZeropointFitQaTask
 from .EmptySectorQaTask import EmptySectorQaTask
 from .AstrometricErrorQaTask import AstrometricErrorQaTask
+from .PerformanceQaTask import PerformanceQaTask
 from .PhotCompareQaTask import PhotCompareQaTask
 from .PsfShapeQaTask import PsfShapeQaTask
 from .CompletenessQaTask import CompletenessQaTask
@@ -23,6 +24,7 @@ class PipeQaConfig(pexConfig.Config):
     doZptFitQa = pexConfig.Field(dtype = bool, doc = "Photometric Zeropoint: qaAnalysis.ZeropointFitQaTask", default = True)
     doEmptySectorQa = pexConfig.Field(dtype = bool, doc = "Empty Sectors: qaAnalysis.EmptySectorQaTask", default = True)
     doAstromQa = pexConfig.Field(dtype = bool, doc = "Astrometric Error: qaAnalysis.AstrometricErrorQaTask", default = True)
+    doPerformanceQa = pexConfig.Field(dtype = bool, doc = "Performance: qaAnalysis.PerformanceQaTask", default = True)
     doPhotCompareQa = pexConfig.Field(dtype = bool, doc = "Photometric Error: qaAnalysis.PhotCompareQaTask", default = True)
     doPsfShapeQa = pexConfig.Field(dtype = bool, doc = "Psf Shape: qaAnalysis.PsfShapeQaTask", default = True)
     doCompleteQa = pexConfig.Field(dtype = bool, doc = "Photometric Depth: qaAnalysis.CompletenessQaTask", default = True)
@@ -32,6 +34,7 @@ class PipeQaConfig(pexConfig.Config):
     zptFitQa = pexConfig.ConfigurableField(target = ZeropointFitQaTask, doc = "Quality of zeropoint fit")
     emptySectorQa = pexConfig.ConfigurableField(target = EmptySectorQaTask, doc = "Look for missing matches")
     astromQa = pexConfig.ConfigurableField(target = AstrometricErrorQaTask, doc = "Quality of astrometric fit")
+    performanceQa = pexConfig.ConfigurableField(target = PerformanceQaTask, doc = "Performance")
     photCompareQa = pexConfig.ConfigurableField(target = PhotCompareQaTask, doc = "Quality of photometry")
     psfShapeQa = pexConfig.ConfigurableField(target = PsfShapeQaTask, doc = "Shape of Psf")
     completeQa = pexConfig.ConfigurableField(target = CompletenessQaTask, doc = "Completeness of detection")
@@ -64,7 +67,7 @@ class PipeQaTask(pipeBase.Task):
         parser.add_argument("dataset", help="Dataset to use")
         parser.add_argument("-b", "--breakBy", default="visit",
                             help="Break the run by 'visit','raft', or 'ccd' (default=%default)")
-        parser.add_argument("-C", "--camera", default=None,
+        parser.add_argument("-C", "--camera", default="lsstsim",
                             help="Specify a camera and override auto-detection (default=%default)")
         parser.add_argument("-c", "--ccd", default=".*",
                             help="Specify ccd as regex (default=%default)")
@@ -210,13 +213,17 @@ class PipeQaTask(pipeBase.Task):
         if exceptExit:
             numpy.seterr(all="raise")
     
-        data = pipeQA.makeQaData(dataset, self.log, rerun=rerun, retrievalType=camera,
+        data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
                                  shapeAlg = self.config.shapeAlgorithm)
     
         if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
             dataIdInput['sensor'] = dataIdInput['ccd']
             del dataIdInput['ccd']
-    
+
+        # convert this input format visit,raft,ccd to the names used by the instrument
+        dataIdOrig = copy.copy(dataIdInput) # good to have for debugging
+        dataIdInput = data.cameraInfo.dataIdStandardToCamera(dataIdInput)    
+            
         # take what we need for this camera, ignore the rest
         dataId = {}
         for name in data.dataIdNames:
@@ -235,6 +242,7 @@ class PipeQaTask(pipeBase.Task):
         for doTask, taskStr in ( (self.config.doZptFitQa, "zptFitQa"),
                                  (self.config.doEmptySectorQa, "emptySectorQa"),
                                  (self.config.doAstromQa, "astromQa"),
+                                 (self.config.doPerformanceQa, "performanceQa"),
                                  (self.config.doPsfShapeQa, "psfShapeQa"),
                                  (self.config.doCompleteQa, "completeQa"),
                                  (self.config.doVignettingQa, "vignettingQa") ):

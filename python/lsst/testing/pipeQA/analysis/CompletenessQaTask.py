@@ -1,15 +1,11 @@
 import re
 import numpy as num
 
-<<<<<<< HEAD:python/lsst/testing/pipeQA/analysis/CompletenessQaTask.py
 import lsst.meas.algorithms as measAlg
 import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
 
 from .QaAnalysisTask import QaAnalysisTask
-=======
-import time
->>>>>>> master:python/lsst/testing/pipeQA/analysis/CompletenessQa.py
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils

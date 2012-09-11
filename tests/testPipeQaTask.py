@@ -16,6 +16,14 @@ class PipeQaTestCases(unittest.TestCase):
         self.testRaft     = "2,2"
         self.testCcd      = "1,1"
 
+        self.testDatabase = "krughoff_S12_lsstsim_u_krughoff_2012_0706_183555"  # lsstSim S21 schema
+        self.testVisit1   = "899551571"                        # z-band
+        self.testVisit2   = "899553091"                        # r-band
+        self.testFilt1    = "z"
+        self.testFilt2    = "r"
+        self.testRaft     = "2,2"
+        self.testCcd      = "1,1"
+
         self.wwwRerun     = os.path.join(eups.productDir("testing_pipeQA"), "tests", "www_rerun")
         os.environ["WWW_RERUN"] = self.wwwRerun
         if os.path.isdir(self.wwwRerun):
@@ -31,14 +39,16 @@ class PipeQaTestCases(unittest.TestCase):
         disArgs.append("doPsfShapeQa=False")
         disArgs.append("doVignettingQa=False")
         disArgs.append("doVisitQa=False")
+        disArgs.append("doPerformanceQa=False")
         #disArgs.append("doZptFitQa=False")
         return disArgs
 
     def validateFiles(self, visit, filt, raft, ccd, checkFpa = True):
         if not os.path.isdir(self.wwwRerun):
             self.fail()
-        
+
         testDir = os.path.join(self.wwwRerun, "test_%s-%s_testPipeQaTask.ZeropointFitQaTask" % (visit, filt))
+
         if not os.path.isdir(testDir):
             self.fail()
         
@@ -66,7 +76,7 @@ class PipeQaTestCases(unittest.TestCase):
             args.append(disArg)
 
         self.qaTask.parseAndRun(args)
-        self.validateFiles(self.testVisit1, self.testFilt, self.testRaft, self.testCcd)
+        self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, self.testCcd)
 
         shutil.rmtree(self.wwwRerun)
 
@@ -75,7 +85,7 @@ class PipeQaTestCases(unittest.TestCase):
 
         args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         self.qaTask.parseAndRun(args)
-        self.validateFiles(self.testVisit1, self.testFilt, self.testRaft, self.testCcd)
+        self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, self.testCcd)
 
         shutil.rmtree(self.wwwRerun)
 
@@ -89,7 +99,7 @@ class PipeQaTestCases(unittest.TestCase):
 
         self.qaTask.parseAndRun(args)
         for ccd in (0, 1, 2):
-            self.validateFiles(self.testVisit1, self.testFilt, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
+            self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
 
         shutil.rmtree(self.wwwRerun)
 
@@ -110,7 +120,7 @@ class PipeQaTestCases(unittest.TestCase):
 
         self.qaTask.parseAndRun(args)
         for ccd in (0, 1, 2):
-            self.validateFiles(self.testVisit1, self.testFilt, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
+            self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
 
         shutil.rmtree(self.wwwRerun)
 
@@ -121,17 +131,17 @@ class PipeQaTestCases(unittest.TestCase):
         #              more than 2 or 3, and there will be sqlite conflicts 
         os.mkdir(self.wwwRerun)
 
-        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:0", "-v", "8853358.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
+        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:0", "-v", "899.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         for disArg in self.disableTasks():
             args.append(disArg)
         self.qaTask.parseAndRun(args)
-        self.validateFiles(self.testVisit1, self.testFilt, self.testRaft, self.testCcd)
+        self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, self.testCcd)
 
-        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:1", "-v", "8853358.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
+        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:1", "-v", "899.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         for disArg in self.disableTasks():
             args.append(disArg)
         self.qaTask.parseAndRun(args)
-        self.validateFiles(self.testVisit2, self.testFilt, self.testRaft, self.testCcd)
+        self.validateFiles(self.testVisit2, self.testFilt2, self.testRaft, self.testCcd)
 
         shutil.rmtree(self.wwwRerun)
         

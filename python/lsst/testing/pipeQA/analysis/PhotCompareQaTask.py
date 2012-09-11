@@ -66,9 +66,7 @@ class PhotCompareQaTask(QaAnalysisTask):
 
     def __init__(self, magType1, magType2, starGalaxyToggle, **kwargs):
         testLabel = magType1+"-"+magType2
-<<<<<<< HEAD:python/lsst/testing/pipeQA/analysis/PhotCompareQaTask.py
         QaAnalysisTask.__init__(self, testLabel, **kwargs)
-
 
         self.magCut = self.config.magCut
         self.deltaLimits = [self.config.deltaMin, self.config.deltaMax]
@@ -76,19 +74,9 @@ class PhotCompareQaTask(QaAnalysisTask):
         self.derrLimits = [0.0, self.config.derrMax]
         self.slopeLimits = [-self.config.slopeMinSigma, self.config.slopeMaxSigma]
         self.starGalaxyToggle = starGalaxyToggle # not from config!
-=======
-        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
-
-        self.magCut = magCut
-        self.deltaLimits = [deltaMin, deltaMax]
-        self.rmsLimits = [0.0, rmsMax]
-        self.derrLimits = [0.0, derrMax]
-        self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
-        self.starGalaxyToggle = starGalaxyToggle
 
         self.sCatDummy = pqaSource.Catalog()
         self.srefCatDummy = pqaSource.RefCatalog()
->>>>>>> master:python/lsst/testing/pipeQA/analysis/PhotCompareQaAnalysis.py
         
         def magType(mType):
             if re.search("(psf|PSF)", mType):
