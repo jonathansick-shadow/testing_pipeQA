@@ -59,7 +59,9 @@ def findDataInTestbed(label, raiseOnFailure=True):
         
 def getSourceSetNameList():
     """Associate Source accessor names to database columns in a list of pairs. """
-    
+
+    dummyMask = afwImage.MaskU(1,1)
+    offset = 1
     accessors = [
         #["Id",                           "sourceId" ], #"objectId"                      ],
         ["Ra",                           "ra2000",                           ],
@@ -136,11 +138,11 @@ def getSourceSetNameList():
         #["FlagForAssociation",           "flagForAssociation",           ],
         #["FlagForDetection",             "flagForDetection",             ],
         #["FlagForWcs",                   "flagForWcs",                   ],
-        ["FlagPixInterpCen",              "classification_extendedness",             ],
-        ["FlagNegative",                  "classification_extendedness",             ],
-        ["FlagPixEdge",                   "classification_extendedness",             ],
-        ["FlagBadCentroid",               "classification_extendedness",             ],
-        ["FlagPixSaturCen",               "classification_extendedness",             ],
+        ["FlagBadCentroid",               "flag%03d" % (dummyMask.getMaskPlane("BAD")+offset), ],
+        ["FlagPixSaturCen",               "flag%03d" % (dummyMask.getMaskPlane("SAT")+offset), ],
+        ["FlagPixInterpCen",              "flag%03d" % (dummyMask.getMaskPlane("INTRP")+offset), ],
+        ["FlagPixEdge",                   "flag%03d" % (dummyMask.getMaskPlane("EDGE")+offset), ],
+        ["FlagNegative",                  "flag%03d" % (dummyMask.getMaskPlane("DETECTED_NEGATIVE")+offset), ],
         ["Extendedness",                  "classification_extendedness",                 ],
         ]
     return accessors

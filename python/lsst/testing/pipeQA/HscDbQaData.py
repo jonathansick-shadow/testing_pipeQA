@@ -214,6 +214,9 @@ class HscDbQaData(QaData):
 
         # run the query
         #print sql
+
+        self.sqlCache['match'][dataIdStr] = sql
+        
         results  = self.dbInterface.execute(sql)
 
         # parse results and put them in a sourceSet
@@ -229,7 +232,7 @@ class HscDbQaData(QaData):
             mag = -2.5*numpy.log10(refflux)
             ra = numpy.degrees(ra)
             dec = numpy.degrees(dec)
-            
+
             nMatches = 1
             dataIdTmp = {}
             for j in range(nDataId):
@@ -277,6 +280,7 @@ class HscDbQaData(QaData):
             sref = refCat.addNew()
 
             sref.setId(refObjId)
+            #sref.setId(srcId)
             sref.setD(refRaKey, ra)
             sref.setD(refDecKey, dec)
 
@@ -315,7 +319,7 @@ class HscDbQaData(QaData):
                     s.setD(setKey, value)
                i += 1
 
-
+            
             s.setD(fPixInterpCenKey, 0.0)
             s.setD(fNegativeKey, 0.0)
             s.setD(fPixEdgeKey, 0.0)
@@ -378,11 +382,16 @@ class HscDbQaData(QaData):
             matchList = matchListDict[key]
 
             sources    = sourcesDict[key]
-            if refObjectsDict.has_key(key):
+            if refObjectsDict.has_key(key) and len(refObjectsDict[key]) > 0:
                 refObjects = refObjectsDict[key]
             else:
+                # just use the matched objects ... doomed to succeed
                 refObjects = simRefObj.SimRefObjectSet() # an empty set
-
+                for m in matchList:
+                    sref, s, dist = m
+                    sro = simRefObj.SimRefObject()
+                    sro.setId(sref.getId())
+                    refObjects.append(sro)
                 
             typeDict[key] = {}
                             
@@ -399,11 +408,14 @@ class HscDbQaData(QaData):
             for ma in matchList:
                 matRef.append(ma[0].getId())
                 matSrc.append(ma[1].getId())
-                
+
+
             refIds = set(refIds)
             srcIds = set(srcIds)
             matRef = set(matRef)
             matSrc = set(matSrc)
+
+            
             
             undetectedIds = refIds - matRef
             orphanIds     = srcIds - matSrc
@@ -477,7 +489,7 @@ class HscDbQaData(QaData):
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
         sql  = 'select '+",".join(zip(*sceNames)[1])+',s.obj_id,'+selectStr
-        sql += '  from frame_sourcelist_sup as s, frame_sup as sce'
+        sql += '  from frame_icsourcelist_sup as s, frame_sup as sce'
         sql += '  where (s.frame_id = sce.frame_id)'
         haveAllKeys = True
 
@@ -514,6 +526,7 @@ class HscDbQaData(QaData):
 
         # run the query
         results  = self.dbInterface.execute(sql)
+        self.sqlCache['src'][dataIdStr] = sql
         calib = self.getCalibBySensor(dataIdRegex)
 
         
@@ -548,6 +561,10 @@ class HscDbQaData(QaData):
                 dataIdTmp[idName] = row[i]
                 i += 1
             sid = row[i]
+            #refid = row[i+1]
+
+            #if refid:
+            #    sid = refid
             nIdKeys = i+1
 
             key = self._dataIdToString(dataIdTmp, defineFully=True)
@@ -567,17 +584,15 @@ class HscDbQaData(QaData):
                     s.setD(setKey, value)
                 i += 1
 
-            s.setD(fPixInterpCenKey, 0.0)
-            s.setD(fNegativeKey, 0.0)
-            s.setD(fPixEdgeKey, 0.0)
-            s.setD(fBadCentroidKey, 0.0)
-            s.setD(fPixSaturCenKey, 0.0)
-            #s.set('FlagPixInterpCen', 0.0)
-            #s.set('FlagNegative', 0.0)
-            #s.set('FlagPixEdge', 0.0)
-            #s.set('FlagBadCentroid', 0.0)
-            #s.set('FlagPixSaturCen', 0.0)
-                
+            #print s.getD(fPixInterpCenKey), s.getD(fNegativeKey), \
+            #    s.getD(fPixEdgeKey), s.getD(fBadCentroidKey), s.getD(fPixSaturCenKey)
+            
+            #s.setD(fPixInterpCenKey, 0.0)
+            #s.setD(fNegativeKey, 0.0)
+            #s.setD(fPixEdgeKey, 0.0)
+            #s.setD(fBadCentroidKey, 0.0)
+            #s.setD(fPixSaturCenKey, 0.0)
+
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
 
