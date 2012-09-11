@@ -12,6 +12,7 @@ import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 import lsst.testing.pipeQA.source as pqaSource
 import QaAnalysisUtils as qaAnaUtil
+import QaPlotUtils as qaPlotUtil
 
 class VignettingQaConfig(pexConfig.Config):
     cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run VignettingQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim"))
@@ -282,8 +283,8 @@ class VignettingQaTask(QaAnalysisTask):
             ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
             ylab.set_rotation(-90)
             sp1.set_xlabel('Dist from focal plane center (pixels)', fontsize=10)
-            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
-            qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
+            qaPlotUtil.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
+            qaPlotUtil.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
                         
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             testSet.addFigure(fig, "vignetting_dmag.png", "Delta magnitude vs. radius "+areaLabel,
@@ -330,8 +331,8 @@ class VignettingQaTask(QaAnalysisTask):
             ylab = sp1x2.set_ylabel('Delta magnitude (%s-%s)' % (self.magType1, self.magType2), fontsize=10)
             ylab.set_rotation(-90)
             sp1.set_xlabel('Dist from focal plane center (pixels)', fontsize=10)
-            qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
-            qaFigUtils.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
+            qaPlotUtil.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 8)
+            qaPlotUtil.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
 
             label = "all"
             ddmag = 0.0005

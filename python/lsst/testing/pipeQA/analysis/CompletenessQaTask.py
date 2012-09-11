@@ -10,7 +10,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
-
+import QaPlotUtils as qaPlotUtil 
 import lsst.testing.pipeQA.source as pqaSource
 
 import matplotlib.ticker as ticker
@@ -458,8 +458,8 @@ class CompletenessQaTask(QaAnalysisTask):
                                 overhang=0.2, head_length=0.2, head_width=0.04)
         sp1x2.add_patch(fa)
         
-        qaFigUtils.qaSetp(sp1x2.get_xticklabels(), visible=False)
-        qaFigUtils.qaSetp(sp1x2.get_yticklabels(), fontsize = 6)
+        qaPlotUtil.qaSetp(sp1x2.get_xticklabels(), visible=False)
+        qaPlotUtil.qaSetp(sp1x2.get_yticklabels(), fontsize = 6)
 
         sp1.set_ylabel('N Stars', fontsize=10)
         if False: #1.4*ymax > 1000:
@@ -467,7 +467,7 @@ class CompletenessQaTask(QaAnalysisTask):
             for t in sp1.get_yticklabels():
                 self.log.log(self.log.INFO, t.get_text())
                 t.set_text(re.sub("\+0", "", t.get_text()))
-        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 6)
+        qaPlotUtil.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize = 6)
 
         ##############
 
@@ -488,8 +488,8 @@ class CompletenessQaTask(QaAnalysisTask):
 
         sp2.set_xlabel('Mag', fontsize=10)
         sp2.set_ylabel('N Gals', fontsize=10)
-        qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize = 6)
-        qaFigUtils.qaSetp(sp2.get_yticklabels(), rotation = 45.0)
+        qaPlotUtil.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize = 6)
+        qaPlotUtil.qaSetp(sp2.get_yticklabels(), rotation = 45.0)
         sp2.legend(numpoints = 1, prop=FontProperties(size='x-small'), loc = 'upper left')
         #sp2.set_ylim(0.75, 999)
         #sp2.semilogy()

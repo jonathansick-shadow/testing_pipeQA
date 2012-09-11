@@ -14,6 +14,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+import QaPlotUtils as qaPlotUtil
 
 import lsst.testing.pipeQA.source as pqaSource
 
@@ -352,10 +353,10 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         if gridVectors:
             ybin = 50
             xbin = 50 #int(1.0*ybin*f_w*width/(f_h*height))
-            qaFigUtil.make_densityplot(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
-                                       log=True)
-            qaFigUtil.make_densityContour(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
-                                          log=True, percentiles=True, normed=False, levels=[0.5])
+            qaPlotUtil.make_densityplot(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
+                                        log=True)
+            qaPlotUtil.make_densityContour(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
+                                           log=True, percentiles=True, normed=False, levels=[0.5])
             c0 = Circle((0.0, 0.0), radius=0.0, facecolor='none', edgecolor=green, zorder=3, label="50%")
             ax.vlines(0.0, limRose[0], limRose[1], linestyle='dashed')
             ax.hlines(0.0, xlimRose[0], xlimRose[1], linestyle='dashed')

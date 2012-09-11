@@ -1,6 +1,7 @@
 import sys, os, re, copy, time
 import numpy
 
+
 #######################################################################
 #
 #
@@ -49,15 +50,11 @@ class QaData(object):
 
         
     def printStartLoad(self, message):
-        self.loadStr = ""
-
         if self.loadDepth > 0:
-            self.loadStr += "\n"
-            self.loadStr += " "*4*self.loadDepth
-            self.loadStr += message
+            print "\n", " "*4*self.loadDepth, message,
         else:
-            self.loadStr += message
-        #sys.stdout.flush()
+            print message,
+        sys.stdout.flush()
         self.loadDepth += 1
         self.lastPrint = 0
         t0 = time.time()
@@ -65,8 +62,8 @@ class QaData(object):
         
 
     def printMidLoad(self, message):
-        self.loadStr += message
-        #sys.stdout.flush()
+        print message,
+        sys.stdout.flush()
 
     def printStopLoad(self):
         t0 = self.t0[-1]
@@ -76,19 +73,15 @@ class QaData(object):
         done =  "done (%.2fs)." % t_elapsed
         if self.loadDepth > 1:
             if self.lastPrint == 1:
-                self.loadStr += "\n"
-                self.loadStr += " "*4*(self.loadDepth-1)
-                self.loadStr += done
+                print "\n", " "*4*(self.loadDepth-1), done
             else:
-                self.loadStr += done
+                print done,
         else:
             if self.lastPrint == 1:
-                self.loadStr += "\n"+done
+                print "\n"+done
             else:
-                self.loadStr += done
-        #sys.stdout.flush()
-        self.loadStr = ""
-
+                print done
+        sys.stdout.flush()
         self.loadDepth -= 1
         self.lastPrint = 1
         
@@ -124,7 +117,8 @@ class QaData(object):
         self.raftDetectorCache = {}
         self.filterCache = {}
         self.calibCache = {}
-
+        self.sqlCache = {"match": {}, "src": {}}
+        
         self.performCache = {}
         
         # store the explicit dataId (ie. no regexes) for each key used in a cache
@@ -148,6 +142,7 @@ class QaData(object):
             "filter"         : self.filterCache, 
             "calib"          : self.calibCache,  
             "dataIdLookup"   : self.dataIdLookup,
+            "sql"            : self.sqlCache,
             }
 
 

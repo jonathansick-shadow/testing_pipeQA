@@ -12,6 +12,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+import QaPlotUtils as qaPlotUtil 
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -491,8 +492,8 @@ class VisitToVisitPhotQaTask(QaAnalysisTask):
                                                                                    self.ownFilt.getName(),
                                                                                    self.visitFilters[visit].getName())
             ax1.set_title(lab, fontsize=12)
-            qaFigUtils.qaSetp(ax1.get_xticklabels()+ax1.get_yticklabels(), fontsize=8)
-            qaFigUtils.qaSetp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize=8)
+            qaPlotUtil.qaSetp(ax1.get_xticklabels()+ax1.get_yticklabels(), fontsize=8)
+            qaPlotUtil.qaSetp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize=8)
 
             ax1.set_ylim(-0.5, 0.5)
             ax1.set_xlim(self.maglim[0], self.maglim[1])
@@ -660,11 +661,11 @@ class VisitToVisitPhotQaTask(QaAnalysisTask):
         sp3.plot(xdataG,  ydataG,  'bs', ms=3, alpha=0.25)
         sp4.plot(xmodelG, ymodelG, 'bs', ms=3, alpha=0.25)
 
-        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp2.get_xticklabels(), visible=False)
-        qaFigUtils.qaSetp(sp2.get_yticklabels()+sp4.get_yticklabels(), visible=False)
+        qaPlotUtil.qaSetp(sp1.get_xticklabels()+sp2.get_xticklabels(), visible=False)
+        qaPlotUtil.qaSetp(sp2.get_yticklabels()+sp4.get_yticklabels(), visible=False)
 
-        qaFigUtils.qaSetp(sp3.get_xticklabels()+sp4.get_xticklabels(), fontsize=8)
-        qaFigUtils.qaSetp(sp1.get_yticklabels()+sp3.get_yticklabels(), fontsize=8)
+        qaPlotUtil.qaSetp(sp3.get_xticklabels()+sp4.get_xticklabels(), fontsize=8)
+        qaPlotUtil.qaSetp(sp1.get_yticklabels()+sp3.get_yticklabels(), fontsize=8)
 
         sp1.set_title('Data', fontsize=12)
         sp2.set_title('Ref Cat', fontsize=12)
@@ -678,8 +679,8 @@ class VisitToVisitPhotQaTask(QaAnalysisTask):
         twinsp2.set_ylabel('Star', fontsize=12, rotation=-90)
         twinsp4 = sp4.twinx()
         twinsp4.set_ylabel('Gal', fontsize=12, rotation=-90)
-        qaFigUtils.qaSetp(twinsp2.get_xticklabels()+twinsp2.get_yticklabels(), visible=False)
-        qaFigUtils.qaSetp(twinsp4.get_xticklabels()+twinsp4.get_yticklabels(), visible=False)
+        qaPlotUtil.qaSetp(twinsp2.get_xticklabels()+twinsp2.get_yticklabels(), visible=False)
+        qaPlotUtil.qaSetp(twinsp4.get_xticklabels()+twinsp4.get_yticklabels(), visible=False)
 
         #fig.fig.text(0.025, 0.5, ylabel, fontsize=10, rotation=90)
         sp1.set_xlim(xmin, xmax)

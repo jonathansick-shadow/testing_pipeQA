@@ -12,6 +12,7 @@ import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import QaAnalysisUtils as qaAnaUtil
 import RaftCcdData as raftCcdData
+import QaPlotUtils as qaPlotUtil
 
 import lsst.testing.pipeQA.source as pqaSource
 
@@ -504,12 +505,12 @@ class ZeropointFitQaTask(QaAnalysisTask):
         ax4.axhline(y = 0, c='k', linestyle='--', alpha = 0.25)
 
         # Cleaning up figure
-        qaFigUtils.qaSetp(axis.get_xticklabels()+axis.get_yticklabels(), visible=False)
-        qaFigUtils.qaSetp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize = 8)
-        qaFigUtils.qaSetp(ax2.get_xticklabels(), rotation=90)
-        qaFigUtils.qaSetp(ax3.get_xticklabels()+ax3.get_yticklabels(), fontsize = 8)
-        qaFigUtils.qaSetp(ax4.get_xticklabels(), visible=False)
-        qaFigUtils.qaSetp(ax4.get_yticklabels(), fontsize = 8)
+        qaPlotUtil.qaSetp(axis.get_xticklabels()+axis.get_yticklabels(), visible=False)
+        qaPlotUtil.qaSetp(ax2.get_xticklabels()+ax2.get_yticklabels(), fontsize = 8)
+        qaPlotUtil.qaSetp(ax2.get_xticklabels(), rotation=90)
+        qaPlotUtil.qaSetp(ax3.get_xticklabels()+ax3.get_yticklabels(), fontsize = 8)
+        qaPlotUtil.qaSetp(ax4.get_xticklabels(), visible=False)
+        qaPlotUtil.qaSetp(ax4.get_yticklabels(), fontsize = 8)
 
         fig.fig.legend(legLines, legLabels,
                        numpoints=1, prop=FontProperties(size='x-small'), loc = 'center right')

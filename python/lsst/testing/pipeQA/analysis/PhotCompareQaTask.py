@@ -13,6 +13,7 @@ import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+import QaPlotUtils as qaPlotUtil 
 
 import lsst.testing.pipeQA.source as pqaSource
 
@@ -698,10 +699,10 @@ class PhotCompareQaTask(QaAnalysisTask):
         sp3.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
         sp4.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
 
-        qaFigUtils.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
-        qaFigUtils.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
-        qaFigUtils.qaSetp(sp3.get_xticklabels()+sp3.get_yticklabels(), fontsize=8)
-        qaFigUtils.qaSetp(sp4.get_xticklabels()+sp4.get_yticklabels(), fontsize=8)
+        qaPlotUtil.qaSetp(sp1.get_xticklabels()+sp1.get_yticklabels(), fontsize=8)
+        qaPlotUtil.qaSetp(sp2.get_xticklabels()+sp2.get_yticklabels(), fontsize=8)
+        qaPlotUtil.qaSetp(sp3.get_xticklabels()+sp3.get_yticklabels(), fontsize=8)
+        qaPlotUtil.qaSetp(sp4.get_xticklabels()+sp4.get_yticklabels(), fontsize=8)
 
 
         sp1.set_xlim(xlim)
@@ -1122,9 +1123,9 @@ class PhotCompareQaTask(QaAnalysisTask):
             ax0_2b.legend(prop=fm.FontProperties(size="xx-small"), loc="upper left")
 
 
-        qaFigUtils.qaSetp(ax0_1.get_xticklabels()+ax0_2.get_xticklabels(), visible=False)
-        qaFigUtils.qaSetp(ax0_1.get_yticklabels()+ax0_2.get_yticklabels(), fontsize=11)
-        qaFigUtils.qaSetp(ax0_1b.get_yticklabels()+ax0_2b.get_yticklabels(), fontsize=10)
+        qaPlotUtil.qaSetp(ax0_1.get_xticklabels()+ax0_2.get_xticklabels(), visible=False)
+        qaPlotUtil.qaSetp(ax0_1.get_yticklabels()+ax0_2.get_yticklabels(), fontsize=11)
+        qaPlotUtil.qaSetp(ax0_1b.get_yticklabels()+ax0_2b.get_yticklabels(), fontsize=10)
 
         for ax in [ax0_1, ax0_2]:
             ax.set_ylabel(tag)

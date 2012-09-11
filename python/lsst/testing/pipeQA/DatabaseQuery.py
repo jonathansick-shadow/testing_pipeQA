@@ -71,6 +71,7 @@ class LsstSimDbInterface(DatabaseInterface):
 
         #print "mysql>", sql
         
+        
         # forking to handle plotting the summary figures causes (i think)
         # a disconnection when the child exits.  Need to reconnect when
         connected = True
@@ -82,7 +83,13 @@ class LsstSimDbInterface(DatabaseInterface):
         if not connected:
             #print "Mysql connection broken.  Reconnecting."
             self.connect()
-            self.cursor.execute(sql)
+
+            # if something blows-up lets see the query and re-raise
+            try:
+                self.cursor.execute(sql)
+            except Exception, e:
+                print sql
+                raise
 
         results = self.cursor.fetchall()
         t1 = time.time()
