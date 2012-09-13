@@ -28,7 +28,7 @@ class DatabaseIdentity:
         self.sqlUser = authPolicy.get("user")
         self.sqlHost = authPolicy.get("host")
         self.sqlPasswd = authPolicy.get("password")
-        
+        self.sqlPort = authPolicy.get("port")        
 
 # Base class
 class DatabaseInterface():
@@ -56,7 +56,8 @@ class DbInterface(DatabaseInterface):
             host     = self.dbId.sqlHost,
             database = self.dbId.sqlDb,
             user     = self.dbId.sqlUser,
-            password = self.dbId.sqlPasswd
+            password = self.dbId.sqlPasswd,
+            port     = self.dbId.sqlPort
             )
         self.cursor = self.db.cursor()
 
