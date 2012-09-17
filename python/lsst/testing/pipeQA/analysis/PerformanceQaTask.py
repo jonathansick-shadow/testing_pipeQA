@@ -97,7 +97,10 @@ class PerformanceQaTask(QaAnalysisTask):
             self.mem.set(raft, ccd, mem)
 
             testRuntime = data.getPerformance(dataId, 'total', 'test-runtime')
+            if testRuntime is None:
+                testRuntime = 0.0
             self.testRuntime.set(raft, ccd, testRuntime)
+
             plotRuntime = data.getPerformance(dataId, 'total', 'plot-runtime')
             # if running with plot() forked, plot times are not defined.
             if plotRuntime is None:
@@ -107,7 +110,7 @@ class PerformanceQaTask(QaAnalysisTask):
             tTest = testCode.Test("test-runtime", testRuntime, [0.0, 3600], "Runtime for test()[s]", areaLabel=areaLabel)
             testSet.addTest(tTest)
                 
-            pTest = testCode.Test("plot-runtime", plotRuntime, [0.0, 3600], "Runtime for plot()[s]", areaLabel=areaLabel)
+            pTest = testCode.Test("plot-runtime", plotRuntime, [0.0, 3600], "Runtime for plot()[s] (%d plots)" % (qaFig.QaFigure.count), areaLabel=areaLabel)
             testSet.addTest(pTest)
 
             info = self.node + " " + " ".join(self.dist)

@@ -124,7 +124,8 @@ class QaData(object):
         self.raftDetectorCache = {}
         self.filterCache = {}
         self.calibCache = {}
-
+        self.sqlCache = {"match": {}, "src": {}}
+        
         self.performCache = {}
         
         # store the explicit dataId (ie. no regexes) for each key used in a cache
@@ -148,6 +149,7 @@ class QaData(object):
             "filter"         : self.filterCache, 
             "calib"          : self.calibCache,  
             "dataIdLookup"   : self.dataIdLookup,
+            "sql"            : self.sqlCache,
             }
 
 

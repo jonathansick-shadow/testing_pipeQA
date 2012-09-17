@@ -1,6 +1,4 @@
 import os, sys, re
-import lsst.afw.cameraGeom as cameraGeom
-import lsst.afw.cameraGeom.utils as cameraGeomUtils
 import numpy
 import numpy.ma as numpyMa
 

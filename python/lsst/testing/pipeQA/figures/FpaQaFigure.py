@@ -1,6 +1,5 @@
 import os, sys, re
-import lsst.afw.cameraGeom as cameraGeom
-import lsst.afw.cameraGeom.utils as cameraGeomUtils
+
 import numpy
 import numpy.ma as numpyMa
 
@@ -15,11 +14,17 @@ from matplotlib import colors
 
 import colorsys
 
+try:
+    import lsst.afw.cameraGeom as cameraGeom
+except:
+    pass
+
 import QaFigureUtils as qaFigUtils
 from QaFigure import QaFigure
 
 class FpaQaFigure(QaFigure):
 
+    
     def __init__(self, cameraInfo, data=None, map=None):
         """
         @param cameraInfo  CameraInfo object for the device whose focal plane area we're representing.

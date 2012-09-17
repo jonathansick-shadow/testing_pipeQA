@@ -9,15 +9,19 @@ import lsst.pipe.base as pipeBase
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures as qaFig
 
+
 class QaAnalysisConfig(pexConfig.Config):
     pass
+
 
 class QaAnalysisTask(pipeBase.Task):
     """Baseclass for analysis classes."""
     ConfigClass  = QaAnalysisConfig
     _DefaultName = "qaAnalysis"
 
-    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False, *args, **kwargs):
+
+    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False,
+                 lazyPlot='sensor', *args, **kwargs):
         """
         @param testLabel   A name for this kind of analysis test.
         """
@@ -32,8 +36,14 @@ class QaAnalysisTask(pipeBase.Task):
         self.clean    = not useCache
         self.wwwCache = wwwCache
         self.delaySummary = delaySummary
+
+        options = ['none', 'sensor', 'all']
+        if not lazyPlot in options:
+            raise ValueError, "lazyPlot must be: "+ ",".join(options) + " You said: "+lazyPlot
         
-    
+        self.lazyPlot  = lazyPlot
+
+        
     def getTestSet(self, data, dataId, label=None):
         """Get a TestSet object in the correct group.
 
@@ -72,7 +82,17 @@ class QaAnalysisTask(pipeBase.Task):
             self.testSets[tsId].addMetadata('PipeQA', pqaVersion)
             self.testSets[tsId].addMetadata('DisplayQA', dqaVersion)
             
-            
+            if hasattr(data, 'coaddTable') and not data.coaddTable is None:
+                self.testSets[tsId].addMetadata('coaddTable', data.coaddTable)
+            if hasattr(data, 'useForced'):
+                self.testSets[tsId].addMetadata('forced', "True" if data.useForced else "False")
+
+            key = data._dataIdToString(dataId, defineFully=True)
+            sqlCache = data.sqlCache['match'].get(key, "")
+            self.testSets[tsId].addMetadata("SQL match", sqlCache)
+            sqlCache = data.sqlCache['src'].get(key, "")
+            self.testSets[tsId].addMetadata("SQL src" ,  sqlCache)
+                
         return self.testSets[tsId]
 
 

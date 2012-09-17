@@ -1,69 +1,6 @@
 import sys, os, re, copy
 import numpy
 
-import lsst.afw.math        as afwMath
-import lsst.meas.algorithms as measAlg
-import lsst.testing.pipeQA.source as pqaSource
-
-# NOTE: please replace this with (s.getFlagForDetection() & pqaSource.STAR)
-#       when we eventually start setting it.
-def isStarMoment(ss):
-    """Quick and dirty isStar() based on comparison to psf ixx/yy/xy"""
-
-    vixx, vixy, viyy = [], [], []
-    for s0 in ss:
-
-        s = s0
-        if isinstance(s, list):
-            sref, s, d = s0
-            
-        ixx, ixy, iyy    = s.getIxx(), s.getIyy(), s.getIxy()
-
-        vixx.append(ixx)
-        vixy.append(ixy)
-        viyy.append(iyy)
-
-    sxx = afwMath.makeStatistics(vixx, afwMath.MEANCLIP | afwMath.STDEVCLIP)
-    sxy = afwMath.makeStatistics(vixy, afwMath.MEANCLIP | afwMath.STDEVCLIP)
-    syy = afwMath.makeStatistics(viyy, afwMath.MEANCLIP | afwMath.STDEVCLIP)
-
-    for s0 in ss:
-
-        s = s0
-        if isinstance(s, list):
-            sref, s, d = s0
-            
-        xxOk = (sxx.getValue(afwMath.MEANCLIP) - s.getIxx())/sxx.getValue(afwMath.STDEVCLIP) < 3.0
-        xyOk = (sxy.getValue(afwMath.MEANCLIP) - s.getIxy())/sxx.getValue(afwMath.STDEVCLIP) < 3.0
-        yyOk = (syy.getValue(afwMath.MEANCLIP) - s.getIyy())/sxx.getValue(afwMath.STDEVCLIP) < 3.0
-
-        if xxOk and xyOk and yyOk:
-            s.setFlagForDetection(s.getFlagForDetection() | pqaSource.STAR)
-
-
-
-def isStarDeltaMag(ss):
-
-    for s0 in ss:
-
-        s = s0
-        if isinstance(s, list):
-            sref, s, d = s0
-        f_psf, f_mod, f_inst = s.getPsfFlux(), s.getModelFlux(), s.getInstFlux()
-
-        # allow either inst or mod fluxes to discriminate
-        for f in [f_mod, f_inst]:
-            if f_psf > 0 and f > 0:
-                m_psf, m = -2.5*numpy.log10(f_psf), -2.5*numpy.log10(f)
-
-                if abs(m_psf - m) < 0.1:
-                    s.setFlagForDetection(s.getFlagForDetection() | pqaSource.STAR)
-
-
-def isStar(ss):
-    return isStarDeltaMag(ss)
-
-
 
 def lineFit(x, y, dy=None):
     """A standard linear least squares line fitter with errors and chi2."""
@@ -99,9 +36,9 @@ def lineFit(x, y, dy=None):
         aa = ( Sxx*Sy - Sx*Sxy ) / Delta
         var_aa = Sxx/Delta
         var_bb = S / Delta
-        
-    rms_aa = numpy.sqrt(var_aa)
-    rms_bb = numpy.sqrt(var_bb)
+
+    rms_aa = numpy.sqrt(numpy.abs(var_aa))
+    rms_bb = numpy.sqrt(numpy.abs(var_bb))
 
     # coefficient of correlation
     if no_err:
