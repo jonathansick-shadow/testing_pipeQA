@@ -567,7 +567,7 @@ class SuprimecamCameraInfo(CameraInfo):
 
         roots = self.getRoots(baseDir, rerun=rerun)
         registry, calibRegistry = self.getRegistries(baseDir)
-        return self.mapperClass(root=roots['output'], calibRoot=roots['calib'], registry=registry)
+        return self.mapperClass(root=roots['data'], outputRoot=None, calibRoot=roots['calib'], registry=registry) #, mit=self.mit)
     
 
 
