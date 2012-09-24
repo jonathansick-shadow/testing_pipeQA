@@ -22,15 +22,23 @@ def findDataInTestbed(label, raiseOnFailure=True):
     if re.search("^testBot", label):
         testbotDir = os.getenv("TESTBOT_DIR")
         testbedDir, testdataDir  = os.path.split(testbotDir)
-        return testbedDir, testbotDir
+        return testbedDir, testbotDir    
 
-    
     # otherwise, get a specific test-data set from one of the testbed directories
-    testbedPath = os.getenv("TESTBED_PATH")
+    if os.environ.has_key('TESTBED_PATH'):
+        testbedPath = os.getenv("TESTBED_PATH")
+
+    # if SUPRIME_DATA_DIR is set, override the others
+    if os.environ.has_key('SUPRIME_DATA_DIR'):
+        testbedPath = os.getenv('SUPRIME_DATA_DIR')
+
+ 
     if testbedPath is not None:
         testbedDirs = testbedPath.split(":")
     else:
         raise Exception("Must specify environment variable TESTBED_PATH.")
+
+
     
     #############################
     # find the label in the testbed path

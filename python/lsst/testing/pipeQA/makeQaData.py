@@ -9,7 +9,7 @@ import QaDataUtils as qaDataUtils
 def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
     """Factory to make a QaData object for either Butler data, or Database data.
 
-    @param label         identifier for the data - either a directory in TESTBED_PATH or a database name
+    @param label         identifier for the data - either a directory in TESTBED_PATH/SUPRIME_DATA_DIR or a DB name
     @param rerun         data rerun to retrieve
     @param retrievalType 'butler', 'db', or None (will search first for butler, then database)
     @param camera        Specify which camera is to be used
@@ -22,7 +22,7 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
         # see if there's a testbed directory called 'label'
         # if TESTBED_PATH isn't set, skip this and assume it's a db
         validButler = False
-        if os.environ.has_key('TESTBED_PATH'):
+        if os.environ.has_key('TESTBED_PATH') or os.environ.has_key('SUPRIME_DATA_DIR'):
             testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label, raiseOnFailure=False)
             if (not testbedDir is None) and (not testdataDir is None):
                 validButler = True
