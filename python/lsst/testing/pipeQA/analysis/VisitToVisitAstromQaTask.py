@@ -1,29 +1,35 @@
 import sys, os, re
-import lsst.meas.algorithms         as measAlg
-import lsst.testing.pipeQA.figures  as qaFig
 import numpy                        as num
 
 import lsst.afw.math                as afwMath
 import lsst.afw.coord               as afwCoord
 import lsst.afw.geom                as afwGeom
+import lsst.meas.algorithms         as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
+from .AstrometricErrorQaTask import AstrometricErrorQaTask, AstrometricErrorQaConfig
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 from matplotlib.font_manager import FontProperties
-from .AstrometricErrorQaAnalysis import AstrometricErrorQaAnalysis
 
-class VisitToVisitAstromQaAnalysis(AstrometricErrorQaAnalysis):
+class VisitToVisitAstromQaConfig(AstrometricErrorQaConfig):
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
 
-    def __init__(self, maxErr, database, visits, **kwargs):
-        AstrometricErrorQaAnalysis.__init__(self, maxErr, **kwargs)
-        self.database      = database
-        self.visits        = visits
+class VisitToVisitAstromQaTask(AstrometricErrorQaTask):
+    ConfigClass = VisitToVisitAstromQaConfig
+    _DefaultName = "visitToVisitAstromQa"
+
+    def __init__(self, matchDset, matchVisits, **kwargs):
+        AstrometricErrorQaTask.__init__(self, **kwargs)
+        self.limits        = [0.0, self.config.maxErr]
+        self.database      = matchDset
+        self.visits        = matchVisits
         
         self.description = """
 
@@ -73,16 +79,16 @@ class VisitToVisitAstromQaAnalysis(AstrometricErrorQaAnalysis):
             visObjIds = num.array([x[0].getId() for x in visMatchList])
             common    = list(set(srcObjIds) & set(visObjIds))
 
-            print key, ":", 
+            self.log.log(self.log.INFO, "%s : " % (key))
             if len(common) == 0:
-                print "No overlap, Using pre-to-post PT1.2 objectID mapping...", 
+                self.log.log(self.log.WARN, "  No overlap, Using pre-to-post PT1.2 objectID mapping...")
                     
                 # Try objectID hack from PT1.2 to post-PT1.2:
                 visObjIds *= 2
                 isStar     = (num.array([x[0].getFlagForDetection() for x in visMatchList]) & measAlg.Flags.STAR) > 0
                 visObjIds += isStar
                 common     = list(set(srcObjIds) & set(visObjIds))
-            print "Found %d matches" % (len(common))
+            self.log.log(self.log.INFO, "  Found %d matches" % (len(common)))
                     
             # Iterate over all object ids
             for i in range(len(common)):

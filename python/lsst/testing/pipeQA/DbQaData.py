@@ -148,7 +148,7 @@ class DbQaData(QaData):
         self.dbAliases = {
             #"flux_Gaussian" : "instFlux",
             #"flux_ESG"      : "modelFlux",
-            'instFlux' : 'instFlux',
+            'instFlux' : 'instFlux', 
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
@@ -1281,7 +1281,7 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
     @param rerun The data rerun to use
     """
 
-
+    # Don't execute Info(), otherwise you need other camera packages unnecessarily setup 
     cameraInfos = {
 #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
         "hsc"            : qaCamInfo.HscCameraInfo(),
@@ -1300,5 +1300,3 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
         cameraToUse = cameraInfos['lsstSim']
    
     return DbQaData(label, rerun, cameraToUse, **kwargs)
-
-

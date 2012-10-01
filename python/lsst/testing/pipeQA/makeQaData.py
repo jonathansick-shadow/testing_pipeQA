@@ -50,11 +50,6 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
             raise Exception("Unable to find "+label+" as a testbed directory or a database.")
 
 
-    # handle specially requested camera via retrievalType
-    #if re.search("(lsstsim|suprimecam|cfht|hsc|sdss)", retrievalType):
-    #    return makeButlerQaData(label, rerun, camera=retrievalType, **kwargs)
-
-
     print "RetrievalType=", retrievalType
     print "camera=", camera
     

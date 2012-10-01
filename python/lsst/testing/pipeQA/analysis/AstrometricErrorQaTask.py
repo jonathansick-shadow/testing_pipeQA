@@ -1,27 +1,35 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
 import time
 
 import lsst.afw.geom                as afwGeom
 import lsst.afw.math                as afwMath
-import lsst.testing.pipeQA.TestCode as testCode
+import lsst.meas.algorithms         as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
 
-import QaAnalysis as qaAna
+from .QaAnalysisTask import QaAnalysisTask
+import lsst.testing.pipeQA.figures  as qaFig
+import lsst.testing.pipeQA.TestCode as testCode
+import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
-import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 
 import lsst.testing.pipeQA.source as pqaSource
 import QaPlotUtils as qaPlotUtil
 
-class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
+class AstrometricErrorQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run AstrometricErrorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+    maxErr  = pexConfig.Field(dtype = float, doc = "Maximum astrometric error (in arcseconds)", default = 0.5)
 
-    def __init__(self, maxErr, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [0.0, maxErr]
+class AstrometricErrorQaTask(QaAnalysisTask):
+    ConfigClass = AstrometricErrorQaConfig
+    _DefaultName = "astrometricErrorQa"
+
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [0.0, self.config.maxErr]
 
         self.description = """
          For each CCD, the left figure shows the distance offset between the
@@ -187,7 +195,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         testSet.pickle(medAstBase, [astFig.data, astFig.map])
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
                               title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
                               cmapUnder="#ff0000")
@@ -230,7 +238,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             x = (self.x.get(raft, ccd))[w]
             y = (self.y.get(raft, ccd))[w]                
 
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
 
             if data.cameraInfo.name == 'coadd':
@@ -263,7 +271,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
             
             import AstrometricErrorQaPlot as plotModule
             label = 'all'

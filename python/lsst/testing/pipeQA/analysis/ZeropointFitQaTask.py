@@ -4,7 +4,10 @@ import time
 
 import lsst.meas.algorithms         as measAlg
 import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import QaAnalysisUtils as qaAnaUtil
@@ -16,11 +19,27 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 import QaPlotUtils as qaPlotUtil
 
-class ZeropointFitQa(qaAna.QaAnalysis):
-    def __init__(self, medOffsetMin, medOffsetMax, figsize=(5.0,5.0), **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
+class ZeropointFitQaConfig(pexConfig.Config):
+    cameras   = pexConfig.ListField(dtype = str,
+                                    doc = "Cameras to run ZeropointFitQa",
+                                    default = ("lsstSim", "cfht", "sdss", "coadd"))
+    offsetMin = pexConfig.Field(dtype = float,
+                                doc = "Median offset of stars from zeropoint fit; minimum good value",
+                                default = -0.05)
+    offsetMax = pexConfig.Field(dtype = float,
+                                doc = "Median offset of stars from zeropoint fit; maximum good value",
+                                default = +0.05)
+
+    
+    
+class ZeropointFitQaTask(QaAnalysisTask):
+    ConfigClass = ZeropointFitQaConfig
+    _DefaultName = "zeropointFitQa"
+
+    def __init__(self, figsize=(5.0,5.0), **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
         self.figsize = figsize
-        self.limits = [medOffsetMin, medOffsetMax]
+        self.limits = [self.config.offsetMin, self.config.offsetMax]
 
         self.sCatDummy = pqaSource.Catalog()
         self.srefCatDummy = pqaSource.RefCatalog()
@@ -230,7 +249,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             
             blue = '#0000ff'
             red = '#ff0000'
@@ -259,7 +278,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             if zeropt == 0.0:
                 continue
             
-            print "Plotting", ccd
+            self.log.log(self.log.INFO, "Plotting %s" % (ccd))
 
 
             # Plot all matched galaxies
@@ -301,8 +320,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             
 
         if not self.delaySummary or isFinalDataId:
-            
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             label = 'all'
             import ZeropointFitQaPlot as plotModule

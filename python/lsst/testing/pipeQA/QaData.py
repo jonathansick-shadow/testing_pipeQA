@@ -1,7 +1,6 @@
 import sys, os, re, copy, time
 import numpy
 
-
 #######################################################################
 #
 #
@@ -50,11 +49,15 @@ class QaData(object):
 
         
     def printStartLoad(self, message):
+        self.loadStr = ""
+
         if self.loadDepth > 0:
-            print "\n", " "*4*self.loadDepth, message,
+            self.loadStr += "\n"
+            self.loadStr += " "*4*self.loadDepth
+            self.loadStr += message
         else:
-            print message,
-        sys.stdout.flush()
+            self.loadStr += message
+        #sys.stdout.flush()
         self.loadDepth += 1
         self.lastPrint = 0
         t0 = time.time()
@@ -62,8 +65,8 @@ class QaData(object):
         
 
     def printMidLoad(self, message):
-        print message,
-        sys.stdout.flush()
+        self.loadStr += message
+        #sys.stdout.flush()
 
     def printStopLoad(self):
         t0 = self.t0[-1]
@@ -73,15 +76,19 @@ class QaData(object):
         done =  "done (%.2fs)." % t_elapsed
         if self.loadDepth > 1:
             if self.lastPrint == 1:
-                print "\n", " "*4*(self.loadDepth-1), done
+                self.loadStr += "\n"
+                self.loadStr += " "*4*(self.loadDepth-1)
+                self.loadStr += done
             else:
-                print done,
+                self.loadStr += done
         else:
             if self.lastPrint == 1:
-                print "\n"+done
+                self.loadStr += "\n"+done
             else:
-                print done
-        sys.stdout.flush()
+                self.loadStr += done
+        #sys.stdout.flush()
+        self.loadStr = ""
+
         self.loadDepth -= 1
         self.lastPrint = 1
         

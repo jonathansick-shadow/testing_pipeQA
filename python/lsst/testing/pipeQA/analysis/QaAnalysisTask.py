@@ -1,20 +1,33 @@
 import os
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 import cPickle as pickle
 import eups
 
+import lsst.pex.config as pexConfig
+import lsst.pipe.base as pipeBase
+
 import lsst.testing.pipeQA.TestCode as testCode
+import lsst.testing.pipeQA.figures as qaFig
 
-class QaAnalysis(object):
+
+class QaAnalysisConfig(pexConfig.Config):
+    pass
+
+
+class QaAnalysisTask(pipeBase.Task):
     """Baseclass for analysis classes."""
+    ConfigClass  = QaAnalysisConfig
+    _DefaultName = "qaAnalysis"
 
-    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False, lazyPlot='sensor'):
+
+    def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False,
+                 lazyPlot='sensor', *args, **kwargs):
         """
         @param testLabel   A name for this kind of analysis test.
         """
-        
-        self.testSets = {}
+        pipeBase.Task.__init__(self, *args, **kwargs)
+
+        self.testSets  = {}
         self.testLabel = testLabel
 
         # if we're not going to use the cached values

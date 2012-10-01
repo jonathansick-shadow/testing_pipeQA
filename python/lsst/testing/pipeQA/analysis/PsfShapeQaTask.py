@@ -1,33 +1,42 @@
 import sys, os, re
-import time
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
 import lsst.afw.math                as afwMath
 import lsst.afw.geom                as afwGeom
-import lsst.testing.pipeQA.TestCode as testCode
+import lsst.meas.algorithms        as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
 
-import QaAnalysis as qaAna
+from .QaAnalysisTask import QaAnalysisTask
+import lsst.testing.pipeQA.figures as qaFig
+import lsst.testing.pipeQA.TestCode as testCode
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+import QaPlotUtils as qaPlotUtil
 
 import lsst.testing.pipeQA.source as pqaSource
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
-
 from matplotlib.collections import LineCollection
 
-import QaPlotUtils as qaPlotUtil
 
-class PsfShapeQaAnalysis(qaAna.QaAnalysis):
+class PsfShapeQaConfig(pexConfig.Config): 
+    cameras  = pexConfig.ListField(dtype = str, doc = "Cameras to run PsfShapeQaTask",
+                                   default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+    ellipMax = pexConfig.Field(dtype = float, doc = "Maximum median ellipticity", default = 0.2)
+    fwhmMax  = pexConfig.Field(dtype = float, doc = "Maximum Psf Fwhm (arcsec)", default = 2.0)
+    
+    
+class PsfShapeQaTask(QaAnalysisTask):
+    ConfigClass = PsfShapeQaConfig
+    _DefaultName = "psfShapeQa"
 
-    def __init__(self, ellipMax, fwhmMax, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limitsEllip = [0.0, ellipMax]
-        self.limitsFwhm = [0.0, fwhmMax]
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limitsEllip = [0.0, self.config.ellipMax]
+        self.limitsFwhm = [0.0, self.config.fwhmMax]
 
         self.sCatDummy = pqaSource.Catalog()
         self.srefCatDummy = pqaSource.RefCatalog()
@@ -251,7 +260,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
             vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
                                 title="Median PSF Ellipticity", failLimits=self.limitsEllip)
             testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
@@ -304,7 +313,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
             fwhm = self.fwhm.get(raft, ccd)
             
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
 
             if data.cameraInfo.name == 'coadd':
@@ -341,7 +350,7 @@ class PsfShapeQaAnalysis(qaAna.QaAnalysis):
 
             
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
                 
             label = 'all'
             import PsfShapeQaAnalysisPlot as plotModule

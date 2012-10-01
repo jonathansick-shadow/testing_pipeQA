@@ -1,16 +1,19 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 import time
 
+import lsst.meas.algorithms         as measAlg
 import lsst.afw.math                as afwMath
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+from .QaAnalysisTask import QaAnalysisTask
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
+import QaPlotUtils as qaPlotUtil
 
 import lsst.testing.pipeQA.source as pqaSource
 
@@ -18,22 +21,73 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.font_manager as fm
 
-import QaPlotUtils as qaPlotUtil
+class PhotCompareQaConfig(pexConfig.Config):
+    
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask",
+                                  default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+    magCut = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS",
+                             default = 20.0)
+    deltaMin = pexConfig.Field(dtype = float, doc = "Minimum allowed delta", default = -0.02)
+    deltaMax = pexConfig.Field(dtype = float, doc = "Maximum allowed delta", default =  0.02)
+    rmsMax = pexConfig.Field(dtype = float, doc = "Maximum allowed photometric RMS on bright end",
+                             default = 0.02)
+    derrMax = pexConfig.Field(dtype = float, doc = "Maximum allowed error bar underestimate on bright end",
+                              default = 0.01)
+    slopeMinSigma = pexConfig.Field(dtype = float,
+                                    doc = "Minimum (positive valued) std.devs. of slope below slope=0", default = 3.5)
+    slopeMaxSigma = pexConfig.Field(dtype = float,
+                                    doc = "Maximum std.dev. of slope above slope=0", default = 3.5)
 
-class PhotCompareQaAnalysis(qaAna.QaAnalysis):
+    compareTypes = pexConfig.ListField(dtype = str,
+                                       doc = "Photometric Error: qaAnalysis.PhotCompareQaAnalysis", 
+                                       default = ("psf cat", "psf ap", "psf mod",
+                                                  "ap cat", "psf inst", "inst cat", "mod cat", "mod inst"))
+    
+# allowed = {
+#    "psf cat"  : "Compare Psf magnitudes to catalog magnitudes",
+#    "psf ap"   : "Compare Psf and aperture magnitudes",
+#    "psf mod"  : "Compare Psf and model magnitudes",
+#    "ap cat"   : "Compare Psf and model magnitudes",
+#    "psf inst" : "Compare PSF and instrument magnitudes",
+#    "inst cat" : "Compare Inst (Gaussian) and catalog magnitudes",
+#    "mod cat"  : "Compare model and catalog magnitudes",
+#    "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+# }
+#
 
-    def __init__(self, magType1, magType2, magCut,
-                 deltaMin, deltaMax, rmsMax, derrMax, slopeMinSigma, slopeMaxSigma, starGalaxyToggle,
-                 **kwargs):
+    starGalaxyToggle = pexConfig.ListField(dtype = str, doc = "Make separate figures for stars and galaxies.",
+                                           default = ("mod cat", "inst cat", "ap cat", "psf cat"))
+    
+# allowed = {
+#    "psf cat"  : "Separate stars/gxys for Psf magnitudes to catalog magnitudes",
+#    "psf ap"   : "Separate stars/gxys for Psf and aperture magnitudes",
+#    "psf mod"  : "Separate stars/gxys for Psf and model magnitudes",
+#    "ap cat"   : "Separate stars/gxys for Psf and model magnitudes",
+#    "psf inst" : "Separate stars/gxys for PSF and instrument magnitudes",
+#    "inst cat" : "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes",
+#    "mod cat"  : "Separate stars/gxys for model and catalog magnitudes",
+#    "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+# }
+#
+
+    
+
+class PhotCompareQaTask(QaAnalysisTask):
+    
+    ConfigClass = PhotCompareQaConfig
+    _DefaultName = "photCompareQa" 
+
+    
+    def __init__(self, magType1, magType2, starGalaxyToggle, **kwargs):
         testLabel = magType1+"-"+magType2
-        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
+        QaAnalysisTask.__init__(self, testLabel, **kwargs)
 
-        self.magCut = magCut
-        self.deltaLimits = [deltaMin, deltaMax]
-        self.rmsLimits = [0.0, rmsMax]
-        self.derrLimits = [0.0, derrMax]
-        self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
-        self.starGalaxyToggle = starGalaxyToggle
+        self.magCut = self.config.magCut
+        self.deltaLimits = [self.config.deltaMin, self.config.deltaMax]
+        self.rmsLimits = [0.0, self.config.rmsMax]
+        self.derrLimits = [0.0, self.config.derrMax]
+        self.slopeLimits = [-self.config.slopeMinSigma, self.config.slopeMaxSigma]
+        self.starGalaxyToggle = starGalaxyToggle # not from config!
 
         self.sCatDummy = pqaSource.Catalog()
         self.srefCatDummy = pqaSource.RefCatalog()
@@ -409,7 +463,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                                title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
             testSet.addFigure(meanFig, "f01"+meanFilebase+".png",
@@ -465,7 +519,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             star0 = self.star.get(raft, ccd)
             derr0 = self.derr.get(raft, ccd)
 
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             statBlurb = "Points used for statistics/trendline shown in red."
@@ -598,7 +652,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
 
             import PhotCompareQaAnalysisPlot as plotModule

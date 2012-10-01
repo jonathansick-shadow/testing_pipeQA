@@ -1,11 +1,13 @@
 import re
 import numpy as num
 
-import time
-import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
-import lsst.testing.pipeQA.figures as qaFig
 import lsst.meas.algorithms as measAlg
+import lsst.pex.config as pexConfig
+import lsst.pipe.base as pipeBase
+
+from .QaAnalysisTask import QaAnalysisTask
+import lsst.testing.pipeQA.TestCode as testCode
+import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 
@@ -25,10 +27,21 @@ except:
     hasMinuit = False
     
 
-class CompletenessQa(qaAna.QaAnalysis):
-    def __init__(self, completenessMagMin, completenessMagMax, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [completenessMagMin, completenessMagMax]
+class CompletenessQaConfig(pexConfig.Config):
+    cameras        = pexConfig.ListField(dtype=str,
+                                         doc="Cameras to run CompletenessQaTask",
+                                         default=("lsstSim", "cfht", "sdss", "coadd"))
+    completeMinMag = pexConfig.Field(dtype=float, doc="Minimum photometric depth", default = 20.0)
+    completeMaxMag = pexConfig.Field(dtype=float, doc="Maximum reasonable photometric depth", default = 25.0)
+
+    
+class CompletenessQaTask(QaAnalysisTask):
+    ConfigClass  = CompletenessQaConfig
+    _DefaultName = "completenessQa"
+
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [self.config.completeMinMag, self.config.completeMaxMag]
         self.bins   = num.arange(14, 27, 0.5)
 
         self.description = """
@@ -319,7 +332,7 @@ class CompletenessQa(qaAna.QaAnalysis):
         if vmin > vmax:
             vmax = vmin + (self.limits[1] - self.limits[0])
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
                                 title="Photometric Depth", cmapOver=red, cmapUnder=blue,
                                 failLimits=limitsToUse)
@@ -342,7 +355,7 @@ class CompletenessQa(qaAna.QaAnalysis):
             undetectedGalaxy = self.undetectedGalaxy.get(raft, ccd)
             depth            = self.depth.get(raft, ccd)
 
-            print "Plotting ", ccd
+            self.log.log(self.log.INFO, "Plotting %s" % (ccd))
             label = data.cameraInfo.getDetectorName(raft, ccd)
 
             dataDict = {
@@ -372,10 +385,10 @@ class CompletenessQa(qaAna.QaAnalysis):
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
 
-                
 
+                
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             label = 'all'
             import CompletenessQaPlot as plotModule
@@ -391,6 +404,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                 fig = plotModule.plot(dataDict)                
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
+
 
                 
             

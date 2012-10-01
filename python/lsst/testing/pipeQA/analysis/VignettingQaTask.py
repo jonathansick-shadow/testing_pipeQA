@@ -1,24 +1,39 @@
 import numpy as num
-import time
+import lsst.afw.math as afwMath
+import lsst.meas.algorithms as measAlg
+import lsst.pex.config as pexConfig
+import lsst.pipe.base as pipeBase
+
+from .QaAnalysisTask import QaAnalysisTask
+
 import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
 import lsst.testing.pipeQA.figures as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
 import RaftCcdData as raftCcdData
 import lsst.testing.pipeQA.source as pqaSource
-
-import lsst.meas.algorithms as measAlg
 import QaAnalysisUtils as qaAnaUtil
-import lsst.afw.math as afwMath
-
 import QaPlotUtils as qaPlotUtil
 
-class VignettingQa(qaAna.QaAnalysis):
-    def __init__(self, maxMedian, maxRms, maxMag, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.medLimits = [-1 * maxMedian, maxMedian]
-        self.rmsLimits = [0, maxRms]
-        self.maxMag    = maxMag
+
+
+class VignettingQaConfig(pexConfig.Config):
+    cameras   = pexConfig.ListField(dtype = str, doc = "Cameras to run VignettingQaTask",
+                                    default = ("lsstSim", "cfht", "suprimecam", "hscSim", "sdss", "coadd"))
+    maxMedian = pexConfig.Field(dtype = float, doc = "Maximum median magnitude offset", default = 0.02)
+    maxRms    = pexConfig.Field(dtype = float, doc = "Maximum magnitude offset RMS", default = 0.02)
+    maxMag    = pexConfig.Field(dtype = float, doc = "Maximum magnitude star to use in VignettingQa test",
+                                default = 19.0)
+
+    
+class VignettingQaTask(QaAnalysisTask):
+    ConfigClass = VignettingQaConfig
+    _DefaultName = "vignettingQa"
+
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.medLimits = [-self.config.maxMedian, self.config.maxMedian]
+        self.rmsLimits = [0, self.config.maxRms]
+        self.maxMag    = self.config.maxMag
 
         self.magType1 = "ap"
         self.magType2 = "cat"
@@ -211,7 +226,7 @@ class VignettingQa(qaAna.QaAnalysis):
         red  = '#ff0000'
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             medFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.medLimits,
                               title="Median offset", cmapOver=red, cmapUnder=blue,
                               failLimits=self.medLimits)
@@ -248,7 +263,7 @@ class VignettingQa(qaAna.QaAnalysis):
                         'summary' : False,
                         }
             
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
             import VignettingQaPlot as plotModule
             label = data.cameraInfo.getDetectorName(raft, ccd)
             caption = "Delta magnitude vs. radius " + label
@@ -265,7 +280,7 @@ class VignettingQa(qaAna.QaAnalysis):
 
             
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
 
             import VignettingQaPlot as plotModule
