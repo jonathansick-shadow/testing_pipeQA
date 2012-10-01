@@ -23,7 +23,7 @@ from matplotlib.collections import LineCollection
 class EmptySectorQaConfig(pexConfig.Config):
     cameras    = pexConfig.ListField(dtype = str,
                                      doc = "Cameras to run EmptySectorQaTask",
-                                     default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+                                     default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
     maxMissing = pexConfig.Field(dtype = int, doc = "Maximum number of missing CCDs", default = 1)
     nx         = pexConfig.Field(dtype = int, doc = "Mesh size in x", default = 4)
     ny         = pexConfig.Field(dtype = int, doc = "Mesh size in y", default = 4)

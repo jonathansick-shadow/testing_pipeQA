@@ -24,7 +24,7 @@ import matplotlib.font_manager as fm
 class PhotCompareQaConfig(pexConfig.Config):
     
     cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask",
-                                  default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+                                  default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
     magCut = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS",
                              default = 20.0)
     deltaMin = pexConfig.Field(dtype = float, doc = "Minimum allowed delta", default = -0.02)

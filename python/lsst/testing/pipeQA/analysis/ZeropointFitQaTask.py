@@ -21,7 +21,8 @@ import QaPlotUtils as qaPlotUtil
 
 class ZeropointFitQaConfig(pexConfig.Config):
     cameras   = pexConfig.ListField(dtype = str,
-                                    doc = "Cameras to run ZeropointFitQa", default = ("lsstSim", "cfht"))
+                                    doc = "Cameras to run ZeropointFitQa",
+                                    default = ("lsstSim", "cfht", "sdss", "coadd"))
     offsetMin = pexConfig.Field(dtype = float,
                                 doc = "Median offset of stars from zeropoint fit; minimum good value",
                                 default = -0.05)

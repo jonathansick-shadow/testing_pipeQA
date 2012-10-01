@@ -30,7 +30,7 @@ except:
 class CompletenessQaConfig(pexConfig.Config):
     cameras        = pexConfig.ListField(dtype=str,
                                          doc="Cameras to run CompletenessQaTask",
-                                         default=("lsstSim", "cfht"))
+                                         default=("lsstSim", "cfht", "sdss", "coadd"))
     completeMinMag = pexConfig.Field(dtype=float, doc="Minimum photometric depth", default = 20.0)
     completeMaxMag = pexConfig.Field(dtype=float, doc="Maximum reasonable photometric depth", default = 25.0)
 

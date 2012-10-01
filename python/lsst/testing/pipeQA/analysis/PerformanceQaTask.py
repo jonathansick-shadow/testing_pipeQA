@@ -29,7 +29,7 @@ def getMemUsageThisPid(size="rss"):
 
 
 class PerformanceQaConfig(pexConfig.Config):
-    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PerformanceQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim"))
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PerformanceQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim", "sdss", "coadd"))
 
 class PerformanceQaTask(QaAnalysisTask):
     ConfigClass = PerformanceQaConfig
@@ -155,7 +155,7 @@ class PerformanceQaTask(QaAnalysisTask):
             # make the figures and add them to the testSet
             # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
             if not self.delaySummary or isFinalDataId:
-                print "plotting FPAs"
+                self.log.log(self.log.INFO, "plotting FPAs")
                 memFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
                                       vlimits=self.limits, 
                                       title="Memory Usage [MB]",
@@ -213,46 +213,4 @@ class PerformanceQaTask(QaAnalysisTask):
             else:
                 del runtimeFig
                 
-
-        # we're not making summary figures for performance ... not yet anyway
-        if False:
-            cacheLabel = "pointPositions"
-            shelfData = {}
-
-            # make any individual (ie. per sensor) plots
-            for raft, ccd in self.mem.raftCcdKeys():
-
-                # get the data we want for this sensor (we stored it here in test() method above)
-                mem       = self.mem.get(raft, ccd)
-
-                print "plotting ", ccd
-
-            # add the plot to the testSet
-                areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-                testSet.addFigure(fig, "pointPositions.png",
-                                  "Pixel coordinates of all (black) and matched (red) detections.",
-                                  areaLabel=areaLabel)
-                xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
-                
-                shelfData[ccd] = [x+xlo, y+ylo, xmat+xlo, ymat+ylo, [xlo, xhi, ylo, yhi]]
-
-
-                
-            if self.useCache:
-                testSet.shelve(cacheLabel, shelfData)
-
-            if not self.delaySummary or isFinalDataId:
-                print "plotting Summary figure"
-
-            # unstash the values
-            if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel)
-                pass
-            
-            label = "all"
-            testSet.addFigure(allFig, "pointPositions.png",
-                              "Pixel coordinates of all (black) and matched (red) objects", areaLabel=label)
-
-
-            
 

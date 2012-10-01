@@ -233,10 +233,10 @@ class PipeQaTask(pipeBase.Task):
         if re.search(":", parsedCmd.visit):
             visits = parsedCmd.visit.split(":")
         dataIdInput = {
-            'visit': visits,
-            'ccd': parsedCmd.ccd,
-            'raft': parsedCmd.raft,
-            'snap': parsedCmd.snap,
+            'visit' : visits,
+            'sensor': parsedCmd.ccd,
+            'raft'  : parsedCmd.raft,
+            'snap'  : parsedCmd.snap,
             }
         rerun        = parsedCmd.rerun
         exceptExit   = parsedCmd.exceptExit
@@ -402,6 +402,7 @@ class PipeQaTask(pipeBase.Task):
             progset.addTest(visit, 0, [0, 1], "Not started.  Last dataId: None")
     
         testset = pipeQA.TestSet(group="", label="QA-failures"+groupTag, wwwCache=wwwCache)
+
         for visit in visits:
             visit_t0 = time.time()
     
@@ -411,9 +412,9 @@ class PipeQaTask(pipeBase.Task):
             # now break up the run into eg. rafts or ccds
             #  ... if we only run one raft or ccd at a time, we use less memory
             brokenDownDataIdList = data.breakDataId(dataIdVisit, breakBy)
-            
+
             for thisDataId in brokenDownDataIdList:
-                
+
                 for task in taskList:
     
                     test_t0 = time.time()
