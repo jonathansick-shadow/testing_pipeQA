@@ -309,7 +309,6 @@ class PipeQaTask(pipeBase.Task):
         for doTask, taskStr in ( (self.config.doZptFitQa,      "zptFitQa"),
                                  (self.config.doEmptySectorQa, "emptySectorQa"),
                                  (self.config.doAstromQa,      "astromQa"),
-                                 (self.config.doPerformanceQa, "performanceQa"),
                                  (self.config.doPsfShapeQa,    "psfShapeQa"),
                                  (self.config.doCompleteQa,    "completeQa"),
                                  (self.config.doVignettingQa,  "vignettingQa") ):
@@ -359,6 +358,12 @@ class PipeQaTask(pipeBase.Task):
                 taskList.append(stask)
                 
 
+        # the performance task should run last as it summarizes performance of all tasks
+        if self.config.doPerformanceQa:
+            performTask = self.makeSubtask("performanceQa", useCache=keep, wwwCache=wwwCache,
+                                           delaySummary=delaySummary, lazyPlot=lazyPlot)
+            taskList.append(performTask)
+                
                 
         # Split by visit, and handle specific requests
         visitsTmp = data.getVisits(dataId)

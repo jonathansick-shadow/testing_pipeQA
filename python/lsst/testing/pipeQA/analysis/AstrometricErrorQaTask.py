@@ -86,20 +86,20 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [numpy.radians(x) for x in [s.get("Ra"), s.get("Dec"),
-                                                sref.get("Ra"), sref.get("Dec")]]
+                    [numpy.radians(x) for x in [s.getD(data.k_Ra), s.getD(data.k_Dec),
+                                                sref.getD(data.k_rRa), sref.getD(data.k_rDec)]]
                 
 
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
-
-                if not (s.get('FlagPixInterpCen')):
+                
+                if not (s.get(data.k_intc)):
                     #print ra, dec, dRa, dDec, s.getD(xKey), s.getD(yKey), raRef, decRef
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
-                    self.x.append(raft, ccd, s.get('XAstrom'))
-                    self.y.append(raft, ccd, s.get('YAstrom'))
+                    self.x.append(raft, ccd, s.getD(data.k_x))
+                    self.y.append(raft, ccd, s.getD(data.k_y))
                     
                     
         testSet = self.getTestSet(data, dataId)

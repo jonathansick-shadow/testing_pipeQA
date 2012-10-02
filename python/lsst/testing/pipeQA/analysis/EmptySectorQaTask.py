@@ -87,14 +87,14 @@ class EmptySectorQaTask(QaAnalysisTask):
             filter = self.filter[key].getName()
             
             for s in ss:
-                self.x.append(raft, ccd, s.get("XAstrom"))
-                self.y.append(raft, ccd, s.get("YAstrom"))
+                self.x.append(raft, ccd, s.getD(data.k_x))
+                self.y.append(raft, ccd, s.getD(data.k_y))
                 
             if self.matchListDictSrc.has_key(key):
                 for m in self.matchListDictSrc[key]['matched']:
                     sref, s, dist = m
-                    self.xmat.append(raft, ccd, s.get("XAstrom"))
-                    self.ymat.append(raft, ccd, s.get("YAstrom"))
+                    self.xmat.append(raft, ccd, s.getD(data.k_x))
+                    self.ymat.append(raft, ccd, s.getD(data.k_y))
 
                     
         # create a testset

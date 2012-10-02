@@ -196,13 +196,13 @@ class CompletenessQaTask(QaAnalysisTask):
                     for m in mdict:
                         sref, s, dist = m
                         if fluxType == "psf":
-                            fref  = sref.get('PsfFlux')
-                            f     = s.get('PsfFlux')
-                            ferr  = s.get('PsfFluxErr')
+                            fref  = sref.getD(data.k_rPsf)
+                            f     = s.getD(data.k_Psf)
+                            ferr  = s.get(data.k_PsfE)
                         else:
-                            fref  = sref.get("ApFlux")
-                            f     = s.get("ApFlux")
-                            ferr  = s.get("ApFluxErr")
+                            fref  = sref.getD(data.k_rPsf)
+                            f     = s.getD(data.k_Ap)
+                            ferr  = s.getD(data.k_ApE)
 
 
                         if (fref > 0.0 and f > 0.0):
@@ -212,7 +212,7 @@ class CompletenessQaTask(QaAnalysisTask):
                                 if mrefmag > self.faintest:
                                     self.faintest == mrefmag
                                     
-                                if s.get("Extendedness") > 0.0:
+                                if s.get(data.k_ext) > 0.0:
                                     galaxies.append(mrefmag)
                                 else:
                                     stars.append(mrefmag)
@@ -239,9 +239,9 @@ class CompletenessQaTask(QaAnalysisTask):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.get("PsfFlux")
+                        f = orphan.getD(data.k_Psf)
                     else:
-                        f = orphan.get("ApFlux")
+                        f = orphan.getD(data.k_Ap)
                     if f > 0.0:
                         orphmag = -2.5*num.log10(f)
                         orphans.append(orphmag)

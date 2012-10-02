@@ -1,6 +1,9 @@
 import sys, os, re, copy, time
 import numpy
 
+import source as pqaSource
+
+
 #######################################################################
 #
 #
@@ -12,7 +15,7 @@ class QaData(object):
     #######################################################################
     #
     #######################################################################
-    def __init__(self, label, rerun, cameraInfo):
+    def __init__(self, label, rerun, cameraInfo, qaDataUtils):
         """
         @param label The name of this data set
         @param rerun The rerun to retrieve
@@ -47,6 +50,46 @@ class QaData(object):
         if self.cameraInfo.name == 'sdss':
             self.ccdConvention = 'camcol'
 
+            
+                
+        refCatObj     = pqaSource.RefCatalog()
+        self.k_rPsf   = refCatObj.keyDict['PsfFlux']
+        self.k_rAp    = refCatObj.keyDict['ApFlux']
+        self.k_rMod   = refCatObj.keyDict['ModelFlux']
+        self.k_rInst  = refCatObj.keyDict['InstFlux']
+        self.k_rRa    = refCatObj.keyDict['Ra']
+        self.k_rDec   = refCatObj.keyDict['Dec']
+        
+        catObj        = pqaSource.Catalog(qaDataUtils=qaDataUtils)
+        self.k_x      = catObj.keyDict['XAstrom']
+        self.k_y      = catObj.keyDict['YAstrom']
+        self.k_Ra     = catObj.keyDict['Ra']
+        self.k_Dec    = catObj.keyDict['Dec']
+        
+        self.k_Psf    = catObj.keyDict['PsfFlux']
+        self.k_Ap     = catObj.keyDict['ApFlux']
+        self.k_Mod    = catObj.keyDict['ModelFlux']
+        self.k_Inst   = catObj.keyDict['InstFlux']
+
+        self.k_PsfE   = catObj.keyDict['PsfFluxErr']
+        self.k_ApE    = catObj.keyDict['ApFluxErr']
+        self.k_ModE   = catObj.keyDict['ModelFluxErr']
+        self.k_InstE  = catObj.keyDict['InstFluxErr']
+
+        self.k_ext    = catObj.keyDict['Extendedness']
+
+        self.k_intc   = catObj.keyDict["FlagPixInterpCen"]
+        self.k_satc   = catObj.keyDict["FlagPixSaturCen"]
+        self.k_edg    = catObj.keyDict["FlagPixEdge"]
+        self.k_neg    = catObj.keyDict['FlagNegative']
+        self.k_bad    = catObj.keyDict["FlagBadCentroid"]
+
+        self.k_ixx    = catObj.keyDict['Ixx']
+        self.k_iyy    = catObj.keyDict['Iyy']
+        self.k_ixy    = catObj.keyDict['Ixy']
+                
+
+            
         
     def printStartLoad(self, message):
         self.loadStr = ""

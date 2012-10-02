@@ -92,9 +92,9 @@ class PsfShapeQaTask(QaAnalysisTask):
 
             fwhmTmp = 0.0
             for s in ss:
-                ixx = s.get("Ixx")
-                iyy = s.get("Iyy")
-                ixy = s.get("Ixy")
+                ixx = s.getD(data.k_ixx)
+                iyy = s.getD(data.k_iyy)
+                ixy = s.getD(data.k_ixy)
 
                 tmp = 0.25*(ixx-iyy)**2 + ixy**2
                 if tmp < 0:
@@ -116,19 +116,19 @@ class PsfShapeQaTask(QaAnalysisTask):
                     theta += numpy.pi
                     
                 #print ixx, iyy, ixy, a2, b2, ellip, theta
-                isStar = 0 if s.get("Extendedness") else 1
+                isStar = 0 if s.getD(data.k_ext) else 1
 
-                flux = s.get("PsfFlux")
+                flux = s.getD(data.k_Psf)
                 mag = 99.0
                 if flux > 0:
-                    mag = -2.5*numpy.log10(s.get("PsfFlux"))
+                    mag = -2.5*numpy.log10(s.getD(data.k_Psf))
                 if numpy.isfinite(ellip) and numpy.isfinite(theta) and isStar and mag < 20:
                     self.ellip.append(raft, ccd, ellip)
                     self.theta.append(raft, ccd, theta)
-                    self.x.append(raft, ccd,   s.get("XAstrom"))
-                    self.y.append(raft, ccd,   s.get("YAstrom"))
-                    self.ra.append(raft, ccd,  s.get("Ra"))
-                    self.dec.append(raft, ccd, s.get("Dec"))
+                    self.x.append(raft, ccd,   s.getD(data.k_x))
+                    self.y.append(raft, ccd,   s.getD(data.k_y))
+                    self.ra.append(raft, ccd,  s.getD(data.k_Ra))
+                    self.dec.append(raft, ccd, s.getD(data.k_Dec))
                     fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
             nFwhm = len(self.x.get(raft,ccd))

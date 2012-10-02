@@ -46,24 +46,25 @@ class VignettingQaTask(QaAnalysisTask):
         """
 
         
-    def _getFlux(self, mType, s, sref):
+    def _getFlux(self, data, mType, s, sref):
 
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
             return num.NaN
-            
+
+        
         
         if mType=="psf":
-            return s.get("PsfFlux")
+            return s.getD(data.k_Psf)
         elif mType=="ap":
-            return s.get("ApFlux")
+            return s.getD(data.k_Ap)
         elif mType=="mod":
-            return s.get("ModelFlux")
+            return s.getD(data.k_Mod)
         elif mType=="cat":
-            return sref.get("PsfFlux")
+            return sref.getD(data.k_rPsf)
         elif mType=="inst":
-            return s.get("InstFlux")
-        
+            return s.getD(data.k_Inst)
+
         
     def free(self):
         del self.detector
@@ -121,15 +122,15 @@ class VignettingQaTask(QaAnalysisTask):
                 for m in mdict:
                     sref, s, dist = m
 
-                    if s.get("Extendedness"): # if non-stellar
+                    if s.getD(data.k_ext): # if non-stellar
                         continue
 
-                    f1 = self._getFlux(self.magType1, s, sref)
-                    f2 = self._getFlux(self.magType2, s, sref)
+                    f1 = self._getFlux(data, self.magType1, s, sref)
+                    f2 = self._getFlux(data, self.magType2, s, sref)
 
-                    intcen = s.get("FlagPixInterpCen")
-                    satcen = s.get("FlagPixSaturCen")
-                    edge   = s.get("FlagPixEdge")
+                    intcen = s.get(data.k_intc)
+                    satcen = s.get(data.k_satc)
+                    edge   = s.get(data.k_edg)
                     
                     if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1 = -2.5*num.log10(f1)
@@ -144,13 +145,13 @@ class VignettingQaTask(QaAnalysisTask):
 
                             if data.cameraInfo.name == 'lsstSim':
                                 # XY switched
-                                xmm     = centerXm + (s.get("YAstrom") - centerXp)*pixelSize
-                                ymm     = centerYm + (s.get("XAstrom") - centerYp)*pixelSize
+                                xmm     = centerXm + (s.getD(data.k_x) - centerXp)*pixelSize
+                                ymm     = centerYm + (s.getD(data.k_y) - centerYp)*pixelSize
                                 radiusp = num.sqrt(xmm**2 + ymm**2) / pixelSize
                             else:
                                 # XY not switch, and pixel centers not in mm
-                                xmm     = centerXm + (s.get("XAstrom") - centerXp)
-                                ymm     = centerYm + (s.get("YAstrom") - centerYp)
+                                xmm     = centerXm + (s.getD(data.k_x) - centerXp)
+                                ymm     = centerYm + (s.getD(data.k_y) - centerYp)
                                 radiusp = num.sqrt(xmm**2 + ymm**2)
                             self.radius.append(raftId, ccdId, radiusp)
 

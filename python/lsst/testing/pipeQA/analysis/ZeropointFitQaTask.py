@@ -125,27 +125,27 @@ class ZeropointFitQaTask(QaAnalysisTask):
                 for m in mdict:
                     sref, s, dist = m
                     if fluxType == "psf":
-                        fref  = sref.get("PsfFlux")
-                        f     = s.get("PsfFlux")
-                        ferr  = s.get("PsfFluxErr")
+                        fref  = sref.getD(data.k_rPsf)
+                        f     = s.getD(data.k_Psf)
+                        ferr  = s.getD(data.k_PsfE)
                     else:
-                        fref  = sref.get("PsfFlux")
-                        f     = s.get("ApFlux")
-                        ferr  = s.get("ApFluxErr")
+                        fref  = sref.getD(data.k_rPsf)
+                        f     = s.getD(data.k_Ap)
+                        ferr  = s.getD(data.k_ApE)
 
                     # un-calibrate the magnitudes
                     f *= fmag0
                     
-                    intcen = s.get("FlagPixInterpCen")
-                    satcen = s.get("FlagPixSaturCen")
-                    edge   = s.get("FlagPixEdge")
+                    intcen = s.get(data.k_intc)
+                    satcen = s.get(data.k_satc)
+                    edge   = s.get(data.k_edg)
 
                     if (fref > 0.0 and f > 0.0 and not (intcen or satcen or edge)):
                         mrefmag  = -2.5*num.log10(fref)
                         mimgmag  = -2.5*num.log10(f)
                         mimgmerr =  2.5 / num.log(10.0) * ferr / f
     
-                        star = 0 if s.get("Extendedness") else 1
+                        star = 0 if s.getD(data.k_ext) else 1
                         
                         if num.isfinite(mrefmag) and num.isfinite(mimgmag):
                             if star:
@@ -175,9 +175,9 @@ class ZeropointFitQaTask(QaAnalysisTask):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.get("PsfFlux")
+                        f = orphan.getD(data.k_Psf)
                     else:
-                        f = orphan.get("ApFlux")
+                        f = orphan.getD(data.k_Ap)
                     if f > 0.0:
                         # un-calibrate the magnitudes
                         f *= fmag0

@@ -69,7 +69,7 @@ class HscDbQaData(QaData):
         @param rerun The data rerun to use
         @param cameraInfo A cameraInfo object describing the camera for these data
         """
-        QaData.__init__(self, database, rerun, cameraInfo)
+        QaData.__init__(self, database, rerun, cameraInfo, qaDataUtils)
         self.dbId        = DatabaseIdentity(self.label)
         self.dbInterface = DbInterface(self.dbId)
 
@@ -96,6 +96,7 @@ class HscDbQaData(QaData):
                 self.dbAliases[k] = k
         
 
+                
     def initCache(self):
 
         QaData.initCache(self)
@@ -187,11 +188,6 @@ class HscDbQaData(QaData):
 
         arcsecErr = 1.0/206265.0
 
-        #flagBad   = "m.flag%03d" % (dummyMask.getMaskPlane("BAD")+offset)
-        #flagSat   = "m.flag%03d" % (dummyMask.getMaskPlane("SAT")+offset)
-        #flagIntrp = "m.flag%03d" % (dummyMask.getMaskPlane("INTRP")+offset)
-        #flagEdge  = "m.flag%03d" % (dummyMask.getMaskPlane("EDGE")+offset)
-        #flagNeg   = "m.flag%03d" % (dummyMask.getMaskPlane("DETECTED_NEGATIVE")+offset)
 
         flagBad   = "s.flag_badctd"
         flagSat   = "s.flag_pixsttctr"
@@ -270,30 +266,32 @@ class HscDbQaData(QaData):
                 cat       = catObj.catalog
                 
                 matchListDict[key] = []
-                
-                refRaKey   = refCatObj.keyDict['Ra']
-                refDecKey  = refCatObj.keyDict['Dec']
-                refPsfKey  = refCatObj.keyDict['PsfFlux']
-                refApKey   = refCatObj.keyDict['ApFlux']
-                refModKey  = refCatObj.keyDict['ModelFlux']
-                refInstKey = refCatObj.keyDict['InstFlux']
 
-                psfKey     = catObj.keyDict['PsfFlux']
-                apKey      = catObj.keyDict['ApFlux']
-                modKey     = catObj.keyDict['ModelFlux']
-                instKey    = catObj.keyDict['InstFlux']
-                
-                psfErrKey  = catObj.keyDict['PsfFluxErr']
-                apErrKey   = catObj.keyDict['ApFluxErr']
-                modErrKey  = catObj.keyDict['ModelFluxErr']
-                instErrKey = catObj.keyDict['InstFluxErr']
-                
-                fPixInterpCenKey = catObj.keyDict['FlagPixInterpCen']
-                fNegativeKey     = catObj.keyDict['FlagNegative']
-                fPixEdgeKey      = catObj.keyDict['FlagPixEdge']
-                fBadCentroidKey  = catObj.keyDict['FlagBadCentroid']
-                fPixSaturCenKey  = catObj.keyDict['FlagPixSaturCen']
-                
+                if False:
+                    refRaKey   = refCatObj.keyDict['Ra']
+                    refDecKey  = refCatObj.keyDict['Dec']
+                    refPsfKey  = refCatObj.keyDict['PsfFlux']
+                    refApKey   = refCatObj.keyDict['ApFlux']
+                    refModKey  = refCatObj.keyDict['ModelFlux']
+                    refInstKey = refCatObj.keyDict['InstFlux']
+
+                    psfKey     = catObj.keyDict['PsfFlux']
+                    apKey      = catObj.keyDict['ApFlux']
+                    modKey     = catObj.keyDict['ModelFlux']
+                    self.k_Inst    = catObj.keyDict['InstFlux']
+
+                    psfErrKey  = catObj.keyDict['PsfFluxErr']
+                    apErrKey   = catObj.keyDict['ApFluxErr']
+                    modErrKey  = catObj.keyDict['ModelFluxErr']
+                    instErrKey = catObj.keyDict['InstFluxErr']
+
+                    fPixInterpCenKey = catObj.keyDict['FlagPixInterpCen']
+                    fNegativeKey     = catObj.keyDict['FlagNegative']
+                    fPixEdgeKey      = catObj.keyDict['FlagPixEdge']
+                    fBadCentroidKey  = catObj.keyDict['FlagBadCentroid']
+                    fPixSaturCenKey  = catObj.keyDict['FlagPixSaturCen']
+
+                    
             matchList = matchListDict[key]
 
             # reference objects
@@ -301,18 +299,18 @@ class HscDbQaData(QaData):
 
             sref.setId(refObjId)
             #sref.setId(srcId)
-            sref.setD(refRaKey, ra)
-            sref.setD(refDecKey, dec)
+            sref.setD(self.k_rRa, ra)
+            sref.setD(self.k_rDec, dec)
 
             # clip at -30
             if mag < -30:
                 mag = -30
             flux = refflux #10**(-mag/2.5)
 
-            sref.setD(refPsfKey, flux)
-            sref.setD(refApKey, flux)
-            sref.setD(refModKey, flux)
-            sref.setD(refInstKey, flux)
+            sref.setD(self.k_rPsf, flux)
+            sref.setD(self.k_rAp, flux)
+            sref.setD(self.k_rMod, flux)
+            sref.setD(self.k_rInst, flux)
 
             # sources
             s = cat.addNew()
@@ -321,7 +319,7 @@ class HscDbQaData(QaData):
             if sourceLookupByRef.has_key(refObjId):
                 realId = sourceLookupByRef[refObjId].getId()
             s.setId(realId)
-            s.setD(catObj.keyDict['Extendedness'], 0.0 if isStar else 1.0)
+            s.setD(self.k_ext, 0.0 if isStar else 1.0)
 
             
             i = 0
@@ -345,11 +343,11 @@ class HscDbQaData(QaData):
 
             # overwrite the values we loaded into these (those assumed the sourcelist flags,
             # and we're using the icsource ones.
-            s.set(fPixInterpCenKey, isIntrp)
-            s.set(fNegativeKey,     isNeg)
-            s.set(fPixEdgeKey,      isEdge)
-            s.set(fBadCentroidKey,  isBad)
-            s.set(fPixSaturCenKey,  isSat)
+            s.setI(self.k_intc,  isIntrp)
+            s.setI(self.k_neg,   isNeg)
+            s.setI(self.k_edg,   isEdge)
+            s.setI(self.k_bad,   isBad)
+            s.setI(self.k_satc,  isSat)
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
@@ -360,37 +358,35 @@ class HscDbQaData(QaData):
             #fmag0Err = fmag0Err*fmag0*numpy.log(10.0)/2.5
             #fmag0    = 10.0**(fmag0/2.5)
 
-               
-            #sref.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
 
             # fluxes 
-            zp = -2.5*numpy.log10(fmag0)
-            imag = -2.5*numpy.log10(s.getD(psfKey))
+            zp   = -2.5*numpy.log10(fmag0)
+            imag = -2.5*numpy.log10(s.getD(self.k_Psf))
 
-            s.setD(psfKey,   s.getD(psfKey)/fmag0)
-            s.setD(apKey,    s.getD(apKey)/fmag0)
-            s.setD(modKey,   s.getD(modKey)/fmag0)
-            s.setD(instKey,  s.getD(instKey)/fmag0)
+            s.setD(self.k_Psf,   s.getD(self.k_Psf)/fmag0)
+            s.setD(self.k_Ap,    s.getD(self.k_Ap)/fmag0)
+            s.setD(self.k_Mod,   s.getD(self.k_Mod)/fmag0)
+            s.setD(self.k_Inst,  s.getD(self.k_Inst)/fmag0)
             
 
             i_count += 1
                 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(psfKey), s.getD(psfErrKey),
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Psf), s.getD(self.k_PsfE),
                                                      fmag0, fmag0Err)
-            s.setD(psfErrKey, psfFluxErr)
+            s.setD(self.k_PsfE, psfFluxErr)
 
-            apFluxErr   = qaDataUtils.calibFluxError(s.getD(psfKey),  s.getD(apErrKey),
+            apFluxErr   = qaDataUtils.calibFluxError(s.getD(self.k_Ap),  s.getD(self.k_ApE),
                                                      fmag0, fmag0Err)
-            s.setD(apErrKey, apFluxErr)
+            s.setD(self.k_ApE, apFluxErr)
 
-            modFluxErr  = qaDataUtils.calibFluxError(s.getD(modKey), s.getD(modErrKey),
+            modFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Mod), s.getD(self.k_ModE),
                                                      fmag0, fmag0Err)
-            s.setD(modErrKey, modFluxErr)
+            s.setD(self.k_ModE, modFluxErr)
 
-            instFluxErr = qaDataUtils.calibFluxError(s.getD(instKey),  s.getD(instErrKey),
+            instFluxErr = qaDataUtils.calibFluxError(s.getD(self.k_Inst),  s.getD(self.k_InstE),
                                                      fmag0, fmag0Err)
-            s.setD(instErrKey, instFluxErr)
+            s.setD(self.k_InstE, instFluxErr)
 
             dist = 0.0
 
@@ -466,7 +462,6 @@ class HscDbQaData(QaData):
                     if multiplicity[soid] == 1:
                         matched.append(matchListById[soid])
                     else:
-                        #print -2.5*numpy.log10(so.getD(psfKey)), multiplicity[soid]
                         blended.append(matchListById[soid])
                         
             self.printMidLoad('\n        %s: Undet, orphan, matched, blended = %d %d %d %d' % (
@@ -490,14 +485,6 @@ class HscDbQaData(QaData):
         self.matchQueryCache[useRef][dataIdStr] = True
 
         self.printStopLoad()
-
-        if False:
-            for m in matched:
-                sref, s, dist = m
-                ra, dec, raRef, decRef = [numpy.radians(x) for x in [s.get("Ra"), s.get("Dec"),
-                                                                     sref.get("Ra"), sref.get("Dec")]]
-                print ra, dec, raRef, decRef
-        
         
         return typeDict
 
@@ -571,21 +558,22 @@ class HscDbQaData(QaData):
             catObj = pqaSource.Catalog(qaDataUtils)
             ssDict[k] = catObj.catalog
 
-            psfKey = catObj.keyDict['PsfFlux']
-            apKey  = catObj.keyDict['ApFlux']
-            modKey = catObj.keyDict['ModelFlux']
-            instKey = catObj.keyDict['InstFlux']
+            if False:
+                psfKey = catObj.keyDict['PsfFlux']
+                apKey  = catObj.keyDict['ApFlux']
+                modKey = catObj.keyDict['ModelFlux']
+                instKey = catObj.keyDict['InstFlux']
 
-            psfErrKey = catObj.keyDict['PsfFluxErr']
-            apErrKey  = catObj.keyDict['ApFluxErr']
-            modErrKey = catObj.keyDict['ModelFluxErr']
-            instErrKey = catObj.keyDict['InstFluxErr']
-                
-            fPixInterpCenKey = catObj.keyDict['FlagPixInterpCen']
-            fNegativeKey     = catObj.keyDict['FlagNegative']
-            fPixEdgeKey      = catObj.keyDict['FlagPixEdge']
-            fBadCentroidKey  = catObj.keyDict['FlagBadCentroid']
-            fPixSaturCenKey  = catObj.keyDict['FlagPixSaturCen']
+                psfErrKey = catObj.keyDict['PsfFluxErr']
+                apErrKey  = catObj.keyDict['ApFluxErr']
+                modErrKey = catObj.keyDict['ModelFluxErr']
+                instErrKey = catObj.keyDict['InstFluxErr']
+
+                fPixInterpCenKey = catObj.keyDict['FlagPixInterpCen']
+                fNegativeKey     = catObj.keyDict['FlagNegative']
+                fPixEdgeKey      = catObj.keyDict['FlagPixEdge']
+                fBadCentroidKey  = catObj.keyDict['FlagBadCentroid']
+                fPixSaturCenKey  = catObj.keyDict['FlagPixSaturCen']
             
         for row in results:
 
@@ -624,14 +612,6 @@ class HscDbQaData(QaData):
                     s.set(setKey, value)
                 i += 1
 
-            #print s.getD(fPixInterpCenKey), s.getD(fNegativeKey), \
-            #    s.getD(fPixEdgeKey), s.getD(fBadCentroidKey), s.getD(fPixSaturCenKey)
-            
-            #s.setD(fPixInterpCenKey, 0.0)
-            #s.setD(fNegativeKey, 0.0)
-            #s.setD(fPixEdgeKey, 0.0)
-            #s.setD(fBadCentroidKey, 0.0)
-            #s.setD(fPixSaturCenKey, 0.0)
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
@@ -646,27 +626,27 @@ class HscDbQaData(QaData):
                 continue
 
             # fluxes
-            s.setD(psfKey,   s.getD(psfKey)/fmag0)
-            s.setD(apKey,    s.getD(apKey)/fmag0)
-            s.setD(modKey,   s.getD(modKey)/fmag0)
-            s.setD(instKey,  s.getD(instKey)/fmag0)
+            s.setD(self.k_Psf,   s.getD(self.k_Psf)/fmag0)
+            s.setD(self.k_Ap,    s.getD(self.k_Ap)/fmag0)
+            s.setD(self.k_Mod,   s.getD(self.k_Mod)/fmag0)
+            s.setD(self.k_Inst,  s.getD(self.k_Inst)/fmag0)
 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(psfKey), s.getD(psfErrKey),
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Psf), s.getD(self.k_PsfE),
                                                      fmag0, fmag0Err)
-            s.setD(psfErrKey, psfFluxErr)
+            s.setD(self.k_PsfE, psfFluxErr)
 
-            apFluxErr   = qaDataUtils.calibFluxError(s.getD(psfKey),  s.getD(apErrKey),
+            apFluxErr   = qaDataUtils.calibFluxError(s.getD(self.k_Ap),  s.getD(self.k_ApE),
                                                      fmag0, fmag0Err)
-            s.setD(apErrKey, apFluxErr)
+            s.setD(self.k_ApE, apFluxErr)
 
-            modFluxErr  = qaDataUtils.calibFluxError(s.getD(modKey), s.getD(modErrKey),
+            modFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Mod), s.getD(self.k_ModE),
                                                      fmag0, fmag0Err)
-            s.setD(modErrKey, modFluxErr)
+            s.setD(self.k_ModE, modFluxErr)
 
-            instFluxErr = qaDataUtils.calibFluxError(s.getD(instKey),  s.getD(instErrKey),
+            instFluxErr = qaDataUtils.calibFluxError(s.getD(self.k_Inst),  s.getD(self.k_InstE),
                                                      fmag0, fmag0Err)
-            s.setD(instErrKey, instFluxErr)
+            s.setD(self.k_InstE, instFluxErr)
                 
 
         # cache it

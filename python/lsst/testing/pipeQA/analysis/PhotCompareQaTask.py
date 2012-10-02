@@ -125,7 +125,7 @@ class PhotCompareQaTask(QaAnalysisTask):
          The per-CCD derr figure compares the error bars v. magnitude with the empirical RMS.
         """
 
-    def _getFlux(self, mType, s, sref):
+    def _getFlux(self, data, mType, s, sref):
 
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
@@ -133,17 +133,17 @@ class PhotCompareQaTask(QaAnalysisTask):
             
         
         if mType=="psf":
-            return s.get("PsfFlux")
+            return s.getD(data.k_Psf)
         elif mType=="ap":
-            return s.get("ApFlux")
+            return s.getD(data.k_Ap)
         elif mType=="mod":
-            return s.get("ModelFlux")
+            return s.getD(data.k_Mod)
         elif mType=="cat":
-            return sref.get("PsfFlux")
+            return sref.getD(data.k_rPsf)
         elif mType=="inst":
-            return s.get("InstFlux")
+            return s.getD(data.k_Inst)
 
-    def _getFluxErr(self, mType, s, sref):
+    def _getFluxErr(self, data, mType, s, sref):
 
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
@@ -151,15 +151,15 @@ class PhotCompareQaTask(QaAnalysisTask):
             
         
         if mType=="psf":
-            return s.get("PsfFluxErr")
+            return s.getD(data.k_PsfE)
         elif mType=="ap":
-            return s.get("ApFluxErr")
+            return s.getD(data.k_ApE)
         elif mType=="mod":
-            return s.get("ModelFluxErr")
+            return s.getD(data.k_ModE)
         elif mType=="cat":
             return 0.0
         elif mType=="inst":
-            return s.get("InstFluxErr")
+            return s.getD(data.k_InstE)
 
     def free(self):
         del self.x
@@ -211,14 +211,14 @@ class PhotCompareQaTask(QaAnalysisTask):
                 for m in matchList:
                     sref, s, dist = m
                     
-                    f1  = self._getFlux(self.magType1, s, sref)
-                    f2  = self._getFlux(self.magType2, s, sref)
-                    df1 = self._getFluxErr(self.magType1, s, sref)
-                    df2 = self._getFluxErr(self.magType2, s, sref)
+                    f1  = self._getFlux(data, self.magType1, s, sref)
+                    f2  = self._getFlux(data, self.magType2, s, sref)
+                    df1 = self._getFluxErr(data, self.magType1, s, sref)
+                    df2 = self._getFluxErr(data, self.magType2, s, sref)
 
-                    intcen = s.get("FlagPixInterpCen")
-                    satcen = s.get("FlagPixSaturCen")
-                    edge   = s.get("FlagPixEdge")
+                    intcen = s.getI(data.k_intc)
+                    satcen = s.getI(data.k_satc)
+                    edge   = s.getI(data.k_edg)
                     
                     if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1  = -2.5*numpy.log10(f1)
@@ -226,15 +226,15 @@ class PhotCompareQaTask(QaAnalysisTask):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
                         
-                        star = 0 if s.get("Extendedness") else 1
+                        star = 0 if s.getD(data.k_ext) else 1
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             #print m1, m2
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
-                            self.x.append(raft, ccd, s.get("XAstrom"))
-                            self.y.append(raft, ccd, s.get("YAstrom"))
+                            self.x.append(raft, ccd, s.getD(data.k_x))
+                            self.y.append(raft, ccd, s.getD(data.k_y))
                             self.star.append(raft, ccd, star)
 
         # if we're not asked for catalog fluxes, we can just use a sourceSet
@@ -248,13 +248,13 @@ class PhotCompareQaTask(QaAnalysisTask):
 
                 #qaAnaUtil.isStar(ss)  # sets the 'STAR' flag
                 for s in ss:
-                    f1 = self._getFlux(self.magType1, s, s)
-                    f2 = self._getFlux(self.magType2, s, s)
-                    df1 = self._getFluxErr(self.magType1, s, s)
-                    df2 = self._getFluxErr(self.magType2, s, s)
-                    intcen = s.get("FlagPixInterpCen")
-                    satcen = s.get("FlagPixSaturCen")
-                    edge   = s.get("FlagPixEdge")
+                    f1 = self._getFlux(data, self.magType1, s, s)
+                    f2 = self._getFlux(data, self.magType2, s, s)
+                    df1 = self._getFluxErr(data, self.magType1, s, s)
+                    df2 = self._getFluxErr(data, self.magType2, s, s)
+                    intcen = s.getI(data.k_intc)
+                    satcen = s.getI(data.k_satc)
+                    edge   = s.getI(data.k_edg)
 
                     if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
 
@@ -263,7 +263,7 @@ class PhotCompareQaTask(QaAnalysisTask):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
 
-                        extend = s.get("Extendedness")
+                        extend = s.getD(data.k_ext)
 
                         star = 0 if extend else 1
 
@@ -274,8 +274,8 @@ class PhotCompareQaTask(QaAnalysisTask):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
-                            self.x.append(raft, ccd, s.get("XAstrom"))
-                            self.y.append(raft, ccd, s.get("YAstrom"))
+                            self.x.append(raft, ccd, s.getD(data.k_x))
+                            self.y.append(raft, ccd, s.getD(data.k_y))
                             self.star.append(raft, ccd, star)
                             
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)

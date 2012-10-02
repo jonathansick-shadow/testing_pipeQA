@@ -69,7 +69,7 @@ class DbQaData(QaData):
         @param rerun The data rerun to use
         @param cameraInfo A cameraInfo object describing the camera for these data
         """
-        QaData.__init__(self, database, rerun, cameraInfo)
+        QaData.__init__(self, database, rerun, cameraInfo, qaDataUtils)
         self.dbId        = DatabaseIdentity(self.label)
         self.dbInterface = LsstSimDbInterface(self.dbId)
 
@@ -156,8 +156,9 @@ class DbQaData(QaData):
         for k,v in self.dbAliases.items():
             if k in keyList:
                 self.dbAliases[k] = k
-        
 
+
+                
     def initCache(self):
 
         QaData.initCache(self)
@@ -297,23 +298,6 @@ class DbQaData(QaData):
                 cat       = catObj.catalog
                 
                 matchListDict[key] = []
-                
-                refRaKey   = refCatObj.keyDict['Ra']
-                refDecKey  = refCatObj.keyDict['Dec']
-                refPsfKey  = refCatObj.keyDict['PsfFlux']
-                refApKey   = refCatObj.keyDict['ApFlux']
-                refModKey  = refCatObj.keyDict['ModelFlux']
-                refInstKey = refCatObj.keyDict['InstFlux']
-
-                psfKey     = catObj.keyDict['PsfFlux']
-                apKey      = catObj.keyDict['ApFlux']
-                modKey     = catObj.keyDict['ModelFlux']
-                instKey    = catObj.keyDict['InstFlux']
-                
-                psfErrKey  = catObj.keyDict['PsfFluxErr']
-                apErrKey   = catObj.keyDict['ApFluxErr']
-                modErrKey  = catObj.keyDict['ModelFluxErr']
-                instErrKey = catObj.keyDict['InstFluxErr']
 
                 
             matchList = matchListDict[key]
@@ -322,23 +306,23 @@ class DbQaData(QaData):
             sref = refCat.addNew()
 
             sref.setId(refObjId)
-            sref.setD(refRaKey, ra)
-            sref.setD(refDecKey, dec)
+            sref.setD(self.k_rRa, ra)
+            sref.setD(self.k_rDec, dec)
             
             # clip at -30
             if mag < -30:
                 mag = -30
             flux = 10**(-mag/2.5)
 
-            sref.setD(refPsfKey, flux)
-            sref.setD(refApKey, flux)
-            sref.setD(refModKey, flux)
-            sref.setD(refInstKey, flux)
+            sref.setD(self.k_rPsf, flux)
+            sref.setD(self.k_rAp, flux)
+            sref.setD(self.k_rMod, flux)
+            sref.setD(self.k_rInst, flux)
 
             # sources
             s = cat.addNew()
             s.setId(srcId)
-            s.setD(catObj.keyDict['Extendedness'], 0.0 if isStar else 1.0)
+            s.setD(self.k_ext, 0.0 if isStar else 1.0)
             
             i = 0
             for value in row[nFields:]:
@@ -350,32 +334,31 @@ class DbQaData(QaData):
                     s.set(setKey, value)
                i += 1
 
-            #sref.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
 
             fmag0, fmag0Err = calib[key].getFluxMag0()
 
             # fluxes
-            s.setD(psfKey,   s.getD(psfKey)/fmag0)
-            s.setD(apKey,    s.getD(apKey)/fmag0)
-            s.setD(modKey,   s.getD(modKey)/fmag0)
-            s.setD(instKey,  s.getD(instKey)/fmag0)
+            s.setD(self.k_Psf,   s.getD(self.k_Psf)/fmag0)
+            s.setD(self.k_Ap,    s.getD(self.k_Ap)/fmag0)
+            s.setD(self.k_Mod,   s.getD(self.k_Mod)/fmag0)
+            s.setD(self.k_Inst,  s.getD(self.k_Inst)/fmag0)
 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(psfKey), s.getD(psfErrKey),
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Psf), s.getD(self.k_PsfE),
                                                      fmag0, fmag0Err)
-            s.setD(psfErrKey, psfFluxErr)
+            s.setD(self.k_PsfE, psfFluxErr)
 
-            apFluxErr   = qaDataUtils.calibFluxError(s.getD(psfKey),  s.getD(apErrKey),
+            apFluxErr   = qaDataUtils.calibFluxError(s.getD(self.k_Ap),  s.getD(self.k_ApE),
                                                      fmag0, fmag0Err)
-            s.setD(apErrKey, apFluxErr)
+            s.setD(self.k_ApE, apFluxErr)
 
-            modFluxErr  = qaDataUtils.calibFluxError(s.getD(modKey), s.getD(modErrKey),
+            modFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Mod), s.getD(self.k_ModE),
                                                      fmag0, fmag0Err)
-            s.setD(modErrKey, modFluxErr)
+            s.setD(self.k_ModE, modFluxErr)
 
-            instFluxErr = qaDataUtils.calibFluxError(s.getD(instKey),  s.getD(instErrKey),
+            instFluxErr = qaDataUtils.calibFluxError(s.getD(self.k_Inst),  s.getD(self.k_InstE),
                                                      fmag0, fmag0Err)
-            s.setD(instErrKey, instFluxErr)
+            s.setD(self.k_InstE, instFluxErr)
 
             dist = 0.0
 
@@ -441,7 +424,7 @@ class DbQaData(QaData):
                     if multiplicity[soid] == 1:
                         matched.append(matchListById[soid])
                     else:
-                        #print -2.5*numpy.log10(so.getD(psfKey)), multiplicity[soid]
+                        #print -2.5*numpy.log10(so.getD(psf)), multiplicity[soid]
                         blended.append(matchListById[soid])
                         
             self.printMidLoad('\n        %s: Undet, orphan, matched, blended = %d %d %d %d' % (
@@ -539,16 +522,6 @@ class DbQaData(QaData):
         for k in calib.keys():
             catObj = pqaSource.Catalog()
             ssDict[k] = catObj.catalog
-
-            psfKey = catObj.keyDict['PsfFlux']
-            apKey  = catObj.keyDict['ApFlux']
-            modKey = catObj.keyDict['ModelFlux']
-            instKey = catObj.keyDict['InstFlux']
-
-            psfErrKey = catObj.keyDict['PsfFluxErr']
-            apErrKey  = catObj.keyDict['ApFluxErr']
-            modErrKey = catObj.keyDict['ModelFluxErr']
-            instErrKey = catObj.keyDict['InstFluxErr']
                 
 
         for row in results:
@@ -585,34 +558,34 @@ class DbQaData(QaData):
             if (fmag0 == 0.0):
                 continue
 
-            pf, af, sf = s.getD(psfKey), s.getD(apKey), s.getD(modKey)
+            pf, af, sf = s.getD(self.k_Psf), s.getD(self.k_Ap), s.getD(self.k_Mod)
 
             #if pf > 1000.0:
             #    print dataIdTmp
             #    print "%8.2f %8.2f %8.2f    %8.4f %8.4f" % (pf, af, sf, pf/af - 1.0, pf/sf - 1.0)
             
             # fluxes
-            s.setD(psfKey,   s.getD(psfKey)/fmag0)
-            s.setD(apKey,    s.getD(apKey)/fmag0)
-            s.setD(modKey,   s.getD(modKey)/fmag0)
-            s.setD(instKey,  s.getD(instKey)/fmag0)
+            s.setD(self.k_Psf,   s.getD(self.k_Psf)/fmag0)
+            s.setD(self.k_Ap,    s.getD(self.k_Ap)/fmag0)
+            s.setD(self.k_Mod,   s.getD(self.k_Mod)/fmag0)
+            s.setD(self.k_Inst,  s.getD(self.k_Inst)/fmag0)
 
             # flux errors
-            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(psfKey), s.getD(psfErrKey),
+            psfFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Psf), s.getD(self.k_PsfE),
                                                      fmag0, fmag0Err)
-            s.setD(psfErrKey, psfFluxErr)
+            s.setD(self.k_PsfE, psfFluxErr)
 
-            apFluxErr   = qaDataUtils.calibFluxError(s.getD(psfKey),  s.getD(apErrKey),
+            apFluxErr   = qaDataUtils.calibFluxError(s.getD(self.k_Ap),  s.getD(self.k_ApE),
                                                      fmag0, fmag0Err)
-            s.setD(apErrKey, apFluxErr)
+            s.setD(self.k_ApE, apFluxErr)
 
-            modFluxErr  = qaDataUtils.calibFluxError(s.getD(modKey), s.getD(modErrKey),
+            modFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Mod), s.getD(self.k_ModE),
                                                      fmag0, fmag0Err)
-            s.setD(modErrKey, modFluxErr)
+            s.setD(self.k_ModE, modFluxErr)
 
-            instFluxErr = qaDataUtils.calibFluxError(s.getD(instKey),  s.getD(instErrKey),
+            instFluxErr = qaDataUtils.calibFluxError(s.getD(self.k_Inst),  s.getD(self.k_InstE),
                                                      fmag0, fmag0Err)
-            s.setD(instErrKey, instFluxErr)
+            s.setD(self.k_InstE, instFluxErr)
                 
 
         # cache it

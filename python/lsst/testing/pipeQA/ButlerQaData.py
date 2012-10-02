@@ -55,7 +55,7 @@ class ButlerQaData(QaData):
         @param verifyChecksum verify files in dataDir have correct checksum as listed in manifest
         """
         
-        QaData.__init__(self, label, rerun, cameraInfo)
+        QaData.__init__(self, label, rerun, cameraInfo, qaDataUtils)
         self.rerun = rerun
         self.dataDir = dataDir
 
@@ -270,30 +270,6 @@ class ButlerQaData(QaData):
 
                             matchListDict[dataKey] = []
 
-                            refRaKey   = refCatObj.keyDict['Ra']
-                            refDecKey  = refCatObj.keyDict['Dec']
-                            refPsfKey  = refCatObj.keyDict['PsfFlux']
-                            refApKey   = refCatObj.keyDict['ApFlux']
-                            refModKey  = refCatObj.keyDict['ModelFlux']
-                            refInstKey = refCatObj.keyDict['InstFlux']
-
-                            psfKey     = catObj.keyDict['PsfFlux']
-                            apKey      = catObj.keyDict['ApFlux']
-                            modKey     = catObj.keyDict['ModelFlux']
-                            instKey    = catObj.keyDict['InstFlux']
-
-                            psfErrKey  = catObj.keyDict['PsfFluxErr']
-                            apErrKey   = catObj.keyDict['ApFluxErr']
-                            modErrKey  = catObj.keyDict['ModelFluxErr']
-                            instErrKey = catObj.keyDict['InstFluxErr']
-
-                            intCenKey  = catObj.keyDict['FlagPixInterpCen']     
-                            negKey     = catObj.keyDict['FlagNegative']    
-                            edgeKey    = catObj.keyDict['FlagPixEdge']     
-                            badCenKey  = catObj.keyDict['FlagBadCentroid'] 
-                            satCenKey  = catObj.keyDict['FlagPixSaturCen']     
-                            extKey     = catObj.keyDict['Extendedness']
-
 
                         matchList = matchListDict[dataKey]
 
@@ -301,61 +277,60 @@ class ButlerQaData(QaData):
                         sref = refCat.addNew()
 
                         sref.setId(srefIn.getId()) # this should be refobjId
-                        sref.setD(refRaKey, srefIn.getRa().asDegrees())
-                        sref.setD(refDecKey, srefIn.getDec().asDegrees())
+                        sref.setD(self.k_rRa, srefIn.getRa().asDegrees())
+                        sref.setD(self.k_rDec, srefIn.getDec().asDegrees())
                         flux = srefIn.get('flux')
 
-                        sref.setD(refPsfKey, flux)
-                        sref.setD(refApKey, flux)
-                        sref.setD(refModKey, flux)
-                        sref.setD(refInstKey, flux)
+                        sref.setD(self.k_rPsf, flux)
+                        sref.setD(self.k_rAp, flux)
+                        sref.setD(self.k_rMod, flux)
+                        sref.setD(self.k_rInst, flux)
 
                         # sources
                         s = cat.addNew()
                         s.setId(sIn.getId())
-                        isStar = srefIn.get('stargal')+0.0
-                        s.setD(catObj.keyDict['Extendedness'], isStar)
+                        isStar = srefIn.get('stargal')
+                        s.setD(self.k_ext, isStar)
 
-                        s.setD(catObj.keyDict['XAstrom'], sIn.getX())
-                        s.setD(catObj.keyDict['YAstrom'], sIn.getY())
-                        s.setD(catObj.keyDict['Ra'], sIn.getRa().asDegrees())
-                        s.setD(catObj.keyDict['Dec'], sIn.getDec().asDegrees())
-                        s.setD(psfKey,  sIn.getPsfFlux())
-                        s.setD(apKey,   sIn.getApFlux())
-                        s.setD(modKey,  sIn.getModelFlux())
-                        s.setD(instKey, sIn.getInstFlux())
-
-                        s.setD(intCenKey, sIn.get('flags.pixel.interpolated.center')+0.0)
-                        s.setD(negKey,    sIn.get('flags.negative')+0.0)
-                        s.setD(edgeKey,   sIn.get('flags.pixel.edge')+0.0)
-                        s.setD(badCenKey, sIn.get('flags.badcentroid')+0.0)
-                        s.setD(satCenKey, sIn.get('flags.pixel.saturated.center')+0.0)
-                        s.setD(extKey,    sIn.get('classification.extendedness')+0.0)
+                        s.setD(self.k_x,    sIn.getX())
+                        s.setD(self.k_y,    sIn.getY())
+                        s.setD(self.k_Ra,   sIn.getRa().asDegrees())
+                        s.setD(self.k_Dec,  sIn.getDec().asDegrees())
+                        s.setD(self.k_Psf,  sIn.getPsfFlux())
+                        s.setD(self.k_Ap,   sIn.getApFlux())
+                        s.setD(self.k_Mod,  sIn.getModelFlux())
+                        s.setD(self.k_Inst, sIn.getInstFlux())
+                        s.setD(self.k_intc, sIn.get('flags.pixel.interpolated.center'))
+                        s.setD(self.k_neg,  sIn.get('flags.negative'))
+                        s.setD(self.k_edg,  sIn.get('flags.pixel.edge'))
+                        s.setD(self.k_bad,  sIn.get('flags.badcentroid'))
+                        s.setD(self.k_satc, sIn.get('flags.pixel.saturated.center'))
+                        s.setD(self.k_ext,  sIn.get('classification.extendedness'))
 
                         fmag0, fmag0Err = calib.getFluxMag0()
 
                         # fluxes
-                        s.setD(psfKey,   s.getD(psfKey)/fmag0)
-                        s.setD(apKey,    s.getD(apKey)/fmag0)
-                        s.setD(modKey,   s.getD(modKey)/fmag0)
-                        s.setD(instKey,  s.getD(instKey)/fmag0)
+                        s.setD(self.k_Psf,   s.getD(self.k_Psf)/fmag0)
+                        s.setD(self.k_Ap,    s.getD(self.k_Ap)/fmag0)
+                        s.setD(self.k_Mod,   s.getD(self.k_Mod)/fmag0)
+                        s.setD(self.k_Inst,  s.getD(self.k_Inst)/fmag0)
 
                         # flux errors
                         psfFluxErr  = qaDataUtils.calibFluxError(sIn.getPsfFlux(), sIn.getPsfFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setD(psfErrKey, psfFluxErr)
+                        s.setD(self.k_PsfE, psfFluxErr)
 
                         apFluxErr   = qaDataUtils.calibFluxError(sIn.getApFlux(),  sIn.getApFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setD(apErrKey, apFluxErr)
+                        s.setD(self.k_ApE, apFluxErr)
 
                         modFluxErr  = qaDataUtils.calibFluxError(sIn.getModelFlux(), sIn.getModelFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setD(modErrKey, modFluxErr)
+                        s.setD(self.k_ModE, modFluxErr)
 
                         instFluxErr = qaDataUtils.calibFluxError(sIn.getInstFlux(),  sIn.getInstFluxErr(),
                                                                  fmag0, fmag0Err)
-                        s.setD(instErrKey, instFluxErr)
+                        s.setD(self.k_InstE, instFluxErr)
 
                         if multiplicity.has_key(s.getId()):
                             multiplicity[s.getId()] += 1
@@ -497,79 +472,54 @@ class ButlerQaData(QaData):
                 catObj = pqaSource.Catalog()
                 cat  = catObj.catalog
 
-                raKey  = catObj.keyDict['Ra']     
-                decKey = catObj.keyDict['Dec']    
-                xKey   = catObj.keyDict['XAstrom']
-                yKey   = catObj.keyDict['YAstrom']
 
-                ixxKey = catObj.keyDict['Ixx']
-                iyyKey = catObj.keyDict['Iyy']
-                ixyKey = catObj.keyDict['Ixy']
-
-                intCenKey  = catObj.keyDict['FlagPixInterpCen']     
-                negKey     = catObj.keyDict['FlagNegative']    
-                edgeKey    = catObj.keyDict['FlagPixEdge']     
-                badCenKey  = catObj.keyDict['FlagBadCentroid'] 
-                satCenKey  = catObj.keyDict['FlagPixSaturCen']     
-                extKey     = catObj.keyDict['Extendedness']
-
-
-                psfKey = catObj.keyDict['PsfFlux']
-                apKey  = catObj.keyDict['ApFlux']
-                modKey = catObj.keyDict['ModelFlux']
-                instKey = catObj.keyDict['InstFlux']
-            
-                psfErrKey = catObj.keyDict['PsfFluxErr']
-                apErrKey  = catObj.keyDict['ApFluxErr']
-                modErrKey = catObj.keyDict['ModelFluxErr']
-                instErrKey = catObj.keyDict['InstFluxErr']
                     
                 for s in sourceCatalog:
 
                     rec = cat.addNew()
                     rec.setId(s.getId())
 
-                    rec.setD(raKey,    float(s.getRa()))
-                    rec.setD(decKey,   float(s.getDec()))
-                    rec.setD(xKey,     float(s.getX())) #Astrom()))
-                    rec.setD(yKey,     float(s.getY())) #Astrom()))
+                    rec.setD(self.k_Ra,    float(s.getRa()))
+                    rec.setD(self.k_Dec,   float(s.getDec()))
+                    rec.setD(self.k_x,     float(s.getX())) #Astrom()))
+                    rec.setD(self.k_y,     float(s.getY())) #Astrom()))
                     
                     # fluxes
-                    rec.setD(psfKey,   float(s.getPsfFlux())/fmag0)
-                    rec.setD(apKey,    float(s.getApFlux())/fmag0)
-                    rec.setD(modKey,   float(s.getModelFlux())/fmag0)
-                    rec.setD(instKey,  float(s.getInstFlux())/fmag0)
+                    rec.setD(self.k_Psf,   float(s.getPsfFlux())/fmag0)
+                    rec.setD(self.k_Ap,    float(s.getApFlux())/fmag0)
+                    rec.setD(self.k_Mod,   float(s.getModelFlux())/fmag0)
+                    rec.setD(self.k_Inst,  float(s.getInstFlux())/fmag0)
 
                     # shapes
-                    rec.setD(ixxKey,   float(s.getIxx()))
-                    rec.setD(iyyKey,   float(s.getIyy()))
-                    rec.setD(ixyKey,   float(s.getIxy()))
+                    rec.setD(self.k_Ixx,   float(s.getIxx()))
+                    rec.setD(self.k_Iyy,   float(s.getIyy()))
+                    rec.setD(self.k_Ixy,   float(s.getIxy()))
                     
                     # flags
-                    rec.setD(intCenKey, s.get('flags.pixel.interpolated.center')+0.0)
-                    rec.setD(negKey,    s.get('flags.negative')+0.0)
-                    rec.setD(edgeKey,   s.get('flags.pixel.edge')+0.0)
-                    rec.setD(badCenKey, s.get('flags.badcentroid')+0.0)
-                    rec.setD(satCenKey, s.get('flags.pixel.saturated.center')+0.0)
-                    rec.setD(extKey,    s.get('classification.extendedness')+0.0)
+                    rec.setI(self.k_intc, s.get('flags.pixel.interpolated.center'))
+                    rec.setI(self.k_neg,  s.get('flags.negative'))
+                    rec.setI(self.k_edg,  s.get('flags.pixel.edge'))
+                    rec.setI(self.k_bad,  s.get('flags.badcentroid'))
+                    rec.setI(self.k_satc, s.get('flags.pixel.saturated.center'))
+                    rec.setI(self.k_ext,  s.get('classification.extendedness'))
                     
                     
                     # flux errors
                     psfFluxErr  = qaDataUtils.calibFluxError(float(s.getPsfFlux()), float(s.getPsfFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setD(psfErrKey, psfFluxErr)
+                    rec.setD(self.k_PsfE, psfFluxErr)
 
                     apFluxErr   = qaDataUtils.calibFluxError(float(s.getApFlux()),  float(s.getApFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setD(apErrKey, apFluxErr)
+                    rec.setD(self.k_ApE, apFluxErr)
                     
                     modFluxErr  = qaDataUtils.calibFluxError(float(s.getModelFlux()), float(s.getModelFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setD(modErrKey, modFluxErr)
+                    rec.setD(self.k_ModE, modFluxErr)
                     
                     instFluxErr = qaDataUtils.calibFluxError(float(s.getInstFlux()),  float(s.getInstFluxErr()),
                                                              fmag0, fmag0Err)
-                    rec.setD(instErrKey, instFluxErr)
+                    rec.setD(self.k_InstE, instFluxErr)
 
 
                 self.sourceSetCache[dataKey] = catObj.catalog
