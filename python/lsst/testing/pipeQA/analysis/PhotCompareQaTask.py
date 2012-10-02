@@ -1,42 +1,91 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 import time
 
+import lsst.meas.algorithms         as measAlg
 import lsst.afw.math                as afwMath
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+from   .QaAnalysisTask              import QaAnalysisTask
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
+import QaPlotUtils                  as qaPlotUtil
 
-import QaAnalysis as qaAna
-import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
 
-import lsst.testing.pipeQA.source as pqaSource
 
-import matplotlib.cm as cm
-import matplotlib.colors as colors
-import matplotlib.font_manager as fm
+class PhotCompareQaConfig(pexConfig.Config):
+    
+    cameras     = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask",
+                                      default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+    magCut      = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS",
+                                  default = 20.0)
+    deltaMin    = pexConfig.Field(dtype = float, doc = "Min allowed delta", default = -0.02)
+    deltaMax    = pexConfig.Field(dtype = float, doc = "Max allowed delta", default =  0.02)
+    rmsMax      = pexConfig.Field(dtype = float, doc = "Max allowed photometric RMS on bright end",
+                                  default = 0.02)
+    derrMax     = pexConfig.Field(dtype = float, doc = "Max allowed error bar underestimate on bright end",
+                                  default = 0.01)
+    slopeMinSigma = pexConfig.Field(dtype = float,
+                                    doc = "Min (positive valued) std.devs. of slope below slope=0",
+                                    default = 3.5)
+    slopeMaxSigma = pexConfig.Field(dtype = float,
+                                    doc = "Maximum std.dev. of slope above slope=0", default = 3.5)
 
-import QaPlotUtils as qaPlotUtil
+    compareTypes  = pexConfig.ListField(dtype = str,
+                                        doc = "Photometric Error: qaAnalysis.PhotCompareQaAnalysis", 
+                                        default = ("psf cat", "psf ap", "psf mod",
+                                                   "ap cat", "psf inst", "inst cat", "mod cat", "mod inst"))
+    
+# allowed = {
+#    "psf cat"  : "Compare Psf magnitudes to catalog magnitudes",
+#    "psf ap"   : "Compare Psf and aperture magnitudes",
+#    "psf mod"  : "Compare Psf and model magnitudes",
+#    "ap cat"   : "Compare Psf and model magnitudes",
+#    "psf inst" : "Compare PSF and instrument magnitudes",
+#    "inst cat" : "Compare Inst (Gaussian) and catalog magnitudes",
+#    "mod cat"  : "Compare model and catalog magnitudes",
+#    "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+# }
+#
 
-class PhotCompareQaAnalysis(qaAna.QaAnalysis):
+    starGalaxyToggle = pexConfig.ListField(dtype = str, doc = "Make separate figures for stars and galaxies.",
+                                           default = ("mod cat", "inst cat", "ap cat", "psf cat"))
+    
+# allowed = {
+#    "psf cat"  : "Separate stars/gxys for Psf magnitudes to catalog magnitudes",
+#    "psf ap"   : "Separate stars/gxys for Psf and aperture magnitudes",
+#    "psf mod"  : "Separate stars/gxys for Psf and model magnitudes",
+#    "ap cat"   : "Separate stars/gxys for Psf and model magnitudes",
+#    "psf inst" : "Separate stars/gxys for PSF and instrument magnitudes",
+#    "inst cat" : "Separate stars/gxys for Inst (Gaussian) and catalog magnitudes",
+#    "mod cat"  : "Separate stars/gxys for model and catalog magnitudes",
+#    "mod inst" : "Separate stars/gxys for model and inst (Gaussian) magnitudes"
+# }
+#
 
-    def __init__(self, magType1, magType2, magCut,
-                 deltaMin, deltaMax, rmsMax, derrMax, slopeMinSigma, slopeMaxSigma, starGalaxyToggle,
-                 **kwargs):
+    
+
+class PhotCompareQaTask(QaAnalysisTask):
+    
+    ConfigClass = PhotCompareQaConfig
+    _DefaultName = "photCompareQa" 
+
+    
+    def __init__(self, magType1, magType2, starGalaxyToggle, **kwargs):
         testLabel = magType1+"-"+magType2
-        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
+        QaAnalysisTask.__init__(self, testLabel, **kwargs)
 
-        self.magCut = magCut
-        self.deltaLimits = [deltaMin, deltaMax]
-        self.rmsLimits = [0.0, rmsMax]
-        self.derrLimits = [0.0, derrMax]
-        self.slopeLimits = [-slopeMinSigma, slopeMaxSigma]
-        self.starGalaxyToggle = starGalaxyToggle
+        self.magCut           = self.config.magCut
+        self.deltaLimits      = [self.config.deltaMin, self.config.deltaMax]
+        self.rmsLimits        = [0.0, self.config.rmsMax]
+        self.derrLimits       = [0.0, self.config.derrMax]
+        self.slopeLimits      = [-self.config.slopeMinSigma, self.config.slopeMaxSigma]
+        self.starGalaxyToggle = starGalaxyToggle # not from config!
 
-        self.sCatDummy = pqaSource.Catalog()
-        self.srefCatDummy = pqaSource.RefCatalog()
         
         def magType(mType):
             if re.search("(psf|PSF)", mType):
@@ -84,15 +133,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             
         
         if mType=="psf":
-            return s.get(self.sCatDummy.PsfFluxKey)
+            return s.get("PsfFlux")
         elif mType=="ap":
-            return s.get(self.sCatDummy.ApFluxKey)
+            return s.get("ApFlux")
         elif mType=="mod":
-            return s.get(self.sCatDummy.ModelFluxKey)
+            return s.get("ModelFlux")
         elif mType=="cat":
-            return sref.get(self.srefCatDummy.PsfFluxKey)
+            return sref.get("PsfFlux")
         elif mType=="inst":
-            return s.get(self.sCatDummy.InstFluxKey)
+            return s.get("InstFlux")
 
     def _getFluxErr(self, mType, s, sref):
 
@@ -102,15 +151,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             
         
         if mType=="psf":
-            return s.get(self.sCatDummy.PsfFluxErrKey)
+            return s.get("PsfFluxErr")
         elif mType=="ap":
-            return s.get(self.sCatDummy.ApFluxErrKey)
+            return s.get("ApFluxErr")
         elif mType=="mod":
-            return s.get(self.sCatDummy.ModelFluxErrKey)
+            return s.get("ModelFluxErr")
         elif mType=="cat":
             return 0.0
         elif mType=="inst":
-            return s.get(self.sCatDummy.InstFluxErrKey)
+            return s.get("InstFluxErr")
 
     def free(self):
         del self.x
@@ -167,10 +216,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     df1 = self._getFluxErr(self.magType1, s, sref)
                     df2 = self._getFluxErr(self.magType2, s, sref)
 
-                    #badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
-                    intcen = s.get(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.get(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.get(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.get("FlagPixInterpCen")
+                    satcen = s.get("FlagPixSaturCen")
+                    edge   = s.get("FlagPixEdge")
                     
                     if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1  = -2.5*numpy.log10(f1)
@@ -178,15 +226,15 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
                         
-                        star = 0 if s.get(self.sCatDummy.ExtendednessKey) else 1
+                        star = 0 if s.get("Extendedness") else 1
                         
                         if numpy.isfinite(m1) and numpy.isfinite(m2):
                             #print m1, m2
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
-                            self.x.append(raft, ccd, s.get(self.sCatDummy.XAstromKey))
-                            self.y.append(raft, ccd, s.get(self.sCatDummy.YAstromKey))
+                            self.x.append(raft, ccd, s.get("XAstrom"))
+                            self.y.append(raft, ccd, s.get("YAstrom"))
                             self.star.append(raft, ccd, star)
 
         # if we're not asked for catalog fluxes, we can just use a sourceSet
@@ -204,9 +252,9 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                     f2 = self._getFlux(self.magType2, s, s)
                     df1 = self._getFluxErr(self.magType1, s, s)
                     df2 = self._getFluxErr(self.magType2, s, s)
-                    intcen = s.get(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.get(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.get(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.get("FlagPixInterpCen")
+                    satcen = s.get("FlagPixSaturCen")
+                    edge   = s.get("FlagPixEdge")
 
                     if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
 
@@ -215,7 +263,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
                         dm2 = 2.5 / numpy.log(10.0) * df2 / f2
 
-                        extend = s.get(self.sCatDummy.ExtendednessKey)
+                        extend = s.get("Extendedness")
 
                         star = 0 if extend else 1
 
@@ -226,8 +274,8 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
                             self.derr.append(raft, ccd, numpy.sqrt(dm1**2 + dm2**2))
                             self.diff.append(raft, ccd, m1 - m2)
                             self.mag.append(raft, ccd, m1)
-                            self.x.append(raft, ccd, s.get(self.sCatDummy.XAstromKey))
-                            self.y.append(raft, ccd, s.get(self.sCatDummy.YAstromKey))
+                            self.x.append(raft, ccd, s.get("XAstrom"))
+                            self.y.append(raft, ccd, s.get("YAstrom"))
                             self.star.append(raft, ccd, star)
                             
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
@@ -236,11 +284,11 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         testSet.addMetadata('magType2', self.magType2)
         testSet.addMetadata({"Description": self.description})
 
-        self.means = raftCcdData.RaftCcdData(self.detector)
+        self.means   = raftCcdData.RaftCcdData(self.detector)
         self.medians = raftCcdData.RaftCcdData(self.detector)
-        self.stds  = raftCcdData.RaftCcdData(self.detector)
-        self.derrs  = raftCcdData.RaftCcdData(self.detector)
-        self.trend = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0])
+        self.stds    = raftCcdData.RaftCcdData(self.detector)
+        self.derrs   = raftCcdData.RaftCcdData(self.detector)
+        self.trend   = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0])
         
         self.dmagMax = 0.4
         allMags = numpy.array([])
@@ -414,7 +462,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
         testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                                title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
             testSet.addFigure(meanFig, "f01"+meanFilebase+".png",
@@ -470,7 +518,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
             star0 = self.star.get(raft, ccd)
             derr0 = self.derr.get(raft, ccd)
 
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             statBlurb = "Points used for statistics/trendline shown in red."
@@ -603,7 +651,7 @@ class PhotCompareQaAnalysis(qaAna.QaAnalysis):
 
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
 
             import PhotCompareQaAnalysisPlot as plotModule

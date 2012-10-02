@@ -25,7 +25,9 @@ import pyfits
 import Manifest   as manifest
 import CameraInfo as qaCamInfo
 
-import QaDataUtils as qaDataUtils
+from QaDataUtils import QaDataUtils
+qaDataUtils = QaDataUtils()
+
 import simRefObject as simRefObj
 import source       as pqaSource
 
@@ -846,7 +848,7 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
     testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
     # make sure LsstSim is last in the list (its 'verifyRegistries()' will pass for all cameras)
-    cameraKeys = ["hsc", "suprimecam", "suprimecam-old", "sdss", "lsstsim"]
+    cameraKeys = ["hsc", "suprimecam", "suprimecam-old", "sdss", "lsstSim", "coadd"]
     cameraInfos = {
 #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
         "hsc" : qaCamInfo.HscCameraInfo(),

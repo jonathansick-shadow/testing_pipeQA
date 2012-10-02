@@ -1,37 +1,40 @@
 import sys, os, re
-import time
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
-
+import lsst.meas.algorithms         as measAlg
 import lsst.afw.math                as afwMath
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+from   .QaAnalysisTask              import QaAnalysisTask
 import lsst.testing.pipeQA.TestCode as testCode
-
-import QaAnalysis as qaAna
-import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
-
-import lsst.testing.pipeQA.source as pqaSource
-
-import matplotlib.cm as cm
-import matplotlib.colors as colors
-import matplotlib.font_manager as fm
-from matplotlib.collections import LineCollection
-
-import QaPlotUtils as qaPlotUtil
+import lsst.testing.pipeQA.figures  as qaFig
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
+import QaPlotUtils                  as qaPlotUtil
 
 
-class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, maxMissing, nx=4, ny=4, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [0, maxMissing]
-        self.nx = nx
-        self.ny = ny
 
-        self.sCatDummy = pqaSource.Catalog()
-        self.srefCatDummy = pqaSource.RefCatalog()
-        
+class EmptySectorQaConfig(pexConfig.Config):
+    cameras    = pexConfig.ListField(dtype = str,
+                                     doc = "Cameras to run EmptySectorQaTask",
+                                     default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+    maxMissing = pexConfig.Field(dtype = int, doc = "Maximum number of missing CCDs", default = 1)
+    nx         = pexConfig.Field(dtype = int, doc = "Mesh size in x", default = 4)
+    ny         = pexConfig.Field(dtype = int, doc = "Mesh size in y", default = 4)
+
+
+    
+class EmptySectorQaTask(QaAnalysisTask):
+    ConfigClass = EmptySectorQaConfig
+    _DefaultName = "emptySectorQa"
+
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [0, self.config.maxMissing]
+        self.nx = self.config.nx
+        self.ny = self.config.ny
+
         self.description = """
          For each CCD, the 1-to-1 matches between the reference catalog and
          sources are plotted as a function of position in the focal plane.
@@ -75,8 +78,6 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         filter = None
         self.size = raftCcdData.RaftCcdData(self.detector, initValue=[1.0, 1.0])
         for key, ss in self.ssDict.items():
-            xKey = self.sCatDummy.XAstromKey
-            yKey = self.sCatDummy.YAstromKey
             
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
@@ -86,14 +87,14 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
             filter = self.filter[key].getName()
             
             for s in ss:
-                self.x.append(raft, ccd, s.getD(xKey))
-                self.y.append(raft, ccd, s.getD(yKey))
+                self.x.append(raft, ccd, s.get("XAstrom"))
+                self.y.append(raft, ccd, s.get("YAstrom"))
                 
             if self.matchListDictSrc.has_key(key):
                 for m in self.matchListDictSrc[key]['matched']:
                     sref, s, dist = m
-                    self.xmat.append(raft, ccd, s.getD(xKey))
-                    self.ymat.append(raft, ccd, s.getD(yKey))
+                    self.xmat.append(raft, ccd, s.get("XAstrom"))
+                    self.ymat.append(raft, ccd, s.get("YAstrom"))
 
                     
         # create a testset
@@ -204,7 +205,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
         # make the figures and add them to the testSet
         # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
                                 vlimits=[0, self.nx*self.ny],
                                 title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
@@ -263,7 +264,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
                         'bbox' : [xxlo, xxhi, yylo, yyhi],
                         'nxn' : [self.nx, self.ny]}
             
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
             import EmptySectorQaAnalysisPlot as plotModule
             label = data.cameraInfo.getDetectorName(raft, ccd)
             caption = "Pixel coordinates of all (black) and matched (red) detections." + label
@@ -281,7 +282,7 @@ class EmptySectorQaAnalysis(qaAna.QaAnalysis):
 
             
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
 
             import EmptySectorQaAnalysisPlot as plotModule

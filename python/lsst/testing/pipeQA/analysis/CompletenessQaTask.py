@@ -1,21 +1,18 @@
 import re
-import numpy as num
+import numpy                                     as num
 
-import time
-import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
-import lsst.testing.pipeQA.figures as qaFig
-import lsst.meas.algorithms as measAlg
+import lsst.meas.algorithms                      as measAlg
+import lsst.pex.config                           as pexConfig
+import lsst.pipe.base                            as pipeBase
+
+from   .QaAnalysisTask                           import QaAnalysisTask
+import lsst.testing.pipeQA.TestCode              as testCode
+import lsst.testing.pipeQA.figures               as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import RaftCcdData as raftCcdData
+import RaftCcdData                               as raftCcdData
 
-import lsst.testing.pipeQA.source as pqaSource
+import QaPlotUtils                               as qaPlotUtil
 
-import QaPlotUtils as qaPlotUtil
-
-import matplotlib.ticker as ticker
-from matplotlib.font_manager import FontProperties
-import matplotlib.patches as patches
 
 # Until we can make it more robust
 hasMinuit = False
@@ -25,10 +22,21 @@ except:
     hasMinuit = False
     
 
-class CompletenessQa(qaAna.QaAnalysis):
-    def __init__(self, completenessMagMin, completenessMagMax, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [completenessMagMin, completenessMagMax]
+class CompletenessQaConfig(pexConfig.Config):
+    cameras        = pexConfig.ListField(dtype=str,
+                                         doc="Cameras to run CompletenessQaTask",
+                                         default=("lsstSim", "cfht", "sdss", "coadd"))
+    completeMinMag = pexConfig.Field(dtype=float, doc="Minimum photometric depth", default = 20.0)
+    completeMaxMag = pexConfig.Field(dtype=float, doc="Maximum reasonable photometric depth", default = 25.0)
+
+    
+class CompletenessQaTask(QaAnalysisTask):
+    ConfigClass  = CompletenessQaConfig
+    _DefaultName = "completenessQa"
+
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [self.config.completeMinMag, self.config.completeMaxMag]
         self.bins   = num.arange(14, 27, 0.5)
 
         self.description = """
@@ -168,20 +176,6 @@ class CompletenessQa(qaAna.QaAnalysis):
             self.fit = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0]) 
 
 
-
-        sCatDummy = pqaSource.Catalog().catalog
-        sCatSchema = sCatDummy.getSchema()
-        srefCatDummy  = pqaSource.RefCatalog().catalog
-        srefCatSchema = srefCatDummy.getSchema()
-        
-        psfKey = sCatSchema.find('PsfFlux').key
-        psfErrKey = sCatSchema.find('PsfFluxErr').key
-        apKey = sCatSchema.find('ApFlux').key
-        apErrKey = sCatSchema.find('ApFluxErr').key
-        extKey = sCatSchema.find('Extendedness').key
-        
-        refPsfKey = srefCatSchema.find('PsfFlux').key
-
         self.faintest = 0.0
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
@@ -202,13 +196,13 @@ class CompletenessQa(qaAna.QaAnalysis):
                     for m in mdict:
                         sref, s, dist = m
                         if fluxType == "psf":
-                            fref  = sref.getD(refPsfKey)
-                            f     = s.getD(psfKey)
-                            ferr  = s.getD(psfErrKey)
+                            fref  = sref.get('PsfFlux')
+                            f     = s.get('PsfFlux')
+                            ferr  = s.get('PsfFluxErr')
                         else:
-                            fref  = sref.getD(refPsfKey)
-                            f     = s.getD(apKey)
-                            ferr  = s.getD(apErrKey)
+                            fref  = sref.get("ApFlux")
+                            f     = s.get("ApFlux")
+                            ferr  = s.get("ApFluxErr")
 
 
                         if (fref > 0.0 and f > 0.0):
@@ -218,7 +212,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                                 if mrefmag > self.faintest:
                                     self.faintest == mrefmag
                                     
-                                if s.getD(extKey) > 0.0:
+                                if s.get("Extendedness") > 0.0:
                                     galaxies.append(mrefmag)
                                 else:
                                     stars.append(mrefmag)
@@ -245,9 +239,9 @@ class CompletenessQa(qaAna.QaAnalysis):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.getD(psfKey)
+                        f = orphan.get("PsfFlux")
                     else:
-                        f = orphan.getD(apKey)
+                        f = orphan.get("ApFlux")
                     if f > 0.0:
                         orphmag = -2.5*num.log10(f)
                         orphans.append(orphmag)
@@ -319,7 +313,7 @@ class CompletenessQa(qaAna.QaAnalysis):
         if vmin > vmax:
             vmax = vmin + (self.limits[1] - self.limits[0])
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
                                 title="Photometric Depth", cmapOver=red, cmapUnder=blue,
                                 failLimits=limitsToUse)
@@ -342,7 +336,7 @@ class CompletenessQa(qaAna.QaAnalysis):
             undetectedGalaxy = self.undetectedGalaxy.get(raft, ccd)
             depth            = self.depth.get(raft, ccd)
 
-            print "Plotting ", ccd
+            self.log.log(self.log.INFO, "Plotting %s" % (ccd))
             label = data.cameraInfo.getDetectorName(raft, ccd)
 
             dataDict = {
@@ -372,10 +366,10 @@ class CompletenessQa(qaAna.QaAnalysis):
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
 
-                
 
+                
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             label = 'all'
             import CompletenessQaPlot as plotModule
@@ -391,6 +385,7 @@ class CompletenessQa(qaAna.QaAnalysis):
                 fig = plotModule.plot(dataDict)                
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
+
 
                 
             

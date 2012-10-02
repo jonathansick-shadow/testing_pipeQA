@@ -13,7 +13,9 @@ import CameraInfo                       as qaCamInfo
 from DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
 from QaData        import QaData
 
-import QaDataUtils as qaDataUtils
+from LsstQaDataUtils import LsstQaDataUtils
+qaDataUtils = LsstQaDataUtils()
+
 import simRefObject as simRefObj
 import source       as pqaSource
 
@@ -148,7 +150,7 @@ class DbQaData(QaData):
         self.dbAliases = {
             #"flux_Gaussian" : "instFlux",
             #"flux_ESG"      : "modelFlux",
-            'instFlux' : 'instFlux',
+            'instFlux' : 'instFlux', 
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
@@ -344,8 +346,8 @@ class DbQaData(QaData):
                     setKey = catObj.setKeys[i]
                     if isinstance(value, str):
                         #print ord(value)
-                        value = 1.0 if ord(value) else 0.0
-                    s.setD(setKey, value)
+                        value = 1 if ord(value) else 0
+                    s.set(setKey, value)
                i += 1
 
             #sref.setFlagForDetection(sss.getFlagForDetection() | pqaSource.STAR)
@@ -573,9 +575,8 @@ class DbQaData(QaData):
                     setKey = catObj.setKeys[i]
                     #print value, type(value)
                     if isinstance(value, str) and len(value) == 1:
-                        value = 1.0 if ord(value) else 0.0
-                    s.setD(setKey, value)
-                    #print catObj.keyNames[i], value
+                        value = 1 if ord(value) else 0
+                    s.set(setKey, value)
                 i += 1
 
             # calibrate it
@@ -1267,5 +1268,4 @@ class DbQaData(QaData):
                             field+"="+regex+")")
 
         return "("+clause+")"
-
 

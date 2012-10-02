@@ -24,7 +24,7 @@ NEGATIVE      = 0x32
 #################################################################
 # RefSource
 import lsst.afw.table  as afwTab
-import HscQaDataUtils as qaDataUtils
+from QaDataUtils import QaDataUtils
 
 class _RefCatalog(object):
     
@@ -111,12 +111,12 @@ else:
 # a local Catalog wrapper
 class _Catalog(object):
 
-    def __init__(self):
+    def __init__(self, qaDataUtils=QaDataUtils()):
         self.schema = afwTab.SourceTable.makeMinimalSchema()
 
         setMethods, setTypes = qaDataUtils.getSourceSetAccessorsAndTypes()
 
-        #self.schema.addField('Id', type="L")
+        #self.schema.addField('RefId', type="L")
 
         self.setKeys = []
         self.keyNames = []
@@ -126,7 +126,7 @@ class _Catalog(object):
             
             name = setMethods[i]
             typ = setTypes[i]
-            
+
             if name == 'Id':
                 continue
             key = self.schema.addField(name, type=typ)

@@ -13,7 +13,9 @@ import CameraInfo                       as qaCamInfo
 from HscDatabaseQuery import DbInterface, DatabaseIdentity
 from QaData        import QaData
 
-import HscQaDataUtils as qaDataUtils
+from HscQaDataUtils import HscQaDataUtils
+qaDataUtils = HscQaDataUtils()
+
 import simRefObject as simRefObj
 import source       as pqaSource
 
@@ -86,7 +88,7 @@ class HscDbQaData(QaData):
         self.dbAliases = {
             #"flux_Gaussian" : "instFlux",
             #"flux_ESG"      : "modelFlux",
-            'instFlux' : 'instFlux',
+            #'flux_gaussian' : 'flux_gaussian',
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
@@ -191,36 +193,25 @@ class HscDbQaData(QaData):
         #flagEdge  = "m.flag%03d" % (dummyMask.getMaskPlane("EDGE")+offset)
         #flagNeg   = "m.flag%03d" % (dummyMask.getMaskPlane("DETECTED_NEGATIVE")+offset)
 
-        useIc = False
-        if useIc:
-            flagBad   = "s.flag028"
-            flagSat   = "s.flag034"
-            flagIntrp = "s.flag032"
-            flagEdge  = "s.flag030"
-            flagNeg   = "s.flag001"
-        else:
-            flagBad   = "s.flag005"
-            flagSat   = "s.flag011"
-            flagIntrp = "s.flag009"        
-            flagEdge  = "s.flag007"
-            flagNeg   = "s.flag004"
+        flagBad   = "s.flag_badctd"
+        flagSat   = "s.flag_pixsttctr"
+        flagIntrp = "s.flag_pixiplctr"
+        flagEdge  = "s.flag_pixedg"
+        flagNeg   = "s.flag_neg"
 
             
         if True:
             sql  = 'select '+','.join(zip(*sceNames)[1])+', m.ref_flux, '
-            sql += 'm.src_flux_psf, m.src_flux_psf_e, '
-            sql += 'm.src_flux_sinc, m.src_flux_sinc_e, '
-            sql += 'm.src_flux_gaussian, m.src_flux_gaussian_e, '            
-            sql += 'm.ref_ra2000, m.ref_dec2000, m.src_ra2000, m.src_dec2000, '
+            sql += 'm.ref_ra2000, m.ref_dec2000, m.ra2000, m.dec2000, '
             sql += ", ".join([flagBad,flagSat,flagIntrp,flagEdge,flagNeg]) + ", "
-            sql += 'm.src_classification_extendedness, m.ref_id, m.obj_id, '
+            sql += 'm.classification_extendedness, m.ref_id, m.obj_id, '
             sql += selectStr
             sql += '  from frame_sourcelist_sup as s, frame_sup as sce, frame_matchlist_sup as m'
             #sql += '  where (sce.frame_id = m.frame_id) and (s.obj_id = m.obj_id) '
             sql += '  where (sce.frame_id = m.frame_id) and '
             sql += '        (sce.frame_id = s.frame_id) and '
-            sql += '        (abs(s.ra2000 - m.src_ra2000) < '+str(arcsecErr)+") and "
-            sql += '        (abs(s.dec2000 - m.src_dec2000) < '+str(arcsecErr)+") "
+            sql += '        (abs(s.ra2000 - m.ra2000) < '+str(arcsecErr)+") and "
+            sql += '        (abs(s.dec2000 - m.dec2000) < '+str(arcsecErr)+") "
             sql += '    and '+idWhere
         else:
             # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
@@ -253,10 +244,9 @@ class HscDbQaData(QaData):
         for row in results:
 
 
-            nFields = 19 + nDataId
+            nFields = 13 + nDataId
             
-            refflux, src_flux_psf, src_flux_psf_e, src_flux_sinc, src_flux_sinc_e, \
-                src_flux_gaussian, src_flux_gaussian_e, ra, dec, srcRa, srcDec, \
+            refflux, ra, dec, srcRa, srcDec, \
                 isBad, isSat, isIntrp, isEdge, isNeg, \
                 isStar, refObjId, srcId = row[nDataId:nFields]
             mag = -2.5*numpy.log10(refflux)
@@ -276,7 +266,7 @@ class HscDbQaData(QaData):
             if not matchListDict.has_key(key):
                 refCatObj = pqaSource.RefCatalog()
                 refCat    = refCatObj.catalog
-                catObj    = pqaSource.Catalog()
+                catObj    = pqaSource.Catalog(qaDataUtils)
                 cat       = catObj.catalog
                 
                 matchListDict[key] = []
@@ -341,11 +331,11 @@ class HscDbQaData(QaData):
                     keyName = catObj.keyNames[i]
                     if isinstance(value, str):
                         #print ord(value)
-                        value = 1.0 if ord(value) else 0.0
+                        value = 1 if ord(value) else 0
                     if keyName == 'Ra':
-                        value = numpy.degrees(srcRa)
+                        value = numpy.degrees(value)
                     if keyName == 'Dec':
-                        value = numpy.degrees(srcDec)
+                        value = numpy.degrees(value)
                     #print keyName, value, type(value)
                     if value is None:
                         value = numpy.nan
@@ -356,11 +346,11 @@ class HscDbQaData(QaData):
             # overwrite the values we loaded into these (those assumed the sourcelist flags,
             # and we're using the icsource ones.
             s.set(fPixInterpCenKey, isIntrp)
-            s.set(fNegativeKey, isNeg)
-            s.set(fPixEdgeKey, isEdge)
-            s.set(fBadCentroidKey, isBad)
-            s.set(fPixSaturCenKey, isSat)
-                
+            s.set(fNegativeKey,     isNeg)
+            s.set(fPixEdgeKey,      isEdge)
+            s.set(fBadCentroidKey,  isBad)
+            s.set(fPixSaturCenKey,  isSat)
+
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
 
@@ -405,6 +395,7 @@ class HscDbQaData(QaData):
             dist = 0.0
 
             matchList.append([sref, s, dist])
+            
             multiplicity[s.getId()] = nMatches
 
         
@@ -499,6 +490,14 @@ class HscDbQaData(QaData):
         self.matchQueryCache[useRef][dataIdStr] = True
 
         self.printStopLoad()
+
+        if False:
+            for m in matched:
+                sref, s, dist = m
+                ra, dec, raRef, decRef = [numpy.radians(x) for x in [s.get("Ra"), s.get("Dec"),
+                                                                     sref.get("Ra"), sref.get("Dec")]]
+                print ra, dec, raRef, decRef
+        
         
         return typeDict
 
@@ -569,7 +568,7 @@ class HscDbQaData(QaData):
         # parse results and put them in a sourceSet
         ssDict = {}
         for k in calib.keys():
-            catObj = pqaSource.Catalog()
+            catObj = pqaSource.Catalog(qaDataUtils)
             ssDict[k] = catObj.catalog
 
             psfKey = catObj.keyDict['PsfFlux']
@@ -615,8 +614,13 @@ class HscDbQaData(QaData):
                 #print value, type(value), catObj.keyNames[i]
                 if not value is None:
                     setKey = catObj.setKeys[i]
+                    keyName = catObj.keyNames[i]
                     if isinstance(value, str) and len(value) == 1:
-                        value = 1.0 if ord(value) else 0.0
+                        value = 1 if ord(value) else 0
+                    if keyName == 'Ra':
+                        value = numpy.degrees(value)
+                    if keyName == 'Dec':
+                        value = numpy.degrees(value)
                     s.set(setKey, value)
                 i += 1
 

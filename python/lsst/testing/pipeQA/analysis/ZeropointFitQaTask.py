@@ -4,27 +4,41 @@ import time
 
 import lsst.meas.algorithms         as measAlg
 import lsst.testing.pipeQA.TestCode as testCode
-import QaAnalysis as qaAna
-import lsst.testing.pipeQA.figures as qaFig
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+from   .QaAnalysisTask              import QaAnalysisTask
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import QaAnalysisUtils as qaAnaUtil
-import RaftCcdData as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
+import RaftCcdData                  as raftCcdData
+import QaPlotUtils                  as qaPlotUtil
 
-import lsst.testing.pipeQA.source as pqaSource
 
-from matplotlib.font_manager import FontProperties
-from matplotlib.patches import Ellipse
-import QaPlotUtils as qaPlotUtil
 
-class ZeropointFitQa(qaAna.QaAnalysis):
-    def __init__(self, medOffsetMin, medOffsetMax, figsize=(5.0,5.0), **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.figsize = figsize
-        self.limits = [medOffsetMin, medOffsetMax]
+class ZeropointFitQaConfig(pexConfig.Config):
+    cameras   = pexConfig.ListField(dtype = str,
+                                    doc = "Cameras to run ZeropointFitQa",
+                                    default = ("lsstSim", "cfht", "sdss", "coadd"))
+    offsetMin = pexConfig.Field(dtype = float,
+                                doc = "Median offset of stars from zeropoint fit; minimum good value",
+                                default = -0.05)
+    offsetMax = pexConfig.Field(dtype = float,
+                                doc = "Median offset of stars from zeropoint fit; maximum good value",
+                                default = +0.05)
 
-        self.sCatDummy = pqaSource.Catalog()
-        self.srefCatDummy = pqaSource.RefCatalog()
+    
+    
+class ZeropointFitQaTask(QaAnalysisTask):
+    ConfigClass = ZeropointFitQaConfig
+    _DefaultName = "zeropointFitQa"
+
+    def __init__(self, figsize=(5.0,5.0), **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
         
+        self.figsize   = figsize
+        self.limits    = [self.config.offsetMin, self.config.offsetMax]
+
         self.description = """
          For each CCD, the central panel shows the instrumental magnitude of
          matched stars and galaxies, plotted as a function of the catalog
@@ -40,6 +54,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
          the zeropoint across the focal plane, as well as the fitted zeropoint.
         """
 
+        
     def free(self):
         del self.detector
         del self.filter
@@ -77,8 +92,6 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         self.zeroPoint        = raftCcdData.RaftCcdData(self.detector)
         self.medOffset        = raftCcdData.RaftCcdData(self.detector)
 
-        badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
-
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
             ccdId      = self.detector[key].getId().getName()
@@ -112,27 +125,27 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 for m in mdict:
                     sref, s, dist = m
                     if fluxType == "psf":
-                        fref  = sref.getD(self.srefCatDummy.PsfFluxKey)
-                        f     = s.getD(self.sCatDummy.PsfFluxKey)
-                        ferr  = s.getD(self.sCatDummy.PsfFluxErrKey)
+                        fref  = sref.get("PsfFlux")
+                        f     = s.get("PsfFlux")
+                        ferr  = s.get("PsfFluxErr")
                     else:
-                        fref  = sref.getD(self.srefCatDummy.PsfFluxKey)
-                        f     = s.getD(self.sCatDummy.ApFluxKey)
-                        ferr  = s.getD(self.sCatDummy.ApFluxErrKey)
+                        fref  = sref.get("PsfFlux")
+                        f     = s.get("ApFlux")
+                        ferr  = s.get("ApFluxErr")
 
                     # un-calibrate the magnitudes
                     f *= fmag0
                     
-                    intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.get("FlagPixInterpCen")
+                    satcen = s.get("FlagPixSaturCen")
+                    edge   = s.get("FlagPixEdge")
 
                     if (fref > 0.0 and f > 0.0 and not (intcen or satcen or edge)):
                         mrefmag  = -2.5*num.log10(fref)
                         mimgmag  = -2.5*num.log10(f)
                         mimgmerr =  2.5 / num.log(10.0) * ferr / f
     
-                        star = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
+                        star = 0 if s.get("Extendedness") else 1
                         
                         if num.isfinite(mrefmag) and num.isfinite(mimgmag):
                             if star:
@@ -162,9 +175,9 @@ class ZeropointFitQa(qaAna.QaAnalysis):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.getD(self.sCatDummy.PsfFluxKey)
+                        f = orphan.get("PsfFlux")
                     else:
-                        f = orphan.getD(self.sCatDummy.ApFluxKey)
+                        f = orphan.get("ApFlux")
                     if f > 0.0:
                         # un-calibrate the magnitudes
                         f *= fmag0
@@ -230,7 +243,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
         testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             
             blue = '#0000ff'
             red = '#ff0000'
@@ -259,7 +272,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             if zeropt == 0.0:
                 continue
             
-            print "Plotting", ccd
+            self.log.log(self.log.INFO, "Plotting %s" % (ccd))
 
 
             # Plot all matched galaxies
@@ -301,8 +314,7 @@ class ZeropointFitQa(qaAna.QaAnalysis):
             
 
         if not self.delaySummary or isFinalDataId:
-            
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
 
             label = 'all'
             import ZeropointFitQaPlot as plotModule

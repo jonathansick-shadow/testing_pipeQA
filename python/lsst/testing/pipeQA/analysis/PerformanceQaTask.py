@@ -1,24 +1,19 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
+import platform
 
+
+import lsst.meas.algorithms         as measAlg
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
 
-import QaAnalysis as qaAna
-import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
 
-import lsst.testing.pipeQA.source as pqaSource
+from   .QaAnalysisTask              import QaAnalysisTask
+import lsst.pex.config              as pexConfig
 
-import matplotlib.cm as cm
-import matplotlib.colors as colors
-import matplotlib.font_manager as fm
-from matplotlib.collections import LineCollection
-
-
-import platform
 
 
 def getMemUsageThisPid(size="rss"):
@@ -28,14 +23,23 @@ def getMemUsageThisPid(size="rss"):
 
 
 
-class performanceQa(qaAna.QaAnalysis):
+class PerformanceQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str,
+                                  doc = "Cameras to run PerformanceQaTask",
+                                  default = ("lsstSim", "cfht", "suprimecam", "hscSim", "sdss", "coadd"))
+
+    
+class PerformanceQaTask(QaAnalysisTask):
+    ConfigClass = PerformanceQaConfig
+    _DefaultName = "performanceQa"
 
     def __init__(self, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
+        QaAnalysisTask.__init__(self, **kwargs)
 
-        self.node = platform.node()
-        self.dist = platform.dist() # a tuple e.g., ('redhat', '6.2', 'Santiago')
-        fp_meminfo = open('/proc/meminfo')
+        self.node   = platform.node()
+        self.dist   = platform.dist() # a tuple e.g., ('redhat', '6.2', 'Santiago')
+        
+        fp_meminfo  = open('/proc/meminfo')
         meminfoList = fp_meminfo.readlines()
         fp_meminfo.close()
 
@@ -102,10 +106,13 @@ class performanceQa(qaAna.QaAnalysis):
                 plotRuntime = 0.0
             self.plotRuntime.set(raft, ccd, plotRuntime)
 
-            tTest = testCode.Test("test-runtime", testRuntime, [0.0, 3600], "Runtime for test()[s]", areaLabel=areaLabel)
+            tTest = testCode.Test("test-runtime", testRuntime, [0.0, 3600],
+                                  "Runtime for test()[s]", areaLabel=areaLabel)
             testSet.addTest(tTest)
                 
-            pTest = testCode.Test("plot-runtime", plotRuntime, [0.0, 3600], "Runtime for plot()[s] (%d plots)" % (qaFig.QaFigure.count), areaLabel=areaLabel)
+            pTest = testCode.Test("plot-runtime", plotRuntime, [0.0, 3600],
+                                  "Runtime for plot()[s] (%d plots)" % (qaFig.QaFigure.count),
+                                  areaLabel=areaLabel)
             testSet.addTest(pTest)
 
             info = self.node + " " + " ".join(self.dist)
@@ -150,7 +157,7 @@ class performanceQa(qaAna.QaAnalysis):
             # make the figures and add them to the testSet
             # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
             if not self.delaySummary or isFinalDataId:
-                print "plotting FPAs"
+                self.log.log(self.log.INFO, "plotting FPAs")
                 memFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
                                       vlimits=self.limits, 
                                       title="Memory Usage [MB]",
@@ -190,6 +197,8 @@ class performanceQa(qaAna.QaAnalysis):
             testSet.pickle(runtimeBase, [runtimeFig.data, runtimeFig.map])
 
             runArray = runtimeFig.getArray()
+            if len(runArray) == 0:
+                runArray = numpy.zeros(1)
             mintime, maxtime = runArray.min()-1.0, runArray.max()+1.0
             
             # make the figures and add them to the testSet
@@ -206,46 +215,4 @@ class performanceQa(qaAna.QaAnalysis):
             else:
                 del runtimeFig
                 
-
-        # we're not making summary figures for performance ... not yet anyway
-        if False:
-            cacheLabel = "pointPositions"
-            shelfData = {}
-
-            # make any individual (ie. per sensor) plots
-            for raft, ccd in self.mem.raftCcdKeys():
-
-                # get the data we want for this sensor (we stored it here in test() method above)
-                mem       = self.mem.get(raft, ccd)
-
-                print "plotting ", ccd
-
-            # add the plot to the testSet
-                areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
-                testSet.addFigure(fig, "pointPositions.png",
-                                  "Pixel coordinates of all (black) and matched (red) detections.",
-                                  areaLabel=areaLabel)
-                xlo, ylo, xhi, yhi = data.cameraInfo.getBbox(raft, ccd)
-                
-                shelfData[ccd] = [x+xlo, y+ylo, xmat+xlo, ymat+ylo, [xlo, xhi, ylo, yhi]]
-
-
-                
-            if self.useCache:
-                testSet.shelve(cacheLabel, shelfData)
-
-            if not self.delaySummary or isFinalDataId:
-                print "plotting Summary figure"
-
-            # unstash the values
-            if self.useCache:
-                shelfData = testSet.unshelve(cacheLabel)
-                pass
-            
-            label = "all"
-            testSet.addFigure(allFig, "pointPositions.png",
-                              "Pixel coordinates of all (black) and matched (red) objects", areaLabel=label)
-
-
-            
 

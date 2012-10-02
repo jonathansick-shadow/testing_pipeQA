@@ -71,7 +71,6 @@ class LsstSimDbInterface(DatabaseInterface):
 
         #print "mysql>", sql
         
-        
         # forking to handle plotting the summary figures causes (i think)
         # a disconnection when the child exits.  Need to reconnect when
         connected = True

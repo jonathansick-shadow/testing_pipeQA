@@ -1,13 +1,15 @@
 import sys, os, re
-import lsst.meas.algorithms         as measAlg
-import lsst.testing.pipeQA.figures  as qaFig
 import numpy                        as num
 
 import lsst.afw.math                as afwMath
+import lsst.meas.algorithms         as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+from .QaAnalysisTask import QaAnalysisTask
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-
-import QaAnalysis as qaAna
 import RaftCcdData as raftCcdData
 import QaAnalysisUtils as qaAnaUtil
 
@@ -15,22 +17,28 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from matplotlib.font_manager import FontProperties
 
-class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
+class VisitToVisitPhotQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PhotCompareQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht"))
+    magTypes = pexConfig.ListField(dtype = str, doc = "Make separate figures for different magnitude types", default = ("ap", "psf", "inst", "mod"))
+    magCut = pexConfig.Field(dtype = float, doc = "Faintest magnitude for establishing photometric RMS", default = 20.0)
+    deltaMin = pexConfig.Field(dtype = float, doc = "Minimum allowed delta", default = -0.02)
+    deltaMax = pexConfig.Field(dtype = float, doc = "Maximum allowed delta", default =  0.02)
+    rmsMax = pexConfig.Field(dtype = float, doc = "Maximum allowed photometric RMS on bright end", default =  0.02)
 
-    def __init__(self, database, visits, mType, magCut, 
-                 deltaMin, deltaMax, rmsMax, 
-                 **kwargs):
+class VisitToVisitPhotQaTask(QaAnalysisTask):
+    ConfigClass = VisitToVisitPhotQaConfig
+    _DefaultName = "visitToVisitPhotQa"
 
+    def __init__(self, matchDset, matchVisits, mType, **kwargs):
         # Turns VisitToVisitPhotQaAnalysis label into VisitToVisitPhotQaAnalysis.ap, VisitToVisitPhotQaAnalysis.psf, etc
         testLabel = mType
+        QaAnalysisTask.__init__(self, testLabel, **kwargs)
 
-        qaAna.QaAnalysis.__init__(self, testLabel, **kwargs)
-
-        self.database      = database
-        self.visits        = visits
-        self.magCut        = magCut
-        self.deltaLimits   = [deltaMin, deltaMax]
-        self.rmsLimits     = [0.0, rmsMax]
+        self.database      = matchDset
+        self.visits        = matchVisits
+        self.magCut        = self.config.magCut
+        self.deltaLimits   = [self.config.deltaMin, self.config.deltaMax]
+        self.rmsLimits     = [0.0, self.config.rmsMax]
         
         self.maglim        = [14.0, 25.0]
         self.colorlim      = [-0.98, 2.48]
@@ -59,6 +67,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                 return "cat"
             elif re.search("^inst", mType):
                 return "inst"
+
         self.magType = magType(mType)
 
     def _getFlux(self, mType, s, sref):
@@ -185,16 +194,16 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
                 visObjIds = num.array([x[0].getId() for x in visMatchList])
                 common    = list(set(srcObjIds) & set(visObjIds))
 
-                print key, ":", 
+                self.log.log(self.log.INFO, "%s :" % (key))
                 if len(common) == 0:
-                    print "No overlap, Using pre-to-post PT1.2 objectID mapping...", 
+                    self.log.log(self.log.INFO, "  No overlap, Using pre-to-post PT1.2 objectID mapping...")
                     
                     # Try objectID hack from PT1.2 to post-PT1.2:
                     visObjIds *= 2
                     isStar     = (num.array([x[0].getFlagForDetection() for x in visMatchList]) & measAlg.Flags.STAR) > 0
                     visObjIds += isStar
                     common     = list(set(srcObjIds) & set(visObjIds))
-                print "Found %d matches" % (len(common))
+                self.log.log(self.log.INFO, "Found %d matches" % (len(common)))
                     
                 # Iterate over all object ids
                 for i in range(len(common)):
@@ -399,7 +408,7 @@ class VisitToVisitPhotQaAnalysis(qaAna.QaAnalysis):
 
         blue, red = '#0000ff', '#ff0000'
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
                                title="Mean "+title, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
             testSet.addFigure(meanFig, "f01"+meanFilebase+".png",

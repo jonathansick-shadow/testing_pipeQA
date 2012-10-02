@@ -1,27 +1,40 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
 
 import time
 
 import lsst.afw.geom                as afwGeom
 import lsst.afw.math                as afwMath
+import lsst.meas.algorithms         as measAlg
+import lsst.pex.config              as pexConfig
+import lsst.pipe.base               as pipeBase
+
+from   .QaAnalysisTask              import QaAnalysisTask
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
-
-import QaAnalysis as qaAna
-import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
 
-import lsst.testing.pipeQA.source as pqaSource
-import QaPlotUtils as qaPlotUtil
+import QaPlotUtils                  as qaPlotUtil
 
-class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
 
-    def __init__(self, maxErr, **kwargs):
-        qaAna.QaAnalysis.__init__(self, **kwargs)
-        self.limits = [0.0, maxErr]
+
+class AstrometricErrorQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str,
+                                  doc = "Cameras to run AstrometricErrorQaTask",
+                                  default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+    maxErr  = pexConfig.Field(dtype = float,
+                              doc = "Maximum astrometric error (in arcseconds)",
+                              default = 0.5)
+
+class AstrometricErrorQaTask(QaAnalysisTask):
+    ConfigClass = AstrometricErrorQaConfig
+    _DefaultName = "astrometricErrorQa"
+
+    def __init__(self, **kwargs):
+        QaAnalysisTask.__init__(self, **kwargs)
+        self.limits = [0.0, self.config.maxErr]
 
         self.description = """
          For each CCD, the left figure shows the distance offset between the
@@ -47,9 +60,6 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         del self.medErrArcsec
         del self.medThetaRad
 
-        del self.sCatDummy
-        del self.srefCatDummy
-        
     def test(self, data, dataId):
 
         # get data
@@ -57,28 +67,13 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         self.detector         = data.getDetectorBySensor(dataId)
         self.filter           = data.getFilterBySensor(dataId)
         
-        #self.clusters = data.getSourceClusters(dataId)
 
         # compute the mean ra, dec for each source cluster
-
         self.dRa  = raftCcdData.RaftCcdVector(self.detector)
         self.dDec = raftCcdData.RaftCcdVector(self.detector)
         self.x    = raftCcdData.RaftCcdVector(self.detector)
         self.y    = raftCcdData.RaftCcdVector(self.detector)
 
-        self.sCatDummy = pqaSource.Catalog()
-        sCatDummy = self.sCatDummy.catalog
-        sCatSchema = sCatDummy.getSchema()
-        self.srefCatDummy  = pqaSource.RefCatalog()
-        srefCatDummy = self.srefCatDummy.catalog
-        srefCatSchema = srefCatDummy.getSchema()
-        
-        xKey      = sCatSchema.find('XAstrom').key
-        yKey      = sCatSchema.find('YAstrom').key
-        raKey     = sCatSchema.find('Ra').key
-        decKey    = sCatSchema.find('Dec').key
-        refRaKey  = srefCatSchema.find('Ra').key
-        refDecKey = srefCatSchema.find('Dec').key
 
         filter = None
         key = None
@@ -91,19 +86,20 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [numpy.radians(x) for x in [s.getD(raKey), s.getD(decKey),
-                                                sref.getD(refRaKey), sref.getD(refDecKey)]]
+                    [numpy.radians(x) for x in [s.get("Ra"), s.get("Dec"),
+                                                sref.get("Ra"), sref.get("Dec")]]
+                
 
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
-                
-                if not (s.get(sCatSchema.find('FlagPixInterpCen').key)):
+
+                if not (s.get('FlagPixInterpCen')):
                     #print ra, dec, dRa, dDec, s.getD(xKey), s.getD(yKey), raRef, decRef
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
-                    self.x.append(raft, ccd, s.getD(xKey))
-                    self.y.append(raft, ccd, s.getD(yKey))
+                    self.x.append(raft, ccd, s.get('XAstrom'))
+                    self.y.append(raft, ccd, s.get('YAstrom'))
                     
                     
         testSet = self.getTestSet(data, dataId)
@@ -189,7 +185,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
         testSet.pickle(medAstBase, [astFig.data, astFig.map])
         
         if not self.delaySummary or isFinalDataId:
-            print "plotting FPAs"
+            self.log.log(self.log.INFO, "plotting FPAs")
             astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
                               title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
                               cmapUnder="#ff0000")
@@ -232,7 +228,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             x = (self.x.get(raft, ccd))[w]
             y = (self.y.get(raft, ccd))[w]                
 
-            print "plotting ", ccd
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
 
             if data.cameraInfo.name == 'coadd':
@@ -265,7 +261,7 @@ class AstrometricErrorQaAnalysis(qaAna.QaAnalysis):
             
 
         if not self.delaySummary or isFinalDataId:
-            print "plotting Summary figure"
+            self.log.log(self.log.INFO, "plotting Summary figure")
             
             import AstrometricErrorQaPlot as plotModule
             label = 'all'

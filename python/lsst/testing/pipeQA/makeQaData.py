@@ -1,6 +1,6 @@
 import sys, os, re
 
-import QaDataUtils as qaDataUtils
+from  QaDataUtils import QaDataUtils
 
 
 ###################################################
@@ -23,6 +23,7 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
         # if TESTBED_PATH isn't set, skip this and assume it's a db
         validButler = False
         if os.environ.has_key('TESTBED_PATH') or os.environ.has_key('SUPRIME_DATA_DIR'):
+            qaDataUtils = QaDataUtils()            
             testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label, raiseOnFailure=False)
             if (not testbedDir is None) and (not testdataDir is None):
                 validButler = True
@@ -32,9 +33,10 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
         validDb = True
 
         try:
-            if not camera is None and re.search("^(suprimecam|hsc)", camera):
+            if not camera is None and  camera.lower() in ["suprimecam", "hsc"]:
                 from HscDatabaseQuery import DbInterface, DatabaseIdentity
-                dbInterface = DbInterface(DatabaseIdentity(label))
+                identity = DatabaseIdentity(label)
+                dbInterface = DbInterface(identity)              
             else:
                 from DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
                 dbInterface = LsstSimDbInterface(DatabaseIdentity(label))
@@ -50,11 +52,6 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
                             "Please specify retrievalType='butler', or retrievalType='db'.")
         if not validDb and not validButler:
             raise Exception("Unable to find "+label+" as a testbed directory or a database.")
-
-
-    # handle specially requested camera via retrievalType
-    #if re.search("(lsstsim|suprimecam|cfht|hsc|sdss)", retrievalType):
-    #    return makeButlerQaData(label, rerun, camera=retrievalType, **kwargs)
 
 
     print "RetrievalType=", retrievalType
@@ -75,7 +72,7 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
             "suprimecam-old" : [qaCamInfo.SuprimecamCameraInfo, [True]],
             "sdss"           : [qaCamInfo.SdssCameraInfo, []],
             "coadd"          : [qaCamInfo.CoaddCameraInfo, []],
-            "lsstsim"        : [qaCamInfo.LsstSimCameraInfo, []],
+            "lsstSim"        : [qaCamInfo.LsstSimCameraInfo, []],
             }
 
 
@@ -84,9 +81,9 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
             cam, args = cameraInfos[camera]
             cameraToUse = cam(*args)
         else:
-            cam, args = cameraInfos['lsstsim']
+            cam, args = cameraInfos['lsstSim']
             cameraToUse = cam(*args)
-            camera = 'lsstsim'
+            camera = 'lsstSim'
             
         if re.search("^(hsc|suprimecam|suprimecam-old)$", camera):
             from HscDbQaData      import HscDbQaData
