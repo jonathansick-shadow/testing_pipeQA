@@ -24,12 +24,16 @@ class PipeQaTestCases(unittest.TestCase):
         self.testRaft     = "2,2"
         self.testCcd      = "1,1"
 
-        self.wwwRerun     = os.path.join(eups.productDir("testing_pipeQA"), "tests", "www_rerun")
+        os.environ["WWW_ROOT"] = os.path.join(eups.productDir("testing_pipeQA"), "tests")
+        self.wwwRoot      = os.environ["WWW_ROOT"]
+        self.wwwRerun     = "www_rerun"
         os.environ["WWW_RERUN"] = self.wwwRerun
         if os.path.isdir(self.wwwRerun):
             shutil.rmtree(self.wwwRerun)
-            
 
+        self.wwwPath      = os.path.join(self.wwwRoot, self.wwwRerun)
+
+        
     def disableTasks(self):
         disArgs = ["--config"]
         disArgs.append("doAstromQa=False")
@@ -44,10 +48,10 @@ class PipeQaTestCases(unittest.TestCase):
         return disArgs
 
     def validateFiles(self, visit, filt, raft, ccd, checkFpa = True):
-        if not os.path.isdir(self.wwwRerun):
+        if not os.path.isdir(self.wwwPath):
             self.fail()
 
-        testDir = os.path.join(self.wwwRerun, "test_%s-%s_testPipeQaTask.ZeropointFitQaTask" % (visit, filt))
+        testDir = os.path.join(self.wwwPath, "test_%s-%s_testPipeQaTask.ZeropointFitQaTask" % (visit, filt))
 
         if not os.path.isdir(testDir):
             self.fail()
@@ -64,12 +68,12 @@ class PipeQaTestCases(unittest.TestCase):
         del self.qaTask
 
         try:
-            shutil.rmtree(self.wwwRerun) # just in case
+            shutil.rmtree(self.wwwPath) # just in case
         except:
             pass
     
     def testBasic(self):
-        os.mkdir(self.wwwRerun)
+        os.mkdir(self.wwwPath)
 
         args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         for disArg in self.disableTasks():
@@ -78,20 +82,20 @@ class PipeQaTestCases(unittest.TestCase):
         self.qaTask.parseAndRun(args)
         self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, self.testCcd)
 
-        shutil.rmtree(self.wwwRerun)
+        shutil.rmtree(self.wwwPath)
 
     def testAll(self):
-        os.mkdir(self.wwwRerun)
+        os.mkdir(self.wwwPath)
 
         args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         self.qaTask.parseAndRun(args)
         self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, self.testCcd)
 
-        shutil.rmtree(self.wwwRerun)
+        shutil.rmtree(self.wwwPath)
 
 
     def testRegexp(self):
-        os.mkdir(self.wwwRerun)
+        os.mkdir(self.wwwPath)
         
         args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", re.sub(",1", ".*", self.testCcd), self.testDatabase]
         for disArg in self.disableTasks():
@@ -101,7 +105,7 @@ class PipeQaTestCases(unittest.TestCase):
         for ccd in (0, 1, 2):
             self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
 
-        shutil.rmtree(self.wwwRerun)
+        shutil.rmtree(self.wwwPath)
 
     def testMemoryOpt(self):
         #  -b ccd  will run 1 ccd at a time and free memory after each
@@ -112,7 +116,7 @@ class PipeQaTestCases(unittest.TestCase):
         #  -f will fork the process before plotting. When all the data are loaded for
         #     the final summary figures, the memory footprint grows and the os can't get it back from the PID
         #     so the plot() method is run as a separate PID that dies and returns control to pipeQa.py 
-        os.mkdir(self.wwwRerun)
+        os.mkdir(self.wwwPath)
 
         args = ["-b", "ccd", "-k", "-d", "-f", "-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", re.sub(",1", ".*", self.testCcd), self.testDatabase]
         for disArg in self.disableTasks():
@@ -122,14 +126,14 @@ class PipeQaTestCases(unittest.TestCase):
         for ccd in (0, 1, 2):
             self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
 
-        shutil.rmtree(self.wwwRerun)
+        shutil.rmtree(self.wwwPath)
 
     def testMulti(self):
         # -g 5:n says 'group all visits matching '888.*' in groups of 5, and run the n'th one
         #        so the first example runs the first 5 visits, the second one runs the next 5 visits
         # --noWwwCache is essential if multiple pipeQas will be writing to the same place.
         #              more than 2 or 3, and there will be sqlite conflicts 
-        os.mkdir(self.wwwRerun)
+        os.mkdir(self.wwwPath)
 
         args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:0", "-v", "899.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         for disArg in self.disableTasks():
@@ -143,11 +147,11 @@ class PipeQaTestCases(unittest.TestCase):
         self.qaTask.parseAndRun(args)
         self.validateFiles(self.testVisit2, self.testFilt2, self.testRaft, self.testCcd)
 
-        shutil.rmtree(self.wwwRerun)
+        shutil.rmtree(self.wwwPath)
         
 
     def testExcept(self):
-        os.mkdir(self.wwwRerun)
+        os.mkdir(self.wwwPath)
         args = ["-e", "-b", "invalid", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         try:
             self.qaTask.parseAndRun(args)
@@ -155,7 +159,7 @@ class PipeQaTestCases(unittest.TestCase):
             pass
         else:
             self.fail()
-        shutil.rmtree(self.wwwRerun)
+        shutil.rmtree(self.wwwPath)
 #####
         
 def suite():
