@@ -100,7 +100,7 @@ class _RefSource(object):
 if useRefSource == 'afw':
     from lsst.afw.detection import Source as RefSource
 else:
-    RefSource = _RefSource
+    #RefSource = _RefSource
     RefCatalog = _RefCatalog
 
 
@@ -312,8 +312,9 @@ class _Source(object):
     
 if useSource == 'afw':    
     Catalog = _Catalog
-    Source = _Source
+    #Source = _Source
     
     
 else:
-    Source = _Source
+    #Source = _Source
+    pass
