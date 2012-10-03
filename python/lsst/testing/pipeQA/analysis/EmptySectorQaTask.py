@@ -5,19 +5,14 @@ import lsst.afw.math                as afwMath
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
-from .QaAnalysisTask import QaAnalysisTask
+from   .QaAnalysisTask              import QaAnalysisTask
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures  as qaFig
-import RaftCcdData     as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
-import QaPlotUtils     as qaPlotUtil
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
+import QaPlotUtils                  as qaPlotUtil
 
-import lsst.testing.pipeQA.source as pqaSource
 
-import matplotlib.cm as cm
-import matplotlib.colors as colors
-import matplotlib.font_manager as fm
-from matplotlib.collections import LineCollection
 
 
 class EmptySectorQaConfig(pexConfig.Config):
@@ -40,9 +35,6 @@ class EmptySectorQaTask(QaAnalysisTask):
         self.nx = self.config.nx
         self.ny = self.config.ny
 
-        self.sCatDummy = pqaSource.Catalog()
-        self.srefCatDummy = pqaSource.RefCatalog()
-        
         self.description = """
          For each CCD, the 1-to-1 matches between the reference catalog and
          sources are plotted as a function of position in the focal plane.
@@ -86,8 +78,6 @@ class EmptySectorQaTask(QaAnalysisTask):
         filter = None
         self.size = raftCcdData.RaftCcdData(self.detector, initValue=[1.0, 1.0])
         for key, ss in self.ssDict.items():
-            xKey = self.sCatDummy.XAstromKey
-            yKey = self.sCatDummy.YAstromKey
             
             raft = self.detector[key].getParent().getId().getName()
             ccd  = self.detector[key].getId().getName()
@@ -97,14 +87,14 @@ class EmptySectorQaTask(QaAnalysisTask):
             filter = self.filter[key].getName()
             
             for s in ss:
-                self.x.append(raft, ccd, s.getD(xKey))
-                self.y.append(raft, ccd, s.getD(yKey))
+                self.x.append(raft, ccd, s.getD(data.k_x))
+                self.y.append(raft, ccd, s.getD(data.k_y))
                 
             if self.matchListDictSrc.has_key(key):
                 for m in self.matchListDictSrc[key]['matched']:
                     sref, s, dist = m
-                    self.xmat.append(raft, ccd, s.getD(xKey))
-                    self.ymat.append(raft, ccd, s.getD(yKey))
+                    self.xmat.append(raft, ccd, s.getD(data.k_x))
+                    self.ymat.append(raft, ccd, s.getD(data.k_y))
 
                     
         # create a testset

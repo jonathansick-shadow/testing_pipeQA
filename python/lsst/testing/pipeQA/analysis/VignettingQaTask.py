@@ -1,18 +1,17 @@
-import numpy as num
-import lsst.afw.math as afwMath
+import numpy                as num
+import lsst.afw.math        as afwMath
 import lsst.meas.algorithms as measAlg
-import lsst.pex.config as pexConfig
-import lsst.pipe.base as pipeBase
+import lsst.pex.config      as pexConfig
+import lsst.pipe.base       as pipeBase
 
 from .QaAnalysisTask import QaAnalysisTask
 
-import lsst.testing.pipeQA.TestCode as testCode
-import lsst.testing.pipeQA.figures as qaFig
+import lsst.testing.pipeQA.TestCode              as testCode
+import lsst.testing.pipeQA.figures               as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import RaftCcdData as raftCcdData
-import lsst.testing.pipeQA.source as pqaSource
-import QaAnalysisUtils as qaAnaUtil
-import QaPlotUtils as qaPlotUtil
+import RaftCcdData                               as raftCcdData
+import QaAnalysisUtils                           as qaAnaUtil
+import QaPlotUtils                               as qaPlotUtil
 
 
 
@@ -31,6 +30,7 @@ class VignettingQaTask(QaAnalysisTask):
 
     def __init__(self, **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
+        
         self.medLimits = [-self.config.maxMedian, self.config.maxMedian]
         self.rmsLimits = [0, self.config.maxRms]
         self.maxMag    = self.config.maxMag
@@ -38,9 +38,6 @@ class VignettingQaTask(QaAnalysisTask):
         self.magType1 = "ap"
         self.magType2 = "cat"
 
-        self.sCatDummy = pqaSource.Catalog()
-        self.srefCatDummy = pqaSource.RefCatalog()
-        
         self.description = """
          For each CCD, the difference in aperture and reference catalog magnitudes
          is plotted as a function of radial location from the center of the
@@ -49,24 +46,25 @@ class VignettingQaTask(QaAnalysisTask):
         """
 
         
-    def _getFlux(self, mType, s, sref):
+    def _getFlux(self, data, mType, s, sref):
 
         # if the source isn't valid, return NaN
         if not hasattr(s, 'getId') or not hasattr(sref, 'getId'):
             return num.NaN
-            
+
+        
         
         if mType=="psf":
-            return s.getD(self.sCatDummy.PsfFluxKey)
+            return s.getD(data.k_Psf)
         elif mType=="ap":
-            return s.getD(self.sCatDummy.ApFluxKey)
+            return s.getD(data.k_Ap)
         elif mType=="mod":
-            return s.getD(self.sCatDummy.ModelFluxKey)
+            return s.getD(data.k_Mod)
         elif mType=="cat":
-            return sref.getD(self.srefCatDummy.PsfFluxKey)
+            return sref.getD(data.k_rPsf)
         elif mType=="inst":
-            return s.getD(self.sCatDummy.InstFluxKey)
-        
+            return s.getD(data.k_Inst)
+
         
     def free(self):
         del self.detector
@@ -80,6 +78,7 @@ class VignettingQaTask(QaAnalysisTask):
         del self.medianOffset
         del self.rmsOffset
 
+        
     def test(self, data, dataId):
         
         testSet = self.getTestSet(data, dataId)
@@ -96,7 +95,6 @@ class VignettingQaTask(QaAnalysisTask):
         self.medianOffset = raftCcdData.RaftCcdData(self.detector)
         self.rmsOffset    = raftCcdData.RaftCcdData(self.detector)
         
-        #badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
         
         for key in self.detector.keys():
 
@@ -124,15 +122,15 @@ class VignettingQaTask(QaAnalysisTask):
                 for m in mdict:
                     sref, s, dist = m
 
-                    if s.getD(self.sCatDummy.ExtendednessKey): # if non-stellar
+                    if s.getD(data.k_ext): # if non-stellar
                         continue
 
-                    f1 = self._getFlux(self.magType1, s, sref)
-                    f2 = self._getFlux(self.magType2, s, sref)
+                    f1 = self._getFlux(data, self.magType1, s, sref)
+                    f2 = self._getFlux(data, self.magType2, s, sref)
 
-                    intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
-                    satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
+                    intcen = s.get(data.k_intc)
+                    satcen = s.get(data.k_satc)
+                    edge   = s.get(data.k_edg)
                     
                     if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
                         m1 = -2.5*num.log10(f1)
@@ -147,13 +145,13 @@ class VignettingQaTask(QaAnalysisTask):
 
                             if data.cameraInfo.name == 'lsstSim':
                                 # XY switched
-                                xmm     = centerXm + (s.getD(self.sCatDummy.YAstromKey) - centerXp)*pixelSize
-                                ymm     = centerYm + (s.getD(self.sCatDummy.XAstromKey) - centerYp)*pixelSize
+                                xmm     = centerXm + (s.getD(data.k_x) - centerXp)*pixelSize
+                                ymm     = centerYm + (s.getD(data.k_y) - centerYp)*pixelSize
                                 radiusp = num.sqrt(xmm**2 + ymm**2) / pixelSize
                             else:
                                 # XY not switch, and pixel centers not in mm
-                                xmm     = centerXm + (s.getD(self.sCatDummy.XAstromKey) - centerXp)
-                                ymm     = centerYm + (s.getD(self.sCatDummy.YAstromKey) - centerYp)
+                                xmm     = centerXm + (s.getD(data.k_x) - centerXp)
+                                ymm     = centerYm + (s.getD(data.k_y) - centerYp)
                                 radiusp = num.sqrt(xmm**2 + ymm**2)
                             self.radius.append(raftId, ccdId, radiusp)
 

@@ -10,11 +10,11 @@ import lsst.afw.cameraGeom              as cameraGeom
 
 import CameraInfo                       as qaCamInfo
 
-from DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
+from HscDatabaseQuery import DbInterface, DatabaseIdentity
 from QaData        import QaData
 
-from LsstQaDataUtils import LsstQaDataUtils
-qaDataUtils = LsstQaDataUtils()
+from HscQaDataUtils import HscQaDataUtils
+qaDataUtils = HscQaDataUtils()
 
 import simRefObject as simRefObj
 import source       as pqaSource
@@ -60,10 +60,10 @@ class Timer(object):
 #
 #
 #########################################################################
-class DbQaData(QaData):
+class HscDbQaData(QaData):
     #Qa__init__(self, label, rerun, dataInfo):
 
-    def __init__(self, database, rerun, cameraInfo, **kwargs):
+    def __init__(self, database, rerun, cameraInfo):
         """
         @param database The name of the database to connect to
         @param rerun The data rerun to use
@@ -71,77 +71,15 @@ class DbQaData(QaData):
         """
         QaData.__init__(self, database, rerun, cameraInfo, qaDataUtils)
         self.dbId        = DatabaseIdentity(self.label)
-        self.dbInterface = LsstSimDbInterface(self.dbId)
+        self.dbInterface = DbInterface(self.dbId)
 
         self.refStr = {'obj' : ('Obj', 'object'), 'src' : ('Src', 'source') }
 
-        self.coaddTable  = kwargs.get('coaddTable', 'goodSeeing')
 
-        coaddTables = ['goodSeeing', 'chiSquared', 'deep', 'keith']
-        if not self.coaddTable in coaddTables:
-            raise ValueError, "coaddTable must be on of: %s" % (", ".join(coaddTables))
 
-        if self.coaddTable == 'chiSquared' and cameraInfo.name == 'coadd':
-            cameraInfo.setFilterless()
-        
-        self.useForced   = kwargs.get('useForced', False)
-        forced = ''
-        if self.useForced:
-            forced = 'Forced'
-
-            
-        cTabUpper = self.coaddTable[0].title() + self.coaddTable[1:]
-            
-        # define the tables to use for this camera
-        self.sceTables = {
-            'lsstSim'  : 'Science_Ccd_Exposure',
-            'sdss'  : 'Science_Ccd_Exposure',
-            'coadd' : '%sCoadd' % (cTabUpper),
-            }
-                          
-        self.sceIds = {
-            'lsstSim'  : 'scienceCcdExposureId',
-            'sdss'  : 'scienceCcdExposureId',
-            'coadd' : '%sCoaddId' % (self.coaddTable),
-            }
-
-        self.sTables = {
-            'lsstSim'  : 'Source',
-            'sdss'  : '%s%sSource'% ((cTabUpper, forced) if self.useForced else ('','')),
-            'coadd' : '%s%sSource' % (cTabUpper, forced),
-            }
-
-        self.sIds = {
-            'lsstSim'  : 'sourceId',
-            'sdss'  : self.coaddTable+'SourceId' if self.useForced else 'sourceId',
-            'coadd' : '%sSourceId' % (self.coaddTable),
-            }
-        
-        self.romTables = {
-            'lsstSim'  : 'Ref%sMatch',
-            'sdss'  : 'Ref'+cTabUpper+'%sMatch' if self.useForced else 'Ref%sMatch',
-            'coadd' : 'Ref%sSrcMatch' % (cTabUpper),
-            }
-        self.sceReplacements = {
-            'lsstSim'  : {}, #'fwhm' : 'fwhm',         'scienceCcdExposureId' : 'scienceCcdExposureId' },
-            'sdss'  : {}, #'fwhm' : 'fwhm',         'scienceCcdExposureId' : 'scienceCcdExposureId' },
-            'coadd' : {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : '%sCoaddId' % (cTabUpper) },
-            }
-
-        
-        defaultCamera = 'lsstSim'
-        self.sceTable = self.sceTables.get(cameraInfo.name, defaultCamera)
-        self.sceId    = self.sceIds.get(cameraInfo.name, defaultCamera)
-        self.sTable   = self.sTables.get(cameraInfo.name, defaultCamera)
-        self.sId      = self.sIds.get(cameraInfo.name, defaultCamera)
-        self.romTable = self.romTables.get(cameraInfo.name, defaultCamera)
-        self.sceReplace = self.sceReplacements.get(cameraInfo.name, defaultCamera)
-
-        
         # handle backward compatibility of database names
         keyList = []
-        sql = "show columns from "+self.sTable+";"
-
+        sql = "select column_name from information_schema.columns where table_name = 'frame_sourcelist_sup';"
         results = self.dbInterface.execute(sql)
         for r in results:
             keyList.append(r[0])
@@ -150,13 +88,13 @@ class DbQaData(QaData):
         self.dbAliases = {
             #"flux_Gaussian" : "instFlux",
             #"flux_ESG"      : "modelFlux",
-            'instFlux' : 'instFlux', 
+            #'flux_gaussian' : 'flux_gaussian',
             }
         # reset to old names if new names not present
         for k,v in self.dbAliases.items():
             if k in keyList:
                 self.dbAliases[k] = k
-
+        
 
                 
     def initCache(self):
@@ -176,6 +114,7 @@ class DbQaData(QaData):
             val = numpy.NaN 
         return val
 
+    
     def getMatchListBySensor(self, dataIdRegex, useRef='src'):
         """Get a dict of all SourceMatches matching dataId, with sensor name as dict keys.
 
@@ -186,6 +125,12 @@ class DbQaData(QaData):
         sourcesDict    = self.getSourceSetBySensor(dataIdRegex)
         refObjectsDict = self.getRefObjectSetBySensor(dataIdRegex)
         
+
+        sourceLookupByRef = {}
+        for k, sources in sourcesDict.items():
+            for s in sources:
+                sourceLookupByRef[s.get("RefId")] = s
+            
         
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
@@ -193,7 +138,7 @@ class DbQaData(QaData):
         selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
         selectStr  = ", ".join(selectList)
         
-        sql  = 'select sce.filterId, sce.filterName from '+self.sceTable+' as sce'
+        sql  = 'select sce.filter from frame_sup as sce'
         sql += ' where '
         haveAllKeys = True
 
@@ -239,49 +184,72 @@ class DbQaData(QaData):
         
         sql += idWhere
         result = self.dbInterface.execute(sql)
-        filterId, filterName = result[0]
+        filterName = result[0]
 
-        romTable = self.romTable
-        # if the romTable has a %s in it, sprintf the refStr (Obj or Src)
-        # otherwise assume it's hardcoded (ie. for RefGoodSeeingSourceMatch table)
-        if re.search('%s', romTable):
-            romTable = self.romTable % (self.refStr[useRef][0])
+        arcsecErr = 1.0/206265.0
 
-        useIndex = ''
-        if self.cameraInfo.name == 'sdss': # and self.useForced:
-            useIndex = 'use index()'
+
+        flagBad   = "s.flag_badctd"
+        flagSat   = "s.flag_pixsttctr"
+        flagIntrp = "s.flag_pixiplctr"
+        flagEdge  = "s.flag_pixedg"
+        flagNeg   = "s.flag_neg"
+
             
-        # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select '+ ", ".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId)
-        sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
-        sql += selectStr
-        sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce %s,' % (useIndex)
-        sql += '    '+romTable+' as rom, RefObject as sro' 
-        sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
-        sql += '    and (s.'+self.sId+' = rom.'+self.sId+') and (rom.refObjectId = sro.refObjectId)'
-
-        if useRef == 'obj':
-            sql += '    and (s.objectID is not NULL) '
-        sql += '    and '+idWhere
+        if True:
+            sql  = 'select '+','.join(zip(*sceNames)[1])+', m.ref_flux, '
+            sql += 'm.ref_ra2000, m.ref_dec2000, m.ra2000, m.dec2000, '
+            sql += ", ".join([flagBad,flagSat,flagIntrp,flagEdge,flagNeg]) + ", "
+            sql += 'm.classification_extendedness, m.ref_id, m.obj_id, '
+            sql += selectStr
+            sql += '  from frame_sourcelist_sup as s, frame_sup as sce, frame_matchlist_sup as m'
+            #sql += '  where (sce.frame_id = m.frame_id) and (s.obj_id = m.obj_id) '
+            sql += '  where (sce.frame_id = m.frame_id) and '
+            sql += '        (sce.frame_id = s.frame_id) and '
+            sql += '        (abs(s.ra2000 - m.ra2000) < '+str(arcsecErr)+") and "
+            sql += '        (abs(s.dec2000 - m.dec2000) < '+str(arcsecErr)+") "
+            sql += '    and '+idWhere
+        else:
+            # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
+            sql  = 'select '+ ", ".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.sourceId, '%(filterName)
+            sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
+            sql += selectStr
+            sql += '  from Source as s, Science_Ccd_Exposure as sce,'
+            sql += '    Ref%sMatch as rom, RefObject as sro' % (self.refStr[useRef][0])
+            sql += '  where (s.scienceCcdExposureId = sce.scienceCcdExposureId)'
+            sql += '    and (s.%sId = rom.%sId) and (rom.refObjectId = sro.refObjectId)' % \
+                   (self.refStr[useRef][1], self.refStr[useRef][1])
+            if useRef == 'obj':
+                sql += '    and (s.objectID is not NULL) '
+            sql += '    and '+idWhere
 
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
-        
+
+
         # run the query
         #print sql
-        results  = self.dbInterface.execute(sql)
-        
+
         self.sqlCache['match'][dataIdStr] = sql
-        
+
+        results  = self.dbInterface.execute(sql)
+
         # parse results and put them in a sourceSet
         multiplicity = {}
         matchListDict = {}
+        i_count = 0
         for row in results:
 
 
-            nFields = 7 + nDataId
+            nFields = 13 + nDataId
             
-            mag, ra, dec, isStar, refObjId, srcId, nMatches = row[nDataId:nFields]
-            #print mag, ra, dec, isStar, refObjId, srcId
+            refflux, ra, dec, srcRa, srcDec, \
+                isBad, isSat, isIntrp, isEdge, isNeg, \
+                isStar, refObjId, srcId = row[nDataId:nFields]
+            mag = -2.5*numpy.log10(refflux)
+            ra = numpy.degrees(ra)
+            dec = numpy.degrees(dec)
+
+            nMatches = 1
             dataIdTmp = {}
             for j in range(nDataId):
                 idName = sceNames[j][0]
@@ -294,25 +262,50 @@ class DbQaData(QaData):
             if not matchListDict.has_key(key):
                 refCatObj = pqaSource.RefCatalog()
                 refCat    = refCatObj.catalog
-                catObj    = pqaSource.Catalog()
+                catObj    = pqaSource.Catalog(qaDataUtils)
                 cat       = catObj.catalog
                 
                 matchListDict[key] = []
 
-                
+                if False:
+                    refRaKey   = refCatObj.keyDict['Ra']
+                    refDecKey  = refCatObj.keyDict['Dec']
+                    refPsfKey  = refCatObj.keyDict['PsfFlux']
+                    refApKey   = refCatObj.keyDict['ApFlux']
+                    refModKey  = refCatObj.keyDict['ModelFlux']
+                    refInstKey = refCatObj.keyDict['InstFlux']
+
+                    psfKey     = catObj.keyDict['PsfFlux']
+                    apKey      = catObj.keyDict['ApFlux']
+                    modKey     = catObj.keyDict['ModelFlux']
+                    self.k_Inst    = catObj.keyDict['InstFlux']
+
+                    psfErrKey  = catObj.keyDict['PsfFluxErr']
+                    apErrKey   = catObj.keyDict['ApFluxErr']
+                    modErrKey  = catObj.keyDict['ModelFluxErr']
+                    instErrKey = catObj.keyDict['InstFluxErr']
+
+                    fPixInterpCenKey = catObj.keyDict['FlagPixInterpCen']
+                    fNegativeKey     = catObj.keyDict['FlagNegative']
+                    fPixEdgeKey      = catObj.keyDict['FlagPixEdge']
+                    fBadCentroidKey  = catObj.keyDict['FlagBadCentroid']
+                    fPixSaturCenKey  = catObj.keyDict['FlagPixSaturCen']
+
+                    
             matchList = matchListDict[key]
 
             # reference objects
             sref = refCat.addNew()
 
             sref.setId(refObjId)
+            #sref.setId(srcId)
             sref.setD(self.k_rRa, ra)
             sref.setD(self.k_rDec, dec)
-            
+
             # clip at -30
             if mag < -30:
                 mag = -30
-            flux = 10**(-mag/2.5)
+            flux = refflux #10**(-mag/2.5)
 
             sref.setD(self.k_rPsf, flux)
             sref.setD(self.k_rAp, flux)
@@ -321,28 +314,63 @@ class DbQaData(QaData):
 
             # sources
             s = cat.addNew()
-            s.setId(srcId)
+
+            realId = srcId
+            if sourceLookupByRef.has_key(refObjId):
+                realId = sourceLookupByRef[refObjId].getId()
+            s.setId(realId)
             s.setD(self.k_ext, 0.0 if isStar else 1.0)
+
             
             i = 0
             for value in row[nFields:]:
                if not value is None:
                     setKey = catObj.setKeys[i]
+                    keyName = catObj.keyNames[i]
                     if isinstance(value, str):
                         #print ord(value)
                         value = 1 if ord(value) else 0
+                    if keyName == 'Ra':
+                        value = numpy.degrees(value)
+                    if keyName == 'Dec':
+                        value = numpy.degrees(value)
+                    #print keyName, value, type(value)
+                    if value is None:
+                        value = numpy.nan
                     s.set(setKey, value)
                i += 1
 
 
+            # overwrite the values we loaded into these (those assumed the sourcelist flags,
+            # and we're using the icsource ones.
+            s.setI(self.k_intc,  isIntrp)
+            s.setI(self.k_neg,   isNeg)
+            s.setI(self.k_edg,   isEdge)
+            s.setI(self.k_bad,   isBad)
+            s.setI(self.k_satc,  isSat)
+
+            # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
 
-            # fluxes
+            # WARNGING - fmag0Err is wrong, it's the error on the per-second value (magzero_rms in db)
+            
+            # HSC database stores magzero and magzero_rms, convert to fmag0,fmag0Err
+            #fmag0Err = fmag0Err*fmag0*numpy.log(10.0)/2.5
+            #fmag0    = 10.0**(fmag0/2.5)
+
+
+            # fluxes 
+            zp   = -2.5*numpy.log10(fmag0)
+            imag = -2.5*numpy.log10(s.getD(self.k_Psf))
+
             s.setD(self.k_Psf,   s.getD(self.k_Psf)/fmag0)
             s.setD(self.k_Ap,    s.getD(self.k_Ap)/fmag0)
             s.setD(self.k_Mod,   s.getD(self.k_Mod)/fmag0)
             s.setD(self.k_Inst,  s.getD(self.k_Inst)/fmag0)
+            
 
+            i_count += 1
+                
             # flux errors
             psfFluxErr  = qaDataUtils.calibFluxError(s.getD(self.k_Psf), s.getD(self.k_PsfE),
                                                      fmag0, fmag0Err)
@@ -363,6 +391,7 @@ class DbQaData(QaData):
             dist = 0.0
 
             matchList.append([sref, s, dist])
+            
             multiplicity[s.getId()] = nMatches
 
         
@@ -375,11 +404,17 @@ class DbQaData(QaData):
             matchList = matchListDict[key]
 
             sources    = sourcesDict[key]
-            if refObjectsDict.has_key(key):
+            
+            if refObjectsDict.has_key(key) and len(refObjectsDict[key]) > 0:
                 refObjects = refObjectsDict[key]
             else:
+                # just use the matched objects ... doomed to succeed
                 refObjects = simRefObj.SimRefObjectSet() # an empty set
-
+                for m in matchList:
+                    sref, s, dist = m
+                    sro = simRefObj.SimRefObject()
+                    sro.setId(sref.getId())
+                    refObjects.append(sro)
                 
             typeDict[key] = {}
                             
@@ -396,11 +431,14 @@ class DbQaData(QaData):
             for ma in matchList:
                 matRef.append(ma[0].getId())
                 matSrc.append(ma[1].getId())
-            
+
+
             refIds = set(refIds)
             srcIds = set(srcIds)
             matRef = set(matRef)
             matSrc = set(matSrc)
+
+            
             
             undetectedIds = refIds - matRef
             orphanIds     = srcIds - matSrc
@@ -424,7 +462,6 @@ class DbQaData(QaData):
                     if multiplicity[soid] == 1:
                         matched.append(matchListById[soid])
                     else:
-                        #print -2.5*numpy.log10(so.getD(psf)), multiplicity[soid]
                         blended.append(matchListById[soid])
                         
             self.printMidLoad('\n        %s: Undet, orphan, matched, blended = %d %d %d %d' % (
@@ -436,8 +473,6 @@ class DbQaData(QaData):
             typeDict[key]['blended']    = blended
             typeDict[key]['undetected'] = undetected
 
-            typeDict[key]['sql'] = sql
-            
             # cache it
             self.matchListCache[useRef][key] = typeDict[key]
             
@@ -475,9 +510,9 @@ class DbQaData(QaData):
             ]
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        sql  = 'select '+", ".join(zip(*sceNames)[1])+', s.'+self.sId+', '+selectStr
-        sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce'
-        sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
+        sql  = 'select '+", ".join(zip(*sceNames)[1])+',s.obj_id,'+selectStr
+        sql += '  from frame_sourcelist_sup as s, frame_sup as sce'
+        sql += '  where (s.frame_id = sce.frame_id)'
         haveAllKeys = True
 
         for keyNames in sceNames:
@@ -520,10 +555,26 @@ class DbQaData(QaData):
         # parse results and put them in a sourceSet
         ssDict = {}
         for k in calib.keys():
-            catObj = pqaSource.Catalog()
+            catObj = pqaSource.Catalog(qaDataUtils)
             ssDict[k] = catObj.catalog
-                
 
+            if False:
+                psfKey = catObj.keyDict['PsfFlux']
+                apKey  = catObj.keyDict['ApFlux']
+                modKey = catObj.keyDict['ModelFlux']
+                instKey = catObj.keyDict['InstFlux']
+
+                psfErrKey = catObj.keyDict['PsfFluxErr']
+                apErrKey  = catObj.keyDict['ApFluxErr']
+                modErrKey = catObj.keyDict['ModelFluxErr']
+                instErrKey = catObj.keyDict['InstFluxErr']
+
+                fPixInterpCenKey = catObj.keyDict['FlagPixInterpCen']
+                fNegativeKey     = catObj.keyDict['FlagNegative']
+                fPixEdgeKey      = catObj.keyDict['FlagPixEdge']
+                fBadCentroidKey  = catObj.keyDict['FlagBadCentroid']
+                fPixSaturCenKey  = catObj.keyDict['FlagPixSaturCen']
+            
         for row in results:
 
             # get the values for the dataId
@@ -533,6 +584,10 @@ class DbQaData(QaData):
                 dataIdTmp[idName] = row[i]
                 i += 1
             sid = row[i]
+            #refid = row[i+1]
+
+            #if refid:
+            #    sid = refid
             nIdKeys = i+1
 
             key = self._dataIdToString(dataIdTmp, defineFully=True)
@@ -544,26 +599,32 @@ class DbQaData(QaData):
             
             i = 0
             for value in row[nIdKeys:]:
+                #print value, type(value), catObj.keyNames[i]
                 if not value is None:
                     setKey = catObj.setKeys[i]
-                    #print value, type(value)
+                    keyName = catObj.keyNames[i]
                     if isinstance(value, str) and len(value) == 1:
                         value = 1 if ord(value) else 0
+                    if keyName == 'Ra':
+                        value = numpy.degrees(value)
+                    if keyName == 'Dec':
+                        value = numpy.degrees(value)
                     s.set(setKey, value)
                 i += 1
+
 
             # calibrate it
             fmag0, fmag0Err = calib[key].getFluxMag0()
 
+            # WARNGING - fmag0Err is wrong, it's the error on the per-second value (magzero_rms in db)
+            
+            # HSC database stores magzero and magzero_rms, convert to fmag0,fmag0Err
+            #fmag0Err = fmag0Err*fmag0*numpy.log(10.0)/2.5
+            #fmag0    = 10.0**(-fmag0/2.5)
+
             if (fmag0 == 0.0):
                 continue
 
-            pf, af, sf = s.getD(self.k_Psf), s.getD(self.k_Ap), s.getD(self.k_Mod)
-
-            #if pf > 1000.0:
-            #    print dataIdTmp
-            #    print "%8.2f %8.2f %8.2f    %8.4f %8.4f" % (pf, af, sf, pf/af - 1.0, pf/sf - 1.0)
-            
             # fluxes
             s.setD(self.k_Psf,   s.getD(self.k_Psf)/fmag0)
             s.setD(self.k_Ap,    s.getD(self.k_Ap)/fmag0)
@@ -618,7 +679,7 @@ class DbQaData(QaData):
         sqlDataId = " and ".join(sqlDataId)
 
         sql  = "select "+", ".join(zip(*sceNames)[1])
-        sql += "  from "+self.sceTable+" as sce "
+        sql += "  from frame_sup as sce "
         sql += "  where " + sqlDataId
 
         dataIdList = []
@@ -681,7 +742,7 @@ class DbQaData(QaData):
             sqlDataId = " and ".join(sqlDataId)
 
             # Poly comes from our own database
-            sql1  = 'SELECT poly FROM '+self.sceTable+' as sce '
+            sql1  = 'SELECT poly FROM Science_Ccd_Exposure as sce '
             sql1 += 'WHERE %s ' % (sqlDataId) 
             sql1 += 'INTO @poly;'
 
@@ -703,10 +764,10 @@ class DbQaData(QaData):
             sql3 += '   END as mag,'                                                               # 1 value
             sql3 += ' sro.ra, sro.decl, sro.isStar, sro.refObjectId,'                              # 4 values
             sql3 += selectStr
-            sql3 += ' FROM %s.'+self.sTable+' AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase)
-            sql3 += ' INNER JOIN %s.'+self.sceTable+' AS sce ' % (matchDatabase)
-            sql3 += ' ON (s.'+self.sceId+' = sce.'+self.sceId+') AND (sce.visit = %s)' % (matchVisit)
-            sql3 += '   INNER JOIN %s.'+self.romTable+' AS rsm ON (s.'+self.sId+' = rsm.'+self.sId+')' % (matchDatabase)
+            sql3 += ' FROM %s.Source AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase)
+            sql3 += ' INNER JOIN %s.Science_Ccd_Exposure AS sce ' % (matchDatabase)
+            sql3 += ' ON (s.scienceCcdExposureId = sce.scienceCcdExposureId) AND (sce.visit = %s)' % (matchVisit)
+            sql3 += '   INNER JOIN %s.RefSrcMatch AS rsm ON (s.sourceId = rsm.sourceId)' % (matchDatabase)
             sql3 += '   INNER JOIN %s.RefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
             sql3 += '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
             sql3 += 'WHERE scisql_s2PtInCPoly(s.ra, s.decl, @poly) = 1;'
@@ -817,11 +878,14 @@ class DbQaData(QaData):
 
         # figure out if we have yMag
         keyList = []
-        sql = "show columns from RefObject;"
-        results = self.dbInterface.execute(sql)
-        for r in results:
-            keyList.append(r[0])
-        haveYmag = 'yMag' in keyList
+        short_circuit = True
+        haveYmag = False
+        if not short_circuit:
+            sql = "show columns from RefObject;"
+            results = self.dbInterface.execute(sql)
+            for r in results:
+                keyList.append(r[0])
+            haveYmag = 'yMag' in keyList
         
         sroFields = simRefObj.fields
         if not haveYmag:
@@ -845,9 +909,24 @@ class DbQaData(QaData):
 
         # Load each of the dataIds
         sroDict = {}
+
+        # if we have no ref object table,
+        short_circuit = True
+        if short_circuit:
+            for dataIdEntry in dataIdList:
+                key = self._dataIdToString(dataIdEntry, defineFully=True)
+                if not sroDict.has_key(key):
+                    sroDict[key] = simRefObj.SimRefObjectSet()
+                continue
+            # cache it
+            for k, sro in sroDict.items():
+                self.refObjectCache[k] = sroDict[k]
+            return sroDict
+
+        
         for dataIdEntry in dataIdList:
 
-            dataIdEntryStr = self._dataIdToString(dataIdEntry, defineFully=True)
+            dataIdEntryStr = self._dataIdToString(dataIdEntry, defineFully=True)            
             
             haveAllKeys = True
             sqlDataId = []
@@ -869,7 +948,7 @@ class DbQaData(QaData):
                 sql += '   sce.corner2Ra, sce.corner2Decl, '
                 sql += '   sce.corner3Ra, sce.corner3Decl, '
                 sql += '   sce.corner4Ra, sce.corner4Decl) '
-                sql += 'FROM '+self.sceTable+' as sce '
+                sql += 'FROM Science_Ccd_Exposure as sce '
                 sql += 'WHERE %s ' % (sqlDataId)
                 #sq += '   (sce.visit = 887252941) AND'
                 #sq += '   (sce.raftName = \'2,2\') AND'
@@ -884,7 +963,7 @@ class DbQaData(QaData):
 
             # use a 3 step query
             elif nStep == 3:
-                sql  = 'SELECT poly FROM '+self.sceTable+' as sce '
+                sql  = 'SELECT poly FROM Science_Ccd_Exposure as sce '
                 sql += 'WHERE %s ' % (sqlDataId) 
                 sql += 'INTO @poly;'
 
@@ -981,7 +1060,7 @@ class DbQaData(QaData):
                 columns.append(self.cameraInfo.dataIdDbNames[c])
                 dbNames.append([c, self.cameraInfo.dataIdDbNames[c]])
                 
-        sql = "select distinct "+", ".join(columns)+" from "+self.sceTable
+        sql = "select distinct "+", ".join(columns)+" from frame_sup"
         sql += "   where "
         haveAllKeys = True
 
@@ -1031,7 +1110,7 @@ class DbQaData(QaData):
             ]
         
 
-        sql = "select "+", ".join(zip(*sceNames)[1])+" from "+self.sceTable+" as sce"
+        sql = "select "+", ".join(zip(*sceNames)[1])+" from frame_sup as sce"
         sql += "   where "
         whereList = []
         for keyNames in sceNames:
@@ -1089,11 +1168,11 @@ class DbQaData(QaData):
             ]
 
         
-        selectList = ["sce."+x for x in qaDataUtils.getSceDbNames(sceDataIdNames, self.sceReplace)]
+        selectList = ["sce."+x for x in qaDataUtils.getSceDbNames(sceDataIdNames)]
         selectStr = ", ".join(selectList)
 
         sql  = 'select '+selectStr
-        sql += '  from '+self.sceTable+' as sce'
+        sql += '  from frame_sup as sce'
         sql += '  where '
 
         haveAllKeys = True
@@ -1102,6 +1181,9 @@ class DbQaData(QaData):
         for keyNames in [[x[0], "sce."+x[1]] for x in sceDataIdNames]:
             key, sqlName = keyNames
             if dataIdRegex.has_key(key):
+                # Hsc DB stores ccd as int ... need to cast
+                if sqlName == 'sce.ccd' and re.search("%", dataIdRegex[key]):
+                    sqlName = 'sce.ccd::character'
                 whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
             else:
                 haveAllKeys = False
@@ -1128,13 +1210,8 @@ class DbQaData(QaData):
 
         for row in results:
 
-            rowDict = dict(zip(qaDataUtils.getSceDbNames(sceDataIdNames,self.sceReplace), row))
+            rowDict = dict(zip(qaDataUtils.getSceDbNames(sceDataIdNames), row))
 
-            for k,v in self.sceReplace.items():
-                if rowDict.has_key(v):
-                    rowDict[k] = rowDict[v]
-                    del rowDict[v]
-                
             dataIdTmp = {}
             for idName, dbName in sceDataIdNames:
                 dataIdTmp[idName] = rowDict[dbName]
@@ -1145,27 +1222,44 @@ class DbQaData(QaData):
             self.dataIdLookup[key] = dataIdTmp
             
             #print rowDict
-            if not self.wcsCache.has_key(key):
+            if not self.wcsCache.has_key(key) and rowDict.has_key('crval1'):
                 crval = afwCoord.Coord(afwGeom.PointD(rowDict['crval1'], rowDict['crval2']))
                 crpix = afwGeom.PointD(rowDict['crpix1'], rowDict['crpix2'])
                 cd11, cd12, cd21, cd22 = rowDict['cd1_1'], rowDict['cd1_2'], rowDict['cd2_1'], rowDict['cd2_2']
                 wcs = afwImage.makeWcs(crval, crpix, cd11, cd12, cd21, cd22)
                 self.wcsCache[key] = wcs
 
+            else:
+                cd11, cd12, cd21, cd22 = 1.0, 0.0, 0.0, 1.0
+                crval = afwCoord.Coord(afwGeom.PointD(0.0, 0.0))
+                crpix = afwGeom.PointD(0.0, 0.0)
+                wcs = afwImage.makeWcs(crval, crpix, cd11, cd12, cd21, cd22)
+                self.wcsCache[key] = wcs
+
             if not self.detectorCache.has_key(key):
                 raftName, ccdName = self.cameraInfo.getRaftAndSensorNames(dataIdTmp)
-                if self.cameraInfo.detectors.has_key(ccdName):
-                    self.detectorCache[key] = self.cameraInfo.detectors[ccdName] #ccdDetector
-                if self.cameraInfo.detectors.has_key(raftName):
+                self.detectorCache[key] = self.cameraInfo.detectors[ccdName] #ccdDetector
+                if not raftName is None and len(raftName) > 0:
                     self.raftDetectorCache[key] = self.cameraInfo.detectors[raftName]
 
             if not self.filterCache.has_key(key):
-                filt = afwImage.Filter(rowDict['filterName'], True)
+                filt = afwImage.Filter(rowDict['filter'], True)
                 self.filterCache[key] = filt
             
             if not self.calibCache.has_key(key):
                 calib = afwImage.Calib()
-                calib.setFluxMag0(rowDict['fluxMag0'], rowDict['fluxMag0Sigma'])
+                useMagzero = False
+                if useMagzero:
+                    mag0 = rowDict['magzero']
+                    exptime = rowDict['exptime']
+                    fmag0 = exptime*10**(mag0/2.5)
+                else:
+                    zp = rowDict['zeropt']
+                    fmag0 = 10**(zp/2.5)
+                fmag0Err =  rowDict['magzero_rms']*fmag0*numpy.log(10.0)/2.5
+                #print mag0, exptime, fmag0
+                
+                calib.setFluxMag0(fmag0, fmag0Err)
                 self.calibCache[key] = calib
 
             self.calexpCache[key] = rowDict
@@ -1220,12 +1314,17 @@ class DbQaData(QaData):
         """Utility to convert a dataId regex to an sql 'where' clause.
         """
 
-        regex = str(regex)
+        regex = str(regex).strip()
+
         
         clause = ""
         # just a number
         if re.search('^\d+$', regex):
-            clause += field + " = %s" % (regex)
+            if re.search('ccd', field):
+                clause += field + " = '%s'" % (regex)
+            else:
+                clause += field + " = %s" % (regex)
+                
         # comma-sep numbers
         elif re.search('^[\d,]+$', regex):
             clause += field + " = '%s'" % (regex)
@@ -1241,4 +1340,6 @@ class DbQaData(QaData):
                             field+"="+regex+")")
 
         return "("+clause+")"
+
+
 

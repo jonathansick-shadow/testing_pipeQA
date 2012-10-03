@@ -9,19 +9,24 @@ import lsst.meas.algorithms         as measAlg
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
-from .QaAnalysisTask import QaAnalysisTask
+from   .QaAnalysisTask              import QaAnalysisTask
 import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
-import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
 
-import lsst.testing.pipeQA.source as pqaSource
-import QaPlotUtils as qaPlotUtil
+import QaPlotUtils                  as qaPlotUtil
+
+
 
 class AstrometricErrorQaConfig(pexConfig.Config):
-    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run AstrometricErrorQaTask", default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
-    maxErr  = pexConfig.Field(dtype = float, doc = "Maximum astrometric error (in arcseconds)", default = 0.5)
+    cameras = pexConfig.ListField(dtype = str,
+                                  doc = "Cameras to run AstrometricErrorQaTask",
+                                  default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+    maxErr  = pexConfig.Field(dtype = float,
+                              doc = "Maximum astrometric error (in arcseconds)",
+                              default = 0.5)
 
 class AstrometricErrorQaTask(QaAnalysisTask):
     ConfigClass = AstrometricErrorQaConfig
@@ -55,9 +60,6 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         del self.medErrArcsec
         del self.medThetaRad
 
-        del self.sCatDummy
-        del self.srefCatDummy
-        
     def test(self, data, dataId):
 
         # get data
@@ -65,28 +67,13 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         self.detector         = data.getDetectorBySensor(dataId)
         self.filter           = data.getFilterBySensor(dataId)
         
-        #self.clusters = data.getSourceClusters(dataId)
 
         # compute the mean ra, dec for each source cluster
-
         self.dRa  = raftCcdData.RaftCcdVector(self.detector)
         self.dDec = raftCcdData.RaftCcdVector(self.detector)
         self.x    = raftCcdData.RaftCcdVector(self.detector)
         self.y    = raftCcdData.RaftCcdVector(self.detector)
 
-        self.sCatDummy = pqaSource.Catalog()
-        sCatDummy = self.sCatDummy.catalog
-        sCatSchema = sCatDummy.getSchema()
-        self.srefCatDummy  = pqaSource.RefCatalog()
-        srefCatDummy = self.srefCatDummy.catalog
-        srefCatSchema = srefCatDummy.getSchema()
-        
-        xKey      = sCatSchema.find('XAstrom').key
-        yKey      = sCatSchema.find('YAstrom').key
-        raKey     = sCatSchema.find('Ra').key
-        decKey    = sCatSchema.find('Dec').key
-        refRaKey  = srefCatSchema.find('Ra').key
-        refDecKey = srefCatSchema.find('Dec').key
 
         filter = None
         key = None
@@ -99,17 +86,20 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             for m in matchList:
                 sref, s, dist = m
                 ra, dec, raRef, decRef = \
-                    [numpy.radians(x) for x in [s.getD(raKey), s.getD(decKey), \
-                                                    sref.getD(refRaKey), sref.getD(refDecKey)]]
+                    [numpy.radians(x) for x in [s.getD(data.k_Ra), s.getD(data.k_Dec),
+                                                sref.getD(data.k_rRa), sref.getD(data.k_rDec)]]
+                
+
                 
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
                 
-                if not (s.getD(sCatSchema.find('FlagPixInterpCen').key)):
+                if not (s.get(data.k_intc)):
+                    #print ra, dec, dRa, dDec, s.getD(xKey), s.getD(yKey), raRef, decRef
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
-                    self.x.append(raft, ccd, s.getD(xKey))
-                    self.y.append(raft, ccd, s.getD(yKey))
+                    self.x.append(raft, ccd, s.getD(data.k_x))
+                    self.y.append(raft, ccd, s.getD(data.k_y))
                     
                     
         testSet = self.getTestSet(data, dataId)

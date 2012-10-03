@@ -18,11 +18,13 @@ STAR          = 0x1
 SATUR_CENTER  = 0x2
 EDGE          = 0x4
 INTERP_CENTER = 0x8
+BAD_CENTROID  = 0x16
+NEGATIVE      = 0x32
 
 #################################################################
 # RefSource
 import lsst.afw.table  as afwTab
-import QaDataUtils as qaDataUtils
+from QaDataUtils import QaDataUtils
 
 class _RefCatalog(object):
     
@@ -35,7 +37,7 @@ class _RefCatalog(object):
 
         self.keyDict = {}
         #for sm in setMethods0:
-        #    key = self.schema.addField(sm, type="D")
+        #    key = self.schema.addField(sm, type="F8")
         #    self.keyDict[sm] = key
             
         self.setKeys = []
@@ -98,7 +100,7 @@ class _RefSource(object):
 if useRefSource == 'afw':
     from lsst.afw.detection import Source as RefSource
 else:
-    RefSource = _RefSource
+    #RefSource = _RefSource
     RefCatalog = _RefCatalog
 
 
@@ -109,24 +111,29 @@ else:
 # a local Catalog wrapper
 class _Catalog(object):
 
-    def __init__(self):
+    def __init__(self, qaDataUtils=QaDataUtils()):
         self.schema = afwTab.SourceTable.makeMinimalSchema()
 
-        setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
+        setMethods, setTypes = qaDataUtils.getSourceSetAccessorsAndTypes()
 
-        #self.schema.addField('Id', type="L")
+        #self.schema.addField('RefId', type="L")
 
         self.setKeys = []
-        self.setNames = []
+        self.keyNames = []
         self.keyDict = {}
-        for sm in setMethods:
-            if sm == 'Id':
+
+        for i in range(len(setMethods)):
+            
+            name = setMethods[i]
+            typ = setTypes[i]
+
+            if name == 'Id':
                 continue
-            key = self.schema.addField(sm, type="D")
+            key = self.schema.addField(name, type=typ)
             self.setKeys.append(key)
-            self.setNames.append(sm)
-            self.keyDict[sm] = key
-            setattr(self, sm+"Key", key)
+            self.keyDict[name] = key
+            self.keyNames.append(name)
+            setattr(self, name+"Key", key)
 
         self.table = afwTab.SourceTable.make(self.schema)
         self.catalog = afwTab.SourceCatalog(self.table)
@@ -305,8 +312,9 @@ class _Source(object):
     
 if useSource == 'afw':    
     Catalog = _Catalog
-    Source = _Source
+    #Source = _Source
     
     
 else:
-    Source = _Source
+    #Source = _Source
+    pass

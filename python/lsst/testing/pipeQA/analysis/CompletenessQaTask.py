@@ -1,23 +1,18 @@
 import re
-import numpy as num
+import numpy                                     as num
 
-import lsst.meas.algorithms as measAlg
-import lsst.pex.config as pexConfig
-import lsst.pipe.base as pipeBase
+import lsst.meas.algorithms                      as measAlg
+import lsst.pex.config                           as pexConfig
+import lsst.pipe.base                            as pipeBase
 
-from .QaAnalysisTask import QaAnalysisTask
-import lsst.testing.pipeQA.TestCode as testCode
-import lsst.testing.pipeQA.figures as qaFig
+from   .QaAnalysisTask                           import QaAnalysisTask
+import lsst.testing.pipeQA.TestCode              as testCode
+import lsst.testing.pipeQA.figures               as qaFig
 import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtils
-import RaftCcdData as raftCcdData
+import RaftCcdData                               as raftCcdData
 
-import lsst.testing.pipeQA.source as pqaSource
+import QaPlotUtils                               as qaPlotUtil
 
-import QaPlotUtils as qaPlotUtil
-
-import matplotlib.ticker as ticker
-from matplotlib.font_manager import FontProperties
-import matplotlib.patches as patches
 
 # Until we can make it more robust
 hasMinuit = False
@@ -181,20 +176,6 @@ class CompletenessQaTask(QaAnalysisTask):
             self.fit = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0]) 
 
 
-
-        sCatDummy = pqaSource.Catalog().catalog
-        sCatSchema = sCatDummy.getSchema()
-        srefCatDummy  = pqaSource.RefCatalog().catalog
-        srefCatSchema = srefCatDummy.getSchema()
-        
-        psfKey = sCatSchema.find('PsfFlux').key
-        psfErrKey = sCatSchema.find('PsfFluxErr').key
-        apKey = sCatSchema.find('ApFlux').key
-        apErrKey = sCatSchema.find('ApFluxErr').key
-        extKey = sCatSchema.find('Extendedness').key
-        
-        refPsfKey = srefCatSchema.find('PsfFlux').key
-
         self.faintest = 0.0
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
@@ -215,13 +196,13 @@ class CompletenessQaTask(QaAnalysisTask):
                     for m in mdict:
                         sref, s, dist = m
                         if fluxType == "psf":
-                            fref  = sref.getD(refPsfKey)
-                            f     = s.getD(psfKey)
-                            ferr  = s.getD(psfErrKey)
+                            fref  = sref.getD(data.k_rPsf)
+                            f     = s.getD(data.k_Psf)
+                            ferr  = s.get(data.k_PsfE)
                         else:
-                            fref  = sref.getD(refPsfKey)
-                            f     = s.getD(apKey)
-                            ferr  = s.getD(apErrKey)
+                            fref  = sref.getD(data.k_rPsf)
+                            f     = s.getD(data.k_Ap)
+                            ferr  = s.getD(data.k_ApE)
 
 
                         if (fref > 0.0 and f > 0.0):
@@ -231,7 +212,7 @@ class CompletenessQaTask(QaAnalysisTask):
                                 if mrefmag > self.faintest:
                                     self.faintest == mrefmag
                                     
-                                if s.getD(extKey) > 0.0:
+                                if s.get(data.k_ext) > 0.0:
                                     galaxies.append(mrefmag)
                                 else:
                                     stars.append(mrefmag)
@@ -258,9 +239,9 @@ class CompletenessQaTask(QaAnalysisTask):
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
                     if self.fluxType == "psf":
-                        f = orphan.getD(psfKey)
+                        f = orphan.getD(data.k_Psf)
                     else:
-                        f = orphan.getD(apKey)
+                        f = orphan.getD(data.k_Ap)
                     if f > 0.0:
                         orphmag = -2.5*num.log10(f)
                         orphans.append(orphmag)

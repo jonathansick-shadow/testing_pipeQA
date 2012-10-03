@@ -3,23 +3,17 @@ import numpy
 
 import lsst.afw.math                as afwMath
 import lsst.afw.geom                as afwGeom
-import lsst.meas.algorithms        as measAlg
+import lsst.meas.algorithms         as measAlg
 import lsst.pex.config              as pexConfig
 import lsst.pipe.base               as pipeBase
 
-from .QaAnalysisTask import QaAnalysisTask
-import lsst.testing.pipeQA.figures as qaFig
+from   .QaAnalysisTask              import QaAnalysisTask
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.testing.pipeQA.TestCode as testCode
-import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
-import QaPlotUtils as qaPlotUtil
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
+import QaPlotUtils                  as qaPlotUtil
 
-import lsst.testing.pipeQA.source as pqaSource
-
-import matplotlib.cm as cm
-import matplotlib.colors as colors
-import matplotlib.font_manager as fm
-from matplotlib.collections import LineCollection
 
 
 class PsfShapeQaConfig(pexConfig.Config): 
@@ -35,11 +29,9 @@ class PsfShapeQaTask(QaAnalysisTask):
 
     def __init__(self, **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
+        
         self.limitsEllip = [0.0, self.config.ellipMax]
-        self.limitsFwhm = [0.0, self.config.fwhmMax]
-
-        self.sCatDummy = pqaSource.Catalog()
-        self.srefCatDummy = pqaSource.RefCatalog()
+        self.limitsFwhm  = [0.0, self.config.fwhmMax]
         
         self.description = """
          For each CCD, the ellipticity of stars used in the Psf model are
@@ -100,9 +92,9 @@ class PsfShapeQaTask(QaAnalysisTask):
 
             fwhmTmp = 0.0
             for s in ss:
-                ixx = s.getD(self.sCatDummy.IxxKey)
-                iyy = s.getD(self.sCatDummy.IyyKey)
-                ixy = s.getD(self.sCatDummy.IxyKey)
+                ixx = s.getD(data.k_ixx)
+                iyy = s.getD(data.k_iyy)
+                ixy = s.getD(data.k_ixy)
 
                 tmp = 0.25*(ixx-iyy)**2 + ixy**2
                 if tmp < 0:
@@ -124,19 +116,19 @@ class PsfShapeQaTask(QaAnalysisTask):
                     theta += numpy.pi
                     
                 #print ixx, iyy, ixy, a2, b2, ellip, theta
-                isStar = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
+                isStar = 0 if s.getD(data.k_ext) else 1
 
-                flux = s.getD(self.sCatDummy.PsfFluxKey)
+                flux = s.getD(data.k_Psf)
                 mag = 99.0
                 if flux > 0:
-                    mag = -2.5*numpy.log10(s.getD(self.sCatDummy.PsfFluxKey))
+                    mag = -2.5*numpy.log10(s.getD(data.k_Psf))
                 if numpy.isfinite(ellip) and numpy.isfinite(theta) and isStar and mag < 20:
                     self.ellip.append(raft, ccd, ellip)
                     self.theta.append(raft, ccd, theta)
-                    self.x.append(raft, ccd, s.getD(self.sCatDummy.XAstromKey))
-                    self.y.append(raft, ccd, s.getD(self.sCatDummy.YAstromKey))
-                    self.ra.append(raft, ccd, s.getD(self.sCatDummy.RaKey))
-                    self.dec.append(raft, ccd, s.getD(self.sCatDummy.DecKey))
+                    self.x.append(raft, ccd,   s.getD(data.k_x))
+                    self.y.append(raft, ccd,   s.getD(data.k_y))
+                    self.ra.append(raft, ccd,  s.getD(data.k_Ra))
+                    self.dec.append(raft, ccd, s.getD(data.k_Dec))
                     fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
             nFwhm = len(self.x.get(raft,ccd))
@@ -195,7 +187,7 @@ class PsfShapeQaTask(QaAnalysisTask):
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "psf fwhm (arcsec) "
             comment = "psf fwhm (arcsec)"
-            testSet.addTest( testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel) )
+            testSet.addTest( testCode.Test(label, fwhmTmp, self.limitsFwhm, comment, areaLabel=areaLabel) )
 
 
     def plot(self, data, dataId, showUndefined=False):
@@ -259,6 +251,7 @@ class PsfShapeQaTask(QaAnalysisTask):
         if vlimMax < vlimMin:
             vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
 
+
         if not self.delaySummary or isFinalDataId:
             self.log.log(self.log.INFO, "plotting FPAs")
             ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
@@ -277,14 +270,8 @@ class PsfShapeQaTask(QaAnalysisTask):
         else:
             del ellipFig, fwhmFig
 
-                        
-        #
-        
-        #xlim = [0, 25.0]
-        #ylim = [0, 0.4]
 
-        norm = colors.Normalize(vmin=vlimMin, vmax=vlimMax)
-        sm = cm.ScalarMappable(norm, cmap=cm.jet)
+            
 
         cacheLabel = "psfEllip"
         shelfData = {}
@@ -308,8 +295,6 @@ class PsfShapeQaTask(QaAnalysisTask):
             dy = eLen*numpy.sin(t)
             x = self.x.get(raft, ccd)
             y = self.y.get(raft, ccd)
-            #x = self.ra.get(raft, ccd)
-            #y = self.dec.get(raft, ccd)
 
             fwhm = self.fwhm.get(raft, ccd)
             

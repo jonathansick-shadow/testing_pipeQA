@@ -29,7 +29,8 @@ from CameraInfo   import *
 # the QaData 
 from QaData       import *
 from ButlerQaData import *
-from DbQaData     import *
+#from DbQaData     import *
 from makeQaData   import *
 
 from DatabaseQuery import *
+

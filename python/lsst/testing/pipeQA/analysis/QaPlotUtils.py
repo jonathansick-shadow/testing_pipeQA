@@ -9,7 +9,7 @@ from matplotlib.patches import Ellipse
 import matplotlib.cm as cm
 
 
-def unshelveGlob(filename, testSet=None):
+def unshelveGlob(filename, testSet=None, flag='c'):
 
     if testSet:
         filename = os.path.join(testSet.wwwDir, filename)
@@ -21,7 +21,7 @@ def unshelveGlob(filename, testSet=None):
     for f in glob.glob(fsub):
         if re.search("-all", f):
             continue
-        shelf = shelve.open(f+".shelve")
+        shelf = shelve.open(f+".shelve", flag=flag)
         for k,v in shelf.items():
             if not data.has_key(k):
                 data[k] = v

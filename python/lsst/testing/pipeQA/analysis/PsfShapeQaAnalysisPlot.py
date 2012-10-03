@@ -104,7 +104,7 @@ def plot(data):
 
 if __name__ == '__main__':
     filename, = sys.argv[1:2]
-    data, isSummary = qaPlotUtil.unshelveGlob(filename)
+    data, isSummary = qaPlotUtil.unshelveGlob(filename, flag='r')
     if isSummary:
         data['summary'] = True
         data['limits'] = data['alllimits']

@@ -1,25 +1,19 @@
 import sys, os, re
-import lsst.meas.algorithms        as measAlg
-import lsst.testing.pipeQA.figures as qaFig
 import numpy
+import platform
 
+
+import lsst.meas.algorithms         as measAlg
+import lsst.testing.pipeQA.figures  as qaFig
 import lsst.afw.math                as afwMath
 import lsst.testing.pipeQA.TestCode as testCode
 
-import RaftCcdData as raftCcdData
-import QaAnalysisUtils as qaAnaUtil
+import RaftCcdData                  as raftCcdData
+import QaAnalysisUtils              as qaAnaUtil
 
-from .QaAnalysisTask import QaAnalysisTask
-import lsst.pex.config as pexConfig
+from   .QaAnalysisTask              import QaAnalysisTask
+import lsst.pex.config              as pexConfig
 
-import lsst.testing.pipeQA.source as pqaSource
-import matplotlib.cm as cm
-import matplotlib.colors as colors
-import matplotlib.font_manager as fm
-from matplotlib.collections import LineCollection
-
-
-import platform
 
 
 def getMemUsageThisPid(size="rss"):
@@ -28,9 +22,13 @@ def getMemUsageThisPid(size="rss"):
     return int(os.popen('ps -p %d -o %s | tail -1' % (os.getpid(), size)).read())
 
 
-class PerformanceQaConfig(pexConfig.Config):
-    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PerformanceQaTask", default = ("lsstSim", "cfht", "suprimecam", "hscSim", "sdss", "coadd"))
 
+class PerformanceQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str,
+                                  doc = "Cameras to run PerformanceQaTask",
+                                  default = ("lsstSim", "cfht", "suprimecam", "hscSim", "sdss", "coadd"))
+
+    
 class PerformanceQaTask(QaAnalysisTask):
     ConfigClass = PerformanceQaConfig
     _DefaultName = "performanceQa"
@@ -38,9 +36,10 @@ class PerformanceQaTask(QaAnalysisTask):
     def __init__(self, **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
 
-        self.node = platform.node()
-        self.dist = platform.dist() # a tuple e.g., ('redhat', '6.2', 'Santiago')
-        fp_meminfo = open('/proc/meminfo')
+        self.node   = platform.node()
+        self.dist   = platform.dist() # a tuple e.g., ('redhat', '6.2', 'Santiago')
+        
+        fp_meminfo  = open('/proc/meminfo')
         meminfoList = fp_meminfo.readlines()
         fp_meminfo.close()
 
@@ -107,10 +106,13 @@ class PerformanceQaTask(QaAnalysisTask):
                 plotRuntime = 0.0
             self.plotRuntime.set(raft, ccd, plotRuntime)
 
-            tTest = testCode.Test("test-runtime", testRuntime, [0.0, 3600], "Runtime for test()[s]", areaLabel=areaLabel)
+            tTest = testCode.Test("test-runtime", testRuntime, [0.0, 3600],
+                                  "Runtime for test()[s]", areaLabel=areaLabel)
             testSet.addTest(tTest)
                 
-            pTest = testCode.Test("plot-runtime", plotRuntime, [0.0, 3600], "Runtime for plot()[s] (%d plots)" % (qaFig.QaFigure.count), areaLabel=areaLabel)
+            pTest = testCode.Test("plot-runtime", plotRuntime, [0.0, 3600],
+                                  "Runtime for plot()[s] (%d plots)" % (qaFig.QaFigure.count),
+                                  areaLabel=areaLabel)
             testSet.addTest(pTest)
 
             info = self.node + " " + " ".join(self.dist)
