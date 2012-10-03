@@ -4,17 +4,17 @@ import sys, copy
 import numpy
 import matplotlib
 
-import matplotlib.figure as figure
+import matplotlib.figure             as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
-from matplotlib import colors
-import matplotlib.font_manager as fm
-from  matplotlib.ticker import MaxNLocator
-from matplotlib.collections import LineCollection
-from matplotlib.patches import Circle
+from matplotlib                      import colors
+import matplotlib.font_manager       as fm
+from  matplotlib.ticker              import MaxNLocator
+from matplotlib.collections          import LineCollection
+from matplotlib.patches              import Circle
 
 
-import QaPlotUtils as qaPlotUtil
-import QaAnalysisUtils as qaAnaUtil
+import QaPlotUtils                   as qaPlotUtil
+import QaAnalysisUtils               as qaAnaUtil
 
 
 def plot(data):
