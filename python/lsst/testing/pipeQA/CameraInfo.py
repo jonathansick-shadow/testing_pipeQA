@@ -699,15 +699,18 @@ class CoaddCameraInfo(CameraInfo):
         ncols  = max(cols) - col0 + 1
         nrows  = max(rows) - row0 + 1
 
+        origBBox = afwGeom.Box2I()
+
         raftId = cameraGeom.Id(0, str(self.tract))
         raft   = cameraGeom.Raft(raftId, ncols, nrows)
-        raft.setTrimmed(True) 
         for nId, dataId in enumerate(dataIds):
             patch = self.skyMap[self.tract].getPatchInfo(dataId["patch"])
             detId = cameraGeom.Id(nId, "%d-%d,%d" % (self.tract, patch.getIndex()[0], patch.getIndex()[1]))
             bbox  = patch.getInnerBBox() # outer bbox overlaps, inner doesn't
+            origBBox.include(bbox)       # capture the full extent of the skymap
+            bbox.shift(-afwGeom.Extent2I(bbox.getBegin())) # need the bbox to be w.r.t. the raft coord system; i.e. 0
             ccd   = cameraGeomUtils.makeDefaultCcd(bbox, detId=detId) 
-            ccd.setTrimmed(True)
+
             col   = patch.getIndex()[0] - col0
             row   = patch.getIndex()[1] - row0
 
@@ -721,17 +724,32 @@ class CoaddCameraInfo(CameraInfo):
                              cameraGeom.Orientation(),
                              ccd)
 
-        raftBbox = raft.getAllPixels()
-        xc       = raftBbox.getBeginX() + 0.5 * raftBbox.getWidth()
-        yc       = raftBbox.getBeginY() + 0.5 * raftBbox.getHeight()
+        raftBbox  = raft.getAllPixels()
+        xc        = origBBox.getBeginX() + 0.5 * origBBox.getWidth()
+        yc        = origBBox.getBeginY() + 0.5 * origBBox.getHeight()
         cameraId = cameraGeom.Id(0, "Skymap")
         camera = cameraGeom.Camera(cameraId, 1, 1)
-        camera.setTrimmed(True)  
         camera.addDetector(afwGeom.Point2I(0, 0),
                            cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)), 
                            cameraGeom.Orientation(), raft) 
-        import pdb; pdb.set_trace()
-        cameraGeomUtils.showCamera(camera)
+
+        self.camera = camera
+        # Now, redo the assignments in __init__
+        for r in self.camera:
+            raft = cameraGeom.cast_Raft(r)
+            raftName = raft.getId().getName().strip()
+            self.detectors[raftName] = raft
+            self.rafts[raftName] = raft
+            for c in raft:
+                ccd = cameraGeom.cast_Ccd(c)
+                ccdName = ccd.getId().getName().strip()
+                self.detectors[ccdName] = ccd
+                self.sensors[ccdName] = ccd
+                self.nSensor += 1
+                self.raftCcdKeys.append([raftName, ccdName])
+
+        #import pdb; pdb.set_trace()
+        #cameraGeomUtils.showCamera(camera)
 
     def setFilterless(self):
         self.dataIdTranslationMap['visit'] = ['tract', 'patch']
