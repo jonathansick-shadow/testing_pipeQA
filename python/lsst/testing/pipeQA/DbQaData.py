@@ -87,8 +87,15 @@ class DbQaData(QaData):
         if self.useForced:
             forced = 'Forced'
 
-            
         cTabUpper = self.coaddTable[0].title() + self.coaddTable[1:]
+
+        if type(cameraInfo) == qaCamInfo.CoaddCameraInfo:
+            # We need to get the valid dataIds
+            sql     = "select distinct tract,patch,filterName from %sCoadd" % (cTabUpper)
+            results = self.dbInterface.execute(sql)
+            dataIds = [dict(tract=x[0], patch=map(int, x[1].split(",")), filter=x[2]) for x in results]
+            cameraInfo.skyMapToCamera(dataIds)
+
             
         # define the tables to use for this camera
         self.sceTables = {
@@ -1281,14 +1288,13 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
     @param rerun The data rerun to use
     """
 
-    # Don't execute Info(), otherwise you need other camera packages unnecessarily setup 
     cameraInfos = {
 #       "cfht": qaCamInfo.CfhtCameraInfo(), # XXX CFHT camera geometry is currently broken following #1767
         "hsc"            : qaCamInfo.HscCameraInfo(),
         "suprimecam"     : qaCamInfo.SuprimecamCameraInfo(),
         "suprimecam-old" : qaCamInfo.SuprimecamCameraInfo(True),
         "sdss"           : qaCamInfo.SdssCameraInfo(),
-        "coadd"          : qaCamInfo.CoaddCameraInfo(),
+        "coadd"          : qaCamInfo.CoaddCameraInfo(**kwargs),
         "lsstSim"        : qaCamInfo.LsstSimCameraInfo(),
         }
 

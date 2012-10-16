@@ -3,6 +3,7 @@ import copy
 import eups
 import numpy
 
+import lsst.daf.persistence as dafPersist
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
     
@@ -652,41 +653,29 @@ class SdssCameraInfo(CameraInfo):
 ####################################################################
 class CoaddCameraInfo(CameraInfo):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         try:
-            #import lsst.obs.coadd        as obsCoadd
-            mapper = None #obsCoadd.CoaddMapper
+            # Use this until we can determine the mapper from the archive
+            import lsst.obs.lsstSim as obsLsst
         except Exception, e:
-            print "Failed to import lsst.obs.coadd", e
-            mapper = None
+            print "Failed to import lsst.obs.lsstSim", e
+
+        mapper = obsLsst.LsstSimMapper(root = kwargs["skymapRep"])
+        butlerFactory = dafPersist.ButlerFactory(mapper = mapper)
+        butler = butlerFactory.create()
+        self.skyMap = butler.get(datasetType=kwargs["coaddTable"] + "Coadd_skyMap")
+
         dataInfo       = [['tract', 1], ['patch', 1], ['filterName', 1]]
-
-        simdir        = os.environ['TESTING_PIPEQA_DIR']
-        cameraGeomPaf = os.path.join(simdir, "policy", "Full_coadd_geom.paf")
-        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
-
-        # obs_coadd not going to be used
-        if False:
-            if os.environ.has_key('OBS_COADD_DIR'):
-                simdir         = os.environ['OBS_COADD_DIR']
-                cameraGeomPaf = os.path.join(simdir, "description", "Full_geom.paf")
-                if not os.path.exists(cameraGeomPaf):
-                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
-                cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-                camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
-            else:
-                camera           = None
-
+        camera         = [] # Empty until we get an idea of the skymap footprint
 
         CameraInfo.__init__(self, "coadd", dataInfo, mapper, camera)
         
         self.doLabel = True
 
         self.dataIdTranslationMap = {
-            'visit' : ['tract','patch','filterName'],
-            'raft'  : None,
-            'sensor'   : None, #'filter',
+            'visit'    : ['tract','filterName'],
+            'raft'     : None,
+            'sensor'   : 'patch',
             }
 
         self.dataIdDbNames = {
@@ -695,17 +684,36 @@ class CoaddCameraInfo(CameraInfo):
             'filterName' : 'filterName',
             }
             
+        
+    def skyMapToCamera(self, dataIds):
+        """Make a minimal camera based on the skymap"""
+        tracts = set(x["tract"] for x in dataIds)
+        assert(len(tracts) == 1)
+        self.tract = tracts.pop()
 
+        raftId = cameraGeom.Id(0, str(self.tract))
+
+        #raft   = cameraGeom.Raft(raftId, nCol, nRow)
+        #rows   = [x[0] for x in dataIds
+
+        for nId, dataId in enumerate(dataIds):
+            patch = self.skyMap[dataId["tract"]].getPatchInfo(dataId["patch"])
+            detId = cameraGeom.Id(nId, "%d-%d,%d" % (dataId["tract"], dataId["patch"][0], dataId["patch"][1]))
+            ccd   = cameraGeomUtils.makeDefaultCcd(patch.getOuterBBox(), detId=detId) # outer overlaps, inner doesn't
+            import pdb; pdb.set_trace()
+
+            #raft.addDetector(a, b, c, ccd)
+
+        
     def setFilterless(self):
         self.dataIdTranslationMap['visit'] = ['tract', 'patch']
         del self.dataIdDbNames['filterName']
         self.dataInfo = self.dataInfo[0:2]
         
     def getRaftAndSensorNames(self, dataId):
-        ccdName =  'pseudo' #str(dataId['tract']) + '-' + str(dataId['patch'])
+        ccdName =  str(dataId['tract']) + '-' + str(dataId['patch'])
         return None, ccdName
 
-    
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
