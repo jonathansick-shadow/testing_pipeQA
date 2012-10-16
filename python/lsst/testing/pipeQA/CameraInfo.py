@@ -4,6 +4,7 @@ import eups
 import numpy
 
 import lsst.daf.persistence as dafPersist
+import lsst.afw.geom as afwGeom
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
     
@@ -686,25 +687,52 @@ class CoaddCameraInfo(CameraInfo):
             
         
     def skyMapToCamera(self, dataIds):
-        """Make a minimal camera based on the skymap"""
+        """Make a minimal camera based on the skymap; ONLY DESIGNED TO WORK WITH 1 TRACT (sorry, future developer)"""
         tracts = set(x["tract"] for x in dataIds)
         assert(len(tracts) == 1)
         self.tract = tracts.pop()
 
+        cols   = set([x["patch"][0] for x in dataIds]) # x
+        rows   = set([x["patch"][1] for x in dataIds]) # y
+        col0   = min(cols)
+        row0   = min(rows)
+        ncols  = max(cols) - col0 + 1
+        nrows  = max(rows) - row0 + 1
+
         raftId = cameraGeom.Id(0, str(self.tract))
-
-        #raft   = cameraGeom.Raft(raftId, nCol, nRow)
-        #rows   = [x[0] for x in dataIds
-
+        raft   = cameraGeom.Raft(raftId, ncols, nrows)
+        raft.setTrimmed(True) 
         for nId, dataId in enumerate(dataIds):
-            patch = self.skyMap[dataId["tract"]].getPatchInfo(dataId["patch"])
-            detId = cameraGeom.Id(nId, "%d-%d,%d" % (dataId["tract"], dataId["patch"][0], dataId["patch"][1]))
-            ccd   = cameraGeomUtils.makeDefaultCcd(patch.getOuterBBox(), detId=detId) # outer overlaps, inner doesn't
-            import pdb; pdb.set_trace()
+            patch = self.skyMap[self.tract].getPatchInfo(dataId["patch"])
+            detId = cameraGeom.Id(nId, "%d-%d,%d" % (self.tract, patch.getIndex()[0], patch.getIndex()[1]))
+            bbox  = patch.getInnerBBox() # outer bbox overlaps, inner doesn't
+            ccd   = cameraGeomUtils.makeDefaultCcd(bbox, detId=detId) 
+            ccd.setTrimmed(True)
+            col   = patch.getIndex()[0] - col0
+            row   = patch.getIndex()[1] - row0
 
-            #raft.addDetector(a, b, c, ccd)
+            xc    = bbox.getBeginX() + 0.5 * bbox.getWidth()
+            yc    = bbox.getBeginY() + 0.5 * bbox.getHeight()
 
-        
+            print col, row, xc, yc, raft.getAllPixels().getBeginX(), raft.getAllPixels().getEndX(), ccd.getAllPixels().getBeginX(), ccd.getAllPixels().getEndX()
+
+            raft.addDetector(afwGeom.Point2I(col, row), 
+                             cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)),
+                             cameraGeom.Orientation(),
+                             ccd)
+
+        raftBbox = raft.getAllPixels()
+        xc       = raftBbox.getBeginX() + 0.5 * raftBbox.getWidth()
+        yc       = raftBbox.getBeginY() + 0.5 * raftBbox.getHeight()
+        cameraId = cameraGeom.Id(0, "Skymap")
+        camera = cameraGeom.Camera(cameraId, 1, 1)
+        camera.setTrimmed(True)  
+        camera.addDetector(afwGeom.Point2I(0, 0),
+                           cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)), 
+                           cameraGeom.Orientation(), raft) 
+        import pdb; pdb.set_trace()
+        cameraGeomUtils.showCamera(camera)
+
     def setFilterless(self):
         self.dataIdTranslationMap['visit'] = ['tract', 'patch']
         del self.dataIdDbNames['filterName']
