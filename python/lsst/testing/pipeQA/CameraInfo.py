@@ -717,8 +717,6 @@ class CoaddCameraInfo(CameraInfo):
             xc    = bbox.getBeginX() + 0.5 * bbox.getWidth()
             yc    = bbox.getBeginY() + 0.5 * bbox.getHeight()
 
-            print col, row, xc, yc, raft.getAllPixels().getBeginX(), raft.getAllPixels().getEndX(), ccd.getAllPixels().getBeginX(), ccd.getAllPixels().getEndX()
-
             raft.addDetector(afwGeom.Point2I(col, row), 
                              cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)),
                              cameraGeom.Orientation(),
@@ -747,9 +745,6 @@ class CoaddCameraInfo(CameraInfo):
                 self.sensors[ccdName] = ccd
                 self.nSensor += 1
                 self.raftCcdKeys.append([raftName, ccdName])
-
-        #import pdb; pdb.set_trace()
-        #cameraGeomUtils.showCamera(camera)
 
     def setFilterless(self):
         self.dataIdTranslationMap['visit'] = ['tract', 'patch']
