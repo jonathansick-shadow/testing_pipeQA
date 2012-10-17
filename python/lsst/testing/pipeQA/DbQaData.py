@@ -1002,7 +1002,6 @@ class DbQaData(QaData):
         @param dataIdRegex dataId dict containing regular expressions of data to retrieve.
         """
 
-
         columnsTmp = zip(*self.cameraInfo.dataInfo)[0]
         visitLike = zip(*self.cameraInfo.dataInfo)[1]
         dbNames = []
