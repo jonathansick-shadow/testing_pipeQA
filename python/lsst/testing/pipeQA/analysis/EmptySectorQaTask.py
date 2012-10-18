@@ -242,7 +242,9 @@ class EmptySectorQaTask(QaAnalysisTask):
         for raft,ccd in data.cameraInfo.raftCcdKeys:
             if data.cameraInfo.name == 'coadd':
                 xtmp, ytmp = self.x.get(raft, ccd), self.y.get(raft, ccd)
-                xxlo, yylo, xxhi, yyhi = xtmp.min(), ytmp.min(), xtmp.max(), ytmp.max()
+                if (xtmp is not None) and (ytmp is not None):
+                    xxlo, yylo, xxhi, yyhi = xtmp.min(), ytmp.min(), xtmp.max(), ytmp.max()
+                else: xxlo, yylo, xxhi, yyhi = xlo, ylo, xhi, yhi
             else:
                 xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
             if xxlo < xlo: xlo = xxlo
