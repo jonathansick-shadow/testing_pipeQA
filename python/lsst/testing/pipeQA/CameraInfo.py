@@ -658,13 +658,14 @@ class CoaddCameraInfo(CameraInfo):
         try:
             # Use this until we can determine the mapper from the archive
             import lsst.obs.lsstSim as obsLsst
+            mapper = obsLsst.LsstSimMapper(root = kwargs["skymapRep"])
+            butlerFactory = dafPersist.ButlerFactory(mapper = mapper)
+            butler = butlerFactory.create()
+            self.skyMap = butler.get(datasetType=kwargs["coaddTable"] + "Coadd_skyMap")
         except Exception, e:
             print "Failed to import lsst.obs.lsstSim", e
+            mapper = None
 
-        mapper = obsLsst.LsstSimMapper(root = kwargs["skymapRep"])
-        butlerFactory = dafPersist.ButlerFactory(mapper = mapper)
-        butler = butlerFactory.create()
-        self.skyMap = butler.get(datasetType=kwargs["coaddTable"] + "Coadd_skyMap")
 
         dataInfo       = [['tract', 1], ['patch', 1], ['filterName', 1]]
         camera         = [] # Empty until we get an idea of the skymap footprint
