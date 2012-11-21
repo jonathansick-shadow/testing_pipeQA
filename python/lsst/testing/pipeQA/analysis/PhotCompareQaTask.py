@@ -226,7 +226,12 @@ class PhotCompareQaTask(QaAnalysisTask):
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
                     
-                    if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
+                    if data.cameraInfo.name == 'coadd':
+                        flagit = (satcen or edge) # coadds have excessive area covered by InterpCen flags
+                    else:
+                        flagit = (intcen or satcen or edge)
+
+                    if (f1 > 0.0 and f2 > 0.0  and not flagit):
                         m1  = -2.5*numpy.log10(f1)
                         m2  = -2.5*numpy.log10(f2)
                         dm1 = 2.5 / numpy.log(10.0) * df1 / f1
@@ -261,7 +266,12 @@ class PhotCompareQaTask(QaAnalysisTask):
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
                     
-                    if ((f1 > 0.0 and f2 > 0.0) and not (intcen or satcen or edge)):
+                    if data.cameraInfo.name == 'coadd':
+                        flagit = (satcen or edge) # coadds have excessive area covered by InterpCen flags
+                    else:
+                        flagit = (intcen or satcen or edge)
+
+                    if ((f1 > 0.0 and f2 > 0.0) and not flagit):
 
                         m1 = -2.5*numpy.log10(f1) #self.calib[key].getMagnitude(f1)
                         m2 = -2.5*numpy.log10(f2) #self.calib[key].getMagnitude(f2)

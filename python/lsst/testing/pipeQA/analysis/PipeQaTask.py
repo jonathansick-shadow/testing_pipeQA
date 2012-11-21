@@ -124,6 +124,8 @@ class PipeQaTask(pipeBase.Task):
                             help="Rerun to analyse - only valid for hsc/suprimecam (default=%(default)s)")
         parser.add_argument("-s", "--snap", default=".*",
                             help="Specify snap as regex (default=%(default)s)")
+        parser.add_argument("-S", "--skymap", default=None,
+                            help="Skymap repository (required if --camera=coadd and dataset is a database (default=%(default)s)")
         parser.add_argument("-t", "--test", default=".*",
                             help="Regex specifying which QaAnalysis to run (default=%(default)s)")
         parser.add_argument("-T", "--coaddTable", default="goodSeeing",
@@ -252,6 +254,7 @@ class PipeQaTask(pipeBase.Task):
         coaddTable   = parsedCmd.coaddTable
         lazyPlot     = parsedCmd.lazyPlot
         verbosity    = parsedCmd.verbosity
+        skymapRep    = parsedCmd.skymap
 
         # optional visitQA info
         matchDset    = parsedCmd.matchDataset
@@ -268,6 +271,11 @@ class PipeQaTask(pipeBase.Task):
             self.log.log(self.log.WARN, "You've specified breakBy=%s, which requires 'keep' (-k). "+
                          "I'll set it for you.")
             keep = True
+
+        if camera == "coadd" and skymapRep is None:
+            self.log.fatal("Requries a skymap repository (-S repository) if running on coadd (-C coadd)")
+            sys.exit()
+            
         
         # Is this deprecated?
         Trace.setVerbosity('lsst.testing.pipeQA', int(verbosity))
@@ -282,7 +290,8 @@ class PipeQaTask(pipeBase.Task):
     
         data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
                                  shapeAlg = self.config.shapeAlgorithm,
-                                 useForced=useForced, coaddTable=coaddTable)
+                                 useForced=useForced, coaddTable=coaddTable, 
+                                 skymapRep=skymapRep)
     
         if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
             dataIdInput['sensor'] = dataIdInput['ccd']

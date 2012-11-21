@@ -44,8 +44,10 @@ class QaData(object):
         self.ccdConvention = 'ccd'
         if self.cameraInfo.name == 'lsstSim':
             self.ccdConvention = 'sensor'
-        if self.cameraInfo.name == 'sdss':
+        elif self.cameraInfo.name == 'sdss':
             self.ccdConvention = 'camcol'
+        elif self.cameraInfo.name == "coadd":
+            self.ccdConvention = "patch"
 
         
     def printStartLoad(self, message):

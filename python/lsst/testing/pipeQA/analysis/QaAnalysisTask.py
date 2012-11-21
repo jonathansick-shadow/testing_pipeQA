@@ -87,6 +87,9 @@ class QaAnalysisTask(pipeBase.Task):
             if hasattr(data, 'useForced'):
                 self.testSets[tsId].addMetadata('forced', "True" if data.useForced else "False")
 
+            # In case the data have not been cached yet
+            data.getMatchListBySensor(dataId)
+
             key = data._dataIdToString(dataId, defineFully=True)
             sqlCache = data.sqlCache['match'].get(key, "")
             self.testSets[tsId].addMetadata("SQL match", sqlCache)

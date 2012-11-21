@@ -178,7 +178,10 @@ class VisitToVisitPhotQaTask(QaAnalysisTask):
             self.refId[visit]       = raftCcdData.RaftCcdVector(self.detector)
             self.star[visit]        = raftCcdData.RaftCcdVector(self.detector)
     
-            badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
+            if data.cameraInfo.name == "coadd":
+                badFlags = measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE # coadds have excessive area covered by INTERP_CENTER flags
+            else:
+                badFlags = measAlg.Flags.INTERP_CENTER | measAlg.Flags.SATUR_CENTER | measAlg.Flags.EDGE
 
             for key in self.matchListDictSrc.keys():
                 raft = self.detector[key].getParent().getId().getName()

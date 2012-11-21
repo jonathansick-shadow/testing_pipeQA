@@ -3,6 +3,8 @@ import copy
 import eups
 import numpy
 
+import lsst.daf.persistence as dafPersist
+import lsst.afw.geom as afwGeom
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
     
@@ -652,41 +654,30 @@ class SdssCameraInfo(CameraInfo):
 ####################################################################
 class CoaddCameraInfo(CameraInfo):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         try:
-            #import lsst.obs.coadd        as obsCoadd
-            mapper = None #obsCoadd.CoaddMapper
+            # Use this until we can determine the mapper from the archive
+            import lsst.obs.lsstSim as obsLsst
+            mapper = obsLsst.LsstSimMapper(root = kwargs["skymapRep"])
+            butlerFactory = dafPersist.ButlerFactory(mapper = mapper)
+            butler = butlerFactory.create()
+            self.skyMap = butler.get(datasetType=kwargs["coaddTable"] + "Coadd_skyMap")
         except Exception, e:
-            print "Failed to import lsst.obs.coadd", e
+            print "Failed to import lsst.obs.lsstSim", e
             mapper = None
+
+
         dataInfo       = [['tract', 1], ['patch', 1], ['filterName', 1]]
-
-        simdir        = os.environ['TESTING_PIPEQA_DIR']
-        cameraGeomPaf = os.path.join(simdir, "policy", "Full_coadd_geom.paf")
-        cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-        camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
-
-        # obs_coadd not going to be used
-        if False:
-            if os.environ.has_key('OBS_COADD_DIR'):
-                simdir         = os.environ['OBS_COADD_DIR']
-                cameraGeomPaf = os.path.join(simdir, "description", "Full_geom.paf")
-                if not os.path.exists(cameraGeomPaf):
-                    raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
-                cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-                camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
-            else:
-                camera           = None
-
+        camera         = [] # Empty until we get an idea of the skymap footprint
 
         CameraInfo.__init__(self, "coadd", dataInfo, mapper, camera)
         
         self.doLabel = True
 
         self.dataIdTranslationMap = {
-            'visit' : ['tract','patch','filterName'],
-            'raft'  : None,
-            'sensor'   : None, #'filter',
+            'visit'    : ['tract','filterName'],
+            'raft'     : None,
+            'sensor'   : 'patch',
             }
 
         self.dataIdDbNames = {
@@ -695,6 +686,66 @@ class CoaddCameraInfo(CameraInfo):
             'filterName' : 'filterName',
             }
             
+        
+    def skyMapToCamera(self, dataIds):
+        """Make a minimal camera based on the skymap; ONLY DESIGNED TO WORK WITH 1 TRACT (sorry, future developer)"""
+        tracts = set(x["tract"] for x in dataIds)
+        assert(len(tracts) == 1)
+        self.tract = tracts.pop()
+
+        cols   = set([x["patch"][0] for x in dataIds]) # x
+        rows   = set([x["patch"][1] for x in dataIds]) # y
+        col0   = min(cols)
+        row0   = min(rows)
+        ncols  = max(cols) - col0 + 1
+        nrows  = max(rows) - row0 + 1
+
+        origBBox = afwGeom.Box2I()
+
+        raftId = cameraGeom.Id(0, str(self.tract))
+        raft   = cameraGeom.Raft(raftId, ncols, nrows)
+        for nId, dataId in enumerate(dataIds):
+            patch = self.skyMap[self.tract].getPatchInfo(dataId["patch"])
+            detId = cameraGeom.Id(nId, "%d-%d,%d" % (self.tract, patch.getIndex()[0], patch.getIndex()[1]))
+            bbox  = patch.getInnerBBox() # outer bbox overlaps, inner doesn't
+            origBBox.include(bbox)       # capture the full extent of the skymap
+            bbox.shift(-afwGeom.Extent2I(bbox.getBegin())) # need the bbox to be w.r.t. the raft coord system; i.e. 0
+            ccd   = cameraGeomUtils.makeDefaultCcd(bbox, detId=detId) 
+
+            col   = patch.getIndex()[0] - col0
+            row   = patch.getIndex()[1] - row0
+
+            xc    = bbox.getBeginX() + 0.5 * bbox.getWidth()
+            yc    = bbox.getBeginY() + 0.5 * bbox.getHeight()
+
+            raft.addDetector(afwGeom.Point2I(col, row), 
+                             cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)),
+                             cameraGeom.Orientation(),
+                             ccd)
+
+        raftBbox  = raft.getAllPixels()
+        xc        = origBBox.getBeginX() + 0.5 * origBBox.getWidth()
+        yc        = origBBox.getBeginY() + 0.5 * origBBox.getHeight()
+        cameraId = cameraGeom.Id(0, "Skymap")
+        camera = cameraGeom.Camera(cameraId, 1, 1)
+        camera.addDetector(afwGeom.Point2I(0, 0),
+                           cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)), 
+                           cameraGeom.Orientation(), raft) 
+
+        self.camera = camera
+        # Now, redo the assignments in __init__
+        for r in self.camera:
+            raft = cameraGeom.cast_Raft(r)
+            raftName = raft.getId().getName().strip()
+            self.detectors[raftName] = raft
+            self.rafts[raftName] = raft
+            for c in raft:
+                ccd = cameraGeom.cast_Ccd(c)
+                ccdName = ccd.getId().getName().strip()
+                self.detectors[ccdName] = ccd
+                self.sensors[ccdName] = ccd
+                self.nSensor += 1
+                self.raftCcdKeys.append([raftName, ccdName])
 
     def setFilterless(self):
         self.dataIdTranslationMap['visit'] = ['tract', 'patch']
@@ -702,10 +753,9 @@ class CoaddCameraInfo(CameraInfo):
         self.dataInfo = self.dataInfo[0:2]
         
     def getRaftAndSensorNames(self, dataId):
-        ccdName =  'pseudo' #str(dataId['tract']) + '-' + str(dataId['patch'])
+        ccdName =  str(dataId['tract']) + '-' + str(dataId['patch'])
         return None, ccdName
 
-    
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
