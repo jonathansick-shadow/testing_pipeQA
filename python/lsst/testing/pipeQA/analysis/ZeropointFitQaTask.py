@@ -96,7 +96,10 @@ class ZeropointFitQaTask(QaAnalysisTask):
         self.zeroPoint        = raftCcdData.RaftCcdData(self.detector)
         self.medOffset        = raftCcdData.RaftCcdData(self.detector)
 
-        badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
+        if data.cameraInfo.name == "coadd":
+            badFlags = pqaSource.SATUR_CENTER | pqaSource.EDGE # coadds have excessive area covered by INTERP_CENTER flags
+        else:
+            badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
 
         for key in self.detector.keys():
             raftId     = self.detector[key].getParent().getId().getName()
@@ -146,7 +149,12 @@ class ZeropointFitQaTask(QaAnalysisTask):
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
 
-                    if (fref > 0.0 and f > 0.0 and not (intcen or satcen or edge)):
+                    if data.cameraInfo.name == 'coadd':
+                        flagit = (satcen or edge) # coadds have excessive area covered by InterpCen flags
+                    else:
+                        flagit = (intcen or satcen or edge)
+
+                    if (fref > 0.0 and f > 0.0 and not flagit):
                         mrefmag  = -2.5*num.log10(fref)
                         mimgmag  = -2.5*num.log10(f)
                         mimgmerr =  2.5 / num.log(10.0) * ferr / f

@@ -271,7 +271,7 @@ class DbQaData(QaData):
         self.printStartLoad("Loading MatchList ("+ self.refStr[useRef][1]  +") for: " + dataIdStr + "...")
         
         # run the query
-        #print sql
+        print sql
         results  = self.dbInterface.execute(sql)
         
         self.sqlCache['match'][dataIdStr] = sql

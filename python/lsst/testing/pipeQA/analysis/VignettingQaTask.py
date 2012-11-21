@@ -97,7 +97,7 @@ class VignettingQaTask(QaAnalysisTask):
         self.rmsOffset    = raftCcdData.RaftCcdData(self.detector)
         
         #badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
-        
+
         for key in self.detector.keys():
 
             if self.detector[key] is None:
@@ -134,7 +134,11 @@ class VignettingQaTask(QaAnalysisTask):
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
                     edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
                     
-                    if (f1 > 0.0 and f2 > 0.0  and not (intcen or satcen or edge)):
+                    if data.cameraInfo.name == 'coadd':
+                        flagit = (satcen or edge) # coadds have excessive area covered by InterpCen flags
+                    else:
+                        flagit = (intcen or satcen or edge)
+                    if (f1 > 0.0 and f2 > 0.0  and not flagit):
                         m1 = -2.5*num.log10(f1)
                         m2 = -2.5*num.log10(f2)
 
