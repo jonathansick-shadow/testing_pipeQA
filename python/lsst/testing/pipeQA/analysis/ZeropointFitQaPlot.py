@@ -6,11 +6,6 @@ import matplotlib
 
 import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
-from matplotlib import colors
-import matplotlib.font_manager as fm
-from  matplotlib.ticker import MaxNLocator
-from matplotlib.collections import LineCollection
-from matplotlib.patches import Circle
 
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
@@ -92,7 +87,7 @@ def plot(data):
     # Plot zpt
     xzpt = num.array((xmin, xmax))
     pzpt = axis.plot(xzpt, xzpt - zeropt, 'k--', label = 'Zeropoint')
-    legLines.append(pzpt)
+    legLines.append(pzpt[0])
     legLabels.append("Zeropoint")
 
     maxN2 = 999
