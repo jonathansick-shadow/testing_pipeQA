@@ -173,7 +173,7 @@ def getSourceSetNameList():
 def getSourceSetAccessors():
     """Get a list of all accessor names for Source objects. """
     return zip(*getSourceSetNameList())[0]
-def getSourceSetDbNames(replacementDict):
+def getSourceSetDbNames(replacementDict={}):
     """Get a list of all database names for Source objects. """
     rawList = list(zip(*getSourceSetNameList())[1])
     for k,v in replacementDict.items():
@@ -254,13 +254,24 @@ def getSceNameList(dataIdNames, replacements={}):
         ['fwhm',                 'fwhm'                 ],
         ]
 
-    
+
+    duplicates = []
+    nameListTmp = []
     for arr in nameList:
         a, b = arr
+        # handle replacements
         if a in replacements:
             arr[1] = replacements[a]
             
-    return nameList
+        # when SDSS support was added, filterName appeared as both
+        #   a dataId key and a selected paramter (so ... twice in the 'select' statement)
+        # Jacek reports that such duplicated fields cause trouble for qserv
+        # We don't need them, so they're weeded out here
+        if a not in duplicates:
+            nameListTmp.append(arr)
+            duplicates.append(a)
+            
+    return nameListTmp
 
 def getSceDbNames(dataIdNames, replacements={}):
     """Get SourceCcdExposure database column names."""

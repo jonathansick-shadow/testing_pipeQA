@@ -132,7 +132,11 @@ class DbQaData(QaData):
             'sdss'  : {}, #'fwhm' : 'fwhm',         'scienceCcdExposureId' : 'scienceCcdExposureId' },
             'coadd' : {'fwhm' : 'measuredFwhm', 'scienceCcdExposureId' : '%sCoaddId' % (cTabUpper) },
             }
-
+        self.yMagColumn = {
+            'lsstSim' : True,
+            'sdss' : False,
+            'coadd' : False, # assuming coadds are SDSS coadds ... will require update eventually.
+            }
         
         defaultCamera = 'lsstSim'
         self.sceTable = self.sceTables.get(cameraInfo.name, defaultCamera)
@@ -141,26 +145,8 @@ class DbQaData(QaData):
         self.sId      = self.sIds.get(cameraInfo.name, defaultCamera)
         self.romTable = self.romTables.get(cameraInfo.name, defaultCamera)
         self.sceReplace = self.sceReplacements.get(cameraInfo.name, defaultCamera)
+        self.haveYmag = self.yMagColumn.get(cameraInfo.name, defaultCamera)
 
-        
-        # handle backward compatibility of database names
-        keyList = []
-        sql = "show columns from "+self.sTable+";"
-
-        results = self.dbInterface.execute(sql)
-        for r in results:
-            keyList.append(r[0])
-
-        # default to new names
-        self.dbAliases = {
-            #"flux_Gaussian" : "instFlux",
-            #"flux_ESG"      : "modelFlux",
-            'instFlux' : 'instFlux', 
-            }
-        # reset to old names if new names not present
-        for k,v in self.dbAliases.items():
-            if k in keyList:
-                self.dbAliases[k] = k
         
 
     def initCache(self):
@@ -194,7 +180,7 @@ class DbQaData(QaData):
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
         setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
-        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
+        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
         selectStr  = ", ".join(selectList)
         
         sql  = 'select sce.filterId, sce.filterName from '+self.sceTable+' as sce'
@@ -486,7 +472,7 @@ class DbQaData(QaData):
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
         setMethods = [x for x in qaDataUtils.getSourceSetAccessors()]
-        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
+        selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
         selectStr  = ", ".join(selectList)
 
         # b/c of diff cameras, dataId keys and ScienceCcdExposure schema are have different names
@@ -723,7 +709,7 @@ class DbQaData(QaData):
             # Selection of source matches from the comparison database
             self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
             setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
-            selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames(self.dbAliases)]
+            selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
             selectStr = ", ".join(selectList)
             sql3  = 'SELECT sce.visit, sce.raftName, sce.ccdName, sce.filterName, '                # 4 values
             sql3 += ' sce.fluxMag0, sce.fluxMag0Sigma,'                                            # 2 values
@@ -848,16 +834,8 @@ class DbQaData(QaData):
         # verify that the dataId keys are valid
         self.verifyDataIdKeys(dataIdRegex.keys(), raiseOnFailure=True)
 
-        # figure out if we have yMag
-        keyList = []
-        sql = "show columns from RefObject;"
-        results = self.dbInterface.execute(sql)
-        for r in results:
-            keyList.append(r[0])
-        haveYmag = 'yMag' in keyList
-        
         sroFields = simRefObj.fields
-        if not haveYmag:
+        if not self.haveYmag:
             sroFields = [x for x in sroFields if x != 'yMag']
         sroFieldStr = ", ".join(["sro."+field for field in sroFields])
 
@@ -963,7 +941,7 @@ class DbQaData(QaData):
             
             for row in results:
                 sroStuff = list(row[:])
-                if not haveYmag:
+                if not self.haveYmag:
                     sroStuff.append(0.0) # dummy yMag
 
                 # ignore things near the edge
