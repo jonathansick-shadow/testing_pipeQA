@@ -105,7 +105,16 @@ class AstrometricErrorQaTask(QaAnalysisTask):
                 dDec = decRef - dec
                 dRa  = (raRef - ra)*abs(numpy.cos(decRef))
                 
-                if not (s.getD(sCatSchema.find('FlagPixInterpCen').key)):
+                intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
+                satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
+                edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
+
+                if data.cameraInfo.name == 'coadd':
+                    flagit = (satcen or edge) # coadds have excessive area covered by InterpCen flags
+                else:
+                    flagit = (intcen or satcen or edge)
+
+                if not (flagit):
                     self.dRa.append(raft, ccd, dRa)
                     self.dDec.append(raft, ccd, dDec)
                     self.x.append(raft, ccd, s.getD(xKey))
@@ -167,7 +176,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             testSet.addTest(test)
             
         
-    def plot(self, data, dataId, showUndefined=False):
+    def plot(self, data, dataId, showUndefined=False, showFpa=False):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -180,28 +189,29 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         medAstBase = "medAstError"
         medAstData, medAstMap = testSet.unpickle(medAstBase, default=[None, None])
 
-        # fpa figure
-        astFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=medAstData, map=medAstMap)
+        if (showFpa):
+            # fpa figure
+            astFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=medAstData, map=medAstMap)
 
-        vLen = 5000 # length in pixels for 1 arcsec error vector
-        for raft, ccdDict in astFig.data.items():
-            for ccd, value in ccdDict.items():
-                if not self.medErrArcsec.get(raft, ccd) is None:
-                    astErrArcsec = self.medErrArcsec.get(raft, ccd)
-                    thetaRad = self.medThetaRad.get(raft, ccd)
-                    astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
-                    astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, numpy.degrees(thetaRad))
+            vLen = 5000 # length in pixels for 1 arcsec error vector
+            for raft, ccdDict in astFig.data.items():
+                for ccd, value in ccdDict.items():
+                    if not self.medErrArcsec.get(raft, ccd) is None:
+                        astErrArcsec = self.medErrArcsec.get(raft, ccd)
+                        thetaRad = self.medThetaRad.get(raft, ccd)
+                        astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]
+                        astFig.map[raft][ccd] = "\"/theta=%.2f/%.0f" % (astErrArcsec, numpy.degrees(thetaRad))
                 
-        testSet.pickle(medAstBase, [astFig.data, astFig.map])
+            testSet.pickle(medAstBase, [astFig.data, astFig.map])
         
-        if not self.delaySummary or isFinalDataId:
-            self.log.log(self.log.INFO, "plotting FPAs")
-            astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
-                              title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
-                              cmapUnder="#ff0000")
-            testSet.addFigure(astFig, medAstBase+".png", "Median astrometric error",  navMap=True)
+            if not self.delaySummary or isFinalDataId:
+                self.log.log(self.log.INFO, "plotting FPAs")
+                astFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 2.0*self.limits[1]],
+                                  title="Median astrometric error", cmapOver='#ff0000', failLimits=self.limits,
+                                  cmapUnder="#ff0000")
+                testSet.addFigure(astFig, medAstBase+".png", "Median astrometric error",  navMap=True)
             
-        del astFig
+            del astFig
 
         prePlot = False
 

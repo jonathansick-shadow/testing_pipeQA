@@ -186,8 +186,11 @@ class DbQaData(QaData):
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
 
+        print 'Got here'
         calib          = self.getCalibBySensor(dataIdRegex)
+        print 'Got here 2'
         sourcesDict    = self.getSourceSetBySensor(dataIdRegex)
+        print 'Got here 3'
         refObjectsDict = self.getRefObjectSetBySensor(dataIdRegex)
         
         
@@ -257,18 +260,6 @@ class DbQaData(QaData):
             useIndex = 'use index()'
             
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        #sql  = 'select '+ ", ".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId)
-        #sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
-        #sql += selectStr
-        #sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce %s,' % (useIndex)
-        #sql += '    '+romTable+' as rom, RefObject as sro' 
-        #sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
-        #sql += '    and (s.'+self.sId+' = rom.'+self.sId+') and (rom.refObjectId = sro.refObjectId)'
-
-        #if useRef == 'obj':
-        #    sql += '    and (s.objectID is not NULL) '
-        #sql += '    and '+idWhere
-
         sql  = 'select '+ ", ".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId)
         sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
         sql += selectStr
@@ -510,28 +501,18 @@ class DbQaData(QaData):
             ]
         
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
-        #sql  = 'select '+", ".join(zip(*sceNames)[1])+', s.'+self.sId+', '+selectStr
-        #sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce'
-        #sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
         sql  = 'select '+", ".join(zip(*sceNames)[1])+', s.'+self.sId+', '+selectStr
-        sql += '  from '+self.sTable+' as s, '+'(select '+ ", ".join([w.replace('sce.','') for w in zip(*sceNames)[1]])
-        sql += ', '+self.sceId+' from '+self.sceTable
-
+        sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce'
+        sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
         haveAllKeys = True
 
-        counter=0
         for keyNames in sceNames:
-            key, sqlName = [w.replace('sce.','') for w in keyNames]
+            key, sqlName = keyNames
             if dataIdRegex.has_key(key):
-                if counter==0:
-                    sql += ' where '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
-                    counter += 1
-                else:
-                    sql += '    and '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
+                sql += '    and '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
             else:
                 haveAllKeys = False
-        sql+=') as sce  where (s.'+self.sceId+' = sce.'+self.sceId+')'
-
+        
         # if there are no regexes (ie. actual wildcard expressions),
         #  we can check the cache, otherwise must run the query
         

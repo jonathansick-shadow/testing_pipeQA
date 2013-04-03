@@ -425,6 +425,7 @@ class QaData(object):
         #x = self._dataTupleToString(self._dataIdToDataTuple(dataId))
         s = "-".join(s)
         #print x, s
+
         return s
 
     
@@ -441,6 +442,7 @@ class QaData(object):
         for key in keyList:
             visit = str(self.dataIdLookup[key]['visit'])
             visits[visit] = True
+
         return visits.keys()
 
     

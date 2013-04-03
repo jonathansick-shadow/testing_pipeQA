@@ -279,7 +279,7 @@ class CompletenessQaTask(QaAnalysisTask):
                 test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
                 
-    def plot(self, data, dataId, showUndefined = False):
+    def plot(self, data, dataId, showUndefined = False, showFpa=False):
         
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -294,51 +294,52 @@ class CompletenessQaTask(QaAnalysisTask):
         if abs(self.limits[1] - 99.0) < 1.0e-3:
             limitsToUse[1] = self.faintest
             
-        # fpa figure
-        filebase = "completenessDepth"
-        depthData, depthMap = testSet.unpickle(filebase, default=[None, None])
-        depths = []
-        depthFig = qaFig.FpaQaFigure(data.cameraInfo, data=depthData, map=depthMap)
-        for raft, ccdDict in depthFig.data.items():
-            for ccd, value in ccdDict.items():
-                if not self.depth.get(raft, ccd) is None:
-                    depth = self.depth.get(raft, ccd)
-                    depths.append(depth)
-                    depthFig.data[raft][ccd] = depth
-                    if num.isfinite(depth):
-                        depthFig.map[raft][ccd] = 'mag=%.2f'%(depth)
-                    else:
-                        depthFig.map[raft][ccd] = 'mag=nan'
+        if (showFpa):
+            # fpa figure
+            filebase = "completenessDepth"
+            depthData, depthMap = testSet.unpickle(filebase, default=[None, None])
+            depths = []
+            depthFig = qaFig.FpaQaFigure(data.cameraInfo, data=depthData, map=depthMap)
+            for raft, ccdDict in depthFig.data.items():
+                for ccd, value in ccdDict.items():
+                    if not self.depth.get(raft, ccd) is None:
+                        depth = self.depth.get(raft, ccd)
+                        depths.append(depth)
+                        depthFig.data[raft][ccd] = depth
+                        if num.isfinite(depth):
+                            depthFig.map[raft][ccd] = 'mag=%.2f'%(depth)
+                        else:
+                            depthFig.map[raft][ccd] = 'mag=nan'
                         
-        testSet.pickle(filebase, [depthFig.data, depthFig.map])
+            testSet.pickle(filebase, [depthFig.data, depthFig.map])
 
-        blue = '#0000ff'
-        red  = '#ff0000'
+            blue = '#0000ff'
+            red  = '#ff0000'
         
-        if False:
-            if len(depths) >= 2:
-                vmin = max(num.min(depths), self.limits[0])
-                vmax = min(num.max(depths), self.limits[1])
+            if False:
+                if len(depths) >= 2:
+                    vmin = max(num.min(depths), self.limits[0])
+                    vmax = min(num.max(depths), self.limits[1])
+                else:
+                    vmin = self.limits[0]
+                    vmax = self.limits[1]
+
+                if vmax <= vmin:
+                    vmin = self.limits[0]
+                    vmax = self.limits[1]
             else:
-                vmin = self.limits[0]
-                vmax = self.limits[1]
+                vmin, vmax = 1.0*limitsToUse[0], 1.0*limitsToUse[1]
 
-            if vmax <= vmin:
-                vmin = self.limits[0]
-                vmax = self.limits[1]
-        else:
-            vmin, vmax = 1.0*limitsToUse[0], 1.0*limitsToUse[1]
+            if vmin > vmax:
+                vmax = vmin + (self.limits[1] - self.limits[0])
+            if not self.delaySummary or isFinalDataId:
+                self.log.log(self.log.INFO, "plotting FPAs")
+                depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
+                                    title="Photometric Depth", cmapOver=red, cmapUnder=blue,
+                                    failLimits=limitsToUse)
+                testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
 
-        if vmin > vmax:
-            vmax = vmin + (self.limits[1] - self.limits[0])
-        if not self.delaySummary or isFinalDataId:
-            self.log.log(self.log.INFO, "plotting FPAs")
-            depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
-                                title="Photometric Depth", cmapOver=red, cmapUnder=blue,
-                                failLimits=limitsToUse)
-            testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
-
-        del depthFig
+            del depthFig
 
 
         cacheLabel = "completeness"

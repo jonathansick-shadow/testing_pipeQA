@@ -176,7 +176,7 @@ class EmptySectorQaTask(QaAnalysisTask):
         testSet.addTest(test)
 
 
-    def plot(self, data, dataId, showUndefined=False):
+    def plot(self, data, dataId, showUndefined=False, showFpa=False):
 
         
         testSet = self.getTestSet(data, dataId)
@@ -185,54 +185,55 @@ class EmptySectorQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
         
-        # make fpa figures - for all detections, and for matched detections
-        emptyBase = "emptySectors"
-        emptyMatBase = "aa_emptySectorsMat"
+        if (showFpa):
+            # make fpa figures - for all detections, and for matched detections
+            emptyBase = "emptySectors"
+            emptyMatBase = "aa_emptySectorsMat"
 
-        emptyData, emptyMap       = testSet.unpickle(emptyBase, [None, None])
-        emptyMatData, emptyMatMap = testSet.unpickle(emptyMatBase, [None, None])
+            emptyData, emptyMap       = testSet.unpickle(emptyBase, [None, None])
+            emptyMatData, emptyMatMap = testSet.unpickle(emptyMatBase, [None, None])
         
-        emptyFig    = qaFig.FpaQaFigure(data.cameraInfo, data=emptyData, map=emptyMap)
-        emptyFigMat = qaFig.FpaQaFigure(data.cameraInfo, data=emptyMatData, map=emptyMatMap)
+            emptyFig    = qaFig.FpaQaFigure(data.cameraInfo, data=emptyData, map=emptyMap)
+            emptyFigMat = qaFig.FpaQaFigure(data.cameraInfo, data=emptyMatData, map=emptyMatMap)
 
-        for raft, ccdDict in emptyFig.data.items():
-            for ccd, value in ccdDict.items():
+            for raft, ccdDict in emptyFig.data.items():
+                for ccd, value in ccdDict.items():
 
-                # set values for data[raft][ccd] (color coding)
-                # set values for map[raft][ccd]  (tooltip text)
-                if not self.emptySectors.get(raft, ccd) is None:
-                    nEmpty = self.emptySectors.get(raft, ccd)
-                    emptyFig.data[raft][ccd] = nEmpty
-                    emptyFig.map[raft][ccd] = "%dx%d,empty=%d" % (self.nx, self.ny, nEmpty)
+                    # set values for data[raft][ccd] (color coding)
+                    # set values for map[raft][ccd]  (tooltip text)
+                    if not self.emptySectors.get(raft, ccd) is None:
+                        nEmpty = self.emptySectors.get(raft, ccd)
+                        emptyFig.data[raft][ccd] = nEmpty
+                        emptyFig.map[raft][ccd] = "%dx%d,empty=%d" % (self.nx, self.ny, nEmpty)
                     
-                    nEmptyMat = self.emptySectorsMat.get(raft, ccd)
-                    emptyFigMat.data[raft][ccd] = nEmptyMat
-                    emptyFigMat.map[raft][ccd] = "%dx%d,empty=%d" % (self.nx, self.ny, nEmptyMat)
+                        nEmptyMat = self.emptySectorsMat.get(raft, ccd)
+                        emptyFigMat.data[raft][ccd] = nEmptyMat
+                        emptyFigMat.map[raft][ccd] = "%dx%d,empty=%d" % (self.nx, self.ny, nEmptyMat)
 
-        testSet.pickle(emptyBase, [emptyFig.data, emptyFig.map])
-        testSet.pickle(emptyMatBase, [emptyFigMat.data, emptyFigMat.map])
+            testSet.pickle(emptyBase, [emptyFig.data, emptyFig.map])
+            testSet.pickle(emptyMatBase, [emptyFigMat.data, emptyFigMat.map])
 
-        # make the figures and add them to the testSet
-        # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
-        if not self.delaySummary or isFinalDataId:
-            self.log.log(self.log.INFO, "plotting FPAs")
-            emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
-                                vlimits=[0, self.nx*self.ny],
-                                title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
-                                failLimits=self.limits)
-            testSet.addFigure(emptyFig, emptyBase+".png",
-                              "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
-            del emptyFig
+            # make the figures and add them to the testSet
+            # sample colormaps at: http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
+            if not self.delaySummary or isFinalDataId:
+                self.log.log(self.log.INFO, "plotting FPAs")
+                emptyFig.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
+                                    vlimits=[0, self.nx*self.ny],
+                                    title="Empty sectors (%dx%d grid)" % (self.nx, self.ny),
+                                    failLimits=self.limits)
+                testSet.addFigure(emptyFig, emptyBase+".png",
+                                  "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
+                del emptyFig
             
-            emptyFigMat.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
-                                   vlimits=[0, self.nx*self.ny],
-                                   title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny),
-                                   failLimits=self.limits)
-            testSet.addFigure(emptyFigMat, emptyMatBase+".png",
-                              "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
-            del emptyFigMat
-        else:
-            del emptyFig, emptyFigMat
+                emptyFigMat.makeFigure(showUndefined=showUndefined, cmap="gist_heat_r",
+                                       vlimits=[0, self.nx*self.ny],
+                                       title="Empty sectors (matched, %dx%d grid)" % (self.nx, self.ny),
+                                       failLimits=self.limits)
+                testSet.addFigure(emptyFigMat, emptyMatBase+".png",
+                                  "Empty Sectors in %dx%d grid." % (self.nx, self.ny), navMap=True)
+                del emptyFigMat
+            else:
+                del emptyFig, emptyFigMat
 
 
         cacheLabel = "pointPositions"

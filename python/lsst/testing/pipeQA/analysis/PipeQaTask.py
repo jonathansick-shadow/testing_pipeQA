@@ -287,12 +287,19 @@ class PipeQaTask(pipeBase.Task):
             
         if exceptExit:
             numpy.seterr(all="raise")
-    
-        data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
-                                 shapeAlg = self.config.shapeAlgorithm,
-                                 useForced=useForced, coaddTable=coaddTable, 
-                                 skymapRep=skymapRep)
-    
+        
+        if (camera=='coadd'):
+            tract=visits.split('-')[0]
+            data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
+                                     shapeAlg = self.config.shapeAlgorithm,
+                                     useForced=useForced, coaddTable=coaddTable, 
+                                     skymapRep=skymapRep, tract=tract)
+        else:
+            data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
+                                     shapeAlg = self.config.shapeAlgorithm,
+                                     useForced=useForced, coaddTable=coaddTable, 
+                                     skymapRep=skymapRep)
+
         if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
             dataIdInput['sensor'] = dataIdInput['ccd']
             del dataIdInput['ccd']
