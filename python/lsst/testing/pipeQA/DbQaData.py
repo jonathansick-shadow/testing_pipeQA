@@ -871,46 +871,10 @@ class DbQaData(QaData):
             sqlDataId = " and ".join(sqlDataId)
 
 
-
-            nStep = 2
-
-            if nStep == 2:
-                sql  = 'SELECT scisql_s2CPolyToBin('
-                sql += '   sce.corner1Ra, sce.corner1Decl, '
-                sql += '   sce.corner2Ra, sce.corner2Decl, '
-                sql += '   sce.corner3Ra, sce.corner3Decl, '
-                sql += '   sce.corner4Ra, sce.corner4Decl) '
-                sql += 'FROM '+self.sceTable+' as sce '
-                sql += 'WHERE %s ' % (sqlDataId)
-                #sq += '   (sce.visit = 887252941) AND'
-                #sq += '   (sce.raftName = \'2,2\') AND'
-                #sq += '   (sce.ccdName = \'1,1\');'
-                sql += 'INTO @poly; '
-
-                sql2 = 'SELECT %s ' % (sroFieldStr)
-                sql2 += 'FROM '
-                sql2 += '    RefObject AS sro '
-                sql2 += 'WHERE '
-                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
-
-            # use a 3 step query
-            elif nStep == 3:
-                sql  = 'SELECT poly FROM '+self.sceTable+' as sce '
-                sql += 'WHERE %s ' % (sqlDataId) 
-                sql += 'INTO @poly;'
-
-                sql2 = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
-
-                sql3  = 'SELECT %s ' % (sroFieldStr)
-                sql3 += 'FROM RefObject AS sro INNER JOIN '
-                sql3 += '   scisql.Region AS reg ON (sro.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
-                sql3 += 'WHERE scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1;'
-
-            
             # if there are no regexes (ie. actual wildcard expressions),
             #  we can check the cache, otherwise must run the query
 
-            if not re.search("\%", sql) and haveAllKeys:
+            if not re.search("\%", sqlDataId) and haveAllKeys:
                 dataIdCopy = copy.copy(dataIdEntry)
 
                 key = self._dataIdToString(dataIdCopy, defineFully=True)
@@ -918,18 +882,47 @@ class DbQaData(QaData):
                     sroDict[key] = self.refObjectCache[key]
                     continue
 
-                        
             self.printStartLoad("Loading RefObjects for: " + dataIdEntryStr + "...")
+            
+            usePoly = True
+            if usePoly:
+                sql  = 'SELECT scisql_s2CPolyToBin('
+                sql += '   sce.corner1Ra, sce.corner1Decl, '
+                sql += '   sce.corner2Ra, sce.corner2Decl, '
+                sql += '   sce.corner3Ra, sce.corner3Decl, '
+                sql += '   sce.corner4Ra, sce.corner4Decl) '
+                sql += 'FROM '+self.sceTable+' as sce '
+                sql += 'WHERE %s ' % (sqlDataId)
+                sql += 'INTO @poly; '
+                self.dbInterface.execute(sql)
 
-            # run the queries
-            if nStep == 2:
-                self.dbInterface.execute(sql)
+                sql2 = 'SELECT %s ' % (sroFieldStr)
+                sql2 += 'FROM '
+                sql2 += '    RefObject AS sro '
+                sql2 += 'WHERE '
+                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
                 results = self.dbInterface.execute(sql2)
-            elif nStep == 3:
-                self.dbInterface.execute(sql)
-                self.dbInterface.execute(sql2)
-                results = self.dbInterface.execute(sql3)
-                    
+
+            else:
+                sql  = 'SELECT '
+                sql += '   sce.corner1Ra, sce.corner1Decl, '
+                sql += '   sce.corner2Ra, sce.corner2Decl, '
+                sql += '   sce.corner3Ra, sce.corner3Decl, '
+                sql += '   sce.corner4Ra, sce.corner4Decl  '
+                sql += 'FROM '+self.sceTable+' as sce '
+                sql += 'WHERE %s ' % (sqlDataId)
+
+                corners = self.dbInterface.execute(sql)
+                raLL, decLL, raLR, decLR, raUR, decUR, raUL, decUL = corners[0]
+                
+                sql2 = 'SELECT %s ' % (sroFieldStr)
+                sql2 += 'FROM '
+                sql2 += '    RefObject AS sro '
+                sql2 += 'WHERE '
+                sql2 += "    qserv_areaspec_poly(sro.ra, sro.decl, %f, %f,   %f, %f,   %f, %f,   %f, %f);" % (
+                    raLL, decLL, raLR, decLR, raUR, decUR, raUL, decUL)
+                results = self.dbInterface.execute(sql2)
+
 
             # parse results and put them in a sourceSet
             raftName, ccdName = self.cameraInfo.getRaftAndSensorNames(dataIdEntry)
