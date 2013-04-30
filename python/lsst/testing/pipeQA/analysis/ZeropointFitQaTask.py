@@ -219,7 +219,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
                 testSet.addTest(test)
                 
             
-    def plot(self, data, dataId, showUndefined=False, showFpa=False):
+    def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -227,7 +227,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
-        if (showFpa):
+        if (self.showFpa):
             # fpa figure
             zpts = []
             zptBase = "zeropoint"

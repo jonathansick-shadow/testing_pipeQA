@@ -401,7 +401,7 @@ class PhotCompareQaTask(QaAnalysisTask):
         testSet.addTest( testCode.Test(label, lineCoeffs[0], slopeLimits, comment, areaLabel="all"))
 
 
-    def plot(self, data, dataId, showUndefined=False, showFpa=False):
+    def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId, label=self.magType1+"-"+self.magType2)
         testSet.setUseCache(self.useCache)
@@ -420,7 +420,7 @@ class PhotCompareQaTask(QaAnalysisTask):
         dtag = self.magType1+"-"+self.magType2
         wtag = self.magType1+"minus"+self.magType2
 
-        if (showFpa):
+        if (self.showFpa):
             # fpa figure
             meanFilebase = "mean" + wtag
             stdFilebase  = "std"+wtag

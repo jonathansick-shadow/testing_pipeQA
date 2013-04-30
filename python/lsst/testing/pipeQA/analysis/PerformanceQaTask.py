@@ -120,7 +120,7 @@ class PerformanceQaTask(QaAnalysisTask):
         testSet.shelve(performBase, mb)
 
 
-    def plot(self, data, dataId, showUndefined=False, showFpa=False):
+    def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -132,7 +132,7 @@ class PerformanceQaTask(QaAnalysisTask):
         # memory
         ################################
 
-        if (showFpa):
+        if (self.showFpa):
             # make fpa figures - for all detections, and for matched detections
             memBase = "mem"
 
@@ -173,7 +173,7 @@ class PerformanceQaTask(QaAnalysisTask):
         # runtime
         ################################
 
-        if (showFpa):
+        if (self.showFpa):
             # make fpa figures - for all detections, and for matched detections
             runtimeBase = "runtime"
 

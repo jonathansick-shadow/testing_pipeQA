@@ -279,7 +279,7 @@ class CompletenessQaTask(QaAnalysisTask):
                 test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
                 
-    def plot(self, data, dataId, showUndefined = False, showFpa=False):
+    def plot(self, data, dataId, showUndefined = False):
         
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -294,7 +294,7 @@ class CompletenessQaTask(QaAnalysisTask):
         if abs(self.limits[1] - 99.0) < 1.0e-3:
             limitsToUse[1] = self.faintest
             
-        if (showFpa):
+        if (self.showFpa):
             # fpa figure
             filebase = "completenessDepth"
             depthData, depthMap = testSet.unpickle(filebase, default=[None, None])

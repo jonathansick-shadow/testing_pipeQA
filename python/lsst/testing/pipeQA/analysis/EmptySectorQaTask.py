@@ -176,7 +176,7 @@ class EmptySectorQaTask(QaAnalysisTask):
         testSet.addTest(test)
 
 
-    def plot(self, data, dataId, showUndefined=False, showFpa=False):
+    def plot(self, data, dataId, showUndefined=False):
 
         
         testSet = self.getTestSet(data, dataId)
@@ -185,7 +185,7 @@ class EmptySectorQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
         
-        if (showFpa):
+        if (self.showFpa):
             # make fpa figures - for all detections, and for matched detections
             emptyBase = "emptySectors"
             emptyMatBase = "aa_emptySectorsMat"

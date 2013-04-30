@@ -176,7 +176,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
             testSet.addTest(test)
             
         
-    def plot(self, data, dataId, showUndefined=False, showFpa=False):
+    def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -189,7 +189,7 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         medAstBase = "medAstError"
         medAstData, medAstMap = testSet.unpickle(medAstBase, default=[None, None])
 
-        if (showFpa):
+        if (self.showFpa):
             # fpa figure
             astFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=medAstData, map=medAstMap)
 

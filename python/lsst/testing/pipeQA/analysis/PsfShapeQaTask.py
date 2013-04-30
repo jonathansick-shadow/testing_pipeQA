@@ -198,7 +198,7 @@ class PsfShapeQaTask(QaAnalysisTask):
             testSet.addTest( testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel) )
 
 
-    def plot(self, data, dataId, showUndefined=False, showFpa=False):
+    def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
@@ -208,7 +208,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         vLen = 3000.0  # for e=1.0
 
-        if (showFpa):
+        if (self.showFpa):
             # fpa figures
             ellipBase = "medPsfEllip"
             ellipData, ellipMap = testSet.unpickle(ellipBase, default=[None, None])
@@ -286,7 +286,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         #Need to repeat vlim calculation here in case FPA not shown
 
-        if (not showFpa):
+        if (not self.showFpa):
             fwhmMin =  1e10
             fwhmMax = -1e10
             fwhm = None

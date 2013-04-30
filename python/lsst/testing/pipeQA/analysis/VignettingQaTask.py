@@ -188,7 +188,7 @@ class VignettingQaTask(QaAnalysisTask):
                 testSet.addTest(test)
 
                 
-    def plot(self, data, dataId, showUndefined = False, showFpa=False):
+    def plot(self, data, dataId, showUndefined = False):
 
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache) #cache
@@ -196,7 +196,7 @@ class VignettingQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
-        if (showFpa):
+        if (self.showFpa):
             # fpa figures
             medFigbase = "vignettingMedianPhotOffset" #cache
             medFigData, medFigMap = testSet.unpickle(medFigbase, [None, None]) #cache
