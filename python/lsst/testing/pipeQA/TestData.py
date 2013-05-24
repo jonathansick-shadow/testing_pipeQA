@@ -161,7 +161,7 @@ class TestData(object):
     #######################################################################
     def setupAstrometryNetData(self):
         
-        if not (self.astrometryNetData is None):
+        if self.astrometryNetData is not None:
             ok, version, reason = eups.Eups().setup('astrometry_net_data', self.astrometryNetData)
         
         

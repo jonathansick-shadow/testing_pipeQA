@@ -36,7 +36,7 @@ class RaftCcdData(object):
             ccd = None
             if hasattr(detector, 'getId'):
                 ccd = detector.getId().getName()
-            if (not raft is None) and (not ccd is None):
+            if (raft is not None) and (ccd is not None):
                 if not self.data.has_key(raft):
                     self.data[raft] = {}
                 if not self.data[raft].has_key(ccd):
@@ -87,10 +87,10 @@ class RaftCcdVector(RaftCcdData):
                 else:
                     finite = numpy.where( numpy.isfinite(self.data[raft][ccd]) )
                     dtmp = self.data[raft][ccd][finite]
-                    if not nHighest is None:
+                    if nHighest is not None:
                         dtmp.sort()
                         dtmp = dtmp[-nHighest:]
-                    if (not nLowest is None) and (nHighest is None):
+                    if (nLowest is not None) and (nHighest is None):
                         dtmp.sort()
                         dtmp = dtmp[0:nLowest]
 
@@ -118,14 +118,14 @@ class RaftCcdVector(RaftCcdData):
         for raft in sorted(self.data.keys()):
             for ccd in sorted(self.data[raft].keys()):
                 dtmp = self.data[raft][ccd].copy()
-                if not nHighest is None:
+                if nHighest is not None:
                     dtmp.sort()
                     dtmp = dtmp[-nHighest:]
-                if (not nLowest is None) and (nHighest is None):
+                if (nLowest is not None) and (nHighest is None):
                     dtmp.sort()
                     dtmp = dtmp[0:nLowest]
                     
-                if not limits is None:
+                if limits is not None:
                     lo, hi = limits
                     w = numpy.where( (dtmp > lo) & (dtmp < hi) )
                     dtmp = dtmp[w]

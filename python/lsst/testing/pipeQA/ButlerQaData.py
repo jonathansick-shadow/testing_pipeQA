@@ -254,7 +254,7 @@ class ButlerQaData(QaData):
                 fmag0, fmag0err = calib.getFluxMag0()
                 for m in matches:
                     srefIn, sIn, dist = m
-                    if ((not srefIn is None) and (not sIn is None)):
+                    if ((srefIn is not None) and (sIn is not None)):
 
                         if not matchListDict.has_key(dataKey):
                             refCatObj = pqaSource.RefCatalog()
@@ -481,7 +481,7 @@ class ButlerQaData(QaData):
                 calibDict = self.getCalibBySensor(dataId)
                 calib = calibDict[dataKey]
 
-                if not calib is None:
+                if calib is not None:
                     fmag0, fmag0Err = calib.getFluxMag0()
                 else:
                     print "Warning: no calib available, fluxes uncalibrated."
@@ -857,7 +857,7 @@ def makeButlerQaData(label, rerun=None, camera=None, **kwargs):
     # note that LsstSim will look like all other as it uses the same registry for data and calib
     # ... must test it last
     cameraToUse = None
-    if not camera is None:
+    if camera is not None:
         cameraToUse = cameraInfos[camera]
     else:
 

@@ -60,10 +60,10 @@ class QaAnalysisTask(pipeBase.Task):
         # all sensors have the same filter, so just grab one
         key = filter.keys()[0]
         filterName = '?'
-        if not filter[key] is None:
+        if filter[key] is not None:
             filterName = filter[key].getName()
 
-        if not label is None:
+        if label is not None:
             label = self.__class__.__name__ + "."+ label
         else:
             label = self.__class__.__name__
@@ -83,7 +83,7 @@ class QaAnalysisTask(pipeBase.Task):
             self.testSets[tsId].addMetadata('PipeQA', pqaVersion)
             self.testSets[tsId].addMetadata('DisplayQA', dqaVersion)
             
-            if hasattr(data, 'coaddTable') and not data.coaddTable is None:
+            if hasattr(data, 'coaddTable') and data.coaddTable is not None:
                 self.testSets[tsId].addMetadata('coaddTable', data.coaddTable)
             if hasattr(data, 'useForced'):
                 self.testSets[tsId].addMetadata('forced', "True" if data.useForced else "False")
@@ -102,7 +102,7 @@ class QaAnalysisTask(pipeBase.Task):
 
     def __str__(self):
         testLabel = ""
-        if not self.testLabel is None:
+        if self.testLabel is not None:
             testLabel = "."+self.testLabel
         return self.__class__.__name__ + testLabel
     

@@ -227,7 +227,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
-        if (self.showFpa):
+        if self.showFpa:
             # fpa figure
             zpts = []
             zptBase = "zeropoint"
@@ -240,7 +240,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
 
             for raft, ccdDict in zptFig.data.items():
                 for ccd, value in ccdDict.items():
-                    if not self.zeroPoint.get(raft, ccd) is None:
+                    if self.zeroPoint.get(raft, ccd) is not None:
                         zpt = self.zeroPoint.get(raft, ccd)
                         zpts.append(zpt)
                         zptFig.data[raft][ccd] = zpt
@@ -250,7 +250,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
                         offsetFig.data[raft][ccd] = offset
                         offsetFig.map[raft][ccd] = 'offset=%.2f' % (offset)
                     else:
-                        if not zptFig.data[raft][ccd] is None:
+                        if zptFig.data[raft][ccd] is not None:
                             zpts.append(zptFig.data[raft][ccd])
                     
                     

@@ -28,7 +28,7 @@ def makeQaData(label, rerun=None, retrievalType=None, camera=None, **kwargs):
         validButler = False
         if os.environ.has_key('TESTBED_PATH'):
             testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label, raiseOnFailure=False)
-            if (not testbedDir is None) and (not testdataDir is None):
+            if (testbedDir is not None) and (testdataDir is not None):
                 validButler = True
 
         # see if we can connect to a database with name 'label'

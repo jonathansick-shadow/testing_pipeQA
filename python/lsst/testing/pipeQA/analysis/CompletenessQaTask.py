@@ -294,7 +294,7 @@ class CompletenessQaTask(QaAnalysisTask):
         if abs(self.limits[1] - 99.0) < 1.0e-3:
             limitsToUse[1] = self.faintest
             
-        if (self.showFpa):
+        if self.showFpa:
             # fpa figure
             filebase = "completenessDepth"
             depthData, depthMap = testSet.unpickle(filebase, default=[None, None])
@@ -302,7 +302,7 @@ class CompletenessQaTask(QaAnalysisTask):
             depthFig = qaFig.FpaQaFigure(data.cameraInfo, data=depthData, map=depthMap)
             for raft, ccdDict in depthFig.data.items():
                 for ccd, value in ccdDict.items():
-                    if not self.depth.get(raft, ccd) is None:
+                    if self.depth.get(raft, ccd) is not None:
                         depth = self.depth.get(raft, ccd)
                         depths.append(depth)
                         depthFig.data[raft][ccd] = depth

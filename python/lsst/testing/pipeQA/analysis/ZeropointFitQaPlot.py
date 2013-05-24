@@ -117,7 +117,7 @@ def plot(data):
     ax2.set_ylabel('Reference catalog mag', fontsize = 10)
 
 
-    if not nu is None and num.max(nu) > maxN2: maxN2 = num.max(nu)
+    if nu is not None and num.max(nu) > maxN2: maxN2 = num.max(nu)
 
     maxN3 = 999
 
@@ -143,7 +143,7 @@ def plot(data):
         legLines.append(pm[0])
         legLabels.append("Matched Sources")
 
-    if not nm is None and num.max(nm) > maxN3: maxN3 = num.max(nm)
+    if nm is not None and num.max(nm) > maxN3: maxN3 = num.max(nm)
 
     if len(uimgmag) > 0:
         try:

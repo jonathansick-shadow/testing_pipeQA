@@ -330,7 +330,7 @@ class LsstSimCameraInfo(CameraInfo):
         @param baseDir The base directory where the registries can be found.
         """
         baseOut = baseDir
-        if not output is None:
+        if output is not None:
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
 
@@ -388,7 +388,7 @@ class CfhtCameraInfo(CameraInfo):
         @param baseDir The base directory where the registries can be found.
         """
         baseOut = baseDir
-        if not output is None:
+        if output is not None:
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, os.path.join(baseDir, "calib"), baseDir)
 
@@ -445,7 +445,7 @@ class HscCameraInfo(CameraInfo):
         @param baseDir The base directory where the registries can be found.
         """
         baseOut = os.path.join(baseDir, "HSC")
-        if not output is None:
+        if output is not None:
             baseOut = output
         return CameraInfo.getRoots(self, os.path.join(baseDir, "HSC"), os.path.join(baseDir, "CALIB"), baseOut)
 
@@ -505,7 +505,7 @@ class SuprimecamCameraInfo(CameraInfo):
         @param baseDir The base directory where the registries can be found.
         """
         baseOut = os.path.join(baseDir, "SUPA")
-        if not output is None:
+        if output is not None:
             baseOut = output
         data = os.path.join(baseDir, "SUPA")
         calib = os.path.join(baseDir, "SUPA", "CALIB")
@@ -609,7 +609,7 @@ class SdssCameraInfo(CameraInfo):
         @param baseDir The base directory where the registries can be found.
         """
         baseOut = baseDir
-        if not output is None:
+        if output is not None:
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
 
@@ -761,7 +761,7 @@ class CoaddCameraInfo(CameraInfo):
         @param baseDir The base directory where the registries can be found.
         """
         baseOut = baseDir
-        if not output is None:
+        if output is not None:
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
 

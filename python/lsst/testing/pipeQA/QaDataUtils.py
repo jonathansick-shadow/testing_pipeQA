@@ -173,8 +173,10 @@ def getSourceSetNameList():
 def getSourceSetAccessors():
     """Get a list of all accessor names for Source objects. """
     return zip(*getSourceSetNameList())[0]
-def getSourceSetDbNames(replacementDict={}):
+def getSourceSetDbNames(replacementDict = None):
     """Get a list of all database names for Source objects. """
+    if replacementDict is None:
+        replacementDict = {}
     rawList = list(zip(*getSourceSetNameList())[1])
     for k,v in replacementDict.items():
         matches = [i for i,x in enumerate(rawList) if x == k]
@@ -205,9 +207,11 @@ def getCalexpNameLookup():
     return nameLookup
 
 
-def getSceNameList(dataIdNames, replacements={}):
+def getSceNameList(dataIdNames, replacements=None):
     """Associate SourceCcdExposure names to database columns in a list of pairs. """
-    
+    if replacements is None:
+        replacements = {}
+
     nameList = [ ['scienceCcdExposureId', 'scienceCcdExposureId' ] ] + dataIdNames
     nameList += [
         #['visit',                'visit'                ],
@@ -257,6 +261,7 @@ def getSceNameList(dataIdNames, replacements={}):
 
     duplicates = []
     nameListTmp = []    
+
     for arr in nameList:
         a, b = arr
         # handle replacements                                                                                                        
@@ -266,15 +271,18 @@ def getSceNameList(dataIdNames, replacements={}):
         # when SDSS support was added, filterName appeared as both                                                                   
         #   a dataId key and a selected paramter (so ... twice in the 'select' statement)                                            
         # Jacek reports that such duplicated fields cause trouble for qserv                                                          
-        # We don't need them, so they're weeded out here                                                                             
+        # We don't need them, so they're weeded out here
+        # Russ points out that could use set data type to speed this up
         if a not in duplicates:
             nameListTmp.append(arr)
             duplicates.append(a)
 
     return nameListTmp
 
-def getSceDbNames(dataIdNames, replacements={}):
+def getSceDbNames(dataIdNames, replacements=None):
     """Get SourceCcdExposure database column names."""
+    if replacements is None:
+        replacements = {}
     return zip(*getSceNameList(dataIdNames, replacements))[1]
 
 
