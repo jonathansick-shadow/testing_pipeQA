@@ -132,7 +132,7 @@ class PerformanceQaTask(QaAnalysisTask):
         # memory
         ################################
 
-        if (self.showFpa):
+        if self.showFpa:
             # make fpa figures - for all detections, and for matched detections
             memBase = "mem"
 
@@ -144,7 +144,7 @@ class PerformanceQaTask(QaAnalysisTask):
 
                     # set values for data[raft][ccd] (color coding)
                     # set values for map[raft][ccd]  (tooltip text)
-                    if not self.mem.get(raft, ccd) is None:
+                    if self.mem.get(raft, ccd) is not None:
                         mem = self.mem.get(raft, ccd)
                         memFig.data[raft][ccd] = mem
                         memFig.map[raft][ccd] = "%.1fMB" % (mem)
@@ -173,7 +173,7 @@ class PerformanceQaTask(QaAnalysisTask):
         # runtime
         ################################
 
-        if (self.showFpa):
+        if self.showFpa:
             # make fpa figures - for all detections, and for matched detections
             runtimeBase = "runtime"
 
@@ -186,7 +186,7 @@ class PerformanceQaTask(QaAnalysisTask):
 
                     # set values for data[raft][ccd] (color coding)
                     # set values for map[raft][ccd]  (tooltip text)
-                    if not self.testRuntime.get(raft, ccd) is None:
+                    if self.testRuntime.get(raft, ccd) is not None:
                         testRuntime = self.testRuntime.get(raft, ccd)
                         plotRuntime = self.plotRuntime.get(raft, ccd)
                         runtimeFig.data[raft][ccd] = testRuntime + plotRuntime

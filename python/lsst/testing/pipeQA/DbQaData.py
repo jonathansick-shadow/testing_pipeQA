@@ -244,13 +244,13 @@ class DbQaData(QaData):
             
         # this will have to be updated for the different dataIdNames when non-lsst cameras get used.
 
-        sql  = 'select '+ ", ".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId)
-        sql += ' rom.n%sMatches,' % (self.refStr[useRef][0])
-        sql += selectStr
-        sql += '  from '+self.sTable+' as s, '+self.sceTable+' as sce %s,' % (useIndex)
-        sql += '    '+romTable+' as rom, RefObject as sro' 
-        sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
-        sql += '    and (s.'+self.sId+' = rom.'+self.sId+') and (rom.refObjectId = sro.refObjectId)'
+        sql  = 'select '+ ", ".join(zip(*sceNames)[1])+', sro.%sMag, sro.ra, sro.decl, sro.isStar, sro.refObjectId, s.%s, '%(filterName, self.sId) \
+            + ' rom.n%sMatches,' % (self.refStr[useRef][0]) \
+            + selectStr \
+            + '  from '+self.sTable+' as s, '+self.sceTable+' as sce %s,' % (useIndex) \
+            + '    '+romTable+' as rom, RefObject as sro' \
+            + '  where (s.'+self.sceId+' = sce.'+self.sceId+')' \
+            + '    and (s.'+self.sId+' = rom.'+self.sId+') and (rom.refObjectId = sro.refObjectId)'
 
         if useRef == 'obj':
             sql += '    and (s.objectID is not NULL) '
@@ -333,7 +333,7 @@ class DbQaData(QaData):
             
             i = 0
             for value in row[nFields:]:
-               if not value is None:
+               if value is not None:
                     setKey = catObj.setKeys[i]
                     if isinstance(value, str):
                         value = 1.0 if ord(value) else 0.0
@@ -487,23 +487,22 @@ class DbQaData(QaData):
         #sql += '  where (s.'+self.sceId+' = sce.'+self.sceId+')'
         # above query too slow on DC_W13_Stripe82, rewrote using subquery below
         # Note that qserv will not support subqueries
-        sql  = 'select '+", ".join(zip(*sceNames)[1])+', s.'+self.sId+', '+selectStr
-        sql += '  from '+self.sTable+' as s, '+'(select '+ ", ".join([w.replace('sce.','') for w in zip(*sceNames)[1]])
-        sql += ', '+self.sceId+' from '+self.sceTable
+        sql  = 'select '+", ".join(zip(*sceNames)[1])+', s.'+self.sId+', '+selectStr \
+            + '  from '+self.sTable+' as s, '+'(select '+ ", ".join([w.replace('sce.','') for w in zip(*sceNames)[1]]) \
+            + ', '+self.sceId+' from '+self.sceTable
 
         haveAllKeys = True
 
-        counter=0
+        whereList = []
         for keyNames in sceNames:
             key, sqlName = [w.replace('sce.','') for w in keyNames]
             if dataIdRegex.has_key(key):
-                if counter==0:
-                    sql += ' where '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
-                    counter += 1
-                else:
-                    sql += '    and '+self._sqlLikeEqual(sqlName, dataIdRegex[key])
-            else:
-                haveAllKeys = False
+                whereList.append(self._sqlLikeEqual(sqlName, dataIdRegex[key]))
+        if whereList:
+            sql += " where %s" % (" and ".join(whereList))
+        else:
+            haveAllKeys = False
+ 
         sql+=') as sce  where (s.'+self.sceId+' = sce.'+self.sceId+')'
 
         # if there are no regexes (ie. actual wildcard expressions),
@@ -573,7 +572,7 @@ class DbQaData(QaData):
             
             i = 0
             for value in row[nIdKeys:]:
-                if not value is None:
+                if value is not None:
                     setKey = catObj.setKeys[i]
                     #print value, type(value)
                     if isinstance(value, str) and len(value) == 1:
@@ -647,9 +646,9 @@ class DbQaData(QaData):
                 haveAllKeys = False
         sqlDataId = " and ".join(sqlDataId)
 
-        sql  = "select "+", ".join(zip(*sceNames)[1])
-        sql += "  from "+self.sceTable+" as sce "
-        sql += "  where " + sqlDataId
+        sql  = "select "+", ".join(zip(*sceNames)[1]) \
+            + "  from "+self.sceTable+" as sce " \
+            + "  where " + sqlDataId
 
         dataIdList = []
         results  = self.dbInterface.execute(sql)
@@ -711,9 +710,9 @@ class DbQaData(QaData):
             sqlDataId = " and ".join(sqlDataId)
 
             # Poly comes from our own database
-            sql1  = 'SELECT poly FROM '+self.sceTable+' as sce '
-            sql1 += 'WHERE %s ' % (sqlDataId) 
-            sql1 += 'INTO @poly;'
+            sql1  = 'SELECT poly FROM '+self.sceTable+' as sce ' \
+                 + 'WHERE %s ' % (sqlDataId) \
+                 + 'INTO @poly;'
 
             sql2  = 'CALL scisql.scisql_s2CPolyRegion(@poly, 20);'
         
@@ -722,24 +721,24 @@ class DbQaData(QaData):
             setMethods = ["set"+x for x in qaDataUtils.getSourceSetAccessors()]
             selectList = ["s."+x for x in qaDataUtils.getSourceSetDbNames()]
             selectStr = ", ".join(selectList)
-            sql3  = 'SELECT sce.visit, sce.raftName, sce.ccdName, sce.filterName, '                # 4 values
-            sql3 += ' sce.fluxMag0, sce.fluxMag0Sigma,'                                            # 2 values
-            sql3 += '   CASE WHEN sce.filterId = 0 THEN sro.uMag'
-            sql3 += '        WHEN sce.filterId = 1 THEN sro.gMag'
-            sql3 += '        WHEN sce.filterId = 2 THEN sro.rMag'
-            sql3 += '        WHEN sce.filterId = 3 THEN sro.iMag'
-            sql3 += '        WHEN sce.filterId = 4 THEN sro.zMag'
-            sql3 += '        WHEN sce.filterId = 5 THEN sro.yMag'
-            sql3 += '   END as mag,'                                                               # 1 value
-            sql3 += ' sro.ra, sro.decl, sro.isStar, sro.refObjectId,'                              # 4 values
-            sql3 += selectStr
-            sql3 += ' FROM %s.'+self.sTable+' AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase)
-            sql3 += ' INNER JOIN %s.'+self.sceTable+' AS sce ' % (matchDatabase)
-            sql3 += ' ON (s.'+self.sceId+' = sce.'+self.sceId+') AND (sce.visit = %s)' % (matchVisit)
-            sql3 += '   INNER JOIN %s.'+self.romTable+' AS rsm ON (s.'+self.sId+' = rsm.'+self.sId+')' % (matchDatabase)
-            sql3 += '   INNER JOIN %s.RefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) 
-            sql3 += '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) '
-            sql3 += 'WHERE scisql_s2PtInCPoly(s.ra, s.decl, @poly) = 1;'
+            sql3  = 'SELECT sce.visit, sce.raftName, sce.ccdName, sce.filterName, ' \
+                + ' sce.fluxMag0, sce.fluxMag0Sigma,'                               \
+                + '   CASE WHEN sce.filterId = 0 THEN sro.uMag' \
+                + '        WHEN sce.filterId = 1 THEN sro.gMag' \
+                + '        WHEN sce.filterId = 2 THEN sro.rMag' \
+                + '        WHEN sce.filterId = 3 THEN sro.iMag' \
+                + '        WHEN sce.filterId = 4 THEN sro.zMag' \
+                + '        WHEN sce.filterId = 5 THEN sro.yMag' \
+                + '   END as mag,'                              \
+                + ' sro.ra, sro.decl, sro.isStar, sro.refObjectId,' \
+                + selectStr \
+                + ' FROM %s.'+self.sTable+' AS s USE INDEX FOR JOIN(IDX_htmId20)' % (matchDatabase) \
+                + ' INNER JOIN %s.'+self.sceTable+' AS sce ' % (matchDatabase) \
+                + ' ON (s.'+self.sceId+' = sce.'+self.sceId+') AND (sce.visit = %s)' % (matchVisit) \
+                + '   INNER JOIN %s.'+self.romTable+' AS rsm ON (s.'+self.sId+' = rsm.'+self.sId+')' % (matchDatabase) \
+                + '   INNER JOIN %s.RefObject AS sro ON (sro.refObjectId = rsm.refObjectId)'  % (matchDatabase) \
+                + '   INNER JOIN scisql.Region AS reg ON (s.htmId20 BETWEEN reg.htmMin AND reg.htmMax) ' \
+                + 'WHERE scisql_s2PtInCPoly(s.ra, s.decl, @poly) = 1;'
 
             #if not re.search("\%", sql1) and haveAllKeys:
             #    dataIdCopy = copy.copy(dataIdEntry)
@@ -778,7 +777,7 @@ class DbQaData(QaData):
                 i = 0
                 for value in row[nValues:]:
                     method = getattr(s, setMethods[i])
-                    if not value is None:
+                    if value is not None:
                         method(value)
                     i += 1
            
@@ -895,42 +894,46 @@ class DbQaData(QaData):
 
             self.printStartLoad("Loading RefObjects for: " + dataIdEntryStr + "...")
 
+            # usePoly is currently hardwired to use scisql polygon search function, but migration to 
+            # qserv database will require use of a different function.  The code inside the else
+            # statement below is an example of the qserv implementation.  Once we migrate to 
+            # qserv, will remove or disable the usePoly block
             usePoly = True
             if usePoly:
-                sql  = 'SELECT scisql_s2CPolyToBin('
-                sql += '   sce.corner1Ra, sce.corner1Decl, '
-                sql += '   sce.corner2Ra, sce.corner2Decl, '
-                sql += '   sce.corner3Ra, sce.corner3Decl, '
-                sql += '   sce.corner4Ra, sce.corner4Decl) '
-                sql += 'FROM '+self.sceTable+' as sce '
-                sql += 'WHERE %s ' % (sqlDataId)
-                sql += 'INTO @poly; '
+                sql  = 'SELECT scisql_s2CPolyToBin(' \
+                    + '   sce.corner1Ra, sce.corner1Decl, ' \
+                    + '   sce.corner2Ra, sce.corner2Decl, ' \
+                    + '   sce.corner3Ra, sce.corner3Decl, ' \
+                    + '   sce.corner4Ra, sce.corner4Decl) ' \
+                    + 'FROM '+self.sceTable+' as sce ' \
+                    + 'WHERE %s ' % (sqlDataId) \
+                    + 'INTO @poly; '
                 self.dbInterface.execute(sql)
 
-                sql2 = 'SELECT %s ' % (sroFieldStr)
-                sql2 += 'FROM '
-                sql2 += '    RefObject AS sro '
-                sql2 += 'WHERE '
-                sql2 += '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
+                sql2 = 'SELECT %s ' % (sroFieldStr) \
+                    + 'FROM ' \
+                    + '    RefObject AS sro ' \
+                    + 'WHERE ' \
+                    + '    (scisql_s2PtInCPoly(sro.ra, sro.decl, @poly) = 1) '
                 results = self.dbInterface.execute(sql2)
 
             else:
-                sql  = 'SELECT '
-                sql += '   sce.corner1Ra, sce.corner1Decl, '
-                sql += '   sce.corner2Ra, sce.corner2Decl, '
-                sql += '   sce.corner3Ra, sce.corner3Decl, '
-                sql += '   sce.corner4Ra, sce.corner4Decl  '
-                sql += 'FROM '+self.sceTable+' as sce '
-                sql += 'WHERE %s ' % (sqlDataId)
+                sql  = 'SELECT ' \
+                    + '   sce.corner1Ra, sce.corner1Decl, ' \
+                    + '   sce.corner2Ra, sce.corner2Decl, ' \
+                    + '   sce.corner3Ra, sce.corner3Decl, ' \
+                    + '   sce.corner4Ra, sce.corner4Decl  ' \
+                    + 'FROM '+self.sceTable+' as sce ' \
+                    + 'WHERE %s ' % (sqlDataId)
 
                 corners = self.dbInterface.execute(sql)
                 raLL, decLL, raLR, decLR, raUR, decUR, raUL, decUL = corners[0]
 
-                sql2 = 'SELECT %s ' % (sroFieldStr)
-                sql2 += 'FROM '
-                sql2 += '    RefObject AS sro '
-                sql2 += 'WHERE '
-                sql2 += "    qserv_areaspec_poly(sro.ra, sro.decl, %f, %f,   %f, %f,   %f, %f,   %f, %f);" % (
+                sql2 = 'SELECT %s ' % (sroFieldStr) \
+                    + 'FROM ' \
+                    + '    RefObject AS sro ' \
+                    + 'WHERE ' \
+                    + "    qserv_areaspec_poly(sro.ra, sro.decl, %f, %f,   %f, %f,   %f, %f,   %f, %f);" % (
                     raLL, decLL, raLR, decLR, raUR, decUR, raUL, decUL)
                 results = self.dbInterface.execute(sql2)
 
@@ -1106,9 +1109,9 @@ class DbQaData(QaData):
         selectList = ["sce."+x for x in qaDataUtils.getSceDbNames(sceDataIdNames, self.sceReplace)]
         selectStr = ", ".join(selectList)
 
-        sql  = 'select '+selectStr
-        sql += '  from '+self.sceTable+' as sce'
-        sql += '  where '
+        sql  = 'select '+selectStr \
+            + '  from '+self.sceTable+' as sce' \
+            + '  where '
 
         haveAllKeys = True
 
@@ -1281,7 +1284,7 @@ def makeDbQaData(label, rerun=None, camera=None, **kwargs):
 
     
     cameraToUse = None
-    if not camera is None:
+    if camera is not None:
         cameraToUse = cameraInfos[camera]
     else:
         cameraToUse = cameraInfos['lsstSim']

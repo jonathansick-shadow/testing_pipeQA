@@ -196,14 +196,14 @@ class VignettingQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
-        if (self.showFpa):
+        if self.showFpa:
             # fpa figures
             medFigbase = "vignettingMedianPhotOffset" #cache
             medFigData, medFigMap = testSet.unpickle(medFigbase, [None, None]) #cache
             medFig = qaFig.FpaQaFigure(data.cameraInfo, data=medFigData, map=medFigMap) #cache
             for raft, ccdDict in medFig.data.items():
                 for ccd, value in ccdDict.items():
-                    if not self.medianOffset.get(raft, ccd) is None:
+                    if self.medianOffset.get(raft, ccd) is not None:
                         med = self.medianOffset.get(raft, ccd)
                         medFig.data[raft][ccd] = med
                         if num.isfinite(med):
@@ -216,7 +216,7 @@ class VignettingQaTask(QaAnalysisTask):
             stdFig = qaFig.FpaQaFigure(data.cameraInfo, data=stdFigData, map=stdFigMap) #cache
             for raft, ccdDict in stdFig.data.items():
                 for ccd, value in ccdDict.items():
-                    if not self.rmsOffset.get(raft, ccd) is None:
+                    if self.rmsOffset.get(raft, ccd) is not None:
                         std = self.rmsOffset.get(raft, ccd)
                         stdFig.data[raft][ccd] = std
                         if num.isfinite(std):

@@ -173,9 +173,9 @@ class PhotCompareQaTask(QaAnalysisTask):
         del self.diff
         del self.filter
         del self.detector
-        if not self.matchListDictSrc is None:
+        if self.matchListDictSrc is not None:
             del self.matchListDictSrc
-        if not self.ssDict is None:
+        if self.ssDict is not None:
             del self.ssDict
         del self.means
         del self.medians
@@ -420,7 +420,7 @@ class PhotCompareQaTask(QaAnalysisTask):
         dtag = self.magType1+"-"+self.magType2
         wtag = self.magType1+"minus"+self.magType2
 
-        if (self.showFpa):
+        if self.showFpa:
             # fpa figure
             meanFilebase = "mean" + wtag
             stdFilebase  = "std"+wtag
@@ -443,7 +443,7 @@ class PhotCompareQaTask(QaAnalysisTask):
                 derrFig.data[raft][ccd] = self.derrs.get(raft, ccd)
                 slope = self.trend.get(raft, ccd)[0]
 
-                if not slope is None and not slope[1] == 0:
+                if slope is not None and not slope[1] == 0:
                     # aspRatio will make the vector have the same angle as the line in the figure
                     slopeSigma = slope[0]/slope[1]
                     slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slopeSigma]
@@ -451,7 +451,7 @@ class PhotCompareQaTask(QaAnalysisTask):
                     slopeSigma = None
                     slopeFig.data[raft][ccd] = [None, None, None]
 
-                if not self.means.get(raft, ccd) is None:
+                if self.means.get(raft, ccd) is not None:
                     meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
                     stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
                     derrFig.map[raft][ccd] = "derr=%.4f" % (self.derrs.get(raft, ccd))

@@ -189,14 +189,14 @@ class AstrometricErrorQaTask(QaAnalysisTask):
         medAstBase = "medAstError"
         medAstData, medAstMap = testSet.unpickle(medAstBase, default=[None, None])
 
-        if (self.showFpa):
+        if self.showFpa:
             # fpa figure
             astFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=medAstData, map=medAstMap)
 
             vLen = 5000 # length in pixels for 1 arcsec error vector
             for raft, ccdDict in astFig.data.items():
                 for ccd, value in ccdDict.items():
-                    if not self.medErrArcsec.get(raft, ccd) is None:
+                    if self.medErrArcsec.get(raft, ccd) is not None:
                         astErrArcsec = self.medErrArcsec.get(raft, ccd)
                         thetaRad = self.medThetaRad.get(raft, ccd)
                         astFig.data[raft][ccd] = [thetaRad, vLen*astErrArcsec, astErrArcsec]

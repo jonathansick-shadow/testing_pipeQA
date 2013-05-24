@@ -208,7 +208,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         vLen = 3000.0  # for e=1.0
 
-        if (self.showFpa):
+        if self.showFpa:
             # fpa figures
             ellipBase = "medPsfEllip"
             ellipData, ellipMap = testSet.unpickle(ellipBase, default=[None, None])
@@ -223,21 +223,21 @@ class PsfShapeQaTask(QaAnalysisTask):
             fwhm = None
             for raft, ccdDict in ellipFig.data.items():
                 for ccd, value in ccdDict.items():
-                    if not self.ellipMedians.get(raft, ccd) is None:
+                    if self.ellipMedians.get(raft, ccd) is not None:
                         ellipFig.data[raft][ccd] = [self.thetaMedians.get(raft, ccd),
                                                     10*vLen*self.ellipMedians.get(raft, ccd),
                                                     self.ellipMedians.get(raft, ccd)]
                         ellipFig.map[raft][ccd] = "ell/theta=%.3f/%.0f" % (self.ellipMedians.get(raft, ccd),
                                                                            numpy.degrees(self.thetaMedians.get(raft, ccd)))
-                    if not self.fwhm.get(raft, ccd) is None:
+                    if self.fwhm.get(raft, ccd) is not None:
                         fwhm = self.fwhm.get(raft, ccd)
                         fwhmFig.data[raft][ccd] = fwhm
                         fwhmFig.map[raft][ccd] = "fwhm=%.2f asec" % (fwhm)
                     else:
-                        if not fwhmFig.data[raft][ccd] is None:
+                        if fwhmFig.data[raft][ccd] is not None:
                             fwhm = fwhmFig.data[raft][ccd]
 
-                    if not fwhm is None:
+                    if fwhm is not None:
                         if fwhm > fwhmMax:
                             fwhmMax = fwhm
                         if fwhm < fwhmMin:
@@ -286,7 +286,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         #Need to repeat vlim calculation here in case FPA not shown
 
-        if (not self.showFpa):
+        if not self.showFpa:
             fwhmMin =  1e10
             fwhmMax = -1e10
             fwhm = None
