@@ -132,7 +132,7 @@ class PerformanceQaTask(QaAnalysisTask):
         # memory
         ################################
 
-        if True:
+        if (self.showFpa):
             # make fpa figures - for all detections, and for matched detections
             memBase = "mem"
 
@@ -173,7 +173,7 @@ class PerformanceQaTask(QaAnalysisTask):
         # runtime
         ################################
 
-        if True:
+        if (self.showFpa):
             # make fpa figures - for all detections, and for matched detections
             runtimeBase = "runtime"
 

@@ -672,7 +672,7 @@ class CoaddCameraInfo(CameraInfo):
 
         CameraInfo.__init__(self, "coadd", dataInfo, mapper, camera)
         
-        self.doLabel = True
+        self.doLabel = False
 
         self.dataIdTranslationMap = {
             'visit'    : ['tract','filterName'],
@@ -686,7 +686,6 @@ class CoaddCameraInfo(CameraInfo):
             'filterName' : 'filterName',
             }
             
-        
     def skyMapToCamera(self, dataIds):
         """Make a minimal camera based on the skymap; ONLY DESIGNED TO WORK WITH 1 TRACT (sorry, future developer)"""
         tracts = set(x["tract"] for x in dataIds)

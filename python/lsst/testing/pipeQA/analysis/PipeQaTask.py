@@ -134,10 +134,11 @@ class PipeQaTask(pipeBase.Task):
                             help="Trace level for lsst.testing.pipeQA")
         parser.add_argument("-v", "--visit", default=".*",
                             help="Specify visit as regex OR color separated list. (default=%(default)s)")
+        parser.add_argument("-w", "--hideFpa", default=False, action="store_true",
+                            help="Suppress display of FPA figures (useful for coadds with large tracts).  (default=%(default)s)")
         parser.add_argument("-z", "--lazyPlot", default='sensor',
                             help="Figures to be generated dynamically online "+
                             "[options: none, sensor, all] (default=%default)")
-
         
         # visit-to-visit
         parser.add_argument("--doVisitQa", default=False, action='store_true',
@@ -255,6 +256,7 @@ class PipeQaTask(pipeBase.Task):
         lazyPlot     = parsedCmd.lazyPlot
         verbosity    = parsedCmd.verbosity
         skymapRep    = parsedCmd.skymap
+        showFpa      = not parsedCmd.hideFpa
 
         # optional visitQA info
         matchDset    = parsedCmd.matchDataset
@@ -287,12 +289,19 @@ class PipeQaTask(pipeBase.Task):
             
         if exceptExit:
             numpy.seterr(all="raise")
-    
-        data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
-                                 shapeAlg = self.config.shapeAlgorithm,
-                                 useForced=useForced, coaddTable=coaddTable, 
-                                 skymapRep=skymapRep)
-    
+        
+        if (camera=='coadd'):
+            tract=visits.split('-')[0]
+            data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
+                                     shapeAlg = self.config.shapeAlgorithm,
+                                     useForced=useForced, coaddTable=coaddTable, 
+                                     skymapRep=skymapRep, tract=tract)
+        else:
+            data = pipeQA.makeQaData(dataset, rerun=rerun, camera=camera,
+                                     shapeAlg = self.config.shapeAlgorithm,
+                                     useForced=useForced, coaddTable=coaddTable, 
+                                     skymapRep=skymapRep)
+
         if data.cameraInfo.name == 'lsstSim' and  dataIdInput.has_key('ccd'):
             dataIdInput['sensor'] = dataIdInput['ccd']
             del dataIdInput['ccd']
@@ -325,7 +334,7 @@ class PipeQaTask(pipeBase.Task):
             
             if doTask and (data.cameraInfo.name in eval("self.config.%s.cameras" % (taskStr))):
                 stask = self.makeSubtask(taskStr, useCache=keep, wwwCache=wwwCache,
-                                         delaySummary=delaySummary, lazyPlot=lazyPlot)
+                                         delaySummary=delaySummary, lazyPlot=lazyPlot, showFpa=showFpa)
                 taskList.append(stask)
 
                 
@@ -336,7 +345,7 @@ class PipeQaTask(pipeBase.Task):
                 starGxyToggle = types in self.config.photCompareQa.starGalaxyToggle
                 stask = self.makeSubtask("photCompareQa", magType1=mag1, magType2=mag2,
                                          starGalaxyToggle=starGxyToggle, useCache=keep, wwwCache=wwwCache,
-                                         delaySummary=delaySummary, lazyPlot=lazyPlot)
+                                         delaySummary=delaySummary, lazyPlot=lazyPlot, showFpa=showFpa)
                 taskList.append(stask)
 
 
@@ -358,13 +367,13 @@ class PipeQaTask(pipeBase.Task):
                 for mType in self.config.vvPhotQa.magTypes:
                     stask = self.makeSubtask("vvPhotQa", matchDset=matchDset, matchVisits=matchVisits,
                                              mType=mType, useCache=keep, wwwCache=wwwCache,
-                                             delaySummary=delaySummary, lazyPlot=lazyPlot)
+                                             delaySummary=delaySummary, lazyPlot=lazyPlot, showFpa=showFpa)
                     taskList.append(stask)
 
             if data.cameraInfo.name in self.config.vvAstromQa.cameras:
                 stask = self.makeSubtask("vvAstromQa", matchDset = matchDset, matchVisits = matchVisits, 
                                          useCache=keep, wwwCache=wwwCache, delaySummary=delaySummary,
-                                         lazyPlot=lazyPlot)
+                                         lazyPlot=lazyPlot, showFpa=showFpa)
                 taskList.append(stask)
                 
 

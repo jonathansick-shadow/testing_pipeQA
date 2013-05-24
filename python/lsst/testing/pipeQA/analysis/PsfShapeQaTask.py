@@ -208,80 +208,100 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         vLen = 3000.0  # for e=1.0
 
-        # fpa figures
-        ellipBase = "medPsfEllip"
-        ellipData, ellipMap = testSet.unpickle(ellipBase, default=[None, None])
-        ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=ellipData, map=ellipMap)
+        if (self.showFpa):
+            # fpa figures
+            ellipBase = "medPsfEllip"
+            ellipData, ellipMap = testSet.unpickle(ellipBase, default=[None, None])
+            ellipFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=ellipData, map=ellipMap)
 
-        fwhmBase = "psfFwhm"
-        fwhmData, fwhmMap = testSet.unpickle(fwhmBase, default=[None, None])
-        fwhmFig = qaFig.FpaQaFigure(data.cameraInfo, data=fwhmData, map=fwhmMap)
+            fwhmBase = "psfFwhm"
+            fwhmData, fwhmMap = testSet.unpickle(fwhmBase, default=[None, None])
+            fwhmFig = qaFig.FpaQaFigure(data.cameraInfo, data=fwhmData, map=fwhmMap)
 
-        fwhmMin =  1e10
-        fwhmMax = -1e10
-        fwhm = None
-        for raft, ccdDict in ellipFig.data.items():
-            for ccd, value in ccdDict.items():
-                if not self.ellipMedians.get(raft, ccd) is None:
-                    ellipFig.data[raft][ccd] = [self.thetaMedians.get(raft, ccd),
-                                                10*vLen*self.ellipMedians.get(raft, ccd),
-                                                self.ellipMedians.get(raft, ccd)]
-                    ellipFig.map[raft][ccd] = "ell/theta=%.3f/%.0f" % (self.ellipMedians.get(raft, ccd),
-                                                                       numpy.degrees(self.thetaMedians.get(raft, ccd)))
-                if not self.fwhm.get(raft, ccd) is None:
-                    fwhm = self.fwhm.get(raft, ccd)
-                    fwhmFig.data[raft][ccd] = fwhm
-                    fwhmFig.map[raft][ccd] = "fwhm=%.2f asec" % (fwhm)
-                else:
-                    if not fwhmFig.data[raft][ccd] is None:
-                        fwhm = fwhmFig.data[raft][ccd]
+            fwhmMin =  1e10
+            fwhmMax = -1e10
+            fwhm = None
+            for raft, ccdDict in ellipFig.data.items():
+                for ccd, value in ccdDict.items():
+                    if not self.ellipMedians.get(raft, ccd) is None:
+                        ellipFig.data[raft][ccd] = [self.thetaMedians.get(raft, ccd),
+                                                    10*vLen*self.ellipMedians.get(raft, ccd),
+                                                    self.ellipMedians.get(raft, ccd)]
+                        ellipFig.map[raft][ccd] = "ell/theta=%.3f/%.0f" % (self.ellipMedians.get(raft, ccd),
+                                                                           numpy.degrees(self.thetaMedians.get(raft, ccd)))
+                    if not self.fwhm.get(raft, ccd) is None:
+                        fwhm = self.fwhm.get(raft, ccd)
+                        fwhmFig.data[raft][ccd] = fwhm
+                        fwhmFig.map[raft][ccd] = "fwhm=%.2f asec" % (fwhm)
+                    else:
+                        if not fwhmFig.data[raft][ccd] is None:
+                            fwhm = fwhmFig.data[raft][ccd]
 
-                if not fwhm is None:
-                    if fwhm > fwhmMax:
-                        fwhmMax = fwhm
-                    if fwhm < fwhmMin:
-                        fwhmMin = fwhm
+                    if not fwhm is None:
+                        if fwhm > fwhmMax:
+                            fwhmMax = fwhm
+                        if fwhm < fwhmMin:
+                            fwhmMin = fwhm
 
                 
-        testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
-        testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
+            testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
+            testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
 
 
-        if fwhmMin < 1e10:
-            vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
-        else:
-            vlimMin = self.limitsFwhm[0]
-        if fwhmMax > -1e10:
-            vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
-        else:
-            vlimMax = self.limitsFwhm[1]
+            if fwhmMin < 1e10:
+                vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
+            else:
+                vlimMin = self.limitsFwhm[0]
+            if fwhmMax > -1e10:
+                vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
+            else:
+                vlimMax = self.limitsFwhm[1]
 
-        if vlimMax < vlimMin:
-            vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
+            if vlimMax < vlimMin:
+                vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
 
-        if not self.delaySummary or isFinalDataId:
-            self.log.log(self.log.INFO, "plotting FPAs")
-            ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
-                                title="Median PSF Ellipticity", failLimits=self.limitsEllip)
-            testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
-            del ellipFig
+            if not self.delaySummary or isFinalDataId:
+                self.log.log(self.log.INFO, "plotting FPAs")
+                ellipFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=self.limitsEllip,
+                                    title="Median PSF Ellipticity", failLimits=self.limitsEllip)
+                testSet.addFigure(ellipFig, ellipBase+".png", "Median PSF Ellipticity", navMap=True)
+                del ellipFig
 
-            blue = '#0000ff'
-            red = '#ff0000'
+                blue = '#0000ff'
+                red = '#ff0000'
             
-            fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
-                               title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
-                               cmapUnder=blue)
-            testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
-            del fwhmFig
-        else:
-            del ellipFig, fwhmFig
+                fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
+                                   title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
+                                   cmapUnder=blue)
+                testSet.addFigure(fwhmFig, fwhmBase + ".png", "FWHM of Psf (arcsec)", navMap=True)
+                del fwhmFig
+            else:
+                del ellipFig, fwhmFig
 
                         
         #
         
         #xlim = [0, 25.0]
         #ylim = [0, 0.4]
+
+        #Need to repeat vlim calculation here in case FPA not shown
+
+        if (not self.showFpa):
+            fwhmMin =  1e10
+            fwhmMax = -1e10
+            fwhm = None
+            if fwhmMin < 1e10:
+                vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
+            else:
+                vlimMin = self.limitsFwhm[0]
+            if fwhmMax > -1e10:
+                vlimMax = numpy.min([self.limitsFwhm[1], fwhmMax])
+            else:
+                vlimMax = self.limitsFwhm[1]
+
+            if vlimMax < vlimMin:
+                vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
+
 
         norm = colors.Normalize(vmin=vlimMin, vmax=vlimMax)
         sm = cm.ScalarMappable(norm, cmap=cm.jet)

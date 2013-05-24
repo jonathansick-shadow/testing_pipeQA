@@ -21,7 +21,7 @@ class QaAnalysisTask(pipeBase.Task):
 
 
     def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False,
-                 lazyPlot='sensor', *args, **kwargs):
+                 lazyPlot='sensor', showFpa=True, *args, **kwargs):
         """
         @param testLabel   A name for this kind of analysis test.
         """
@@ -43,6 +43,7 @@ class QaAnalysisTask(pipeBase.Task):
         
         self.lazyPlot  = lazyPlot
 
+        self.showFpa   = showFpa
         
     def getTestSet(self, data, dataId, label=None):
         """Get a TestSet object in the correct group.

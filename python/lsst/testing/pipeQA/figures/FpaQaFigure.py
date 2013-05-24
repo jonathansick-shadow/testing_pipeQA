@@ -151,6 +151,7 @@ class FpaQaFigure(QaFigure):
     def plotRaftBoundaries(self, sp, boundaryColors):
         for b in self.raftBoundaries:
             sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
+            #sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=0.1) #HACK
     def plotCcdBoundaries(self, sp):
         for b in self.ccdBoundaries.values():
             x0, x1 = b[0]
@@ -158,6 +159,7 @@ class FpaQaFigure(QaFigure):
             x = [x0, x0, x1, x1, x0]
             y = [y0, y1, y1, y0, y0]
             sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=1.0)
+            #sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.1) #HACK
     def markMissingCcds(self, sp, missingCcds):
         for b in missingCcds.values():
             x0, x1 = b[0]
@@ -165,6 +167,7 @@ class FpaQaFigure(QaFigure):
             x = [x0, x1, x0, x1]
             y = [y0, y1, y1, y0]
             sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
+            #sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.1) #HACK
             
     def markFailedCcds(self, sp, failedCcds, cmap, vlimits):
 

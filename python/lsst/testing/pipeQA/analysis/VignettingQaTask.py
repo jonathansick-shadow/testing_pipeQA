@@ -196,58 +196,59 @@ class VignettingQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
-        # fpa figures
-        medFigbase = "vignettingMedianPhotOffset" #cache
-        medFigData, medFigMap = testSet.unpickle(medFigbase, [None, None]) #cache
-        medFig = qaFig.FpaQaFigure(data.cameraInfo, data=medFigData, map=medFigMap) #cache
-        for raft, ccdDict in medFig.data.items():
-            for ccd, value in ccdDict.items():
-                if not self.medianOffset.get(raft, ccd) is None:
-                    med = self.medianOffset.get(raft, ccd)
-                    medFig.data[raft][ccd] = med
-                    if num.isfinite(med):
-                        medFig.map[raft][ccd] = 'med=%.2f'%(med)
-                    else:
-                        medFig.map[raft][ccd] = 'med=nan'
+        if (self.showFpa):
+            # fpa figures
+            medFigbase = "vignettingMedianPhotOffset" #cache
+            medFigData, medFigMap = testSet.unpickle(medFigbase, [None, None]) #cache
+            medFig = qaFig.FpaQaFigure(data.cameraInfo, data=medFigData, map=medFigMap) #cache
+            for raft, ccdDict in medFig.data.items():
+                for ccd, value in ccdDict.items():
+                    if not self.medianOffset.get(raft, ccd) is None:
+                        med = self.medianOffset.get(raft, ccd)
+                        medFig.data[raft][ccd] = med
+                        if num.isfinite(med):
+                            medFig.map[raft][ccd] = 'med=%.2f'%(med)
+                        else:
+                            medFig.map[raft][ccd] = 'med=nan'
 
-        stdFigbase = "vignettingRmsPhotOffset" #cache
-        stdFigData, stdFigMap = testSet.unpickle(stdFigbase, [None, None]) #cache
-        stdFig = qaFig.FpaQaFigure(data.cameraInfo, data=stdFigData, map=stdFigMap) #cache
-        for raft, ccdDict in stdFig.data.items():
-            for ccd, value in ccdDict.items():
-                if not self.rmsOffset.get(raft, ccd) is None:
-                    std = self.rmsOffset.get(raft, ccd)
-                    stdFig.data[raft][ccd] = std
-                    if num.isfinite(std):
-                        stdFig.map[raft][ccd] = 'stddev=%.2f'%(std)
-                    else:
-                        stdFig.map[raft][ccd] = 'stddev=nan'
+            stdFigbase = "vignettingRmsPhotOffset" #cache
+            stdFigData, stdFigMap = testSet.unpickle(stdFigbase, [None, None]) #cache
+            stdFig = qaFig.FpaQaFigure(data.cameraInfo, data=stdFigData, map=stdFigMap) #cache
+            for raft, ccdDict in stdFig.data.items():
+                for ccd, value in ccdDict.items():
+                    if not self.rmsOffset.get(raft, ccd) is None:
+                        std = self.rmsOffset.get(raft, ccd)
+                        stdFig.data[raft][ccd] = std
+                        if num.isfinite(std):
+                            stdFig.map[raft][ccd] = 'stddev=%.2f'%(std)
+                        else:
+                            stdFig.map[raft][ccd] = 'stddev=nan'
                         
 
-        testSet.pickle(medFigbase, [medFig.data, medFig.map]) #cache
-        testSet.pickle(stdFigbase, [stdFig.data, stdFig.map]) #cache 
-        blue = '#0000ff'
-        red  = '#ff0000'
+            testSet.pickle(medFigbase, [medFig.data, medFig.map]) #cache
+            testSet.pickle(stdFigbase, [stdFig.data, stdFig.map]) #cache 
+            blue = '#0000ff'
+            red  = '#ff0000'
         
-        if not self.delaySummary or isFinalDataId:
-            self.log.log(self.log.INFO, "plotting FPAs")
-            medFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.medLimits,
-                              title="Median offset", cmapOver=red, cmapUnder=blue,
-                              failLimits=self.medLimits)
-            testSet.addFigure(medFig, medFigbase+".png",
-                              "Median offset of bright (m<%d) stars versus radius" % (self.maxMag), 
-                              navMap=True)
-            del medFig
-            stdFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.rmsLimits,
-                              title="Stddev offset", cmapOver=red, cmapUnder=blue,
-                              failLimits=self.rmsLimits)
-            testSet.addFigure(stdFig, stdFigbase+".png",
-                              "Stddev of bright (m < %d) stars as a function of radius" % (self.maxMag), 
-                              navMap=True)
-            del stdFig
-        else:
-            del medFig
-            del stdFig
+            if not self.delaySummary or isFinalDataId:
+                self.log.log(self.log.INFO, "plotting FPAs")
+                medFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.medLimits,
+                                  title="Median offset", cmapOver=red, cmapUnder=blue,
+                                  failLimits=self.medLimits)
+                testSet.addFigure(medFig, medFigbase+".png",
+                                  "Median offset of bright (m<%d) stars versus radius" % (self.maxMag), 
+                                  navMap=True)
+                del medFig
+                stdFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=self.rmsLimits,
+                                  title="Stddev offset", cmapOver=red, cmapUnder=blue,
+                                  failLimits=self.rmsLimits)
+                testSet.addFigure(stdFig, stdFigbase+".png",
+                                  "Stddev of bright (m < %d) stars as a function of radius" % (self.maxMag), 
+                                  navMap=True)
+                del stdFig
+            else:
+                del medFig
+                del stdFig
 
         cacheLabel = "vignetting_dmag" #cache
         shelfData = {}

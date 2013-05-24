@@ -420,90 +420,91 @@ class PhotCompareQaTask(QaAnalysisTask):
         dtag = self.magType1+"-"+self.magType2
         wtag = self.magType1+"minus"+self.magType2
 
-        # fpa figure
-        meanFilebase = "mean" + wtag
-        stdFilebase  = "std"+wtag
-        derrFilebase  = "derr"+wtag
-        slopeFilebase  = "slope"+wtag
-        meanData, meanMap   = testSet.unpickle(meanFilebase, default=[None, None])
-        stdData, stdMap     = testSet.unpickle(stdFilebase, default=[None, None])
-        derrData, derrMap   = testSet.unpickle(derrFilebase, default=[None, None])
-        slopeData, slopeMap = testSet.unpickle(slopeFilebase, default=[None, None])
+        if (self.showFpa):
+            # fpa figure
+            meanFilebase = "mean" + wtag
+            stdFilebase  = "std"+wtag
+            derrFilebase  = "derr"+wtag
+            slopeFilebase  = "slope"+wtag
+            meanData, meanMap   = testSet.unpickle(meanFilebase, default=[None, None])
+            stdData, stdMap     = testSet.unpickle(stdFilebase, default=[None, None])
+            derrData, derrMap   = testSet.unpickle(derrFilebase, default=[None, None])
+            slopeData, slopeMap = testSet.unpickle(slopeFilebase, default=[None, None])
 
-        meanFig  = qaFig.FpaQaFigure(data.cameraInfo, data=meanData, map=meanMap)
-        stdFig   = qaFig.FpaQaFigure(data.cameraInfo, data=stdData, map=stdMap)
-        derrFig  = qaFig.FpaQaFigure(data.cameraInfo, data=derrData, map=derrMap)
-        slopeFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=slopeData, map=slopeMap)
+            meanFig  = qaFig.FpaQaFigure(data.cameraInfo, data=meanData, map=meanMap)
+            stdFig   = qaFig.FpaQaFigure(data.cameraInfo, data=stdData, map=stdMap)
+            derrFig  = qaFig.FpaQaFigure(data.cameraInfo, data=derrData, map=derrMap)
+            slopeFig = qaFig.VectorFpaQaFigure(data.cameraInfo, data=slopeData, map=slopeMap)
 
-        for raft, ccd in self.means.raftCcdKeys():
+            for raft, ccd in self.means.raftCcdKeys():
 
-            meanFig.data[raft][ccd] = self.means.get(raft, ccd)
-            stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
-            derrFig.data[raft][ccd] = self.derrs.get(raft, ccd)
-            slope = self.trend.get(raft, ccd)[0]
+                meanFig.data[raft][ccd] = self.means.get(raft, ccd)
+                stdFig.data[raft][ccd] = self.stds.get(raft, ccd)
+                derrFig.data[raft][ccd] = self.derrs.get(raft, ccd)
+                slope = self.trend.get(raft, ccd)[0]
 
-            if not slope is None and not slope[1] == 0:
-                # aspRatio will make the vector have the same angle as the line in the figure
-                slopeSigma = slope[0]/slope[1]
-                slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slopeSigma]
-            else:
-                slopeSigma = None
-                slopeFig.data[raft][ccd] = [None, None, None]
+                if not slope is None and not slope[1] == 0:
+                    # aspRatio will make the vector have the same angle as the line in the figure
+                    slopeSigma = slope[0]/slope[1]
+                    slopeFig.data[raft][ccd] = [numpy.arctan2(aspRatio*slope[0],1.0), None, slopeSigma]
+                else:
+                    slopeSigma = None
+                    slopeFig.data[raft][ccd] = [None, None, None]
 
-            if not self.means.get(raft, ccd) is None:
-                meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
-                stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
-                derrFig.map[raft][ccd] = "derr=%.4f" % (self.derrs.get(raft, ccd))
-                fmt0, fmt1, fmtS = "%.4f", "%.4f", "%.1f"
-                if slope[0] is None:
-                    fmt0 = "%s"
-                if slope[1] is None:
-                    fmt1 = "%s"
-                if slopeSigma is None:
-                    fmtS = "%s"
-                fmt = "slope="+fmt0+"+/-"+fmt1+"("+fmtS+"sig)"
-                slopeFig.map[raft][ccd] = fmt % (slope[0], slope[1], slopeSigma)
+                if not self.means.get(raft, ccd) is None:
+                    meanFig.map[raft][ccd] = "mean=%.4f" % (self.means.get(raft, ccd))
+                    stdFig.map[raft][ccd] = "std=%.4f" % (self.stds.get(raft, ccd))
+                    derrFig.map[raft][ccd] = "derr=%.4f" % (self.derrs.get(raft, ccd))
+                    fmt0, fmt1, fmtS = "%.4f", "%.4f", "%.1f"
+                    if slope[0] is None:
+                        fmt0 = "%s"
+                    if slope[1] is None:
+                        fmt1 = "%s"
+                    if slopeSigma is None:
+                        fmtS = "%s"
+                    fmt = "slope="+fmt0+"+/-"+fmt1+"("+fmtS+"sig)"
+                    slopeFig.map[raft][ccd] = fmt % (slope[0], slope[1], slopeSigma)
 
-        blue, red = '#0000ff', '#ff0000'
+            blue, red = '#0000ff', '#ff0000'
 
 
-        testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
-        testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
-        testSet.pickle(derrFilebase, [derrFig.data, derrFig.map])
-        testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
+            testSet.pickle(meanFilebase, [meanFig.data, meanFig.map])
+            testSet.pickle(stdFilebase, [stdFig.data, stdFig.map])
+            testSet.pickle(derrFilebase, [derrFig.data, derrFig.map])
+            testSet.pickle(slopeFilebase, [slopeFig.data, slopeFig.map])
 
-        if not self.delaySummary or isFinalDataId:
-            self.log.log(self.log.INFO, "plotting FPAs")
-            meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
-                               title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
-            testSet.addFigure(meanFig, "f01"+meanFilebase+".png",
+            if not self.delaySummary or isFinalDataId:
+                self.log.log(self.log.INFO, "plotting FPAs")
+                meanFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[-0.03, 0.03],
+                                   title="Mean "+tag, cmapOver=red, cmapUnder=blue, failLimits=self.deltaLimits)
+                testSet.addFigure(meanFig, "f01"+meanFilebase+".png",
                               "mean "+dtag+" mag   (brighter than %.1f)" % (self.magCut), navMap=True)
-            del meanFig
+                del meanFig
             
-            stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
-                              title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
-            testSet.addFigure(stdFig, "f02"+stdFilebase+".png",
-                              "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
-            del stdFig
+                stdFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.03],
+                                  title="Stdev "+tag, cmapOver=red, failLimits=self.rmsLimits)
+                testSet.addFigure(stdFig, "f02"+stdFilebase+".png",
+                                  "stdev "+dtag+" mag  (brighter than %.1f)" % (self.magCut), navMap=True)
+                del stdFig
 
-            derrFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.01],
-                              title="Derr "+tag, cmapOver=red, failLimits=self.derrLimits)
-            testSet.addFigure(derrFig, "f03"+derrFilebase+".png",
-                              "derr "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
-            del derrFig
+                derrFig.makeFigure(showUndefined=showUndefined, cmap="Reds", vlimits=[0.0, 0.01],
+                                   title="Derr "+tag, cmapOver=red, failLimits=self.derrLimits)
+                testSet.addFigure(derrFig, "f03"+derrFilebase+".png",
+                                  "derr "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
+                del derrFig
             
-            cScale = 2.0
-            slopeFig.makeFigure(cmap="RdBu_r",
-                                vlimits=[cScale*self.slopeLimits[0], cScale*self.slopeLimits[1]],
-                                title="Slope "+tag, failLimits=self.slopeLimits)
-            testSet.addFigure(slopeFig, "f04"+slopeFilebase+".png",
-                              "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
-            del slopeFig
-        else:
-            del meanFig
-            del stdFig
-            del derrFig
-            del slopeFig
+                cScale = 2.0
+                slopeFig.makeFigure(cmap="RdBu_r",
+                                    vlimits=[cScale*self.slopeLimits[0], cScale*self.slopeLimits[1]],
+                                    title="Slope "+tag, failLimits=self.slopeLimits)
+                testSet.addFigure(slopeFig, "f04"+slopeFilebase+".png",
+                                  "slope "+dtag+" mag (brighter than %.1f)" % (self.magCut), navMap=True)
+                del slopeFig
+            else:
+                del meanFig
+                del stdFig
+                del derrFig
+                del slopeFig
 
 
         #############################################

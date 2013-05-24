@@ -227,54 +227,55 @@ class ZeropointFitQaTask(QaAnalysisTask):
         if len(data.brokenDataIdList) == 0 or data.brokenDataIdList[-1] == dataId:
             isFinalDataId = True
 
-        # fpa figure
-        zpts = []
-        zptBase = "zeropoint"
-        zptData, zptMap = testSet.unpickle(zptBase, default=[None, None])
-        zptFig = qaFig.FpaQaFigure(data.cameraInfo, data=zptData, map=zptMap)
+        if (self.showFpa):
+            # fpa figure
+            zpts = []
+            zptBase = "zeropoint"
+            zptData, zptMap = testSet.unpickle(zptBase, default=[None, None])
+            zptFig = qaFig.FpaQaFigure(data.cameraInfo, data=zptData, map=zptMap)
 
-        offsetBase = "medZeropointOffset"
-        offsetData, offsetMap = testSet.unpickle(offsetBase, default=[None, None])
-        offsetFig = qaFig.FpaQaFigure(data.cameraInfo, data=offsetData, map=offsetMap)
+            offsetBase = "medZeropointOffset"
+            offsetData, offsetMap = testSet.unpickle(offsetBase, default=[None, None])
+            offsetFig = qaFig.FpaQaFigure(data.cameraInfo, data=offsetData, map=offsetMap)
 
-        for raft, ccdDict in zptFig.data.items():
-            for ccd, value in ccdDict.items():
-                if not self.zeroPoint.get(raft, ccd) is None:
-                    zpt = self.zeroPoint.get(raft, ccd)
-                    zpts.append(zpt)
-                    zptFig.data[raft][ccd] = zpt
-                    zptFig.map[raft][ccd] = 'zpt=%.2f' % (zpt)
+            for raft, ccdDict in zptFig.data.items():
+                for ccd, value in ccdDict.items():
+                    if not self.zeroPoint.get(raft, ccd) is None:
+                        zpt = self.zeroPoint.get(raft, ccd)
+                        zpts.append(zpt)
+                        zptFig.data[raft][ccd] = zpt
+                        zptFig.map[raft][ccd] = 'zpt=%.2f' % (zpt)
 
-                    offset = self.medOffset.get(raft, ccd)
-                    offsetFig.data[raft][ccd] = offset
-                    offsetFig.map[raft][ccd] = 'offset=%.2f' % (offset)
-                else:
-                    if not zptFig.data[raft][ccd] is None:
-                        zpts.append(zptFig.data[raft][ccd])
+                        offset = self.medOffset.get(raft, ccd)
+                        offsetFig.data[raft][ccd] = offset
+                        offsetFig.map[raft][ccd] = 'offset=%.2f' % (offset)
+                    else:
+                        if not zptFig.data[raft][ccd] is None:
+                            zpts.append(zptFig.data[raft][ccd])
                     
                     
-        testSet.pickle(zptBase, [zptFig.data, zptFig.map])
-        testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
+            testSet.pickle(zptBase, [zptFig.data, zptFig.map])
+            testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
         
-        if not self.delaySummary or isFinalDataId:
-            self.log.log(self.log.INFO, "plotting FPAs")
+            if not self.delaySummary or isFinalDataId:
+                self.log.log(self.log.INFO, "plotting FPAs")
             
-            blue = '#0000ff'
-            red = '#ff0000'
-            zptFig.makeFigure(showUndefined=showUndefined, cmap="jet",
-                              vlimits=[num.min(zpts)-0.05, num.max(zpts)+0.05],
-                              title="Zeropoint", cmapOver=red, cmapUnder=blue)
-            testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", navMap=True)
-            del zptFig
+                blue = '#0000ff'
+                red = '#ff0000'
+                zptFig.makeFigure(showUndefined=showUndefined, cmap="jet",
+                                  vlimits=[num.min(zpts)-0.05, num.max(zpts)+0.05],
+                                  title="Zeropoint", cmapOver=red, cmapUnder=blue)
+                testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", navMap=True)
+                del zptFig
         
-            offsetFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
-                                 title="Med offset from Zpt Fit", cmapOver=red, failLimits=self.limits,
-                                 cmapUnder=blue)
-            testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint", 
+                offsetFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
+                                     title="Med offset from Zpt Fit", cmapOver=red, failLimits=self.limits,
+                                     cmapUnder=blue)
+                testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint", 
                               navMap=True)
-            del offsetFig
-        else:
-            del zptFig, offsetFig
+                del offsetFig
+            else:
+                del zptFig, offsetFig
 
 
         cacheLabel = "zeropointFit"
