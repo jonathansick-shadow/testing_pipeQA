@@ -1,10 +1,7 @@
 import sys
 import traceback
 import os
-import re
 import inspect
-import sqlite
-import stat
 
 
 class TestFailError(Exception):
