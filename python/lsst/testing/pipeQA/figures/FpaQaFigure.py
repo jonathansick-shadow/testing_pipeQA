@@ -313,7 +313,10 @@ class FpaQaFigure(QaFigure):
         value_array = numpy.array(values)
         masked_value_array = numpyMa.masked_where(numpy.isnan(value_array), value_array)
         p.set_array(masked_value_array)
-        cb = self.fig.colorbar(p)
+        try:
+            cb = self.fig.colorbar(p)
+        except Exception:
+            cb = None
         sp.add_collection(p)
 
         ##############################
@@ -534,7 +537,10 @@ class VectorFpaQaFigure(FpaQaFigure):
             masked_value_array = numpyMa.masked_where(numpy.isnan(value_array), value_array)
             p.set_array(masked_value_array)
             if haveColors or (vlimits is not None):
-                cb = self.fig.colorbar(p)
+                try:
+                    cb = self.fig.colorbar(p)
+                except Exception:
+                    cb = None
             sp.add_collection(p)
 
 

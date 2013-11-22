@@ -184,11 +184,14 @@ def standardFigure(*args):
 
         ax_3.set_xlabel("x", size='x-small')
         #ax_3.set_ylabel("y", labelpad=20, y=1.0, size='x-small', rotation=0.0)
-        cb = fig.colorbar(xyplot)
-        cb.ax.set_xlabel("$\delta$ mag", size="x-small")
-        cb.ax.xaxis.set_label_position('top')
-        for tick in cb.ax.get_yticklabels():
-            tick.set_size("x-small")
+        try:
+            cb = fig.colorbar(xyplot)
+            cb.ax.set_xlabel("$\delta$ mag", size="x-small")
+            cb.ax.xaxis.set_label_position('top')
+            for tick in cb.ax.get_yticklabels():
+                tick.set_size("x-small")
+        except Exception:
+            cb = None
         for t in ax_3.get_xticklabels() + ax_3.get_yticklabels():
             t.set_rotation(45.0)
             t.set_size('xx-small')

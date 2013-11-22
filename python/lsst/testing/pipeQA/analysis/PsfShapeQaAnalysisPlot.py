@@ -74,11 +74,14 @@ def plot(data):
         ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
                      fontproperties={'size':"small"}, labelpos='E', color='k')
         q.set_array(color)
-        cb = fig.colorbar(q) #, ax)
-        cb.ax.set_xlabel("FWHM$_{\mathrm{xc,yc}}$", size="small")
-        cb.ax.xaxis.set_label_position('top')
-        for tick in cb.ax.get_yticklabels():
-            tick.set_size("x-small")
+        try:
+            cb = fig.colorbar(q) #, ax)
+            cb.ax.set_xlabel("FWHM$_{\mathrm{xc,yc}}$", size="small")
+            cb.ax.xaxis.set_label_position('top')
+            for tick in cb.ax.get_yticklabels():
+                tick.set_size("x-small")
+        except, Exception:
+            cb = None
         ax.set_title("PSF Shape")
     else:
         q = ax.quiver(x, y, vLen*dx, vLen*dy, color=color, scale=2.0*vLen, angles='xy', pivot='middle',

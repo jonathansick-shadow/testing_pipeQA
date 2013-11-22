@@ -295,7 +295,10 @@ class FpaFigure(QaFigure):
 
         p = PatchCollection(self.rectangles)
         p.set_array(num.array(values))
-        cb = self.fig.colorbar(p)
+        try:
+            cb = self.fig.colorbar(p)
+        except Exception:
+            cb = None
         sp.add_collection(p)
 
         for b in self.boundaries:
