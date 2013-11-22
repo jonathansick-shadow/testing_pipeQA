@@ -12,7 +12,7 @@ doc/*.tag
 doc/html
 doc/doxygen.conf
 tests/.tests
-
+tests/temp.xx
 *out
 figures
 runtimePerformance*

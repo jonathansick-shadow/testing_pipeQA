@@ -1,4 +1,6 @@
-import os, shutil
+#!/usr/bin/env python
+import os
+import shutil
 import re
 import unittest
 import eups
