@@ -80,7 +80,7 @@ def plot(data):
             cb.ax.xaxis.set_label_position('top')
             for tick in cb.ax.get_yticklabels():
                 tick.set_size("x-small")
-        except, Exception:
+        except Exception:
             cb = None
         ax.set_title("PSF Shape")
     else:
