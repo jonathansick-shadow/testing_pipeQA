@@ -11,12 +11,6 @@ class PipeQaTestCases(unittest.TestCase):
     """For testing purposes we will disable all tests except for ZptFit"""
     def setUp(self):
         self.qaTask       = PipeQaTask()
-        self.testDatabase = "rplante_PT1_2_u_pt12prod_im3000"  # LSST PT 1.2 series 3000
-        self.testVisit1   = "885335881"                        # r-band
-        self.testVisit2   = "885335891"                        # r-band
-        self.testFilt     = "r"
-        self.testRaft     = "2,2"
-        self.testCcd      = "1,1"
 
         self.testDatabase = "krughoff_S12_lsstsim_u_krughoff_2012_0706_183555"  # lsstSim S21 schema
         self.testVisit1   = "899551571"                        # z-band
