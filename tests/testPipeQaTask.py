@@ -15,7 +15,7 @@ class PipeQaTestCases(unittest.TestCase):
     def setUp(self):
         self.qaTask       = PipeQaTask()
 
-        self.testDatabase = "krughoff_S12_lsstsim_u_krughoff_2012_0706_183555"  # lsstSim S21 schema
+        self.testDatabase = "abecker_pipeQA_unittest"  # lsstSim S21 schema
         self.testVisit1   = "899551571"                        # z-band
         self.testVisit2   = "899553091"                        # r-band
         self.testFilt1    = "z"
