@@ -5,20 +5,17 @@ import re
 import unittest
 import eups
 import lsst.utils.tests as tests
+import lsst.pex.exceptions as pexExcept
 from lsst.testing.pipeQA.analysis.PipeQaTask import PipeQaTask
+from lsst.testing.pipeQA.DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
+import lsst.pex.logging as pexLog
 
-class PipeQaTestCases(unittest.TestCase):
+class PipeQaDbTestCases(unittest.TestCase):
     """For testing purposes we will disable all tests except for ZptFit"""
     def setUp(self):
         self.qaTask       = PipeQaTask()
-        self.testDatabase = "rplante_PT1_2_u_pt12prod_im3000"  # LSST PT 1.2 series 3000
-        self.testVisit1   = "885335881"                        # r-band
-        self.testVisit2   = "885335891"                        # r-band
-        self.testFilt     = "r"
-        self.testRaft     = "2,2"
-        self.testCcd      = "1,1"
 
-        self.testDatabase = "krughoff_S12_lsstsim_u_krughoff_2012_0706_183555"  # lsstSim S21 schema
+        self.testDatabase = "abecker_pipeQA_unittest"  # lsstSim S21 schema
         self.testVisit1   = "899551571"                        # z-band
         self.testVisit2   = "899553091"                        # r-band
         self.testFilt1    = "z"
@@ -35,6 +32,23 @@ class PipeQaTestCases(unittest.TestCase):
 
         self.wwwPath      = os.path.join(self.wwwRoot, self.wwwRerun)
 
+        # Test if database access is enabled; if not the tests will not be run
+        self.run = True
+        self.log = pexLog.Log(pexLog.Log.getDefaultLog(),
+                              'lsst.testing.pipeQA.PipeQaTestCases', pexLog.Log.INFO)
+        try:
+            dbid = DatabaseIdentity(self.testDatabase)
+        except pexExcept.LsstCppException, e:
+            self.log.warn("Unable to create database identity: %s" % e.message)
+            self.run = False
+            return
+        
+        try:
+            interface = LsstSimDbInterface(dbid)
+        except Exception, e:
+            self.log.warn("Unable to connect to %s: %s" % (self.testDatabase, e.message))
+            self.run = False
+            return
         
     def disableTasks(self):
         disArgs = ["--config"]
@@ -68,6 +82,7 @@ class PipeQaTestCases(unittest.TestCase):
         
     def tearDown(self):
         del self.qaTask
+        del self.log
 
         try:
             shutil.rmtree(self.wwwPath) # just in case
@@ -75,6 +90,8 @@ class PipeQaTestCases(unittest.TestCase):
             pass
     
     def testBasic(self):
+        if not self.run:
+            return
         os.mkdir(self.wwwPath)
 
         args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
@@ -87,6 +104,8 @@ class PipeQaTestCases(unittest.TestCase):
         shutil.rmtree(self.wwwPath)
 
     def testAll(self):
+        if not self.run:
+            return
         os.mkdir(self.wwwPath)
 
         args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
@@ -97,6 +116,8 @@ class PipeQaTestCases(unittest.TestCase):
 
 
     def testRegexp(self):
+        if not self.run:
+            return
         os.mkdir(self.wwwPath)
         
         args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", re.sub(",1", ".*", self.testCcd), self.testDatabase]
@@ -110,6 +131,8 @@ class PipeQaTestCases(unittest.TestCase):
         shutil.rmtree(self.wwwPath)
 
     def testMemoryOpt(self):
+        if not self.run:
+            return
         #  -b ccd  will run 1 ccd at a time and free memory after each
         #  -k is needed to write the values to cache so they can be retrieved
         #     when the final summary figure is made (i.e., since we freed them with -b ccd)
@@ -131,6 +154,8 @@ class PipeQaTestCases(unittest.TestCase):
         shutil.rmtree(self.wwwPath)
 
     def testMulti(self):
+        if not self.run:
+            return
         # -g 5:n says 'group all visits matching '888.*' in groups of 5, and run the n'th one
         #        so the first example runs the first 5 visits, the second one runs the next 5 visits
         # --noWwwCache is essential if multiple pipeQas will be writing to the same place.
@@ -153,6 +178,8 @@ class PipeQaTestCases(unittest.TestCase):
         
 
     def testExcept(self):
+        if not self.run:
+            return
         os.mkdir(self.wwwPath)
         args = ["-e", "-b", "invalid", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         try:
@@ -169,7 +196,7 @@ def suite():
     tests.init()
 
     suites = []
-    suites += unittest.makeSuite(PipeQaTestCases)
+    suites += unittest.makeSuite(PipeQaDbTestCases)
     suites += unittest.makeSuite(tests.MemoryTestCase)
     return unittest.TestSuite(suites)
 
