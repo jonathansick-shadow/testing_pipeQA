@@ -69,7 +69,7 @@ class LsstSimDbInterface(DatabaseInterface):
         Trace("lsst.testing.pipeQA.LsstSimDbInterface", 3, "Executing: %s" % (sql))
         t0 = time.time()
 
-        print "mysql>", sql
+        #print "mysql>", sql
         
         # forking to handle plotting the summary figures causes (i think)
         # a disconnection when the child exits.  Need to reconnect when
