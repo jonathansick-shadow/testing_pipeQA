@@ -10,7 +10,7 @@ from lsst.testing.pipeQA.analysis.PipeQaTask import PipeQaTask
 from lsst.testing.pipeQA.DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
 import lsst.pex.logging as pexLog
 
-class PipeQaTestCases(unittest.TestCase):
+class PipeQaDbTestCases(unittest.TestCase):
     """For testing purposes we will disable all tests except for ZptFit"""
     def setUp(self):
         self.qaTask       = PipeQaTask()
@@ -196,7 +196,7 @@ def suite():
     tests.init()
 
     suites = []
-    suites += unittest.makeSuite(PipeQaTestCases)
+    suites += unittest.makeSuite(PipeQaDbTestCases)
     suites += unittest.makeSuite(tests.MemoryTestCase)
     return unittest.TestSuite(suites)
 
