@@ -50,6 +50,13 @@ class PipeQaDbTestCases(unittest.TestCase):
             self.run = False
             return
         
+        try:
+            import lsst.obs.sdss as obsSdss
+        except Exception, e:
+            self.log.warn("Please setup obs.sdss to run unit test")
+            self.run = False
+            return
+        
     def disableTasks(self):
         disArgs = ["--config"]
         disArgs.append("doAstromQa=False")
