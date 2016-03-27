@@ -10,27 +10,29 @@ from lsst.testing.pipeQA.analysis.PipeQaTask import PipeQaTask
 from lsst.testing.pipeQA.DatabaseQuery import LsstSimDbInterface, DatabaseIdentity
 import lsst.pex.logging as pexLog
 
+
 class PipeQaDbTestCases(unittest.TestCase):
     """For testing purposes we will disable all tests except for ZptFit"""
+
     def setUp(self):
-        self.qaTask       = PipeQaTask()
+        self.qaTask = PipeQaTask()
 
         self.testDatabase = "abecker_pipeQA_unittest"  # lsstSim S21 schema
-        self.testVisit1   = "899551571"                        # z-band
-        self.testVisit2   = "899553091"                        # r-band
-        self.testFilt1    = "z"
-        self.testFilt2    = "r"
-        self.testRaft     = "2,2"
-        self.testCcd      = "1,1"
+        self.testVisit1 = "899551571"                        # z-band
+        self.testVisit2 = "899553091"                        # r-band
+        self.testFilt1 = "z"
+        self.testFilt2 = "r"
+        self.testRaft = "2,2"
+        self.testCcd = "1,1"
 
         os.environ["WWW_ROOT"] = os.path.join(eups.productDir("testing_pipeQA"), "tests")
-        self.wwwRoot      = os.environ["WWW_ROOT"]
-        self.wwwRerun     = "www_rerun"
+        self.wwwRoot = os.environ["WWW_ROOT"]
+        self.wwwRerun = "www_rerun"
         os.environ["WWW_RERUN"] = self.wwwRerun
         if os.path.isdir(self.wwwRerun):
             shutil.rmtree(self.wwwRerun)
 
-        self.wwwPath      = os.path.join(self.wwwRoot, self.wwwRerun)
+        self.wwwPath = os.path.join(self.wwwRoot, self.wwwRerun)
 
         # Test if database access is enabled; if not the tests will not be run
         self.run = True
@@ -42,21 +44,21 @@ class PipeQaDbTestCases(unittest.TestCase):
             self.log.warn("Unable to create database identity: %s" % e.message)
             self.run = False
             return
-        
+
         try:
             interface = LsstSimDbInterface(dbid)
         except Exception, e:
             self.log.warn("Unable to connect to %s: %s" % (self.testDatabase, e.message))
             self.run = False
             return
-        
+
         try:
             import lsst.obs.sdss as obsSdss
         except Exception, e:
             self.log.warn("Please setup obs.sdss to run unit test")
             self.run = False
             return
-        
+
     def disableTasks(self):
         disArgs = ["--config"]
         disArgs.append("doAstromQa=False")
@@ -67,7 +69,7 @@ class PipeQaDbTestCases(unittest.TestCase):
         disArgs.append("doVignettingQa=False")
         disArgs.append("doVisitQa=False")
         disArgs.append("doPerformanceQa=False")
-        #disArgs.append("doZptFitQa=False")
+        # disArgs.append("doZptFitQa=False")
         return disArgs
 
     def validateFiles(self, visit, filt, raft, ccd, checkFpa = True):
@@ -78,7 +80,7 @@ class PipeQaDbTestCases(unittest.TestCase):
 
         if not os.path.isdir(testDir):
             self.fail()
-        
+
         perCcd = "zeropointFit-R:%s_S:%s--%s%s.png" % (raft, ccd, re.sub(",", "", raft), re.sub(",", "", ccd))
         if not os.path.isfile(os.path.join(testDir, perCcd)):
             self.fail()
@@ -86,16 +88,16 @@ class PipeQaDbTestCases(unittest.TestCase):
         if checkFpa:
             if not os.path.isfile(os.path.join(testDir, "zeropoint.png")):
                 self.fail()
-        
+
     def tearDown(self):
         del self.qaTask
         del self.log
 
         try:
-            shutil.rmtree(self.wwwPath) # just in case
+            shutil.rmtree(self.wwwPath)  # just in case
         except:
             pass
-    
+
     def testBasic(self):
         if not self.run:
             return
@@ -121,19 +123,20 @@ class PipeQaDbTestCases(unittest.TestCase):
 
         shutil.rmtree(self.wwwPath)
 
-
     def testRegexp(self):
         if not self.run:
             return
         os.mkdir(self.wwwPath)
-        
-        args = ["-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", re.sub(",1", ".*", self.testCcd), self.testDatabase]
+
+        args = ["-e", "-v", self.testVisit1, "-r", self.testRaft,
+                "-c", re.sub(",1", ".*", self.testCcd), self.testDatabase]
         for disArg in self.disableTasks():
             args.append(disArg)
 
         self.qaTask.parseAndRun(args)
         for ccd in (0, 1, 2):
-            self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
+            self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft,
+                               re.sub(",1", ",%d" % (ccd), self.testCcd))
 
         shutil.rmtree(self.wwwPath)
 
@@ -147,16 +150,18 @@ class PipeQaDbTestCases(unittest.TestCase):
         #     otherwise we'd waste cycles making the figure and overwriting it repeatedly
         #  -f will fork the process before plotting. When all the data are loaded for
         #     the final summary figures, the memory footprint grows and the os can't get it back from the PID
-        #     so the plot() method is run as a separate PID that dies and returns control to pipeQa.py 
+        #     so the plot() method is run as a separate PID that dies and returns control to pipeQa.py
         os.mkdir(self.wwwPath)
 
-        args = ["-b", "ccd", "-k", "-d", "-f", "-e", "-v", self.testVisit1, "-r", self.testRaft, "-c", re.sub(",1", ".*", self.testCcd), self.testDatabase]
+        args = ["-b", "ccd", "-k", "-d", "-f", "-e", "-v", self.testVisit1, "-r",
+                self.testRaft, "-c", re.sub(",1", ".*", self.testCcd), self.testDatabase]
         for disArg in self.disableTasks():
             args.append(disArg)
 
         self.qaTask.parseAndRun(args)
         for ccd in (0, 1, 2):
-            self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, re.sub(",1", ",%d" % (ccd), self.testCcd))
+            self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft,
+                               re.sub(",1", ",%d" % (ccd), self.testCcd))
 
         shutil.rmtree(self.wwwPath)
 
@@ -166,29 +171,31 @@ class PipeQaDbTestCases(unittest.TestCase):
         # -g 5:n says 'group all visits matching '888.*' in groups of 5, and run the n'th one
         #        so the first example runs the first 5 visits, the second one runs the next 5 visits
         # --noWwwCache is essential if multiple pipeQas will be writing to the same place.
-        #              more than 2 or 3, and there will be sqlite conflicts 
+        #              more than 2 or 3, and there will be sqlite conflicts
         os.mkdir(self.wwwPath)
 
-        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:0", "-v", "899.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
+        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:0",
+                "-v", "899.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         for disArg in self.disableTasks():
             args.append(disArg)
         self.qaTask.parseAndRun(args)
         self.validateFiles(self.testVisit1, self.testFilt1, self.testRaft, self.testCcd)
 
-        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:1", "-v", "899.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
+        args = ["--noWwwCache", "-f", "-d", "-b", "ccd", "-k", "-e", "-g", "1:1",
+                "-v", "899.*", "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
         for disArg in self.disableTasks():
             args.append(disArg)
         self.qaTask.parseAndRun(args)
         self.validateFiles(self.testVisit2, self.testFilt2, self.testRaft, self.testCcd)
 
         shutil.rmtree(self.wwwPath)
-        
 
     def testExcept(self):
         if not self.run:
             return
         os.mkdir(self.wwwPath)
-        args = ["-e", "-b", "invalid", "-v", self.testVisit1, "-r", self.testRaft, "-c", self.testCcd, self.testDatabase]
+        args = ["-e", "-b", "invalid", "-v", self.testVisit1, "-r",
+                self.testRaft, "-c", self.testCcd, self.testDatabase]
         try:
             self.qaTask.parseAndRun(args)
         except:
@@ -197,7 +204,8 @@ class PipeQaDbTestCases(unittest.TestCase):
             self.fail()
         shutil.rmtree(self.wwwPath)
 #####
-        
+
+
 def suite():
     """Returns a suite containing all the test cases in this module."""
     tests.init()
@@ -206,6 +214,7 @@ def suite():
     suites += unittest.makeSuite(PipeQaDbTestCases)
     suites += unittest.makeSuite(tests.MemoryTestCase)
     return unittest.TestSuite(suites)
+
 
 def run(doExit=False):
     """Run the tests"""

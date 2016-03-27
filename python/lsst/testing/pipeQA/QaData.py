@@ -1,4 +1,8 @@
-import sys, os, re, copy, time
+import sys
+import os
+import re
+import copy
+import time
 import numpy
 
 #######################################################################
@@ -6,6 +10,8 @@ import numpy
 #
 #
 #######################################################################
+
+
 class QaData(object):
     """Base class for QA data retrieval."""
 
@@ -18,19 +24,18 @@ class QaData(object):
         @param rerun The rerun to retrieve
         @param cameraInfo A cameraInfo object containing specs on the camera
         """
-        
+
         self.label = label
         self.rerun = rerun
         self.cameraInfo = cameraInfo
         self.dataInfo = self.cameraInfo.dataInfo
-        
-        self.dataIdNames   = []
+
+        self.dataIdNames = []
         self.dataIdDiscrim = []
         for array in self.dataInfo:
             dataIdName, dataIdDiscrim = array
             self.dataIdNames.append(dataIdName)
             self.dataIdDiscrim.append(dataIdDiscrim)
-
 
         self.initCache()
 
@@ -40,7 +45,6 @@ class QaData(object):
 
         self.brokenDataIdList = []
 
-
         self.ccdConvention = 'ccd'
         if self.cameraInfo.name == 'lsstSim':
             self.ccdConvention = 'sensor'
@@ -49,7 +53,6 @@ class QaData(object):
         elif self.cameraInfo.name == "coadd":
             self.ccdConvention = "patch"
 
-        
     def printStartLoad(self, message):
         self.loadStr = ""
 
@@ -59,23 +62,22 @@ class QaData(object):
             self.loadStr += message
         else:
             self.loadStr += message
-        #sys.stdout.flush()
+        # sys.stdout.flush()
         self.loadDepth += 1
         self.lastPrint = 0
         t0 = time.time()
         self.t0.append(t0)
-        
 
     def printMidLoad(self, message):
         self.loadStr += message
-        #sys.stdout.flush()
+        # sys.stdout.flush()
 
     def printStopLoad(self):
         t0 = self.t0[-1]
         self.t0 = self.t0[:-1]
         t_final = time.time()
         t_elapsed = t_final - t0
-        done =  "done (%.2fs)." % t_elapsed
+        done = "done (%.2fs)." % t_elapsed
         if self.loadDepth > 1:
             if self.lastPrint == 1:
                 self.loadStr += "\n"
@@ -88,12 +90,11 @@ class QaData(object):
                 self.loadStr += "\n"+done
             else:
                 self.loadStr += done
-        #sys.stdout.flush()
+        # sys.stdout.flush()
         self.loadStr = ""
 
         self.loadDepth -= 1
         self.lastPrint = 1
-        
 
     def initCache(self):
         """Initialize all internal cache attributes. """
@@ -127,54 +128,53 @@ class QaData(object):
         self.filterCache = {}
         self.calibCache = {}
         self.sqlCache = {"match": {}, "src": {}}
-        
+
         self.performCache = {}
-        
+
         # store the explicit dataId (ie. no regexes) for each key used in a cache
         self.dataIdLookup = {}
 
         self.cacheList = {
-            "query"          : self.queryCache,  
-            "columnQuery"    : self.columnQueryCache,
-            "sourceSet"      : self.sourceSetCache,
-            "sourceSetColumn"  : self.sourceSetColumnCache,
-            "matchQuery"     : self.matchQueryCache,
-            "matchList"      : self.matchListCache,
-            "refObjectQuery" : self.refObjectQueryCache,
-            "refObject"      : self.refObjectCache,
+            "query": self.queryCache,
+            "columnQuery": self.columnQueryCache,
+            "sourceSet": self.sourceSetCache,
+            "sourceSetColumn": self.sourceSetColumnCache,
+            "matchQuery": self.matchQueryCache,
+            "matchList": self.matchListCache,
+            "refObjectQuery": self.refObjectQueryCache,
+            "refObject": self.refObjectCache,
             "visitMatchQuery": self.visitMatchQueryCache,
-            "calexpQuery"    : self.calexpQueryCache,
-            "calexp"         : self.calexpCache, 
-            "wcs"            : self.wcsCache,    
-            "detector"       : self.detectorCache,
-            "raftDetector"   : self.raftDetectorCache,
-            "filter"         : self.filterCache, 
-            "calib"          : self.calibCache,  
-            "dataIdLookup"   : self.dataIdLookup,
-            "sql"            : self.sqlCache,
-            }
-
+            "calexpQuery": self.calexpQueryCache,
+            "calexp": self.calexpCache,
+            "wcs": self.wcsCache,
+            "detector": self.detectorCache,
+            "raftDetector": self.raftDetectorCache,
+            "filter": self.filterCache,
+            "calib": self.calibCache,
+            "dataIdLookup": self.dataIdLookup,
+            "sql": self.sqlCache,
+        }
 
     def cachePerformance(self, dataIdStr, test, label, value):
         if isinstance(dataIdStr, dict):
             dataIdStr = self._dataIdToString(dataIdStr, defineFully=True)
-            
+
         if not self.performCache.has_key(dataIdStr):
             self.performCache[dataIdStr] = {}
         if not self.performCache[dataIdStr].has_key(test):
             self.performCache[dataIdStr][test] = {}
         if not self.performCache[dataIdStr].has_key('total'):
             self.performCache[dataIdStr]['total'] = {}
-            
+
         if not self.performCache[dataIdStr][test].has_key(label):
             self.performCache[dataIdStr][test][label] = 0.0
         if not self.performCache[dataIdStr]['total'].has_key(label):
             self.performCache[dataIdStr]['total'][label] = 0.0
-            
-        self.performCache[dataIdStr][test][label]    += value
+
+        self.performCache[dataIdStr][test][label] += value
         self.performCache[dataIdStr]['total'][label] += value
-        #print 'd', dataIdStr, "l",label, "p",self.performCache[dataIdStr]['total'][label], 'v',value
-        
+        # print 'd', dataIdStr, "l",label, "p",self.performCache[dataIdStr]['total'][label], 'v',value
+
     def getPerformance(self, dataIdStr, test, label):
         if isinstance(dataIdStr, dict):
             dataIdStr = self._dataIdToString(dataIdStr, defineFully=True)
@@ -197,7 +197,7 @@ class QaData(object):
         self.initCache()
 
     def printCache(self):
-        for name, cache in self.__dict__.items(): #cacheList.items():
+        for name, cache in self.__dict__.items():  # cacheList.items():
             if re.search("^_", name):
                 continue
             n = 0
@@ -208,18 +208,15 @@ class QaData(object):
             if isinstance(cache, list):
                 n = len(cache)
             print name, n
-                
 
     def getDataName(self):
         """Get a string representation of ourself."""
         # should this be __str__ or __repr__ ?
         return self.label+" rerun="+str(self.rerun)
-        
-
 
     def getSourceSetColumnsBySensor(self, dataIdRegex, accessors):
         """Get a specified Source field from all sources in SourceSet as a numpy array.
-        
+
         @param dataIdRegex dataId dict with regular expressions for data to retrieve
         @param accessors  List of accessor method names (as string without 'get' prepended)
         """
@@ -269,43 +266,43 @@ class QaData(object):
                 ssTDict[k][accessor] = tmp
 
         #self.transposeQueryCache[dataIdStr+'-'+accessor] = True
-        
+
         return ssTDict
-
-
-
 
     def getWcsBySensor(self, dataIdRegex):
         """Get a dict of Wcs objects with sensor ids as keys.
-        
+
         @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
         """
         return self.getCalexpEntryBySensor(self.wcsCache, dataIdRegex)
+
     def getDetectorBySensor(self, dataIdRegex):
         """Get a dict of Detector objects with sensor ids as keys.
-        
+
         @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
         """
         return self.getCalexpEntryBySensor(self.detectorCache, dataIdRegex)
+
     def getFilterBySensor(self, dataIdRegex):
         """Get a dict of Filter objects with sensor ids as keys.
-        
+
         @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
         """
         return self.getCalexpEntryBySensor(self.filterCache, dataIdRegex)
+
     def getCalibBySensor(self, dataIdRegex):
         """Get a dict of Calib objects with sensor ids as keys.
-        
+
         @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
         """
         return self.getCalexpEntryBySensor(self.calibCache, dataIdRegex)
+
     def getCalexpBySensor(self, dataIdRegex):
         """Get a dict of Calib objects with sensor ids as keys.
-        
+
         @param dataIdRegex dataId dictionary with regular expressions to specify data to retrieve
         """
         return self.getCalexpEntryBySensor(self.calexpCache, dataIdRegex)
-    
 
     def verifyDataIdKeys(self, dataIdKeys, raiseOnFailure=True):
         """Verify that what we're asked for makes sense for this camera (ie. ccd vs. sensor).
@@ -324,8 +321,6 @@ class QaData(object):
             return False
         return True
 
-
-
     def getSourceClusters(self, dataIdRegex,
                           epsilonArcsec = 0.5,
                           minNeighbors = 1,
@@ -339,7 +334,7 @@ class QaData(object):
         @param leafExtentThresholdArcsec Drawing a blank here too.
         """
         import lsst.ap.cluster as apCluster
-        
+
         policy = pexPolicy.Policy()
         policy.set("epsilonArcsec", epsilonArcsec)
         policy.set("minNeighbors", minNeighbors)
@@ -348,7 +343,7 @@ class QaData(object):
 
         sources = self.getSourceSet(dataIdRegex)
         sourceClusters = apCluster.cluster(sources, policy)
-        
+
         return sourceClusters
 
     #######################################################################
@@ -359,7 +354,7 @@ class QaData(object):
 
         @param dataTuple The dataTupe to be converted.
         """
-        
+
         s = []
         for i in xrange(len(self.dataIdNames)):
             name = self.dataIdNames[i]
@@ -375,7 +370,7 @@ class QaData(object):
 
         @param dataTuple The dataTuple to be converted.
         """
-        
+
         dataId = {}
         for i in xrange(len(self.dataIdNames)):
             dataIdName = self.dataIdNames[i]
@@ -390,21 +385,20 @@ class QaData(object):
 
         @param dataId The dataId to be converted.
         """
-        
+
         # if snap isn't specified, we'll add it.
         dataIdCopy = copy.copy(dataId)
         if not dataIdCopy.has_key('snap'):
             dataIdCopy['snap'] = '0'
-            
+
         dataList = []
         for i in xrange(len(self.dataIdNames)):
             dataIdName = self.dataIdNames[i]
             if dataIdCopy.has_key(dataIdName):
                 dataList.append(dataIdCopy[dataIdName])
             else:
-                raise Exception("key: "+dataIdName+" not in dataId: "+ str(dataIdCopy))
+                raise Exception("key: "+dataIdName+" not in dataId: " + str(dataIdCopy))
         return tuple(dataList)
-
 
     def _dataIdToString(self, dataId, defineFully=False):
         """Convert a dataId dict to a string.
@@ -416,19 +410,18 @@ class QaData(object):
         for i in xrange(len(self.dataIdNames)):
             dataIdName = self.dataIdNames[i]
             if dataId.has_key(dataIdName):
-                s.append( dataIdName + re.sub("[,]", "", str(dataId[dataIdName])))
+                s.append(dataIdName + re.sub("[,]", "", str(dataId[dataIdName])))
             elif defineFully:
                 if dataIdName == 'snap':
                     s.append(dataIdName + "0")
                 else:
-                    s.append( dataIdName + ".*" )
+                    s.append(dataIdName + ".*")
         #x = self._dataTupleToString(self._dataIdToDataTuple(dataId))
         s = "-".join(s)
-        #print x, s
+        # print x, s
 
         return s
 
-    
     def reduceAvailableDataTupleList(self, dataIdRegexDict):
         pass
 
@@ -437,7 +430,7 @@ class QaData(object):
 
         @param keyList List of keys to have visits extracted from.
         """
-        
+
         visits = {}
         for key in keyList:
             visit = str(self.dataIdLookup[key]['visit'])
@@ -445,16 +438,16 @@ class QaData(object):
 
         return visits.keys()
 
-    
     #########################################################
     # pure virtual methods
-        
+
     def getSourceSet(self, dataIdRegex):
         """Get a SourceSet of all Sources matching dataId.
 
         @param dataIdRegex dataId dict of regular expressions for data to be retrieved
         """
         raise NotImplementedError, "Must define getSourceSet in derived QaData class."
+
     def getSourceSetBySensor(self, dataIdRegex):
         """Get a dict of all Sources matching dataId, with sensor name as dict keys.
 

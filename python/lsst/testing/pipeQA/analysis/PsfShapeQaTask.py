@@ -1,11 +1,13 @@
-import sys, os, re
+import sys
+import os
+import re
 import numpy
 
-import lsst.afw.math                as afwMath
-import lsst.afw.geom                as afwGeom
-import lsst.meas.algorithms        as measAlg
-import lsst.pex.config              as pexConfig
-import lsst.pipe.base               as pipeBase
+import lsst.afw.math as afwMath
+import lsst.afw.geom as afwGeom
+import lsst.meas.algorithms as measAlg
+import lsst.pex.config as pexConfig
+import lsst.pipe.base as pipeBase
 
 from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures as qaFig
@@ -22,13 +24,13 @@ import matplotlib.font_manager as fm
 from matplotlib.collections import LineCollection
 
 
-class PsfShapeQaConfig(pexConfig.Config): 
-    cameras  = pexConfig.ListField(dtype = str, doc = "Cameras to run PsfShapeQaTask",
-                                   default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
+class PsfShapeQaConfig(pexConfig.Config):
+    cameras = pexConfig.ListField(dtype = str, doc = "Cameras to run PsfShapeQaTask",
+                                  default = ("lsstSim", "hscSim", "suprimecam", "cfht", "sdss", "coadd"))
     ellipMax = pexConfig.Field(dtype = float, doc = "Maximum median ellipticity", default = 0.2)
-    fwhmMax  = pexConfig.Field(dtype = float, doc = "Maximum Psf Fwhm (arcsec)", default = 2.0)
-    
-    
+    fwhmMax = pexConfig.Field(dtype = float, doc = "Maximum Psf Fwhm (arcsec)", default = 2.0)
+
+
 class PsfShapeQaTask(QaAnalysisTask):
     ConfigClass = PsfShapeQaConfig
     _DefaultName = "psfShapeQa"
@@ -40,7 +42,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         self.sCatDummy = pqaSource.Catalog()
         self.srefCatDummy = pqaSource.RefCatalog()
-        
+
         self.description = """
          For each CCD, the ellipticity of stars used in the Psf model are
          plotted as a function of position in the focal plane.  The summary FPA
@@ -63,21 +65,21 @@ class PsfShapeQaTask(QaAnalysisTask):
         del self.fwhm
 
         del self.calexpDict
-        
+
     def test(self, data, dataId):
 
         # get data
-        self.ssDict        = data.getSourceSetBySensor(dataId)
-        self.detector      = data.getDetectorBySensor(dataId)
-        self.filter        = data.getFilterBySensor(dataId)
-        self.calexpDict    = data.getCalexpBySensor(dataId)
-        self.wcs           = data.getWcsBySensor(dataId)
+        self.ssDict = data.getSourceSetBySensor(dataId)
+        self.detector = data.getDetectorBySensor(dataId)
+        self.filter = data.getFilterBySensor(dataId)
+        self.calexpDict = data.getCalexpBySensor(dataId)
+        self.wcs = data.getWcsBySensor(dataId)
 
         # create containers for data in the focal plane
-        self.x     = raftCcdData.RaftCcdVector(self.detector)
-        self.y     = raftCcdData.RaftCcdVector(self.detector)
-        self.ra    = raftCcdData.RaftCcdVector(self.detector)
-        self.dec   = raftCcdData.RaftCcdVector(self.detector)
+        self.x = raftCcdData.RaftCcdVector(self.detector)
+        self.y = raftCcdData.RaftCcdVector(self.detector)
+        self.ra = raftCcdData.RaftCcdVector(self.detector)
+        self.dec = raftCcdData.RaftCcdVector(self.detector)
         self.ellip = raftCcdData.RaftCcdVector(self.detector)
         self.theta = raftCcdData.RaftCcdVector(self.detector)
 
@@ -87,14 +89,14 @@ class PsfShapeQaTask(QaAnalysisTask):
 
         fwhmByKey = {}
         for key, ss in self.ssDict.items():
-            
+
             if self.detector.has_key(key):
                 raft = self.detector[key].getParent().getId().getName()
-                ccd  = self.detector[key].getId().getName()
+                ccd = self.detector[key].getId().getName()
             else:
                 continue
 
-            #qaAnaUtil.isStar(ss)
+            # qaAnaUtil.isStar(ss)
 
             fwhmByKey[key] = 0.0
 
@@ -113,7 +115,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
                 if a2 == 0 or b2/a2 < 0:
                     continue
-                
+
                 ellip = 1.0 - numpy.sqrt(b2/a2)
                 theta = 0.5*numpy.arctan2(2.0*ixy, ixx-iyy)
 
@@ -122,8 +124,8 @@ class PsfShapeQaTask(QaAnalysisTask):
                 #   both +/- pi/2 arise but are essentially the same, ... and the mean is near zero
                 if theta < 0.0:
                     theta += numpy.pi
-                    
-                #print ixx, iyy, ixy, a2, b2, ellip, theta
+
+                # print ixx, iyy, ixy, a2, b2, ellip, theta
                 isStar = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
 
                 flux = s.getD(self.sCatDummy.PsfFluxKey)
@@ -139,12 +141,12 @@ class PsfShapeQaTask(QaAnalysisTask):
                     self.dec.append(raft, ccd, s.getD(self.sCatDummy.DecKey))
                     fwhmTmp += sigmaToFwhm*numpy.sqrt(0.5*(a2 + b2))
 
-            nFwhm = len(self.x.get(raft,ccd))
+            nFwhm = len(self.x.get(raft, ccd))
             if nFwhm:
                 fwhmByKey[key] = fwhmTmp/nFwhm
             else:
                 fwhmByKey[key] = 0.0
-                
+
         # create a testset and add values
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
@@ -161,7 +163,7 @@ class PsfShapeQaTask(QaAnalysisTask):
                 ellipMed = stat.getValue(afwMath.MEDIAN)
                 stat = afwMath.makeStatistics(theta, afwMath.NPOINT | afwMath.MEDIAN)
                 thetaMed = stat.getValue(afwMath.MEDIAN)
-                n      = stat.getValue(afwMath.NPOINT)
+                n = stat.getValue(afwMath.NPOINT)
             else:
                 ellipMed = -1.0
                 thetaMed = 0.0
@@ -172,31 +174,29 @@ class PsfShapeQaTask(QaAnalysisTask):
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "median psf ellipticity "
             comment = "median psf ellipticity (nstar=%d)" % (n)
-            testSet.addTest( testCode.Test(label, ellipMed, self.limitsEllip, comment, areaLabel=areaLabel) )
+            testSet.addTest(testCode.Test(label, ellipMed, self.limitsEllip, comment, areaLabel=areaLabel))
 
             # stash the angles.  We'll use them to make figures in plot()
             self.thetaMedians.set(raft, ccd, thetaMed)
-            
 
         # And the Fwhm
-        self.fwhm  = raftCcdData.RaftCcdData(self.detector)
+        self.fwhm = raftCcdData.RaftCcdData(self.detector)
         for key, item in self.calexpDict.items():
             if (self.detector.has_key(key) and hasattr(self.detector[key], 'getParent') and
-                hasattr(self.detector[key], 'getId')):
+                    hasattr(self.detector[key], 'getId')):
                 raft = self.detector[key].getParent().getId().getName()
-                ccd  = self.detector[key].getId().getName()
+                ccd = self.detector[key].getId().getName()
             else:
                 continue
 
             wcs = self.wcs[key]
-            fwhmTmp = float(fwhmByKey[key]*wcs.pixelScale().asArcseconds()) #item['fwhm']
-            #print fwhmTmp, item['fwhm'], type(fwhmTmp), type(item['fwhm'])
+            fwhmTmp = float(fwhmByKey[key]*wcs.pixelScale().asArcseconds())  # item['fwhm']
+            # print fwhmTmp, item['fwhm'], type(fwhmTmp), type(item['fwhm'])
             self.fwhm.set(raft, ccd, fwhmTmp)
             areaLabel = data.cameraInfo.getDetectorName(raft, ccd)
             label = "psf fwhm (arcsec) "
             comment = "psf fwhm (arcsec)"
-            testSet.addTest( testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel) )
-
+            testSet.addTest(testCode.Test(label, item['fwhm'], self.limitsFwhm, comment, areaLabel=areaLabel))
 
     def plot(self, data, dataId, showUndefined=False):
 
@@ -218,7 +218,7 @@ class PsfShapeQaTask(QaAnalysisTask):
             fwhmData, fwhmMap = testSet.unpickle(fwhmBase, default=[None, None])
             fwhmFig = qaFig.FpaQaFigure(data.cameraInfo, data=fwhmData, map=fwhmMap)
 
-            fwhmMin =  1e10
+            fwhmMin = 1e10
             fwhmMax = -1e10
             fwhm = None
             for raft, ccdDict in ellipFig.data.items():
@@ -243,10 +243,8 @@ class PsfShapeQaTask(QaAnalysisTask):
                         if fwhm < fwhmMin:
                             fwhmMin = fwhm
 
-                
             testSet.pickle(ellipBase, [ellipFig.data, ellipFig.map])
             testSet.pickle(fwhmBase, [fwhmFig.data, fwhmFig.map])
-
 
             if fwhmMin < 1e10:
                 vlimMin = numpy.max([self.limitsFwhm[0], fwhmMin])
@@ -269,7 +267,7 @@ class PsfShapeQaTask(QaAnalysisTask):
 
                 blue = '#0000ff'
                 red = '#ff0000'
-            
+
                 fwhmFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=[vlimMin, vlimMax],
                                    title="PSF FWHM (arcsec)", cmapOver=red, failLimits=self.limitsFwhm,
                                    cmapUnder=blue)
@@ -278,16 +276,15 @@ class PsfShapeQaTask(QaAnalysisTask):
             else:
                 del ellipFig, fwhmFig
 
-                        
         #
-        
+
         #xlim = [0, 25.0]
         #ylim = [0, 0.4]
 
-        #Need to repeat vlim calculation here in case FPA not shown
+        # Need to repeat vlim calculation here in case FPA not shown
 
         if not self.showFpa:
-            fwhmMin =  1e10
+            fwhmMin = 1e10
             fwhmMax = -1e10
             fwhm = None
             if fwhmMin < 1e10:
@@ -302,7 +299,6 @@ class PsfShapeQaTask(QaAnalysisTask):
             if vlimMax < vlimMin:
                 vlimMax = vlimMin + (self.limitsFwhm[1] - self.limitsFwhm[0])
 
-
         norm = colors.Normalize(vmin=vlimMin, vmax=vlimMax)
         sm = cm.ScalarMappable(norm, cmap=cm.jet)
 
@@ -310,19 +306,22 @@ class PsfShapeQaTask(QaAnalysisTask):
         shelfData = {}
 
         xlo, xhi, ylo, yhi = 1.e10, -1.e10, 1.e10, -1.e10
-        for raft,ccd in data.cameraInfo.raftCcdKeys:
+        for raft, ccd in data.cameraInfo.raftCcdKeys:
             xxlo, yylo, xxhi, yyhi = data.cameraInfo.getBbox(raft, ccd)
-            if xxlo < xlo: xlo = xxlo
-            if xxhi > xhi: xhi = xxhi
-            if yylo < ylo: ylo = yylo
-            if yyhi > yhi: yhi = yyhi
+            if xxlo < xlo:
+                xlo = xxlo
+            if xxhi > xhi:
+                xhi = xxhi
+            if yylo < ylo:
+                ylo = yylo
+            if yyhi > yhi:
+                yhi = yyhi
 
-        
         i = 0
         xmin, xmax = 1.0e99, -1.0e99
         for raft, ccd in self.ellip.raftCcdKeys():
             eLen = self.ellip.get(raft, ccd)
-            
+
             t = self.theta.get(raft, ccd)
             dx = eLen*numpy.cos(t)
             dy = eLen*numpy.sin(t)
@@ -332,9 +331,8 @@ class PsfShapeQaTask(QaAnalysisTask):
             #y = self.dec.get(raft, ccd)
 
             fwhm = self.fwhm.get(raft, ccd)
-            
-            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
+            self.log.log(self.log.INFO, "plotting %s" % (ccd))
 
             if data.cameraInfo.name == 'coadd':
                 xmin, ymin, xmax, ymax = x.min(), y.min(), x.max(), y.max()
@@ -347,18 +345,18 @@ class PsfShapeQaTask(QaAnalysisTask):
             limits = [xxlo, xxhi, yylo, yyhi]
 
             dataDict = {
-                't' : t, 'x' : x+xxlo, 'y' : y+yylo, 'dx' : dx, 'dy' : dy,
-                'color' : 'k', 'limits' : [0, xxhi-xxlo, 0, yyhi-yylo],
-                'alllimits' : [xlo, xhi, ylo, yhi],
-                'bbox' : [xxlo, xxhi, yylo, yyhi],
-                'vLen' : vLen, 'fwhm' : numpy.array([fwhm]*len(t)), 'vlim' : [vlimMin, vlimMax],
-                'summary' : False,
-                }
+                't': t, 'x': x+xxlo, 'y': y+yylo, 'dx': dx, 'dy': dy,
+                'color': 'k', 'limits': [0, xxhi-xxlo, 0, yyhi-yylo],
+                'alllimits': [xlo, xhi, ylo, yhi],
+                'bbox': [xxlo, xxhi, yylo, yyhi],
+                'vLen': vLen, 'fwhm': numpy.array([fwhm]*len(t)), 'vlim': [vlimMin, vlimMax],
+                'summary': False,
+            }
             label = data.cameraInfo.getDetectorName(raft, ccd)
             import PsfShapeQaAnalysisPlot as plotModule
             caption = "PSF ellipticity (e=1 shown with length %.0f pix))"%(vLen)
             pngFile = cacheLabel + ".png"
-            
+
             if self.lazyPlot.lower() in ['sensor', 'all']:
                 testSet.addLazyFigure(dataDict, pngFile, caption,
                                       plotModule, areaLabel=label, plotargs="")
@@ -368,15 +366,13 @@ class PsfShapeQaTask(QaAnalysisTask):
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
 
-            
         if not self.delaySummary or isFinalDataId:
             self.log.log(self.log.INFO, "plotting Summary figure")
-                
+
             label = 'all'
             import PsfShapeQaAnalysisPlot as plotModule
             caption = "PSF ellipticity " + label
             pngFile = cacheLabel + ".png"
-                
 
             if self.lazyPlot in ['all']:
                 testSet.addLazyFigure({}, cacheLabel+".png", caption,
@@ -386,7 +382,7 @@ class PsfShapeQaTask(QaAnalysisTask):
                 dataDict['summary'] = True
                 dataDict['vLen'] = 5.0*vLen
                 dataDict['limits'] = [xlo, xhi, ylo, yhi]
-                fig = plotModule.plot(dataDict)                
+                fig = plotModule.plot(dataDict)
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
 

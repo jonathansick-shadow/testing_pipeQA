@@ -3,11 +3,11 @@
 # Original filename: bin/writeTestDataManifest.py
 #
 # Author: Steve Bickerton
-# Email: 
+# Email:
 # Date: Fri 2011-01-07 13:19:55
-# 
-# Summary: 
-# 
+#
+# Summary:
+#
 """
 %prog [options] arg
 """
@@ -26,12 +26,13 @@ import lsst.testing.pipeQA as pipeQA
 #
 #############################################################
 
+
 def main(testdataDir, hashtype):
     manifest = pipeQA.Manifest(testdataDir)
     manifest.create(hashtype)
     manifest.write()
 
-    
+
 #############################################################
 # end
 #############################################################
@@ -41,11 +42,11 @@ if __name__ == '__main__':
     ########################################################################
     # command line arguments and options
     ########################################################################
-    
+
     parser = optparse.OptionParser(usage=__doc__)
     hashtypes = ",".join(pipeQA.hashtypesDefined())
     parser.add_option("-t", "--hashtype", default="crc32",
-                      help="Hashtype to use. (default=%default) [options="+hashtypes+ "]")
+                      help="Hashtype to use. (default=%default) [options="+hashtypes + "]")
     opts, args = parser.parse_args()
 
     if len(args) != 1:
@@ -54,11 +55,11 @@ if __name__ == '__main__':
 
     testdata, = args
     testbedPath = os.getenv('TESTBED_PATH')
-    
+
     # maybe we're in the testbed directory
     if os.path.exists(testdata):
-        main(os.path.join(os.getcwd(),testdata), opts.hashtype)
-        
+        main(os.path.join(os.getcwd(), testdata), opts.hashtype)
+
     # maybe it's specified in the environment
     elif testbedPath is not None:
         testbedDirs = testbedPath.split(":")

@@ -2,8 +2,10 @@ import hashlib
 import zlib
 import re
 
+
 def hashtypesDefined():
     return ["crc32", "md5"]
+
 
 class Checksum(object):
     """A class to manage file checksums."""
@@ -14,7 +16,7 @@ class Checksum(object):
         @param bufsize  The buffer to checksum (whole file if set to None)
         @param hashtype The type of checksum to use (crc32 by default)
         """
-        
+
         self.path = path
         self.bufsize = bufsize
         self.hashtype = hashtype
@@ -27,17 +29,16 @@ class Checksum(object):
             self.buffer = fp.read()
         fp.close()
 
-        
     def getMd5(self):
         """Get an md5 checksum for the buffer."""
         md5 = hashlib.md5()
         md5.update(self.buffer)
         return md5.hexdigest()
-    
+
     def getCrc32(self):
         """Get a regular 32 bit checksum for the buffer."""
         crc32 = zlib.crc32(self.buffer)
-        return str(crc32)  #md5 returns str
+        return str(crc32)  # md5 returns str
 
     def get(self):
         """Get the checksum for the hashtype specified at instantiation."""

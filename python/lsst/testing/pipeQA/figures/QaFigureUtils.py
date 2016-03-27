@@ -16,40 +16,39 @@ def cameraToRectangles(camera):
     raftBoundaries = []
     ccdBoundaries = {}
 
-    
     for r in camera:
         raft = cameraGeom.cast_Raft(r)
 
         # NOTE: all ccd coords are w.r.t. the *center* of the raft, not its LLC
-        rxc     = raft.getCenterPixel().getX()
-        ryc     = raft.getCenterPixel().getY()
+        rxc = raft.getCenterPixel().getX()
+        ryc = raft.getCenterPixel().getY()
 
         xmin = +1e10
         ymin = +1e10
         xmax = -1e10
         ymax = -1e10
         for c in raft:
-            ccd   = cameraGeom.cast_Ccd(c)
+            ccd = cameraGeom.cast_Ccd(c)
             label = ccd.getId().getName()
 
-            cxc     = ccd.getCenterPixel().getX()
-            cyc     = ccd.getCenterPixel().getY()
-            orient  = ccd.getOrientation()
-            nQuart  = ccd.getOrientation().getNQuarter()
-            yaw     = orient.getYaw()
+            cxc = ccd.getCenterPixel().getX()
+            cyc = ccd.getCenterPixel().getY()
+            orient = ccd.getOrientation()
+            nQuart = ccd.getOrientation().getNQuarter()
+            yaw = orient.getYaw()
 
-            cbbox   = ccd.getAllPixels(True)
-            cwidth  = cbbox.getMaxX() - cbbox.getMinX()
+            cbbox = ccd.getAllPixels(True)
+            cwidth = cbbox.getMaxX() - cbbox.getMinX()
             cheight = cbbox.getMaxY() - cbbox.getMinY()
             if abs(yaw.asRadians() - numpy.pi/2.0) < 1.0e-3:  # nQuart == 1 or nQuart == 3:
                 ctmp = cwidth
                 cwidth = cheight
                 cheight = ctmp
 
-            cx0     = rxc + cxc - cwidth/2
-            cy0     = ryc + cyc - cheight/2
-            cx1     = cx0 + cwidth
-            cy1     = cy0 + cheight
+            cx0 = rxc + cxc - cwidth/2
+            cy0 = ryc + cyc - cheight/2
+            cx1 = cx0 + cwidth
+            cy1 = cy0 + cheight
 
             if cx0 < xmin:
                 xmin = cx0
@@ -65,7 +64,6 @@ def cameraToRectangles(camera):
             centers[label] = (rxc+cxc, ryc+cyc)
 
             ccdBoundaries[label] = ((cx0, cx1), (cy0, cy1))
-            
 
         raftBoundaries.append(((xmin, xmin), (ymin, ymax)))
         raftBoundaries.append(((xmin, xmax), (ymin, ymin)))

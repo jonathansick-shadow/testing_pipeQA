@@ -2,10 +2,10 @@ import re
 import numpy as num
 import time
 
-import lsst.meas.algorithms         as measAlg
+import lsst.meas.algorithms as measAlg
 import lsst.testing.pipeQA.TestCode as testCode
-import lsst.pex.config              as pexConfig
-import lsst.pipe.base               as pipeBase
+import lsst.pex.config as pexConfig
+import lsst.pipe.base as pipeBase
 
 from .QaAnalysisTask import QaAnalysisTask
 import lsst.testing.pipeQA.figures as qaFig
@@ -19,10 +19,11 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 import QaPlotUtils as qaPlotUtil
 
+
 class ZeropointFitQaConfig(pexConfig.Config):
-    cameras   = pexConfig.ListField(dtype = str,
-                                    doc = "Cameras to run ZeropointFitQa",
-                                    default = ("lsstSim", "cfht", "sdss", "coadd"))
+    cameras = pexConfig.ListField(dtype = str,
+                                  doc = "Cameras to run ZeropointFitQa",
+                                  default = ("lsstSim", "cfht", "sdss", "coadd"))
     offsetMin = pexConfig.Field(dtype = float,
                                 doc = "Median offset of stars from zeropoint fit; minimum good value",
                                 default = -0.05)
@@ -30,20 +31,19 @@ class ZeropointFitQaConfig(pexConfig.Config):
                                 doc = "Median offset of stars from zeropoint fit; maximum good value",
                                 default = +0.05)
 
-    
-    
+
 class ZeropointFitQaTask(QaAnalysisTask):
     ConfigClass = ZeropointFitQaConfig
     _DefaultName = "zeropointFitQa"
 
-    def __init__(self, figsize=(5.0,5.0), **kwargs):
+    def __init__(self, figsize=(5.0, 5.0), **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
         self.figsize = figsize
         self.limits = [self.config.offsetMin, self.config.offsetMax]
 
         self.sCatDummy = pqaSource.Catalog()
         self.srefCatDummy = pqaSource.RefCatalog()
-        
+
         self.description = """
          For each CCD, the central panel shows the instrumental magnitude of
          matched stars and galaxies, plotted as a function of the catalog
@@ -70,53 +70,51 @@ class ZeropointFitQaTask(QaAnalysisTask):
         del self.undetectedStar
         del self.matchedGalaxy
         del self.undetectedGalaxy
-        
+
         del self.zeroPoint
         del self.medOffset
-        
+
     def test(self, data, dataId, fluxType = "psf"):
 
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
 
-        self.fluxType         = fluxType
-        self.detector         = data.getDetectorBySensor(dataId)
-        self.filter           = data.getFilterBySensor(dataId)
-        self.calib            = data.getCalibBySensor(dataId)
+        self.fluxType = fluxType
+        self.detector = data.getDetectorBySensor(dataId)
+        self.filter = data.getFilterBySensor(dataId)
+        self.calib = data.getCalibBySensor(dataId)
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
 
         # Ignore blends in this analysis
-        self.orphan           = raftCcdData.RaftCcdVector(self.detector)
-        self.matchedStar      = raftCcdData.RaftCcdData(self.detector)
-        self.undetectedStar   = raftCcdData.RaftCcdVector(self.detector)
-        self.matchedGalaxy    = raftCcdData.RaftCcdData(self.detector)
+        self.orphan = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedStar = raftCcdData.RaftCcdData(self.detector)
+        self.undetectedStar = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedGalaxy = raftCcdData.RaftCcdData(self.detector)
         self.undetectedGalaxy = raftCcdData.RaftCcdVector(self.detector)
 
         # Results
-        self.zeroPoint        = raftCcdData.RaftCcdData(self.detector)
-        self.medOffset        = raftCcdData.RaftCcdData(self.detector)
+        self.zeroPoint = raftCcdData.RaftCcdData(self.detector)
+        self.medOffset = raftCcdData.RaftCcdData(self.detector)
 
         if data.cameraInfo.name == "coadd":
-            badFlags = pqaSource.SATUR_CENTER | pqaSource.EDGE # coadds have excessive area covered by INTERP_CENTER flags
+            badFlags = pqaSource.SATUR_CENTER | pqaSource.EDGE  # coadds have excessive area covered by INTERP_CENTER flags
         else:
             badFlags = pqaSource.INTERP_CENTER | pqaSource.SATUR_CENTER | pqaSource.EDGE
 
         for key in self.detector.keys():
-            raftId     = self.detector[key].getParent().getId().getName()
-            ccdId      = self.detector[key].getId().getName()
+            raftId = self.detector[key].getParent().getId().getName()
+            ccdId = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
-
 
             self.matchedStar.set(raftId, ccdId, {"Refmag": num.array([]),
                                                  "Imgmag": num.array([]),
-                                                 "Imgerr": num.array([]),})
+                                                 "Imgerr": num.array([]), })
             self.matchedGalaxy.set(raftId, ccdId, {"Refmag": num.array([]),
                                                    "Imgmag": num.array([]),
                                                    "Imgerr": num.array([])})
             self.undetectedStar.set(raftId, ccdId, num.array([]))
             self.undetectedGalaxy.set(raftId, ccdId, num.array([]))
             self.orphan.set(raftId, ccdId, num.array([]))
-
 
             fmag0 = self.calib[key].getFluxMag0()[0]
             if fmag0 <= 0.0:
@@ -127,40 +125,40 @@ class ZeropointFitQaTask(QaAnalysisTask):
 
             if self.matchListDictSrc.has_key(key):
                 # Matched
-                mdict    = self.matchListDictSrc[key]['matched']
-                stars    = []
+                mdict = self.matchListDictSrc[key]['matched']
+                stars = []
                 galaxies = []
 
                 for m in mdict:
                     sref, s, dist = m
                     if fluxType == "psf":
-                        fref  = sref.getD(self.srefCatDummy.PsfFluxKey)
-                        f     = s.getD(self.sCatDummy.PsfFluxKey)
-                        ferr  = s.getD(self.sCatDummy.PsfFluxErrKey)
+                        fref = sref.getD(self.srefCatDummy.PsfFluxKey)
+                        f = s.getD(self.sCatDummy.PsfFluxKey)
+                        ferr = s.getD(self.sCatDummy.PsfFluxErrKey)
                     else:
-                        fref  = sref.getD(self.srefCatDummy.PsfFluxKey)
-                        f     = s.getD(self.sCatDummy.ApFluxKey)
-                        ferr  = s.getD(self.sCatDummy.ApFluxErrKey)
+                        fref = sref.getD(self.srefCatDummy.PsfFluxKey)
+                        f = s.getD(self.sCatDummy.ApFluxKey)
+                        ferr = s.getD(self.sCatDummy.ApFluxErrKey)
 
                     # un-calibrate the magnitudes
                     f *= fmag0
-                    
+
                     intcen = s.getD(self.sCatDummy.FlagPixInterpCenKey)
                     satcen = s.getD(self.sCatDummy.FlagPixSaturCenKey)
-                    edge   = s.getD(self.sCatDummy.FlagPixEdgeKey)
+                    edge = s.getD(self.sCatDummy.FlagPixEdgeKey)
 
                     if data.cameraInfo.name == 'coadd':
-                        flagit = (satcen or edge) # coadds have excessive area covered by InterpCen flags
+                        flagit = (satcen or edge)  # coadds have excessive area covered by InterpCen flags
                     else:
                         flagit = (intcen or satcen or edge)
 
                     if (fref > 0.0 and f > 0.0 and not flagit):
-                        mrefmag  = -2.5*num.log10(fref)
-                        mimgmag  = -2.5*num.log10(f)
-                        mimgmerr =  2.5 / num.log(10.0) * ferr / f
-    
+                        mrefmag = -2.5*num.log10(fref)
+                        mimgmag = -2.5*num.log10(f)
+                        mimgmerr = 2.5 / num.log(10.0) * ferr / f
+
                         star = 0 if s.getD(self.sCatDummy.ExtendednessKey) else 1
-                        
+
                         if num.isfinite(mrefmag) and num.isfinite(mimgmag):
                             if star:
                                 stars.append((mrefmag, mimgmag, mimgmerr))
@@ -172,7 +170,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
                 self.matchedGalaxy.set(raftId, ccdId, {"Refmag": num.array([x[0] for x in galaxies]),
                                                        "Imgmag": num.array([x[1] for x in galaxies]),
                                                        "Imgerr": num.array([x[2] for x in galaxies])})
-            
+
                 # Non-detections
                 undetectedStars = []
                 undetectedGalaxies = []
@@ -195,18 +193,18 @@ class ZeropointFitQaTask(QaAnalysisTask):
                     if f > 0.0:
                         # un-calibrate the magnitudes
                         f *= fmag0
-                        
+
                         orphans.append(-2.5 * num.log10(f))
-                        
+
                 self.orphan.set(raftId, ccdId, num.array(orphans))
 
                 # Metrics
-                offset      = num.array(self.matchedStar.get(raftId, ccdId)["Imgmag"]) # make a copy
-                offset     -= self.zeroPoint.get(raftId, ccdId)
-                offset     -= self.matchedStar.get(raftId, ccdId)["Refmag"]
-                med         = num.median(offset) 
+                offset = num.array(self.matchedStar.get(raftId, ccdId)["Imgmag"])  # make a copy
+                offset -= self.zeroPoint.get(raftId, ccdId)
+                offset -= self.matchedStar.get(raftId, ccdId)["Refmag"]
+                med = num.median(offset)
                 self.medOffset.set(raftId, ccdId, med)
-                
+
                 areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
                 label = "median offset from zeropoint"
                 comment = "Median offset of calibrated stellar magnitude to zeropoint fit"
@@ -217,8 +215,7 @@ class ZeropointFitQaTask(QaAnalysisTask):
                 comment = "Median zeropoint measured for sensor"
                 test = testCode.Test(label, zpt, [None, 0], comment, areaLabel=areaLabel)
                 testSet.addTest(test)
-                
-            
+
     def plot(self, data, dataId, showUndefined=False):
 
         testSet = self.getTestSet(data, dataId)
@@ -252,14 +249,13 @@ class ZeropointFitQaTask(QaAnalysisTask):
                     else:
                         if zptFig.data[raft][ccd] is not None:
                             zpts.append(zptFig.data[raft][ccd])
-                    
-                    
+
             testSet.pickle(zptBase, [zptFig.data, zptFig.map])
             testSet.pickle(offsetBase, [offsetFig.data, offsetFig.map])
-        
+
             if not self.delaySummary or isFinalDataId:
                 self.log.log(self.log.INFO, "plotting FPAs")
-            
+
                 blue = '#0000ff'
                 red = '#ff0000'
                 zptFig.makeFigure(showUndefined=showUndefined, cmap="jet",
@@ -267,52 +263,49 @@ class ZeropointFitQaTask(QaAnalysisTask):
                                   title="Zeropoint", cmapOver=red, cmapUnder=blue)
                 testSet.addFigure(zptFig, zptBase+".png", "Photometric zeropoint", navMap=True)
                 del zptFig
-        
+
                 offsetFig.makeFigure(showUndefined=showUndefined, cmap="jet", vlimits=self.limits,
                                      title="Med offset from Zpt Fit", cmapOver=red, failLimits=self.limits,
                                      cmapUnder=blue)
-                testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint", 
-                              navMap=True)
+                testSet.addFigure(offsetFig, offsetBase + ".png", "Median offset from photometric zeropoint",
+                                  navMap=True)
                 del offsetFig
             else:
                 del zptFig, offsetFig
 
-
         cacheLabel = "zeropointFit"
         shelfData = {}
-        
+
         # Each CCD
         for raft, ccd in self.zeroPoint.raftCcdKeys():
             zeropt = self.zeroPoint.get(raft, ccd)
             if zeropt == 0.0:
                 continue
-            
+
             self.log.log(self.log.INFO, "Plotting %s" % (ccd))
 
-
             # Plot all matched galaxies
-            mrefGmag  = self.matchedGalaxy.get(raft, ccd)["Refmag"]
-            mimgGmag  = self.matchedGalaxy.get(raft, ccd)["Imgmag"]
+            mrefGmag = self.matchedGalaxy.get(raft, ccd)["Refmag"]
+            mimgGmag = self.matchedGalaxy.get(raft, ccd)["Imgmag"]
             mimgGmerr = self.matchedGalaxy.get(raft, ccd)["Imgerr"]
 
             # Plot all matched stars
-            mrefSmag  = self.matchedStar.get(raft, ccd)["Refmag"]
-            mimgSmag  = self.matchedStar.get(raft, ccd)["Imgmag"]
+            mrefSmag = self.matchedStar.get(raft, ccd)["Refmag"]
+            mimgSmag = self.matchedStar.get(raft, ccd)["Imgmag"]
             mimgSmerr = self.matchedStar.get(raft, ccd)["Imgerr"]
 
-
-            urefmag     = num.concatenate((self.undetectedStar.get(raft, ccd),
-                                           self.undetectedGalaxy.get(raft, ccd)))
-            uimgmag     = self.orphan.get(raft, ccd)
+            urefmag = num.concatenate((self.undetectedStar.get(raft, ccd),
+                                       self.undetectedGalaxy.get(raft, ccd)))
+            uimgmag = self.orphan.get(raft, ccd)
 
             label = data.cameraInfo.getDetectorName(raft, ccd)
             dataDict = {
-                'mrefGmag' : mrefGmag, 'mimgGmag' : mimgGmag, 'mimgGmerr' : mimgGmerr,
-                'mrefSmag' : mrefSmag, 'mimgSmag' : mimgSmag, 'mimgSmerr' : mimgSmerr,
-                'urefmag'  : urefmag,  'uimgmag'  : uimgmag,
-                'zeropt' : zeropt, 'title' : label, 'figsize' : self.figsize,
-                'fluxType' : self.fluxType,
-                }
+                'mrefGmag': mrefGmag, 'mimgGmag': mimgGmag, 'mimgGmerr': mimgGmerr,
+                'mrefSmag': mrefSmag, 'mimgSmag': mimgSmag, 'mimgSmerr': mimgSmerr,
+                'urefmag': urefmag, 'uimgmag': uimgmag,
+                'zeropt': zeropt, 'title': label, 'figsize': self.figsize,
+                'fluxType': self.fluxType,
+            }
 
             import ZeropointFitQaPlot as plotModule
             caption = "Zeropoint fit " + label
@@ -326,7 +319,6 @@ class ZeropointFitQaTask(QaAnalysisTask):
                 fig = plotModule.plot(dataDict)
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
-            
 
         if not self.delaySummary or isFinalDataId:
             self.log.log(self.log.INFO, "plotting Summary figure")
@@ -345,4 +337,4 @@ class ZeropointFitQaTask(QaAnalysisTask):
                 fig = plotModule.plot(dataDict)
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
-            
+

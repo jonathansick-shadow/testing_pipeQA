@@ -8,51 +8,51 @@ import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 from matplotlib import colors
 import matplotlib.font_manager as fm
-from  matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 
 
 import QaPlotUtils as qaPlotUtil
 
+
 def plot(data):
 
     dmags = data['dmags']
     radii = data['radii']
-    ids   = data['ids']
+    ids = data['ids']
     med, std = data['offsetStats']
     magTypes = data['magTypes']
     summary = data['summary']
-    
+
     ymin, ymax = -0.5, 0.5
     if len(dmags) > 0:
-        ymin = num.max([dmags.min(),-0.5])
+        ymin = num.max([dmags.min(), -0.5])
         ymax = num.min([dmags.max(), 0.5])
     ylim = [ymin, ymax]
 
     if len(dmags) == 0:
         dmags = num.array([0.0])
         radii = num.array([0.0])
-        ids   = num.array([0])
+        ids = num.array([0])
 
     figsize = (4.0, 4.0)
     fig = figure.Figure(figsize=figsize)
     canvas = FigCanvas(fig)
-        
+
     if not summary:
-        
+
         sp1 = fig.add_subplot(111)
         sp1.plot(radii, dmags, 'ro', ms=2.0)
         sp1.set_ylim(ylim)
 
         ddmag = 0.001
-        drad  = 0.01 * (max(radii) - min(radii))
+        drad = 0.01 * (max(radii) - min(radii))
         if False:
             for i in range(len(dmags)):
                 info = "nolink:sourceId=%s" % (ids[i])
                 area = (radii[i]-drad, dmags[i]-ddmag, radii[i]+drad, dmags[i]+ddmag)
                 fig.addMapArea("no_label_info", area, info, axes=sp1)
-
 
         sp1.axhline(y=0, c = 'k', linestyle = ':', alpha = 0.25)
         sp1.axhline(y=med, c = 'b', linestyle = '-')
@@ -65,12 +65,12 @@ def plot(data):
         qaPlotUtil.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
 
     else:
-        ymin = num.max([dmags.min(),-0.5])
+        ymin = num.max([dmags.min(), -0.5])
         ymax = num.min([dmags.max(), 0.5])
         ylim = [ymin, ymax]
         if ymin == ymax:
             ylim = [ymin - 0.1, ymax + 0.1]
-            
+
         sp1 = fig.add_subplot(111)
         sp1.plot(radii, dmags, 'ro', ms=2, alpha = 0.5)
 
@@ -85,7 +85,6 @@ def plot(data):
         qaPlotUtil.qaSetp(sp1x2.get_xticklabels()+sp1x2.get_yticklabels(), visible=False)
 
     return fig
-
 
 
 if __name__ == '__main__':

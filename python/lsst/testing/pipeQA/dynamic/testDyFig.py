@@ -1,4 +1,6 @@
-import sys, os, re
+import sys
+import os
+import re
 
 import numpy
 
@@ -10,6 +12,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse
 from matplotlib import cm
 from matplotlib import colors
+
 
 def plot(data, dataId):
 
@@ -25,4 +28,4 @@ def plot(data, dataId):
 
     fig.savefig("testDyFig.png")
 
-    
+

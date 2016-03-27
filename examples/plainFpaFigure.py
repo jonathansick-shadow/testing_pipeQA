@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # Original filename: bin/pipeQa.py
 #
-# Author: 
-# Email: 
+# Author:
+# Email:
 # Date: Mon 2011-04-11 13:11:01
-# 
-# Summary: 
-# 
+#
+# Summary:
+#
 
 import sys
 import re
@@ -16,7 +16,7 @@ import datetime
 
 import numpy
 
-import lsst.testing.pipeQA         as pipeQA
+import lsst.testing.pipeQA as pipeQA
 import lsst.testing.pipeQA.figures as qaFig
 
 #############################################################
@@ -27,8 +27,8 @@ import lsst.testing.pipeQA.figures as qaFig
 
 # This tutorial assumes you've read through dispQaTutorial1.py and dispQaTutorial2.py !
 
-def main():
 
+def main():
 
     ##############################
     # Adding a plain FPA figure
@@ -54,16 +54,14 @@ def main():
     # now tell fpaFig to make the matplotlib figure, and add the fpaFigure to the TestSet
     vlimits = [-1.0, 1.0]  # the colormap limits
     cmap = "copper"        # the name of a matplotlib.cm colormap ('jet' by default)
-    
-    # color to use if below/above the cmap range, defaults are min/max of cmap    
+
+    # color to use if below/above the cmap range, defaults are min/max of cmap
     cmapUnder, cmapOver = "#0000ff", "#ff0000"
-    
+
     fpaFig.makeFigure(vlimits=vlimits, cmap="copper", cmapUnder=cmapUnder, cmapOver=cmapOver)
     tsFpa.addFigure(fpaFig, camInfo.name+".png", "FPA for camera: "+camInfo.name)
 
 
-
-
 if __name__ == '__main__':
     main()
-    
+

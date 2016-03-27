@@ -1,4 +1,5 @@
-import os, re
+import os
+import re
 import numpy
 
 fields = [
@@ -6,11 +7,11 @@ fields = [
     "isStar",
     "ra", "decl",
     "uMag", "gMag", "rMag", "iMag", "zMag", "yMag"
-    ]
-
+]
 
 
 class SimRefObjectSet(list):
+
     def push_back(self, sro):
         self.append(sro)
 
@@ -18,9 +19,9 @@ class SimRefObjectSet(list):
 class SimRefObject(object):
 
     flookup = {
-        "u":0, "g": 1, "r":2, "i":3, "z":4, "y":5,
-        "B":1, 'V':2, 'R':2, 'I':3,
-        }
+        "u": 0, "g": 1, "r": 2, "i": 3, "z": 4, "y": 5,
+        "B": 1, 'V': 2, 'R': 2, 'I': 3,
+    }
 
     def __init__(self, *sroStuff):
 
@@ -42,39 +43,43 @@ class SimRefObject(object):
 
         #self.refObjectId = 0
         #self.isStar      = 0
-        #"varClass",       
+        #"varClass",
         #self.radec       = numpy.zeros(0)
-        #"gLat",           
-        #"gLon",           
-        #"sedName",        
+        #"gLat",
+        #"gLon",
+        #"sedName",
         #self.mag         = numpy.zeros(5)
-        #"muRa",           
-        #"muDecl",         
-        #"parallax",       
-        #"vRad",           
-        #"redshift",       
-        #"semiMajorBulge", 
-        #"semiMinorBulge", 
-        #"semiMajorDisk",  
-        #"semiMinorDisk",  
-        #"uCov",           
-        #"gCov",           
-        #"rCov",           
-        #"iCov",           
-        #"zCov",           
-        #"yCov",           
-
-
+        #"muRa",
+        #"muDecl",
+        #"parallax",
+        #"vRad",
+        #"redshift",
+        #"semiMajorBulge",
+        #"semiMinorBulge",
+        #"semiMajorDisk",
+        #"semiMinorDisk",
+        #"uCov",
+        #"gCov",
+        #"rCov",
+        #"iCov",
+        #"zCov",
+        #"yCov",
 
     def getId(self): return self.refObjectId
+
     def setId(self, val): self.refObjectId = val
+
     def getIsStar(self): return self.isStar
+
     def setIsStar(self, val): self.isStar = val
 
-    def getRa(self):       return self.radec[0]
-    def setRa(self, ra):   self.radec[0] = ra
-    def getDecl(self):      return self.radec[1]
-    def setDecl(self, dec):      self.radec[1] = dec
+    def getRa(self): return self.radec[0]
+
+    def setRa(self, ra): self.radec[0] = ra
+
+    def getDecl(self): return self.radec[1]
+
+    def setDecl(self, dec): self.radec[1] = dec
 
     def setMag(self, magNew, filter):
         i = SimRefObject.flookup[filter]
@@ -93,7 +98,7 @@ class SimRefObject(object):
     def getFlux(self, filter):
         return 10.0**(-0.4*self.mag[SimRefObject.flookup[filter]])
 
-    #def getCov(self, filter):
+    # def getCov(self, filter):
     #    cov = getattr(self, filter+"Cov")
     #    return cov
 

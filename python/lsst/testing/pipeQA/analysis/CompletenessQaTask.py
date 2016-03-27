@@ -25,24 +25,24 @@ try:
     import minuit2
 except:
     hasMinuit = False
-    
+
 
 class CompletenessQaConfig(pexConfig.Config):
-    cameras        = pexConfig.ListField(dtype=str,
-                                         doc="Cameras to run CompletenessQaTask",
-                                         default=("lsstSim", "cfht", "sdss", "coadd"))
+    cameras = pexConfig.ListField(dtype=str,
+                                  doc="Cameras to run CompletenessQaTask",
+                                  default=("lsstSim", "cfht", "sdss", "coadd"))
     completeMinMag = pexConfig.Field(dtype=float, doc="Minimum photometric depth", default = 20.0)
     completeMaxMag = pexConfig.Field(dtype=float, doc="Maximum reasonable photometric depth", default = 25.0)
 
-    
+
 class CompletenessQaTask(QaAnalysisTask):
-    ConfigClass  = CompletenessQaConfig
+    ConfigClass = CompletenessQaConfig
     _DefaultName = "completenessQa"
 
     def __init__(self, **kwargs):
         QaAnalysisTask.__init__(self, **kwargs)
         self.limits = [self.config.completeMinMag, self.config.completeMaxMag]
-        self.bins   = num.arange(14, 27, 0.5)
+        self.bins = num.arange(14, 27, 0.5)
 
         self.description = """
          For each CCD, the top figure shows the counts of 4 classes of
@@ -60,7 +60,7 @@ class CompletenessQaTask(QaAnalysisTask):
          in both plots.  The summary FPA figure provides a visual
          representation of this photometric depth.
         """
-         
+
     def free(self):
         del self.detector
         del self.filter
@@ -85,21 +85,21 @@ class CompletenessQaTask(QaAnalysisTask):
             except:
                 pass
 
-        matchedStar     = num.array(self.matchedStar.get(raftId, ccdId))
-        blendedStar     = num.array(self.blendedStar.get(raftId, ccdId))
-        undetectedStar  = num.array(self.undetectedStar.get(raftId, ccdId))
+        matchedStar = num.array(self.matchedStar.get(raftId, ccdId))
+        blendedStar = num.array(self.blendedStar.get(raftId, ccdId))
+        undetectedStar = num.array(self.undetectedStar.get(raftId, ccdId))
 
-        allStars        = num.concatenate((matchedStar, blendedStar, undetectedStar))
-        foundStars      = num.concatenate((matchedStar, blendedStar))
-        histAll         = num.histogram(allStars, bins=self.bins)
-        histFound       = num.histogram(foundStars, bins=self.bins)
+        allStars = num.concatenate((matchedStar, blendedStar, undetectedStar))
+        foundStars = num.concatenate((matchedStar, blendedStar))
+        histAll = num.histogram(allStars, bins=self.bins)
+        histFound = num.histogram(foundStars, bins=self.bins)
 
         magbins = 0.5 * (histAll[1][1:] + histAll[1][:-1])
-        w       = num.where(histAll[0] != 0)
-        x       = magbins[w]
-        n       = 1.0 * histFound[0][w]
-        d       = 1.0 * histAll[0][w]
-        y       = n / d
+        w = num.where(histAll[0] != 0)
+        x = magbins[w]
+        n = 1.0 * histFound[0][w]
+        d = 1.0 * histAll[0][w]
+        y = n / d
 
         binsize = self.bins[1] - self.bins[0]
         x = num.append(x, x[-1] + binsize)
@@ -109,43 +109,43 @@ class CompletenessQaTask(QaAnalysisTask):
             if y[i] <= 0.5 and y[i-1] > 0.5:
                 return (0.5 - y[i-1]) / (y[i] - y[i-1]) * (x[i] - x[i-1]) + x[i-1]
         return 0.0
-        
+
     def limitingMagMinuit(self, raftId, ccdId):
         # Model is of the form:
         # 0.5 + -1.0 / num.pi * num.arctan(A * x + B)
-        
+
         import minuit2
-        matchStarList   = self.matchStarSrc.get(raftId, ccdId)
+        matchStarList = self.matchStarSrc.get(raftId, ccdId)
         unmatchStarList = self.unmatchCatStar.get(raftId, ccdId)
-        
-        histStarSrc     = num.histogram(matchStarList, bins = self.bins)
-        maxSrcIdx       = num.argsort(histStarSrc[0])[-1]
+
+        histStarSrc = num.histogram(matchStarList, bins = self.bins)
+        maxSrcIdx = num.argsort(histStarSrc[0])[-1]
         histUnmatchStar = num.histogram(unmatchStarList, bins = self.bins)
 
-        magbins   = 0.5 * (histStarSrc[1][1:] + histStarSrc[1][:-1])
+        magbins = 0.5 * (histStarSrc[1][1:] + histStarSrc[1][:-1])
         histRatio = num.zeros(len(histStarSrc[0]))
 
-        w     = num.where((histStarSrc[0] + histUnmatchStar[0]) != 0)
-        x     = magbins[w]
+        w = num.where((histStarSrc[0] + histUnmatchStar[0]) != 0)
+        x = magbins[w]
 
         # approximate
-        d     = 1.0 * histStarSrc[0][w]
-        u     = 1.0 * histUnmatchStar[0][w]
-        dd    = num.sqrt(d)
-        n     = d + u
-        y     = d / n
-        dy    = dd / n
+        d = 1.0 * histStarSrc[0][w]
+        u = 1.0 * histUnmatchStar[0][w]
+        dd = num.sqrt(d)
+        n = d + u
+        y = d / n
+        dy = dd / n
 
         idx = num.where(dy != 0)
-        x   = x[idx]
-        y   = y[idx]
-        dy  = dy[idx]
-              
+        x = x[idx]
+        y = y[idx]
+        dy = dy[idx]
+
         def fcn(A, B):
-            model  = 0.5 + -1.0 / num.pi * num.arctan(A * x + B)
-            chi    = (model - y) / dy
+            model = 0.5 + -1.0 / num.pi * num.arctan(A * x + B)
+            chi = (model - y) / dy
             return num.sum(chi**2)
-        
+
         m = minuit2.Minuit2(fcn)
         m.values['A'] = 1
         m.values['B'] = -10
@@ -162,43 +162,41 @@ class CompletenessQaTask(QaAnalysisTask):
 
         testSet = self.getTestSet(data, dataId)
         testSet.addMetadata({"Description": self.description})
-        
+
         self.fluxType = fluxType
-        self.detector         = data.getDetectorBySensor(dataId)
-        self.filter           = data.getFilterBySensor(dataId)
+        self.detector = data.getDetectorBySensor(dataId)
+        self.filter = data.getFilterBySensor(dataId)
         self.matchListDictSrc = data.getMatchListBySensor(dataId, useRef='src')
 
-        self.orphan           = raftCcdData.RaftCcdVector(self.detector)
-        self.matchedStar      = raftCcdData.RaftCcdVector(self.detector)
-        self.blendedStar      = raftCcdData.RaftCcdVector(self.detector)
-        self.undetectedStar   = raftCcdData.RaftCcdVector(self.detector)
-        self.matchedGalaxy    = raftCcdData.RaftCcdVector(self.detector)
-        self.blendedGalaxy    = raftCcdData.RaftCcdVector(self.detector)
+        self.orphan = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedStar = raftCcdData.RaftCcdVector(self.detector)
+        self.blendedStar = raftCcdData.RaftCcdVector(self.detector)
+        self.undetectedStar = raftCcdData.RaftCcdVector(self.detector)
+        self.matchedGalaxy = raftCcdData.RaftCcdVector(self.detector)
+        self.blendedGalaxy = raftCcdData.RaftCcdVector(self.detector)
         self.undetectedGalaxy = raftCcdData.RaftCcdVector(self.detector)
-        self.depth            = raftCcdData.RaftCcdData(self.detector)
+        self.depth = raftCcdData.RaftCcdData(self.detector)
 
         if hasMinuit:
-            self.fit = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0]) 
-
-
+            self.fit = raftCcdData.RaftCcdData(self.detector, initValue=[0.0, 0.0])
 
         sCatDummy = pqaSource.Catalog().catalog
         sCatSchema = sCatDummy.getSchema()
-        srefCatDummy  = pqaSource.RefCatalog().catalog
+        srefCatDummy = pqaSource.RefCatalog().catalog
         srefCatSchema = srefCatDummy.getSchema()
-        
+
         psfKey = sCatSchema.find('PsfFlux').key
         psfErrKey = sCatSchema.find('PsfFluxErr').key
         apKey = sCatSchema.find('ApFlux').key
         apErrKey = sCatSchema.find('ApFluxErr').key
         extKey = sCatSchema.find('Extendedness').key
-        
+
         refPsfKey = srefCatSchema.find('PsfFlux').key
 
         self.faintest = 0.0
         for key in self.detector.keys():
-            raftId     = self.detector[key].getParent().getId().getName()
-            ccdId      = self.detector[key].getId().getName()
+            raftId = self.detector[key].getParent().getId().getName()
+            ccdId = self.detector[key].getId().getName()
             filterName = self.filter[key].getName()
 
             if self.matchListDictSrc.has_key(key):
@@ -206,31 +204,30 @@ class CompletenessQaTask(QaAnalysisTask):
                 matchSet = [
                     [self.matchListDictSrc[key]['matched'], self.matchedStar, self.matchedGalaxy],
                     [self.matchListDictSrc[key]['blended'], self.blendedStar, self.blendedGalaxy]
-                    ]
+                ]
                 for mset in matchSet:
                     mdict, starvec, galvec = mset
-                    
-                    stars    = []
+
+                    stars = []
                     galaxies = []
                     for m in mdict:
                         sref, s, dist = m
                         if fluxType == "psf":
-                            fref  = sref.getD(refPsfKey)
-                            f     = s.getD(psfKey)
-                            ferr  = s.getD(psfErrKey)
+                            fref = sref.getD(refPsfKey)
+                            f = s.getD(psfKey)
+                            ferr = s.getD(psfErrKey)
                         else:
-                            fref  = sref.getD(refPsfKey)
-                            f     = s.getD(apKey)
-                            ferr  = s.getD(apErrKey)
-
+                            fref = sref.getD(refPsfKey)
+                            f = s.getD(apKey)
+                            ferr = s.getD(apErrKey)
 
                         if (fref > 0.0 and f > 0.0):
                             # Use known catalog mag
-                            mrefmag  = -2.5*num.log10(fref)
+                            mrefmag = -2.5*num.log10(fref)
                             if num.isfinite(mrefmag):
                                 if mrefmag > self.faintest:
                                     self.faintest == mrefmag
-                                    
+
                                 if s.getD(extKey) > 0.0:
                                     galaxies.append(mrefmag)
                                 else:
@@ -238,7 +235,7 @@ class CompletenessQaTask(QaAnalysisTask):
 
                     starvec.set(raftId, ccdId, num.array(stars))
                     galvec.set(raftId, ccdId, num.array(galaxies))
-    
+
                 # Non-detections
                 undetectedStars = []
                 undetectedGalaxies = []
@@ -253,7 +250,7 @@ class CompletenessQaTask(QaAnalysisTask):
                         undetectedGalaxies.append(mag)
                 self.undetectedStar.set(raftId, ccdId, num.array(undetectedStars))
                 self.undetectedGalaxy.set(raftId, ccdId, num.array(undetectedGalaxies))
-                    
+
                 # Orphans
                 orphans = []
                 for orphan in self.matchListDictSrc[key]['orphan']:
@@ -268,19 +265,19 @@ class CompletenessQaTask(QaAnalysisTask):
                             self.faintest = orphmag
                 self.orphan.set(raftId, ccdId, num.array(orphans))
 
-                ############ Calculate limiting mag
-                
+                # Calculate limiting mag
+
                 maxDepth = self.limitingMag(raftId, ccdId)
                 self.depth.set(raftId, ccdId, maxDepth)
-                
+
                 areaLabel = data.cameraInfo.getDetectorName(raftId, ccdId)
                 label = "photometric depth "
                 comment = "magnitude where star completeness drops below 0.5"
                 test = testCode.Test(label, maxDepth, self.limits, comment, areaLabel=areaLabel)
                 testSet.addTest(test)
-                
+
     def plot(self, data, dataId, showUndefined = False):
-        
+
         testSet = self.getTestSet(data, dataId)
         testSet.setUseCache(self.useCache)
         isFinalDataId = False
@@ -293,7 +290,7 @@ class CompletenessQaTask(QaAnalysisTask):
         limitsToUse = [self.limits[0], self.limits[1]]
         if abs(self.limits[1] - 99.0) < 1.0e-3:
             limitsToUse[1] = self.faintest
-            
+
         if self.showFpa:
             # fpa figure
             filebase = "completenessDepth"
@@ -310,12 +307,12 @@ class CompletenessQaTask(QaAnalysisTask):
                             depthFig.map[raft][ccd] = 'mag=%.2f'%(depth)
                         else:
                             depthFig.map[raft][ccd] = 'mag=nan'
-                        
+
             testSet.pickle(filebase, [depthFig.data, depthFig.map])
 
             blue = '#0000ff'
-            red  = '#ff0000'
-        
+            red = '#ff0000'
+
             if False:
                 if len(depths) >= 2:
                     vmin = max(num.min(depths), self.limits[0])
@@ -337,45 +334,43 @@ class CompletenessQaTask(QaAnalysisTask):
                 depthFig.makeFigure(showUndefined=showUndefined, cmap="RdBu_r", vlimits=[vmin, vmax],
                                     title="Photometric Depth", cmapOver=red, cmapUnder=blue,
                                     failLimits=limitsToUse)
-                testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth",  navMap=True)
+                testSet.addFigure(depthFig, filebase+".png", "Estimate of photometric depth", navMap=True)
 
             del depthFig
 
-
         cacheLabel = "completeness"
         shelfData = {}
-        
+
         # Each CCD
         for raft, ccd in self.depth.raftCcdKeys():
-            orphan           = self.orphan.get(raft, ccd)
-            matchedStar      = self.matchedStar.get(raft, ccd)
-            blendedStar      = self.blendedStar.get(raft, ccd)
-            undetectedStar   = self.undetectedStar.get(raft, ccd)
-            matchedGalaxy    = self.matchedGalaxy.get(raft, ccd)
-            blendedGalaxy    = self.blendedGalaxy.get(raft, ccd)
+            orphan = self.orphan.get(raft, ccd)
+            matchedStar = self.matchedStar.get(raft, ccd)
+            blendedStar = self.blendedStar.get(raft, ccd)
+            undetectedStar = self.undetectedStar.get(raft, ccd)
+            matchedGalaxy = self.matchedGalaxy.get(raft, ccd)
+            blendedGalaxy = self.blendedGalaxy.get(raft, ccd)
             undetectedGalaxy = self.undetectedGalaxy.get(raft, ccd)
-            depth            = self.depth.get(raft, ccd)
+            depth = self.depth.get(raft, ccd)
 
             self.log.log(self.log.INFO, "Plotting %s" % (ccd))
             label = data.cameraInfo.getDetectorName(raft, ccd)
 
             dataDict = {
-                'title'                     :        label           ,
-                'orphan'                    :        orphan          ,
-                'depth'                     :        depth           ,
-                'matchedStar'               :        matchedStar     ,
-                'blendedStar'               :        blendedStar     ,
-                'undetectedStar'            :        undetectedStar  ,
-                'matchedGalaxy'             :        matchedGalaxy   ,
-                'blendedGalaxy'             :        blendedGalaxy   ,
-                'undetectedGalaxy'          :        undetectedGalaxy,
-                'bins'                      :        self.bins.tolist(),
-                }
+                'title': label,
+                'orphan': orphan,
+                'depth': depth,
+                'matchedStar': matchedStar,
+                'blendedStar': blendedStar,
+                'undetectedStar': undetectedStar,
+                'matchedGalaxy': matchedGalaxy,
+                'blendedGalaxy': blendedGalaxy,
+                'undetectedGalaxy': undetectedGalaxy,
+                'bins': self.bins.tolist(),
+            }
 
             import CompletenessQaPlot as plotModule
             caption = "Photometric detections " + label
             pngFile = cacheLabel + ".png"
-            
 
             if self.lazyPlot.lower() in ['sensor', 'all']:
                 testSet.addLazyFigure(dataDict, pngFile, caption,
@@ -386,8 +381,6 @@ class CompletenessQaTask(QaAnalysisTask):
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
 
-
-                
         if not self.delaySummary or isFinalDataId:
             self.log.log(self.log.INFO, "plotting Summary figure")
 
@@ -395,18 +388,18 @@ class CompletenessQaTask(QaAnalysisTask):
             import CompletenessQaPlot as plotModule
             caption = "Photometric detections " + label
             pngFile = "completeness.png"
-            
+
             if self.lazyPlot in ['all']:
                 testSet.addLazyFigure(dataDict, cacheLabel+".png", caption,
                                       plotModule, areaLabel=label, plotargs="")
             else:
                 dataDict, isSummary = qaPlotUtil.unshelveGlob(cacheLabel+"-all.png", testSet=testSet)
                 dataDict['title'] = 'All Sensors'
-                fig = plotModule.plot(dataDict)                
+                fig = plotModule.plot(dataDict)
                 testSet.addFigure(fig, pngFile, caption, areaLabel=label)
                 del fig
 
 
-                
-            
+
+
 

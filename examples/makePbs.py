@@ -1,18 +1,19 @@
-import sys, os
+import sys
+import os
 
 homedir = "/lsst/home/becker/lsst_devel/pipeQA_trunk/examples/testPbs"
-wwwdir  = "/lsst/home/becker/public_html"
-db      = "rplante_PT1_2_u_pt12prod_im2000"
+wwwdir = "/lsst/home/becker/public_html"
+db = "rplante_PT1_2_u_pt12prod_im2000"
 
-nJobs   = int(sys.argv[1])
+nJobs = int(sys.argv[1])
 for i in range(nJobs):
-    jobId   = "Job_%03d" % (i)
-    jobDir  = os.path.join(homedir, jobId)
+    jobId = "Job_%03d" % (i)
+    jobDir = os.path.join(homedir, jobId)
     if not os.path.isdir(jobDir):
         os.makedirs(jobDir)
 
     outfile = "%s.pbs" % (jobId)
-    buff    = open(os.path.join(jobDir, outfile), "w")
+    buff = open(os.path.join(jobDir, outfile), "w")
     buff.write("#PBS -S /bin/tcsh \n")
     buff.write("#PBS -V \n")
     buff.write("#PBS -d %s \n" % (jobDir))

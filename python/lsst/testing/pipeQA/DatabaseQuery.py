@@ -4,10 +4,11 @@ import lsst.pex.policy as pexPolicy
 import time
 from lsst.pex.logging import Trace
 
+
 class DatabaseIdentity:
     """
     Requires file that looks like:
-    
+
     cat ~/.lsst/db-auth.paf
     database: {
         authInfo: {
@@ -17,8 +18,9 @@ class DatabaseIdentity:
         }
     }
     """
+
     def __init__(self, mySqlDb):
-        self.mySqlDb   = mySqlDb
+        self.mySqlDb = mySqlDb
         self.loadId()
 
     def loadId(self):
@@ -28,10 +30,11 @@ class DatabaseIdentity:
         self.mySqlUser = authPolicy.get("user")
         self.mySqlHost = authPolicy.get("host")
         self.mySqlPasswd = authPolicy.get("password")
-        
+
 
 # Base class
 class DatabaseInterface():
+
     def __init__(self):
         pass
 
@@ -39,7 +42,7 @@ class DatabaseInterface():
 # LSST specific interface
 class LsstSimDbInterface(DatabaseInterface):
     # Mapping from filter names to database names
-    filterMap = { "u" : 0, "g" : 1, "r" : 2, "i" : 3, "z" : 4 }
+    filterMap = {"u": 0, "g": 1, "r": 2, "i": 3, "z": 4}
 
     def __init__(self, dbId):
         """
@@ -50,16 +53,14 @@ class LsstSimDbInterface(DatabaseInterface):
 
         self.connect()
 
-
     def connect(self):
-        self.db     = MySQLdb.connect(
-            host   = self.dbId.mySqlHost,
-            db     = self.dbId.mySqlDb,
-            user   = self.dbId.mySqlUser,
+        self.db = MySQLdb.connect(
+            host = self.dbId.mySqlHost,
+            db = self.dbId.mySqlDb,
+            user = self.dbId.mySqlUser,
             passwd = self.dbId.mySqlPasswd
-            )
+        )
         self.cursor = self.db.cursor()
-
 
     def execute(self, sql):
         """Execute an sql command
@@ -69,8 +70,8 @@ class LsstSimDbInterface(DatabaseInterface):
         Trace("lsst.testing.pipeQA.LsstSimDbInterface", 3, "Executing: %s" % (sql))
         t0 = time.time()
 
-        #print "mysql>", sql
-        
+        # print "mysql>", sql
+
         # forking to handle plotting the summary figures causes (i think)
         # a disconnection when the child exits.  Need to reconnect when
         connected = True
@@ -80,7 +81,7 @@ class LsstSimDbInterface(DatabaseInterface):
             connected = False
 
         if not connected:
-            #print "Mysql connection broken.  Reconnecting."
+            # print "Mysql connection broken.  Reconnecting."
             self.connect()
 
             # if something blows-up lets see the query and re-raise
@@ -92,8 +93,8 @@ class LsstSimDbInterface(DatabaseInterface):
 
         results = self.cursor.fetchall()
         t1 = time.time()
-        #print " (t=%.2fs) " % (t1-t0)
+        # print " (t=%.2fs) " % (t1-t0)
         Trace("lsst.testing.pipeQA.LsstSimDbInterface", 2, "Time for SQL query: %.2f s" % (t1-t0))
         return results
 
-    
+

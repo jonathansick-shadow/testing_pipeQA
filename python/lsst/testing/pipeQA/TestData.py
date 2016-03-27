@@ -1,18 +1,22 @@
-import sys, os, glob, re, stat
+import sys
+import os
+import glob
+import re
+import stat
 import traceback
 
 import eups
-import lsst.pex.policy                  as pexPolicy
-import lsst.pex.logging                 as pexLog
-import lsst.daf.persistence             as dafPersist
-from lsst.testing.pipeQA.Checksum       import Checksum
-from lsst.testing.pipeQA.Manifest       import Manifest
+import lsst.pex.policy as pexPolicy
+import lsst.pex.logging as pexLog
+import lsst.daf.persistence as dafPersist
+from lsst.testing.pipeQA.Checksum import Checksum
+from lsst.testing.pipeQA.Manifest import Manifest
 
 import QaDataUtils as qaDataUtils
 
 #import lsst.meas.extensions.shapeHSM.hsmLib as shapeHSM
 
-    
+
 #######################################################################
 #
 #
@@ -35,40 +39,39 @@ class TestData(object):
         ###############################################
         # handle inputs
         ###############################################
-        self.label         = label
-        self.dataIdNames   = []
+        self.label = label
+        self.dataIdNames = []
         self.dataIdDiscrim = []
         self.defaultConfig = defaultConfig
         roots = self.defaultConfig['roots']
 
-        self.kwargs         = kwargs
-        self.dataIdRegex    = self.kwargs.get('dataId', {})
-        self.haveManifest   = self.kwargs.get('haveManifest', False)
+        self.kwargs = kwargs
+        self.dataIdRegex = self.kwargs.get('dataId', {})
+        self.haveManifest = self.kwargs.get('haveManifest', False)
         self.verifyChecksum = self.kwargs.get('verifyChecksum', False)
         self.astrometryNetData = self.kwargs.get('astrometryNetData', None)
 
         self.rerun = rerun
-        
+
         ##################
         # output directory
 
         # if the user provided one, use it ... otherwise use the default
         self.outDir = kwargs.get('outDir', roots['output'])
         self.testdataDir = roots['data']
-        self.calibDir    = roots['calib']
+        self.calibDir = roots['calib']
 
         # need a separate output dir for things we generate outside the pipe (logs, etc)
         self.localOutDir = os.path.join(os.getcwd(), self.label+"out")
         if not os.path.exists(self.localOutDir):
             os.mkdir(self.localOutDir)
-        
+
         # allow a short hand for 'write outputs locally' ... use the word 'local'
         if re.search("(local|\.)", self.outDir):
             self.outDir = self.localOutDir
         if not os.path.exists(self.outDir):
             os.mkdir(self.outDir)
         roots['output'] = self.outDir
-
 
         # This (dataId fetching) needs a better design, but will require butler/mapper change, I think.
         #
@@ -89,9 +92,7 @@ class TestData(object):
         self.logDir = os.path.join(self.localOutDir, "log")
         self.logFiles = []
         self.eupsSetupFiles = []
-        
 
-        
         ##########################
         # load the manifest and verify the checksum (if we're asked to ... it's slower)
         # haveManifest = True is a bit slowish
@@ -99,7 +100,7 @@ class TestData(object):
         if self.haveManifest:
             manifest = Manifest(self.testdataDir)
             manifest.read()
-            missingInputs   = manifest.verifyExists()
+            missingInputs = manifest.verifyExists()
             if self.verifyChecksum:
                 failedChecksums = manifest.verifyChecksum()
 
@@ -113,29 +114,25 @@ class TestData(object):
             if len(msg) > 1:
                 raise Exception(msg)
 
-                    
-
         #########################
         # see if setup changed
         # we should rerun our data if the user has setup against different packages
         print "Warning: Setup change verification not yet implemented."
-            
 
         #######################################
         # get i/o butlers
         registry = os.path.join(self.testdataDir, 'registry.sqlite3')
         # note: only suprime/hsc mappers accept rerun arg
         if self.rerun is None:
-            self.inMapper  = mapperClass(root=self.testdataDir, calibRoot=self.calibDir)
+            self.inMapper = mapperClass(root=self.testdataDir, calibRoot=self.calibDir)
             self.outMapper = mapperClass(root=self.outDir, calibRoot=self.calibDir, registry=registry)
         else:
-            self.inMapper  = mapperClass(rerun=self.rerun, root=self.testdataDir, calibRoot=self.calibDir)
+            self.inMapper = mapperClass(rerun=self.rerun, root=self.testdataDir, calibRoot=self.calibDir)
             self.outMapper = mapperClass(rerun=self.rerun,
                                          root=self.outDir, calibRoot=self.calibDir, registry=registry)
-        self.inButler  = dafPersist.ButlerFactory(mapper=self.inMapper).create()
+        self.inButler = dafPersist.ButlerFactory(mapper=self.inMapper).create()
         self.outButler = dafPersist.ButlerFactory(mapper=self.outMapper).create()
 
-        
         ####################################################
         # make a list of the frames we're asked to care about
 
@@ -147,35 +144,31 @@ class TestData(object):
         #  to run.  A bit sketchy here ... kwargs contains non-idname info as well.
         self.dataTuples = self._regexMatchDataIds(self.dataIdRegex, self.availableDataTuples)
 
-
         # if/when we run, we'll store tracebacks for any failed runs
         # we don't want to stop outright, but we should report failures
         self.uncaughtExceptionDict = {}
 
-
-        
     #######################################################################
     # setup our own astrometryNetData package, if we have one
     #######################################################################
     def setupAstrometryNetData(self):
-        
+
         if self.astrometryNetData is not None:
             ok, version, reason = eups.Eups().setup('astrometry_net_data', self.astrometryNetData)
-        
-        
+
     #######################################################################
     # Run our data through pipette
     #######################################################################
 #    def run(self, kwargs):
 #        """Run pipette on the data we know about."""
-#        
+#
 #        force             = kwargs.get('force', False)
 #        overrideConfigs   = kwargs.get('overrideConfig', None)  # array of paf filenames
 #
 #        # setup a specific astromentry.net data package, if one is provided
 #        self.setupAstrometryNetData()
-#        
-#            
+#
+#
 #        # keep a record of the eups setups for the data we're running
 #        eupsSetupFile = os.path.join(self.localOutDir, self.label+".eups")
 #        self.eupsSetupFiles.append(eupsSetupFile)
@@ -186,7 +179,7 @@ class TestData(object):
 #            fp.write("%s %s\n" % (product.name, product.version))
 #        fp.close()
 #
-#        
+#
 #        # merge in override config
 #        config = self.defaultConfig
 #        if overrideConfigs is not None:
@@ -200,7 +193,7 @@ class TestData(object):
 #        #shapeConf = config['measure']['shape']
 #        #shapeConf['HSM_BJ'] = pexPolicy.Policy()
 #        #shapeConf['HSM_BJ']['enabled'] = True
-#        
+#
 #        #do = config['do']
 #        #do['phot'] = True
 #        #do['ast']  = True
@@ -211,13 +204,13 @@ class TestData(object):
 #                "WARNING: Requested data not found in registry.  Available frames:\n" +
 #                str(self.availableDataTuples)
 #                )
-#            
+#
 #
 #        for dataTuple in self.dataTuples:
 #
 #            # put these values in a Dict with the appropriate keys
 #            dataId = self._tupleToDataId(dataTuple)
-#            
+#
 #            # see if we already have the outputs
 #            isWritten = self.outButler.datasetExists('src', dataId)
 #
@@ -225,11 +218,11 @@ class TestData(object):
 #            #  ... can always override with 'force'
 #            if re.search("^testBot", self.label):
 #                isWritten = True
-#            
+#
 #            thisFrame = "%s=%s" % (",".join(self.dataIdNames), str(dataTuple))
 #
 #            if force or (not isWritten):
-#                
+#
 #                # create a log that prints to a file
 #                idString = self.dataTupleToString(dataTuple)
 #                if not os.path.exists(self.logDir):
@@ -238,14 +231,14 @@ class TestData(object):
 #
 #                if os.path.exists(logFile):
 #                    os.remove(logFile)
-#                    
+#
 #                self.logFiles.append(logFile)
 #
 #                log = pexLog.Log.getDefaultLog().createChildLog("testQA.TestData", pexLog.Log.INFO)
 #                log.addDestination(pexLog.FileDestination(logFile, True))
 #
 #                # run, if necessary
-#                
+#
 #                print "Running:  %s" % (thisFrame)
 #                try:
 #                    self.runPipette(self.rerun, dataId, config, log)
@@ -258,9 +251,8 @@ class TestData(object):
 #                    log.log(log.WARN, idString + ": Unrecoverable exception. (see traceback) - "+str(e))
 #
 #            else:
-#                print "%s exists, skipping. (use force=True to force a run)"  % (thisFrame) 
+#                print "%s exists, skipping. (use force=True to force a run)"  % (thisFrame)
 
-                
     #######################################################################
     #
     #######################################################################
@@ -268,7 +260,6 @@ class TestData(object):
         """Get all the logfiles in our log directory."""
         pattern = os.path.join(self.logDir, "*.log")
         return glob.glob(pattern)
-    
 
     #######################################################################
     #
@@ -278,7 +269,6 @@ class TestData(object):
         pattern = os.path.join(self.localOutDir, "*.eups")
         return glob.glob(pattern)
 
-    
     #######################################################################
     #
     #######################################################################
@@ -288,20 +278,19 @@ class TestData(object):
         Return as a dictionary with dataId values as keys.
         """
         return self.uncaughtExceptionDict
-    
+
     #######################################################################
     #
     #######################################################################
     def dataTupleToString(self, dataTuple):
         """Represent a dataTuple as a string."""
-        
+
         s = []
         for i in range(len(self.dataIdNames)):
             name = self.dataIdNames[i]
             value = re.sub("[,]", "", str(dataTuple[i]))
             s.append(name + value)
         return "-".join(s)
-
 
     #######################################################################
     #
@@ -310,8 +299,6 @@ class TestData(object):
         """Accessor for astrometryNetData package we were asked to use."""
         self.astrometryNetData = astrometryNetData
 
-
-    
     #######################################################################
     #
     #######################################################################
@@ -333,23 +320,19 @@ class TestData(object):
                 if self.outButler.datasetExists('calexp', dataId):
                     postIsrCcd = self.outButler.get('calexp', dataId)
                     calib = postIsrCcd.getCalib()
-                    
+
                     fmag0, fmag0err = calib.getFluxMag0()
                     for s in sourceSetTmp:
-                        apFlux  = s.getApFlux()
+                        apFlux = s.getApFlux()
                         psfFlux = s.getPsfFlux()
                         s.setApFlux(apFlux/fmag0)
                         s.setPsfFlux(psfFlux/fmag0)
-                
+
                 sourceSet += sourceSetTmp
             else:
                 print str(dataTuple) + " output file missing.  Skipping."
-                
+
         return sourceSet
-            
-
-    
-
 
     #######################################################################
     # utility to go through a list of data Tuples and return
@@ -381,10 +364,10 @@ class TestData(object):
                     discrimRequested = sorted(availableDataTuplesGrouped.keys())[idx]
                     dataTuples += availableDataTuplesGrouped[discrimRequested]
             return dataTuples
-                    
+
         else:
             # go through the list of what's available, and compare to what we're asked for
-            # Put matches in a list of tuples, eg. [(vis1,sna1,raf1,sen1),(vis2,sna2,raf2,sen2)] 
+            # Put matches in a list of tuples, eg. [(vis1,sna1,raf1,sen1),(vis2,sna2,raf2,sen2)]
             dataTuples = []
             for dataTuple in availableDataTuples:
 
@@ -392,20 +375,18 @@ class TestData(object):
                 match = True
                 for i in range(len(self.dataIdNames)):
                     dataIdName = self.dataIdNames[i]   # eg. 'visit', 'sensor', etc
-                    regexForThisId = dataIdRegexDict.get(dataIdName, '.*') # default to '.*' or 'anything'
+                    regexForThisId = dataIdRegexDict.get(dataIdName, '.*')  # default to '.*' or 'anything'
                     dataId = dataTuple[i]
 
                     # if it doesn't match, this frame isn't to be run.
-                    if not re.search(regexForThisId,  str(dataId)):
+                    if not re.search(regexForThisId, str(dataId)):
                         match = False
 
                 if match:
                     dataTuples.append(dataTuple)
-                
-        return dataTuples
-                
 
-    
+        return dataTuples
+
     #######################################################################
     # utility to convert a data tuple to a dictionary using dataId keys
     #######################################################################
@@ -418,10 +399,6 @@ class TestData(object):
         return dataId
 
 
-    
-
-    
-    
 #######################################################################
 #
 #
@@ -429,34 +406,33 @@ class TestData(object):
 #######################################################################
 class ImSimTestData(TestData):
     """ """
-    
+
     #######################################################################
     #
-    ####################################################################### 
+    #######################################################################
     def __init__(self, label, **kwargs):
         """ """
 
-        import lsst.obs.lsstSim           as obsLsst
+        import lsst.obs.lsstSim as obsLsst
         import lsstSim
-        
-        mapper         = obsLsst.LsstSimMapper
-        dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
-        
+
+        mapper = obsLsst.LsstSimMapper
+        dataInfo = [['visit', 1], ['snap', 0], ['raft', 0], ['sensor', 0]]
+
         # find the label in the testbed path
         testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
-        
-        defaultConfig   = lsstSim.getConfig()
+
+        defaultConfig = lsstSim.getConfig()
         if not 'roots' in defaultConfig:
             defaultConfig['roots'] = pexPolicy.Policy()
-        roots           = defaultConfig['roots']
-        roots['data']   = testdataDir
-        roots['calib']  = testdataDir
+        roots = defaultConfig['roots']
+        roots['data'] = testdataDir
+        roots['calib'] = testdataDir
         roots['output'] = testdataDir
 
         rerun = None
         TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
-        
     #######################################################################
     #
     #######################################################################
@@ -475,18 +451,17 @@ class ImSimTestData(TestData):
 class HscSimTestData(TestData):
     """ """
 
-    
     #######################################################################
     #
     #######################################################################
     def __init__(self, label, **kwargs):
         """ """
-        
-        import lsst.obs.hscSim            as obsHsc
+
+        import lsst.obs.hscSim as obsHsc
         import runHsc
-        mapper         = obsHsc.HscSimMapper
-        dataInfo       = [['visit',1], ['ccd', 0]]
-        
+        mapper = obsHsc.HscSimMapper
+        dataInfo = [['visit', 1], ['ccd', 0]]
+
         # find the label in the testbed path
         testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
@@ -497,14 +472,13 @@ class HscSimTestData(TestData):
 
         if not 'roots' in defaultConfig:
             defaultConfig['roots'] = pexPolicy.Policy()
-        roots           = defaultConfig['roots']
-        roots['data']   = os.path.join(testdataDir, "HSC")
-        roots['calib']  = os.path.join(testdataDir, "CALIB")
+        roots = defaultConfig['roots']
+        roots['data'] = os.path.join(testdataDir, "HSC")
+        roots['calib'] = os.path.join(testdataDir, "CALIB")
         roots['output'] = os.path.join(testdataDir, "HSC")
 
         rerun = "pipeQA"
         TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
-
 
     #######################################################################
     #
@@ -514,15 +488,14 @@ class HscSimTestData(TestData):
         import runHsc
         #runHsc.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
         runHsc.doRun(rerun=rerun, frameId=dataId['visit'], ccdId=dataId['ccd'],
-                   doMerge=True, doBreak=False,
-                   instrument="hsc",
-                   output =config['roots']['output'],
-                   calib  =config["roots"]['calib'],
-                   data   =config["roots"]['data'],
-                   log    = log
-        )
+                     doMerge=True, doBreak=False,
+                     instrument="hsc",
+                     output =config['roots']['output'],
+                     calib =config["roots"]['calib'],
+                     data =config["roots"]['data'],
+                     log = log
+                     )
 
-    
 
 #######################################################################
 #
@@ -532,33 +505,31 @@ class HscSimTestData(TestData):
 class SuprimeTestData(TestData):
     """ """
 
-    
     #######################################################################
     #
     #######################################################################
     def __init__(self, label, **kwargs):
         """ """
-        
-        import lsst.obs.suprimecam        as obsSuprimecam
+
+        import lsst.obs.suprimecam as obsSuprimecam
         import suprimecam
-        mapper         = obsSuprimecam.SuprimecamMapper
-        dataInfo       = [['visit',1], ['ccd', 0]]
-        
+        mapper = obsSuprimecam.SuprimecamMapper
+        dataInfo = [['visit', 1], ['ccd', 0]]
+
         # find the label in the testbed path
         testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
-        defaultConfig   = suprimecam.getConfig()
+        defaultConfig = suprimecam.getConfig()
         if not 'roots' in defaultConfig:
             defaultConfig['roots'] = pexPolicy.Policy()
-        roots = defaultConfig['roots']            
-        roots['data']   = os.path.join(testdataDir, "SUPA")
-        roots['calib']  = os.path.join(testdataDir, "SUPA", "CALIB")
+        roots = defaultConfig['roots']
+        roots['data'] = os.path.join(testdataDir, "SUPA")
+        roots['calib'] = os.path.join(testdataDir, "SUPA", "CALIB")
         roots['output'] = os.path.join(testdataDir, "SUPA")
 
         rerun = "pipeQA"
-        
-        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
+        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
     #######################################################################
     #
@@ -569,8 +540,6 @@ class SuprimeTestData(TestData):
         suprimecam.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
 
 
-
-        
 #######################################################################
 #
 #
@@ -578,33 +547,32 @@ class SuprimeTestData(TestData):
 #######################################################################
 class CfhtTestData(TestData):
     """ """
-    
+
     #######################################################################
     #
     #######################################################################
     def __init__(self, label, **kwargs):
         """ """
 
-        import lsst.obs.cfht              as obsCfht
+        import lsst.obs.cfht as obsCfht
         import megacam
-        mapper         = obsCfht.CfhtMapper
-        dataInfo       = [['visit',1], ['ccd', 0]]
-        
+        mapper = obsCfht.CfhtMapper
+        dataInfo = [['visit', 1], ['ccd', 0]]
+
         # find the label in the testbed path
         testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
 
-        defaultConfig   = megacam.getConfig()
+        defaultConfig = megacam.getConfig()
         if not 'roots' in defaultConfig:
             defaultConfig['roots'] = pexPolicy.Policy()
-        roots           = defaultConfig['roots']
-        roots['data']   = testdataDir
-        roots['calib']  = os.path.join(testdataDir, "calib")
+        roots = defaultConfig['roots']
+        roots['data'] = testdataDir
+        roots['calib'] = os.path.join(testdataDir, "calib")
         roots['output'] = testdataDir
 
         rerun = None
-        
-        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
+        TestData.__init__(self, label, rerun, mapper, dataInfo, defaultConfig, kwargs)
 
     #######################################################################
     #
@@ -615,38 +583,31 @@ class CfhtTestData(TestData):
         megacam.run(rerun, dataId['visit'], dataId['ccd'], config, log=log)
 
 
-        
-
-
-
-        
-
 #######################################################################
 #
 #
 #
 #######################################################################
 def makeTestData(label, **kwargs):
-        
+
     testbedDir, testdataDir = qaDataUtils.findDataInTestbed(label)
-        
+
     regFile = 'registry.sqlite3'
     registry = os.path.join(testdataDir, regFile)
     cfhtCalibRegistry = os.path.join(testdataDir, "calib", "calibRegistry.sqlite3")
     hscSimCalibRegistry = os.path.join(testdataDir, "CALIB", "calibRegistry.sqlite3")
 
-    testCfht       = os.path.exists(cfhtCalibRegistry)
-    testHscSim     = os.path.exists(hscSimCalibRegistry)
+    testCfht = os.path.exists(cfhtCalibRegistry)
+    testHscSim = os.path.exists(hscSimCalibRegistry)
     testSuprimecam = os.path.exists(os.path.join(testdataDir, "SUPA"))
-    
+
     # define some tests to distinguish which type of data we have
     lookup = {
-        "lsstSim" : [ImSimTestData,  not testCfht and not testHscSim and not testSuprimecam],
-        "cfht" :    [CfhtTestData, testCfht],
-        "hscSim"  : [HscSimTestData, testHscSim], 
-        "suprime":  [SuprimeTestData, testSuprimecam],
-        }
-
+        "lsstSim": [ImSimTestData, not testCfht and not testHscSim and not testSuprimecam],
+        "cfht": [CfhtTestData, testCfht],
+        "hscSim": [HscSimTestData, testHscSim],
+        "suprime": [SuprimeTestData, testSuprimecam],
+    }
 
     ######################################################
     # Do our best to figure out what we've been handed.
@@ -658,8 +619,8 @@ def makeTestData(label, **kwargs):
         if distinguishTest:
             validLookups[key] = array
 
-    #print testbedDir, testdataDir
-    
+    # print testbedDir, testdataDir
+
     nValid = len(validLookups.keys())
     if nValid > 1:
         raise Exception("Registries consistent with multiple mappers (" +

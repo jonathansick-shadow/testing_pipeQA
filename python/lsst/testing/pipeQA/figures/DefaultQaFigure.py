@@ -1,4 +1,6 @@
-import os, sys, re
+import os
+import sys
+import re
 import numpy
 import numpy.ma as numpyMa
 
@@ -23,34 +25,33 @@ import QaFigureUtils as qaFigUtils
 # However, to make that possible, I'd need a third package containing TestCode and QaFigure
 # as both products use those classes.  The cheap solution is to provide watered-down versions
 # in the pipeQA, and override them with displayQA versions, if those are setup.
-# 
+#
 ###############################################
+
 
 class QaFigure(object):
     """A wrapper for a matplotlib figure, and a Baseclass for more complicated QA figures. """
-    
-    def __init__(self, size=(4.0, 4.0), dpi=100): # (512, 512), DPI=100):
+
+    def __init__(self, size=(4.0, 4.0), dpi=100):  # (512, 512), DPI=100):
         """
         @param size  Figure size in inches
         @param dpi   Dots per inch to use.
         """
-        
-        self.fig         = figure.Figure(figsize=size)
+
+        self.fig = figure.Figure(figsize=size)
         self.fig.set_dpi(dpi)
-        self.canvas      = FigCanvas(self.fig)
-        self.map         = {}
+        self.canvas = FigCanvas(self.fig)
+        self.map = {}
         #self.fig.set_size_inches(size[0] / DPI, size[1] / DPI)
-        self.mapAreas    = []
+        self.mapAreas = []
         self.mapTransformed = True
 
-        
     def reset(self):
         self.fig.clf()
-        
 
     def validate(self):
         pass
-    
+
     def makeFigure(self):
         # override
         pass
@@ -58,11 +59,9 @@ class QaFigure(object):
     def getFigure(self):
         return self.fig
 
-
     def savefig(self, path, **kwargs):
         """Save figure."""
         self.fig.savefig(path, dpi=self.fig.get_dpi(), **kwargs)
-
 
     def savemap(self, path):
         """Save internal map area data to .map file. """
@@ -71,7 +70,6 @@ class QaFigure(object):
     def getTransformedMap(self):
         """Take plot coordinates for map areas and convert to figure coordinates."""
         return []
-            
 
     def addMapArea(self, label, area, info, axes=None):
         """Add a map area to this figure.
@@ -82,8 +80,7 @@ class QaFigure(object):
         @param axes     axes to use for map transformation
         """
         pass
-    
-    
+
     def getMapInfo(self):
         return self.mapAreas
 

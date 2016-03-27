@@ -16,9 +16,8 @@ class QaAnalysisConfig(pexConfig.Config):
 
 class QaAnalysisTask(pipeBase.Task):
     """Baseclass for analysis classes."""
-    ConfigClass  = QaAnalysisConfig
+    ConfigClass = QaAnalysisConfig
     _DefaultName = "qaAnalysis"
-
 
     def __init__(self, testLabel=None, useCache=False, wwwCache=True, delaySummary=False,
                  lazyPlot='sensor', showFpa=True, *args, **kwargs):
@@ -27,24 +26,24 @@ class QaAnalysisTask(pipeBase.Task):
         """
         pipeBase.Task.__init__(self, *args, **kwargs)
 
-        self.testSets  = {}
+        self.testSets = {}
         self.testLabel = testLabel
 
         # if we're not going to use the cached values
         # we'll have to clean the output directory on our first call
         self.useCache = useCache
-        self.clean    = not useCache
+        self.clean = not useCache
         self.wwwCache = wwwCache
         self.delaySummary = delaySummary
 
         options = ['none', 'sensor', 'all']
         if not lazyPlot in options:
-            raise ValueError, "lazyPlot must be: "+ ",".join(options) + " You said: "+lazyPlot
-        
-        self.lazyPlot  = lazyPlot
+            raise ValueError, "lazyPlot must be: " + ",".join(options) + " You said: "+lazyPlot
 
-        self.showFpa   = showFpa
-        
+        self.lazyPlot = lazyPlot
+
+        self.showFpa = showFpa
+
     def getTestSet(self, data, dataId, label=None):
         """Get a TestSet object in the correct group.
 
@@ -55,7 +54,7 @@ class QaAnalysisTask(pipeBase.Task):
 
         dataIdStd = data.cameraInfo.dataIdCameraToStandard(dataId)
         group = dataIdStd['visit']
-        
+
         filter = data.getFilterBySensor(dataId)
         # all sensors have the same filter, so just grab one
         key = filter.keys()[0]
@@ -64,15 +63,15 @@ class QaAnalysisTask(pipeBase.Task):
             filterName = filter[key].getName()
 
         if label is not None:
-            label = self.__class__.__name__ + "."+ label
+            label = self.__class__.__name__ + "." + label
         else:
             label = self.__class__.__name__
 
         tsIdLabel = "visit-filter"
-        tsId = str(group)+ '-' + filterName
+        tsId = str(group) + '-' + filterName
         if data.cameraInfo.name == 'sdss':
             tsId = group
-            
+
         if not self.testSets.has_key(tsId):
             self.testSets[tsId] = testCode.TestSet(label, group=tsId, clean=self.clean,
                                                    wwwCache=self.wwwCache)
@@ -82,7 +81,7 @@ class QaAnalysisTask(pipeBase.Task):
             dqaVersion = eups.getSetupVersion('testing_displayQA')
             self.testSets[tsId].addMetadata('PipeQA', pqaVersion)
             self.testSets[tsId].addMetadata('DisplayQA', dqaVersion)
-            
+
             if hasattr(data, 'coaddTable') and data.coaddTable is not None:
                 self.testSets[tsId].addMetadata('coaddTable', data.coaddTable)
             if hasattr(data, 'useForced'):
@@ -95,17 +94,15 @@ class QaAnalysisTask(pipeBase.Task):
             sqlCache = data.sqlCache['match'].get(key, "")
             self.testSets[tsId].addMetadata("SQL match", sqlCache)
             sqlCache = data.sqlCache['src'].get(key, "")
-            self.testSets[tsId].addMetadata("SQL src" ,  sqlCache)
-                
-        return self.testSets[tsId]
+            self.testSets[tsId].addMetadata("SQL src", sqlCache)
 
+        return self.testSets[tsId]
 
     def __str__(self):
         testLabel = ""
         if self.testLabel is not None:
             testLabel = "."+self.testLabel
         return self.__class__.__name__ + testLabel
-    
 
     ##########################################
     # pure virtual methods
@@ -113,7 +110,7 @@ class QaAnalysisTask(pipeBase.Task):
     def free(self):
         """Method to free attributes to minimize memory consumption."""
         pass
-    
+
     def test(self):
         """Method to perform tests. """
         return []

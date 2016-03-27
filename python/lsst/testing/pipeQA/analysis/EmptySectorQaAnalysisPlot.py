@@ -8,12 +8,13 @@ import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 from matplotlib import colors
 import matplotlib.font_manager as fm
-from  matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 
 
 import QaPlotUtils as qaPlotUtil
+
 
 def plot(data):
 
@@ -23,8 +24,8 @@ def plot(data):
     ymat = data['ymat']
     limits = data['limits']
     summary = data['summary']
-    nx, ny  = data['nxn']
-    
+    nx, ny = data['nxn']
+
     xlo, xhi, ylo, yhi = limits
     xwid, ywid = xhi - xlo, yhi - ylo
 
@@ -34,9 +35,7 @@ def plot(data):
         y -= ybLo
         xmat -= xbLo
         ymat -= ybLo
-        
-        
-    
+
     # handle no-data possibility
     if len(x) == 0:
         x = numpy.array([0.0])
@@ -59,7 +58,7 @@ def plot(data):
     fig = figure.Figure(figsize=figsize)
     canvas = FigCanvas(fig)
     ax = fig.add_subplot(111)
-    fig.subplots_adjust(left=0.19) #, bottom=0.15)
+    fig.subplots_adjust(left=0.19)  # , bottom=0.15)
 
     ncol = None
     if summary:
@@ -75,7 +74,6 @@ def plot(data):
         ax.plot(xmat, ymat, "ro", ms=4.0, label="matched",
                 mfc='None', markeredgecolor='r')
         ncol = 2
-
 
     ax.set_xlim([xlo, xhi])
     ax.set_ylim([ylo, yhi])
@@ -97,14 +95,13 @@ def plot(data):
 
         # add map areas to allow mouseover tooltip showing pixel coords
         dx, dy = 20, 20  # on a 4kx4k ccd, < +/-20 pixels is tough to hit with a mouse
-        #for i in range(len(x)):
+        # for i in range(len(x)):
         #    area = x[i]-dx, y[i]-dy, x[i]+dx, y[i]+dy
         #    fig.addMapArea("no_label_info", area, "nolink:%.1f_%.1f"%(x[i],y[i]))
 
         ax.set_title("Matched Detections by CCD Sector", size='small')
     else:
         ax.set_title("Matched Detections", size='small')
-
 
     return fig
 

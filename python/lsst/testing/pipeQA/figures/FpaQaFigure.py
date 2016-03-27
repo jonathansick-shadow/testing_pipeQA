@@ -1,4 +1,6 @@
-import os, sys, re
+import os
+import sys
+import re
 
 import numpy
 import numpy.ma as numpyMa
@@ -22,9 +24,9 @@ except:
 import QaFigureUtils as qaFigUtils
 from QaFigure import QaFigure
 
+
 class FpaQaFigure(QaFigure):
 
-    
     def __init__(self, cameraInfo, data=None, map=None):
         """
         @param cameraInfo  CameraInfo object for the device whose focal plane area we're representing.
@@ -32,11 +34,11 @@ class FpaQaFigure(QaFigure):
         @param map         Map areas to use.
         """
 
-        QaFigure.__init__(self, size=(3.6,3.3))
+        QaFigure.__init__(self, size=(3.6, 3.3))
         self.cameraInfo = cameraInfo
         self.camera = self.cameraInfo.camera
         self.centers, self.rectangles, self.raftBoundaries, self.ccdBoundaries = \
-                      qaFigUtils.cameraToRectangles(self.camera)
+            qaFigUtils.cameraToRectangles(self.camera)
 
         self.idByName = {}
         self.raftCcdByAreaLabel = {}
@@ -46,7 +48,7 @@ class FpaQaFigure(QaFigure):
         self.reset(data=self.map)
         self.min = None
         self.max = None
-            
+
         # Fill the data/map values if they were provided.
         if data is not None:
             if not self.validate():
@@ -54,7 +56,7 @@ class FpaQaFigure(QaFigure):
             for raft, ccdDict in data.items():
                 for ccd, value in ccdDict.items():
                     self.data[raft][ccd] = data[raft][ccd]
-                    
+
         if map is not None:
             for raft, ccdDict in data.items():
                 for ccd, value in ccdDict.items():
@@ -70,44 +72,40 @@ class FpaQaFigure(QaFigure):
                     if value is not None and numpy.isfinite(value):
                         array.append(value)
         return numpy.array(array)
-        
-                    
+
     def reset(self, data=None):
         """Set all values in data dictionary to None."""
-        
+
         if data is None:
             data = self.data
-            
+
         for r in self.camera:
-            raft   = cameraGeom.cast_Raft(r)
+            raft = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
             data[rlabel] = {}
             for c in raft:
-                ccd    = cameraGeom.cast_Ccd(c)
+                ccd = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 self.idByName[clabel] = ccd.getId()
                 data[rlabel][clabel] = None
                 areaLabel = self.getAreaLabel(rlabel, clabel)
                 self.raftCcdByAreaLabel[areaLabel] = [rlabel, clabel]
-                
-                
+
     def validate(self):
         # Since we establish the structure of data in __init__, it
         # should always be valid.  Unless someone mucks with self.data
         # directly...
         for r in self.camera:
-            raft   = cameraGeom.cast_Raft(r)
+            raft = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
             if not self.data.has_key(rlabel):
                 return False
             for c in raft:
-                ccd    = cameraGeom.cast_Ccd(c)
+                ccd = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 if not self.data[rlabel].has_key(clabel):
                     return False
         return True
-
-            
 
     ###################################################################
     # map related methods
@@ -120,10 +118,9 @@ class FpaQaFigure(QaFigure):
         serial = "%04d" % (id.getSerial())
         return name + "--"+serial
 
-
     def setMapInfo(self):
         """Establish map areas for any defined CCDs"""
-        
+
         for r in self.camera:
             raft = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
@@ -131,27 +128,25 @@ class FpaQaFigure(QaFigure):
                 ccd = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 info = self.map[rlabel][clabel]
-                
+
                 if ((info is not None) and
-                    self.ccdBoundaries.has_key(clabel) and
-                    (self.ccdBoundaries[clabel] is not None)):
+                        self.ccdBoundaries.has_key(clabel) and
+                        (self.ccdBoundaries[clabel] is not None)):
                     bound = self.ccdBoundaries[clabel]
                     x0, x1 = bound[0]
                     y0, y1 = bound[1]
                     label = self.getAreaLabel(rlabel, clabel)
                     self.addMapArea(label, [x0, y0, x1, y1], info)
 
-                    
-        
     ###################################################################
     # plot related methods
     ###################################################################
 
-
     def plotRaftBoundaries(self, sp, boundaryColors):
         for b in self.raftBoundaries:
             sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=3)
-            #sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=0.1) #HACK
+            # sp.plot(b[0], b[1], '%s-' % (boundaryColors), lw=0.1) #HACK
+
     def plotCcdBoundaries(self, sp):
         for b in self.ccdBoundaries.values():
             x0, x1 = b[0]
@@ -159,7 +154,8 @@ class FpaQaFigure(QaFigure):
             x = [x0, x0, x1, x1, x0]
             y = [y0, y1, y1, y0, y0]
             sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=1.0)
-            #sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.1) #HACK
+            # sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.1) #HACK
+
     def markMissingCcds(self, sp, missingCcds):
         for b in missingCcds.values():
             x0, x1 = b[0]
@@ -167,8 +163,8 @@ class FpaQaFigure(QaFigure):
             x = [x0, x1, x0, x1]
             y = [y0, y1, y1, y0]
             sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.5)
-            #sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.1) #HACK
-            
+            # sp.plot(numpy.array(x), numpy.array(y), 'k-', lw=0.1) #HACK
+
     def markFailedCcds(self, sp, failedCcds, cmap, vlimits):
 
         for label, value in failedCcds.items():
@@ -182,19 +178,18 @@ class FpaQaFigure(QaFigure):
             bgColor = cmap((value-vlimits[0])/(vlimits[1]-vlimits[0]))
             r, g, b, alph = bgColor
             lum = 0.25*r + 0.7*g + 0.05*b
-            clr     = "w"        if  lum < 0.5  else "k"
+            clr = "w" if lum < 0.5 else "k"
             sp.text(x, y, text, color=clr, horizontalalignment="left", verticalalignment="top",
                     fontsize=8)
-
 
     def labelSensors(self, sp):
         for r in self.rectangles.values():
             label = r.get_label()
-            bbox  = r.get_bbox()
+            bbox = r.get_bbox()
             xplot = 0.5 * (bbox.x0 + bbox.x1)
             yplot = bbox.y0 + 0.8*(bbox.y1 - bbox.y0)
             sp.text(xplot, yplot, label, horizontalalignment='center', fontsize = 8)
-        
+
     def adjustTickLabels(self, sp, cb=None):
         if cb is not None:
             for tic in cb.ax.get_yticklabels():
@@ -205,31 +200,29 @@ class FpaQaFigure(QaFigure):
         for tic in sp.get_yticklabels():
             tic.set_size("x-small")
             tic.set_rotation(45)
-        
+
     def getFpaLimits(self):
         x, y = [], []
         for r in self.rectangles.values():
-            bbox  = r.get_bbox()
+            bbox = r.get_bbox()
             x += [bbox.x0, bbox.x1]
             y += [bbox.y0, bbox.y1]
         x, y = numpy.array(x), numpy.array(y)
         return x.min(), y.min(), x.max(), y.max()
-            
 
     def getDataArray(self):
 
         arr = []
         for r in self.camera:
-            raft   = cameraGeom.cast_Raft(r)
+            raft = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
             for c in raft:
-                ccd    = cameraGeom.cast_Ccd(c)
+                ccd = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 arr.append(self.data[rlabel][clabel])
         return numpy.array(arr)
-    
 
-    def makeFigure(self, 
+    def makeFigure(self,
                    borderPix = 100,
                    boundaryColors = 'r', doLabel = False, showUndefined=False,
                    vlimits=None, cmap="jet", title=None,
@@ -251,7 +244,6 @@ class FpaQaFigure(QaFigure):
         @param failColor        Color to use to mark failed sensors.
         """
 
-        
         if vlimits is None:
             arr = self.getDataArray()
             vlimits = [arr.min(), arr.max()]
@@ -266,8 +258,8 @@ class FpaQaFigure(QaFigure):
         else:
             left, right, bottom, top = 0.195, 0.95, 0.15, 0.9
         self.fig.subplots_adjust(left=left, right=right, bottom=bottom, top=top)
-        
-        sp     = self.fig.gca()
+
+        sp = self.fig.gca()
 
         values = []  # needs to be synchronized with self.rectangles
         patches = []
@@ -275,30 +267,29 @@ class FpaQaFigure(QaFigure):
         missingCcds = {}
         failedCcds = {}
         for r in self.camera:
-            raft   = cameraGeom.cast_Raft(r)
+            raft = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
             for c in raft:
-                ccd    = cameraGeom.cast_Ccd(c)
+                ccd = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 value = self.data[rlabel][clabel]
                 allValues.append(value)
-                #if (not value is None) or (showUndefined):
+                # if (not value is None) or (showUndefined):
                 if value is None:
                     value = numpy.NaN
                     missingCcds[clabel] = self.ccdBoundaries[clabel]
                 if value < failLimits[0] or value > failLimits[1]:
                     failedCcds[clabel] = value
-                #if value > failLimits[1]:
+                # if value > failLimits[1]:
                 #    failedCcds[clabel] = 1
                 values.append(value)
                 patches.append(self.rectangles[clabel])
-
 
         if vlimits is not None:
             norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1], clip=False)
         else:
             norm = colors.Normalize()
-            
+
         if len(patches) == 0:
             patches = self.rectangles.values()
             values = allValues
@@ -330,9 +321,9 @@ class FpaQaFigure(QaFigure):
             binwid = float(vlimits[1] - vlimits[0])/nbins
             if binwid > 0.0 and len(finiteValues) > 0:
                 eps = 1.0e-4*binwid
-                #print finiteValues, nbins, vlimits
+                # print finiteValues, nbins, vlimits
                 nu, bu, pu = axH.hist(finiteValues, bins=nbins,
-                                      range=[vlimits[0]-eps,vlimits[1]+eps],
+                                      range=[vlimits[0]-eps, vlimits[1]+eps],
                                       orientation='horizontal', color='#aaaaaa', fill=True)
                 #nu = numpy.array([1.0])
                 axH.set_ylim(vlimits)
@@ -367,7 +358,6 @@ class FpaQaFigure(QaFigure):
         sp.set_ylim((y0 - borderPix, y1 + borderPix))
 
         self.setMapInfo()
-        
 
 
 class VectorFpaQaFigure(FpaQaFigure):
@@ -375,20 +365,19 @@ class VectorFpaQaFigure(FpaQaFigure):
     def __init__(self, cameraInfo, data=None, map=None):
         FpaQaFigure.__init__(self, cameraInfo, data=data, map=map)
 
-
     def getDataArray(self):
 
         arr = []
         for r in self.camera:
-            raft   = cameraGeom.cast_Raft(r)
+            raft = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
             for c in raft:
-                ccd    = cameraGeom.cast_Ccd(c)
+                ccd = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 arr.append(self.data[rlabel][clabel][2])
         return numpy.array(arr)
-    
-    def makeFigure(self, 
+
+    def makeFigure(self,
                    borderPix = 100,
                    boundaryColors = 'r', doLabel = False, showUndefined=False,
                    vlimits=None, cmap="jet", title=None,
@@ -422,7 +411,7 @@ class VectorFpaQaFigure(FpaQaFigure):
             left, right, bottom, top = 0.195, 0.95-2.0*histWidth, 0.15, 0.9
         else:
             left, right, bottom, top = 0.195, 0.95, 0.15, 0.9
-            
+
         self.fig.subplots_adjust(left=left, right=right, bottom=bottom, top=top)
 
         colorValues = []  # needs to be synchronized with self.rectangles
@@ -433,14 +422,14 @@ class VectorFpaQaFigure(FpaQaFigure):
         lenInPix = {}
         colorScalar = {}
         haveColors = False
-        
+
         missingCcds = {}
         failedCcds = {}
         for r in self.camera:
-            raft   = cameraGeom.cast_Raft(r)
+            raft = cameraGeom.cast_Raft(r)
             rlabel = raft.getId().getName()
             for c in raft:
-                ccd    = cameraGeom.cast_Ccd(c)
+                ccd = cameraGeom.cast_Ccd(c)
                 clabel = ccd.getId().getName()
                 values = self.data[rlabel][clabel]
                 defaultLen = 1500.0
@@ -451,10 +440,11 @@ class VectorFpaQaFigure(FpaQaFigure):
                         radiansWrtXtmp, lenInPixtmp = values
                         colorScalartmp = 0.0
                     else:
-                        raise Exception("values for Vector must be float or [radians, lenInPix, [colorFloat]].")
+                        raise Exception(
+                            "values for Vector must be float or [radians, lenInPix, [colorFloat]].")
                     if lenInPixtmp is None:
                         lenInPixtmp = defaultLen
-                        
+
                 else:
                     if values is not None:
                         values = float(values)
@@ -466,12 +456,12 @@ class VectorFpaQaFigure(FpaQaFigure):
 
                 if lenInPixtmp < 0:
                     lenInPixtmp = 0
-                #print clabel, radiansWrtXtmp, lenInPixtmp, colorScalartmp
-                
-                #print clabel, radiansWrtXtmp, lenInPixtmp, colorScalartmp
-                lenInPix[clabel]    = lenInPixtmp
+                # print clabel, radiansWrtXtmp, lenInPixtmp, colorScalartmp
+
+                # print clabel, radiansWrtXtmp, lenInPixtmp, colorScalartmp
+                lenInPix[clabel] = lenInPixtmp
                 allValues.append(radiansWrtXtmp)
-                if (radiansWrtXtmp is not None): # or (showUndefined):
+                if (radiansWrtXtmp is not None):  # or (showUndefined):
                     if colorScalartmp is not None:
                         colorValues.append(colorScalartmp)
                         patches.append(self.rectangles[clabel])
@@ -479,7 +469,7 @@ class VectorFpaQaFigure(FpaQaFigure):
                         haveColors = True
                         if colorScalartmp < failLimits[0] or colorScalartmp > failLimits[1]:
                             failedCcds[clabel] = colorScalartmp
-                        #if colorScalartmp > failLimits[1]:
+                        # if colorScalartmp > failLimits[1]:
                         #    failedCcds[clabel] = 1
                     else:
                         colorValues.append(numpy.NaN)
@@ -491,15 +481,13 @@ class VectorFpaQaFigure(FpaQaFigure):
                     colorValues.append(numpy.NaN)
                     patches.append(self.rectangles[clabel])
                     missingCcds[clabel] = self.ccdBoundaries[clabel]
-                    
 
         if vlimits is not None:
             norm = colors.Normalize(vmin=vlimits[0], vmax=vlimits[1], clip=False)
         else:
             norm = colors.Normalize()
 
-
-        sp     = self.fig.gca() #add_axes([left, bottom, right-left, top-bottom]) #gca()
+        sp = self.fig.gca()  # add_axes([left, bottom, right-left, top-bottom]) #gca()
 
         ##############################
         # put a histogram on the side
@@ -513,7 +501,7 @@ class VectorFpaQaFigure(FpaQaFigure):
             if binwid > 0.0 and len(finiteValues) > 0:
                 eps = 1.0e-4*binwid
                 nu, bu, pu = axH.hist(finiteValues, bins=nbins,
-                                      range=[vlimits[0]-eps,vlimits[1]+eps],
+                                      range=[vlimits[0]-eps, vlimits[1]+eps],
                                       orientation='horizontal', color='#aaaaaa', fill=True)
                 axH.set_ylim(vlimits)
                 axH.set_xlim([0, 1.2*nu.max()])
@@ -522,7 +510,7 @@ class VectorFpaQaFigure(FpaQaFigure):
             axH.set_xticklabels([])
             axH.set_yticklabels([])
             self.fig.sca(sp)
-        
+
         if len(patches) > 0:
 
             cmap = getattr(cm, cmap)
@@ -543,7 +531,6 @@ class VectorFpaQaFigure(FpaQaFigure):
                     cb = None
             sp.add_collection(p)
 
-
         for label, angle in radiansWrtX.items():
             xc, yc = self.centers[label]
             arrowLen = lenInPix[label]
@@ -553,7 +540,7 @@ class VectorFpaQaFigure(FpaQaFigure):
             dy = arrowLen*numpy.sin(angle)
             if numpy.abs(dx) < 1.0e-15 or numpy.abs(dy) < 1.0e-15:
                 continue
-            sp.arrow(x, y, dx, dy) #, ec="k", lw=3)
+            sp.arrow(x, y, dx, dy)  # , ec="k", lw=3)
 
         self.plotRaftBoundaries(sp, boundaryColors)
         self.plotCcdBoundaries(sp)
@@ -576,8 +563,5 @@ class VectorFpaQaFigure(FpaQaFigure):
         sp.set_xlim((x0 - borderPix, x1 + borderPix))
         sp.set_ylim((y0 - borderPix, y1 + borderPix))
 
-
-
-        
         self.setMapInfo()
 

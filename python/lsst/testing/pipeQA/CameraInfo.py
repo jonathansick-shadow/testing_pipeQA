@@ -1,4 +1,5 @@
-import os, re
+import os
+import re
 import copy
 import eups
 import numpy
@@ -7,7 +8,6 @@ import lsst.daf.persistence as dafPersist
 import lsst.afw.geom as afwGeom
 import lsst.afw.cameraGeom as cameraGeom
 import lsst.afw.cameraGeom.utils as cameraGeomUtils
-    
 
 
 ####################################################################
@@ -18,7 +18,7 @@ import lsst.afw.cameraGeom.utils as cameraGeomUtils
 
 
 class CameraInfo(object):
-    
+
     def __init__(self, name, dataInfo, mapperClass=None, camera=None):
         """
         @param name         A name for this camera
@@ -26,19 +26,19 @@ class CameraInfo(object):
         @param mapperClass  Mapper class for this camera
         @param camera       LSST camera object for this camera
         """
-        
-        self.name        = name
-        self.dataInfo    = dataInfo
-        self.mapperClass = mapperClass
-        self.camera      = camera
 
-        self.rafts       = {}
-        self.sensors     = {}
-        self.detectors   = {}
-        self.nSensor     = 0
+        self.name = name
+        self.dataInfo = dataInfo
+        self.mapperClass = mapperClass
+        self.camera = camera
+
+        self.rafts = {}
+        self.sensors = {}
+        self.detectors = {}
+        self.nSensor = 0
 
         self.raftCcdKeys = []
-        
+
         if self.camera is None:
             return
 
@@ -59,26 +59,26 @@ class CameraInfo(object):
 
         self.dataIdTranslationMap = {
             # standard  : camera
-            'visit'  : 'visit',
-            'snap'   : 'snap',
-            'raft'   : 'raft',
-            'sensor' : 'sensor',
-            }
+            'visit': 'visit',
+            'snap': 'snap',
+            'raft': 'raft',
+            'sensor': 'sensor',
+        }
         self.dataIdDbNames = {
-            'visit' : 'visit',
-            'raft'  : 'raftName',
-            'sensor' : 'ccdName',
-            'snap'  : 'snap',
-            }
+            'visit': 'visit',
+            'raft': 'raftName',
+            'sensor': 'ccdName',
+            'snap': 'snap',
+        }
 
     def standardToDbName(self, name):
         return self.dataIdDbNames[self.dataIdTranslationMap[name]]
-        
+
     def dataIdCameraToStandard(self, dataIdIn):
         """Put this camera dataId in standard visit,raft,sensor format"""
 
         dataId = copy.copy(dataIdIn)
-        
+
         transMap = self.dataIdTranslationMap
 
         for sKey, cKey in transMap.items():
@@ -105,12 +105,9 @@ class CameraInfo(object):
                         del dataId[c]
                 else:
                     raise KeyError, "Can't map "+",".join(cKey)+" to "+sKey+". "+str(dataId)
-                
 
         return dataId
 
-        
-        
     def dataIdStandardToCamera(self, dataIdIn):
         """ Convert an input dataId (visit,raft,sensor) to use key,value pairs for this specific camera. """
 
@@ -125,10 +122,10 @@ class CameraInfo(object):
                 # it may be a simple string
                 if isinstance(outKey, str):
                     dataId[outKey] = dataId[inKey]
-                    
+
                 # or it may be a list e.g. visit might be coded ('-' sep.) to map to run-frame
                 elif isinstance(outKey, list):
-                    
+
                     # value for inKey must be '-' joined or '.*'
                     if dataId[inKey] == '.*':
                         dataId[inKey] = '-'.join(['.*']*len(outKey))
@@ -138,13 +135,13 @@ class CameraInfo(object):
 
                     # inValues must have the same number of values as outKey
                     if len(inValues) != len(outKey):
-                        raise IndexError, "Can't map %s.  %d keys != %d values" % (inKey, len(outKey), len(inValues))
+                        raise IndexError, "Can't map %s.  %d keys != %d values" % (
+                            inKey, len(outKey), len(inValues))
                     for i in range(len(outKey)):
                         dataId[outKey[i]] = inValues[i]
-                        
+
                 del dataId[inKey]
         return dataId
-
 
     def setDataId(self, dataId, key, value):
         if dataId.has_key(key):
@@ -160,21 +157,20 @@ class CameraInfo(object):
 
                 values = value.split("-")
                 if len(values) != len(cKey):
-                    raise IndexError, "Number of values and keys don't match: "+ str(cKey)+" "+str(values)
+                    raise IndexError, "Number of values and keys don't match: " + str(cKey)+" "+str(values)
 
                 for i in range(len(cKey)):
                     dataId[cKey[i]] = values[i]
-                    
-        
+
     def getDetectorName(self, raft, ccd):
         ccdId = self.detectors[ccd].getId()
         name = re.sub("\s+", "_", ccdId.getName())
         serial = "%04d" % (ccdId.getSerial())
         return name + "--" + serial
-                
+
     def getRoots(self, data, calib, output):
         """Store data directories in a dictionary
-        
+
         @param data    Input directory containing registry.sqlite file
         @param calib   Input calibration directory containing calibRegistry.sqlite file
         @param output  Output directory
@@ -183,31 +179,29 @@ class CameraInfo(object):
 
     def getRegistries(self, baseDir):
         """Given a directory, get the registry files for this data set.
-        
+
         @param baseDir  Directory wherein lives the registry
         """
         roots = self.getRoots(baseDir)
-        registry      = os.path.join(roots['data'], "registry.sqlite3")
+        registry = os.path.join(roots['data'], "registry.sqlite3")
         calibRegistry = os.path.join(roots['calib'], "calibRegistry.sqlite3")
         return registry, calibRegistry
 
-        
     def verifyRegistries(self, baseDir):
         """Verify that registry.sqlite files exist in the specified directory
 
         @param baseDir  Directory to check for registries.
         """
-        
+
         registry, calibRegistry = self.getRegistries(baseDir)
         haveReg = os.path.exists(registry)
         haveCalib = os.path.exists(calibRegistry)
-        #print self.name, registry, calibRegistry, haveReg, haveCalib
+        # print self.name, registry, calibRegistry, haveReg, haveCalib
         return haveReg and haveCalib
-
 
     def __str__(self):
         return self.name
-    
+
     # some butler's use a 'rerun', others don't ... base class should default to None
     def getDefaultRerun(self):
         """Get our rerun."""
@@ -216,7 +210,6 @@ class CameraInfo(object):
     def getSensorCount(self):
         """Get the number of sensors (ie. ccds) for this camera."""
         return self.nSensor
-                
 
     def raftKeyToName(self, raft):
         for r in self.rafts.keys():
@@ -239,51 +232,44 @@ class CameraInfo(object):
         ccdName = raftName + " S:"+str(dataId[self.dataIdTranslationMap['sensor']])
         return raftName, ccdName
 
-
     def getSensorName(self, raft, ccd):
         ccdName = raftName + " S:"+str(rowDict[self.cameraInfo.standardToDbName('sensor')])
         pass
-    
+
     def getBbox(self, raftName, ccdName):
 
         rxc, ryc = 0.0, 0.0
         if self.rafts.has_key(raftName):
             raft = self.rafts[raftName]
             # NOTE: all ccd coords are w.r.t. the *center* of the raft, not its LLC
-            rxc     = raft.getCenterPixel().getX()
-            ryc     = raft.getCenterPixel().getY()
+            rxc = raft.getCenterPixel().getX()
+            ryc = raft.getCenterPixel().getY()
 
-        ccd   = self.sensors[ccdName]
-        cxc     = ccd.getCenterPixel().getX()
-        cyc     = ccd.getCenterPixel().getY()
-        orient  = ccd.getOrientation()
-        nQuart  = ccd.getOrientation().getNQuarter()
-        yaw     = orient.getYaw()
+        ccd = self.sensors[ccdName]
+        cxc = ccd.getCenterPixel().getX()
+        cyc = ccd.getCenterPixel().getY()
+        orient = ccd.getOrientation()
+        nQuart = ccd.getOrientation().getNQuarter()
+        yaw = orient.getYaw()
 
-        cbbox   = ccd.getAllPixels(True)
-        cwidth  = cbbox.getMaxX() - cbbox.getMinX()
+        cbbox = ccd.getAllPixels(True)
+        cwidth = cbbox.getMaxX() - cbbox.getMinX()
         cheight = cbbox.getMaxY() - cbbox.getMinY()
         if abs(yaw.asRadians() - numpy.pi/2.0) < 1.0e-3:  # nQuart == 1 or nQuart == 3:
             ctmp = cwidth
             cwidth = cheight
             cheight = ctmp
 
-        cx0     = rxc + cxc - cwidth/2
-        cy0     = ryc + cyc - cheight/2
-        cx1     = cx0 + cwidth
-        cy1     = cy0 + cheight
+        cx0 = rxc + cxc - cwidth/2
+        cy0 = ryc + cyc - cheight/2
+        cx1 = cx0 + cwidth
+        cy1 = cy0 + cheight
 
         return [cx0, cy0, cx1, cy1]
 
-    
-
-
-
 
 ####################################################################
-####################################################################    
-
-
+####################################################################
 
 
 ####################################################################
@@ -292,38 +278,38 @@ class CameraInfo(object):
 #
 ####################################################################
 class LsstSimCameraInfo(CameraInfo):
-    
+
     def __init__(self):
         """ """
         try:
-            import lsst.obs.lsstSim           as obsLsst
+            import lsst.obs.lsstSim as obsLsst
             mapper = obsLsst.LsstSimMapper
         except Exception, e:
             print "Failed to import lsst.obs.lsstSim", e
             mapper = None
-        dataInfo       = [['visit',1], ['snap', 0], ['raft',0], ['sensor',0]]
+        dataInfo = [['visit', 1], ['snap', 0], ['raft', 0], ['sensor', 0]]
 
         #simdir        = eups.productDir("obs_lsstSim")
         if os.environ.has_key('OBS_LSSTSIM_DIR'):
-            simdir        = os.environ['OBS_LSSTSIM_DIR']
+            simdir = os.environ['OBS_LSSTSIM_DIR']
             cameraGeomPaf = os.path.join(simdir, "description", "Full_STA_geom.paf")
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+            camera = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
             camera = None
-        
+
         CameraInfo.__init__(self, "lsstSim", dataInfo, mapper, camera)
 
         self.doLabel = False
 
         self.dataIdTranslationMap = {
             # input  : return
-            'visit'  : 'visit',
-            'snap'   : 'snap',
-            'raft'   : 'raft',
-            'sensor'    : 'sensor',
-            }
-        
+            'visit': 'visit',
+            'snap': 'snap',
+            'raft': 'raft',
+            'sensor': 'sensor',
+        }
+
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
@@ -360,28 +346,31 @@ class LsstSimCameraInfo(CameraInfo):
 # CfhtCameraInfo class
 #
 ####################################################################
+
+
 class CfhtCameraInfo(CameraInfo):
+
     def __init__(self):
         try:
-            import lsst.obs.cfht              as obsCfht
+            import lsst.obs.cfht as obsCfht
             mapper = obsCfht.CfhtMapper
         except Exception, e:
             print "Failed to import lsst.obs.cfht", e
             mapper = None
-        dataInfo       = [['visit',1], ['ccd', 0]]
-        
+        dataInfo = [['visit', 1], ['ccd', 0]]
+
         #simdir        = eups.productDir("obs_cfht")
         if os.environ.has_key('OBS_CFHT_DIR'):
-            simdir         = os.environ['OBS_CFHT_DIR']
+            simdir = os.environ['OBS_CFHT_DIR']
             cameraGeomPaf = os.path.join(simdir, "megacam", "description", "Full_Megacam_geom.paf")
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+            camera = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
             camera = None
 
         CameraInfo.__init__(self, "cfht", dataInfo, mapper, camera)
         self.doLabel = True
-        
+
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
@@ -392,10 +381,9 @@ class CfhtCameraInfo(CameraInfo):
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, os.path.join(baseDir, "calib"), baseDir)
 
-
     def getMapper(self, baseDir, rerun=None):
         """Get a mapper for data in specified directory
-        
+
         @param baseDir  Directory where the registry files are to be found.
         @param rerun    The rerun of the data we want
         """
@@ -410,35 +398,35 @@ class CfhtCameraInfo(CameraInfo):
 #
 ####################################################################
 class HscCameraInfo(CameraInfo):
-    
+
     def __init__(self):
         """ """
         try:
-            import lsst.obs.hscSim            as obsHsc
+            import lsst.obs.hscSim as obsHsc
             mapper = obsHsc.HscSimMapper
         except Exception, e:
             print "Failed to import lsst.obs.hscSim", e
             print "  Did you setup obs_subaru?"
             mapper = None
-        dataInfo       = [['visit',1], ['ccd', 0]]
+        dataInfo = [['visit', 1], ['ccd', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SUBARU_DIR'):
-            simdir         = os.environ['OBS_SUBARU_DIR']
+            simdir = os.environ['OBS_SUBARU_DIR']
             cameraGeomPaf = os.path.join(simdir, "hscSim", "description", "hscSim_geom.paf")
             if not os.path.exists(cameraGeomPaf):
                 cameraGeomPaf = os.path.join(simdir, "hscSim", "hscSim_geom.paf")
                 if not os.path.exists(cameraGeomPaf):
                     raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+            camera = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
             camera = None
-            
+
         CameraInfo.__init__(self, "hscSim", dataInfo, mapper, camera)
 
         self.doLabel = False
-        
+
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
@@ -451,7 +439,6 @@ class HscCameraInfo(CameraInfo):
 
     def getDefaultRerun(self):
         return "pipeQA"
-    
 
     def getMapper(self, baseDir, rerun=None):
         """Get a mapper for data in specified directory
@@ -459,7 +446,7 @@ class HscCameraInfo(CameraInfo):
         @param baseDir  Directory where the registry files are to be found.
         @param rerun    The rerun of the data we want
         """
-       
+
         roots = self.getRoots(baseDir)
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(rerun=rerun, root=roots['output'], calibRoot=roots['calib'],
@@ -472,33 +459,34 @@ class HscCameraInfo(CameraInfo):
 #
 ####################################################################
 class SuprimecamCameraInfo(CameraInfo):
+
     def __init__(self, mit=False):
         try:
-            import lsst.obs.suprimecam        as obsSuprimecam
+            import lsst.obs.suprimecam as obsSuprimecam
             mapper = obsSuprimecam.SuprimecamMapper
         except Exception, e:
             print "Failed to import lsst.obs.suprimecam", e
             mapper = None
-        dataInfo       = [['visit',1], ['ccd', 0]]
+        dataInfo = [['visit', 1], ['ccd', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SUBARU_DIR'):
-            simdir         = os.environ['OBS_SUBARU_DIR']
+            simdir = os.environ['OBS_SUBARU_DIR']
             cameraGeomPaf = os.path.join(simdir, "suprimecam", "description", "Full_Suprimecam_geom.paf")
             if not os.path.exists(cameraGeomPaf):
                 cameraGeomPaf = os.path.join(simdir, "suprimecam", "Full_Suprimecam_geom.paf")
                 if not os.path.exists(cameraGeomPaf):
                     raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
             cameraGeomPolicy = cameraGeomUtils.getGeomPolicy(cameraGeomPaf)
-            camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
+            camera = cameraGeomUtils.makeCamera(cameraGeomPolicy)
         else:
-            camera           = None
+            camera = None
 
         CameraInfo.__init__(self, "suprimecam", dataInfo, mapper, camera)
 
         self.doLabel = True
         self.mit = mit
-        
+
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
@@ -513,7 +501,6 @@ class SuprimecamCameraInfo(CameraInfo):
 
     def getDefaultRerun(self):
         return "pipeQA"
-    
 
     def getMapper(self, baseDir, rerun=None):
         """Get a mapper for data in specified directory
@@ -526,8 +513,6 @@ class SuprimecamCameraInfo(CameraInfo):
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(rerun=rerun, mit=self.mit, root=roots['output'],
                                 calibRoot=roots['calib'], registry=registry)
-    
-
 
 
 ####################################################################
@@ -536,9 +521,10 @@ class SuprimecamCameraInfo(CameraInfo):
 #
 ####################################################################
 class SdssCameraInfo(CameraInfo):
+
     def __init__(self):
         try:
-            import lsst.obs.sdss        as obsSdss
+            import lsst.obs.sdss as obsSdss
             mapper = obsSdss.SdssMapper
         except Exception, e:
             print "Failed to import lsst.obs.sdss", e
@@ -546,15 +532,15 @@ class SdssCameraInfo(CameraInfo):
 
         messingWithNames = True
         if messingWithNames:
-            dataInfo       = [['run', 1], ['filter', 0], ['field',1], ['camcol', 0]]
+            dataInfo = [['run', 1], ['filter', 0], ['field', 1], ['camcol', 0]]
         else:
-            dataInfo       = [['run', 1], ['band', 0], ['frame',1], ['camcol', 0]]
+            dataInfo = [['run', 1], ['band', 0], ['frame', 1], ['camcol', 0]]
 
         #simdir        = eups.productDir("obs_subaru")
         if os.environ.has_key('OBS_SDSS_DIR'):
-            simdir         = os.environ['OBS_SDSS_DIR']
+            simdir = os.environ['OBS_SDSS_DIR']
             #cameraGeomPaf = os.path.join(simdir, "sdss", "description", "Full_Suprimecam_geom.paf")
-            #if not os.path.exists(cameraGeomPaf):
+            # if not os.path.exists(cameraGeomPaf):
             #    cameraGeomPaf = os.path.join(simdir, "sdss", "Full_Sdss_geom.paf")
             #    if not os.path.exists(cameraGeomPaf):
             #        raise Exception("Unable to find cameraGeom Policy file: %s" % (cameraGeomPaf))
@@ -562,47 +548,45 @@ class SdssCameraInfo(CameraInfo):
             #camera           = cameraGeomUtils.makeCamera(cameraGeomPolicy)
             camera = obsSdss.makeCamera.makeCamera(name='SDSS')
         else:
-            camera           = None
+            camera = None
 
         CameraInfo.__init__(self, "sdss", dataInfo, mapper, camera)
         self.rawName = "fpC"
-        
+
         self.doLabel = True
 
         if messingWithNames:
             self.dataIdTranslationMap = {
-                'visit' : ['run', 'field'],
-                'raft'  : 'camcol',
-                'sensor'   : 'filter',
-                }
+                'visit': ['run', 'field'],
+                'raft': 'camcol',
+                'sensor': 'filter',
+            }
 
             self.dataIdDbNames = {
-                'run' : 'run',
-                'field' : 'field',
-                'camcol' : 'camcol',
-                'filter'   : 'filterName',
-                }
+                'run': 'run',
+                'field': 'field',
+                'camcol': 'camcol',
+                'filter': 'filterName',
+            }
         else:
             self.dataIdTranslationMap = {
-                'visit' : ['run', 'frame'],
-                'raft'  : 'camcol',
-                'sensor'   : 'band',
-                }
+                'visit': ['run', 'frame'],
+                'raft': 'camcol',
+                'sensor': 'band',
+            }
 
             self.dataIdDbNames = {
-                'run' : 'run',
-                'frame' : 'frame',
-                'camcol' : 'camcol',
-                'band'   : 'filterName',
-                }
-            
+                'run': 'run',
+                'frame': 'frame',
+                'camcol': 'camcol',
+                'band': 'filterName',
+            }
 
     def getRaftAndSensorNames(self, dataId):
         raftName = str(dataId[self.dataIdTranslationMap['raft']])
-        ccdName =  str(dataId[self.dataIdTranslationMap['sensor']]) + raftName
+        ccdName = str(dataId[self.dataIdTranslationMap['sensor']]) + raftName
         return raftName, ccdName
 
-    
     def getRoots(self, baseDir, output=None):
         """Get data directories in a dictionary
 
@@ -612,8 +596,6 @@ class SdssCameraInfo(CameraInfo):
         if output is not None:
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
-
-        
 
     def verifyRegistries(self, baseDir):
         """Verify that registry.sqlite files exist in the specified directory
@@ -625,11 +607,8 @@ class SdssCameraInfo(CameraInfo):
         #calibRegistry = os.path.join(roots['data'], "registry.sqlite3")
         return os.path.exists(registry)
 
-
-    
     def getDefaultRerun(self):
         return "pipeQA"
-    
 
     def getMapper(self, baseDir, rerun=None):
         """Get a mapper for data in specified directory
@@ -642,9 +621,6 @@ class SdssCameraInfo(CameraInfo):
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(root=roots['output'],
                                 calibRoot=roots['calib'], registry=registry)
-    
-
-
 
 
 ####################################################################
@@ -666,70 +642,70 @@ class CoaddCameraInfo(CameraInfo):
             print "Failed to import lsst.obs.lsstSim", e
             mapper = None
 
-
-        dataInfo       = [['tract', 1], ['patch', 1], ['filterName', 1]]
-        camera         = [] # Empty until we get an idea of the skymap footprint
+        dataInfo = [['tract', 1], ['patch', 1], ['filterName', 1]]
+        camera = []  # Empty until we get an idea of the skymap footprint
 
         CameraInfo.__init__(self, "coadd", dataInfo, mapper, camera)
-        
+
         self.doLabel = False
 
         self.dataIdTranslationMap = {
-            'visit'    : ['tract','filterName'],
-            'raft'     : None,
-            'sensor'   : 'patch',
-            }
+            'visit': ['tract', 'filterName'],
+            'raft': None,
+            'sensor': 'patch',
+        }
 
         self.dataIdDbNames = {
-            'patch' : 'patch',
-            'tract' : 'tract',
-            'filterName' : 'filterName',
-            }
-            
+            'patch': 'patch',
+            'tract': 'tract',
+            'filterName': 'filterName',
+        }
+
     def skyMapToCamera(self, dataIds):
         """Make a minimal camera based on the skymap; ONLY DESIGNED TO WORK WITH 1 TRACT (sorry, future developer)"""
         tracts = set(x["tract"] for x in dataIds)
         assert(len(tracts) == 1)
         self.tract = tracts.pop()
 
-        cols   = set([x["patch"][0] for x in dataIds]) # x
-        rows   = set([x["patch"][1] for x in dataIds]) # y
-        col0   = min(cols)
-        row0   = min(rows)
-        ncols  = max(cols) - col0 + 1
-        nrows  = max(rows) - row0 + 1
+        cols = set([x["patch"][0] for x in dataIds])  # x
+        rows = set([x["patch"][1] for x in dataIds])  # y
+        col0 = min(cols)
+        row0 = min(rows)
+        ncols = max(cols) - col0 + 1
+        nrows = max(rows) - row0 + 1
 
         origBBox = afwGeom.Box2I()
 
         raftId = cameraGeom.Id(0, str(self.tract))
-        raft   = cameraGeom.Raft(raftId, ncols, nrows)
+        raft = cameraGeom.Raft(raftId, ncols, nrows)
         for nId, dataId in enumerate(dataIds):
             patch = self.skyMap[self.tract].getPatchInfo(dataId["patch"])
             detId = cameraGeom.Id(nId, "%d-%d,%d" % (self.tract, patch.getIndex()[0], patch.getIndex()[1]))
-            bbox  = patch.getInnerBBox() # outer bbox overlaps, inner doesn't
+            bbox = patch.getInnerBBox()  # outer bbox overlaps, inner doesn't
             origBBox.include(bbox)       # capture the full extent of the skymap
-            bbox.shift(-afwGeom.Extent2I(bbox.getBegin())) # need the bbox to be w.r.t. the raft coord system; i.e. 0
-            ccd   = cameraGeomUtils.makeDefaultCcd(bbox, detId=detId) 
+            # need the bbox to be w.r.t. the raft coord system; i.e. 0
+            bbox.shift(-afwGeom.Extent2I(bbox.getBegin()))
+            ccd = cameraGeomUtils.makeDefaultCcd(bbox, detId=detId)
 
-            col   = patch.getIndex()[0] - col0
-            row   = patch.getIndex()[1] - row0
+            col = patch.getIndex()[0] - col0
+            row = patch.getIndex()[1] - row0
 
-            xc    = bbox.getBeginX() + 0.5 * bbox.getWidth()
-            yc    = bbox.getBeginY() + 0.5 * bbox.getHeight()
+            xc = bbox.getBeginX() + 0.5 * bbox.getWidth()
+            yc = bbox.getBeginY() + 0.5 * bbox.getHeight()
 
-            raft.addDetector(afwGeom.Point2I(col, row), 
+            raft.addDetector(afwGeom.Point2I(col, row),
                              cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)),
                              cameraGeom.Orientation(),
                              ccd)
 
-        raftBbox  = raft.getAllPixels()
-        xc        = origBBox.getBeginX() + 0.5 * origBBox.getWidth()
-        yc        = origBBox.getBeginY() + 0.5 * origBBox.getHeight()
+        raftBbox = raft.getAllPixels()
+        xc = origBBox.getBeginX() + 0.5 * origBBox.getWidth()
+        yc = origBBox.getBeginY() + 0.5 * origBBox.getHeight()
         cameraId = cameraGeom.Id(0, "Skymap")
         camera = cameraGeom.Camera(cameraId, 1, 1)
         camera.addDetector(afwGeom.Point2I(0, 0),
-                           cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)), 
-                           cameraGeom.Orientation(), raft) 
+                           cameraGeom.FpPoint(afwGeom.Point2D(xc, yc)),
+                           cameraGeom.Orientation(), raft)
 
         self.camera = camera
         # Now, redo the assignments in __init__
@@ -750,9 +726,9 @@ class CoaddCameraInfo(CameraInfo):
         self.dataIdTranslationMap['visit'] = ['tract', 'patch']
         del self.dataIdDbNames['filterName']
         self.dataInfo = self.dataInfo[0:2]
-        
+
     def getRaftAndSensorNames(self, dataId):
-        ccdName =  str(dataId['tract']) + '-' + str(dataId['patch'])
+        ccdName = str(dataId['tract']) + '-' + str(dataId['patch'])
         return None, ccdName
 
     def getRoots(self, baseDir, output=None):
@@ -765,8 +741,6 @@ class CoaddCameraInfo(CameraInfo):
             baseOut = output
         return CameraInfo.getRoots(self, baseDir, baseDir, baseOut)
 
-        
-
     def verifyRegistries(self, baseDir):
         """Verify that registry.sqlite files exist in the specified directory
 
@@ -777,11 +751,8 @@ class CoaddCameraInfo(CameraInfo):
         #calibRegistry = os.path.join(roots['data'], "registry.sqlite3")
         return os.path.exists(registry)
 
-
-    
     def getDefaultRerun(self):
         return "pipeQA"
-    
 
     def getMapper(self, baseDir, rerun=None):
         """Get a mapper for data in specified directory
@@ -794,16 +765,11 @@ class CoaddCameraInfo(CameraInfo):
         registry, calibRegistry = self.getRegistries(baseDir)
         return self.mapperClass(root=roots['output'],
                                 calibRoot=roots['calib'], registry=registry)
-    
 
-    
-
-    
-    
 
 def getCameraInfoAvailable():
     """Get a list of available CameraInfo objects."""
-    
+
     available = []
 
     def tryLoad(cameraInfo):
@@ -817,14 +783,14 @@ def getCameraInfoAvailable():
         SdssCameraInfo,
         CoaddCameraInfo,
         LsstSimCameraInfo,
-        #CfhtCameraInfo,
+        # CfhtCameraInfo,
         HscCameraInfo,
         SuprimecamCameraInfo,
-        ]
+    ]
 
     for camInfo in all:
         if tryLoad(camInfo):
             available.append(camInfo())
 
     return available
-    
+

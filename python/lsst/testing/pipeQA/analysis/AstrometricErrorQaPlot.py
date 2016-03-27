@@ -8,12 +8,13 @@ import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 from matplotlib import colors
 import matplotlib.font_manager as fm
-from  matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 
 #import lsst.testing.pipeQA.figures.QaFigureUtils as qaFigUtil
 import QaPlotUtils as qaPlotUtil
+
 
 def plot(data):
 
@@ -24,22 +25,19 @@ def plot(data):
     limits = data['limits']
     gridVectors = data['gridVectors']
 
-
     xlo, xhi, ylo, yhi = limits
     xwid, ywid = xhi - xlo, yhi - ylo
-
 
     if not gridVectors:
         xbLo, xbHi, ybLo, ybHi = data['bbox']
         x -= xbLo
         y -= ybLo
 
+    # print x
+    # print y
+    # print limits
+    # print data['bbox']
 
-    #print x
-    #print y
-    #print limits
-    #print data['bbox']
-    
     #
     figsize = (6.5, 3.25)
     conv = colors.ColorConverter()
@@ -54,7 +52,6 @@ def plot(data):
         dx = numpy.array([0.0])
         dy = numpy.array([0.0])
 
-
     if len(x) > 1:
         xlim = xlo, xhi
         ylim = ylo, yhi
@@ -68,11 +65,11 @@ def plot(data):
 
     xmin, xmax = xlim
     ymin, ymax = ylim
-        
-    #print x, y
-    #print xmin, ymin
+
+    # print x, y
+    # print xmin, ymin
     r = numpy.sqrt(dx**2 + dy**2)
-    rmax = 1.2 # r.max()
+    rmax = 1.2  # r.max()
 
     fig = figure.Figure(figsize=figsize)
     canvas = FigCanvas(fig)
@@ -89,9 +86,9 @@ def plot(data):
         nx, ny = 8, 8
         xstep, ystep = (xlim[1]-xlim[0])/nx, (ylim[1]-ylim[0])/ny
         if xstep == 0:
-            xstep = 1.0;
+            xstep = 1.0
         if ystep == 0:
-            ystep = 1.0;
+            ystep = 1.0
 
         xgrid = [[0.0]*nx for i in range(ny)]
         ygrid = [[0.0]*nx for i in range(ny)]
@@ -103,7 +100,7 @@ def plot(data):
                 ygrid[ix][iy] += dy[i]
                 ngrid[ix][iy] += 1
 
-        xt, yt, dxt, dyt, nt = [],[],[],[],[]
+        xt, yt, dxt, dyt, nt = [], [], [], [], []
         for ix in range(nx):
             for iy in range(ny):
                 xt.append(xstep*(ix+0.5))
@@ -118,12 +115,12 @@ def plot(data):
                     dxt.append(0.0)
                     dyt.append(0.0)
 
-        #for i in range(len(xt)):
+        # for i in range(len(xt)):
         #    print xt[i], yt[i], dxt[i], dyt[i]
         q = ax.quiver(numpy.array(xt), numpy.array(yt), numpy.array(dxt), numpy.array(dyt),
                       color='k', scale=1.0, angles='xy', pivot='middle', width=0.004)
         ax.quiverkey(q, 0.9, -0.2, 0.1, "100 mas", coordinates='axes',
-                     fontproperties={'size':'small'})
+                     fontproperties={'size': 'small'})
         for i in range(len(xt)):
             ax.text(xt[i]+0.1*xstep, yt[i]+0.1*ystep, nt[i], size=5)
         xlim = [0.0, xlim[1] - xlim[0]]
@@ -132,7 +129,7 @@ def plot(data):
         ax.scatter(x, y, 0.5, color='r')
         q = ax.quiver(x, y, dx, dy, color='k', scale=10.0, angles='xy')
         ax.quiverkey(q, 0.9, -0.2, 1.0, "1 arcsec", coordinates='axes',
-                     fontproperties={'size':"small"})
+                     fontproperties={'size': "small"})
 
     ax.xaxis.set_major_locator(MaxNLocator(8))
     ax.yaxis.set_major_locator(MaxNLocator(8))
@@ -144,7 +141,6 @@ def plot(data):
     for tic in ax.get_xticklabels() + ax.get_yticklabels():
         tic.set_size("x-small")
 
-
     ################
     # rose view
     xmargin = 0.07
@@ -153,19 +149,19 @@ def plot(data):
     left, bottom, width, height = 0.5+spacer, 0.35+spacer, 0.5-2*xmargin, 0.65-ymargin-spacer
     ax = fig.add_axes([left, bottom, width, height])
 
-    #get the figure width/heigh in inches to correct
-    #aspect ratio
+    # get the figure width/heigh in inches to correct
+    # aspect ratio
     f_w, f_h = fig.get_size_inches()
     xlimRose = [-width*f_w/(height*f_h)*rmax, f_w*width/(f_h*height)*rmax]
     limRose = [-rmax, rmax]
     # this is much faster than calling plot() in a loop, and quiver() scale length buggy
     if gridVectors:
         ybin = 50
-        xbin = 50 #int(1.0*ybin*f_w*width/(f_h*height))
-        qaPlotUtil.make_densityplot(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
-                                   log=True)
-        qaPlotUtil.make_densityContour(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin,ybin),
-                                      log=True, percentiles=True, normed=False, levels=[0.5])
+        xbin = 50  # int(1.0*ybin*f_w*width/(f_h*height))
+        qaPlotUtil.make_densityplot(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin, ybin),
+                                    log=True)
+        qaPlotUtil.make_densityContour(ax, dx, dy, xlims=limRose, ylims=limRose, bins=(xbin, ybin),
+                                       log=True, percentiles=True, normed=False, levels=[0.5])
         c0 = Circle((0.0, 0.0), radius=0.0, facecolor='none', edgecolor=green, zorder=3, label="50%")
         ax.vlines(0.0, limRose[0], limRose[1], linestyle='dashed')
         ax.hlines(0.0, xlimRose[0], xlimRose[1], linestyle='dashed')
@@ -177,7 +173,7 @@ def plot(data):
         lines = zip(xy1, xy2)
         p = LineCollection(lines, colors=red*len(lines), zorder=1, label="_nolegend_")
         ax.add_collection(p)
-        ax.scatter(dx, dy, s=0.05, color='k', zorder=2,label="_nolegend_")
+        ax.scatter(dx, dy, s=0.05, color='k', zorder=2, label="_nolegend_")
 
         #r = numpy.sqrt(dx**2 + dy**2)
         #rmax = r.max()
@@ -189,7 +185,6 @@ def plot(data):
 
         ax.vlines(0.0, limRose[0], limRose[1], linestyle='dashed')
         ax.hlines(0.0, xlimRose[0], xlimRose[1], linestyle='dashed')
-
 
     fp = fm.FontProperties(size="xx-small")
     ax.legend(prop=fp)
@@ -205,7 +200,6 @@ def plot(data):
     ax.set_ylim(limRose)
     for tic in ax.get_xticklabels() + ax.get_yticklabels():
         tic.set_size("x-small")
-
 
     ################
     # hist view
@@ -230,7 +224,6 @@ def plot(data):
         ax0.text(1.2*rmed, 0.5*(histMed+1.2*rNmax), "median",
                  verticalalignment="center", color='k', size='x-small')
 
-
     ax0.yaxis.set_ticks_position('right')
     ax0.yaxis.set_label_position('right')
 
@@ -239,14 +232,10 @@ def plot(data):
     ax0.set_xlim([0, 0.9*rmax])
     ax0.set_ylim([0, 1.4*rNmax])
 
-
-
-    for tic in ax0.get_xticklabels() + ax0.get_yticklabels(): # + ax.get_xticklabels():
+    for tic in ax0.get_xticklabels() + ax0.get_yticklabels():  # + ax.get_xticklabels():
         tic.set_size("xx-small")
 
-
     return fig
-
 
 
 if __name__ == '__main__':

@@ -1,6 +1,9 @@
-import sys, os, re
+import sys
+import os
+import re
 import numpy
 import lsst.afw.math as afwMath
+
 
 class RaftCcdData(object):
 
@@ -9,7 +12,7 @@ class RaftCcdData(object):
         self.data = {}
         self.keys = []
         self.reset(initValue)
-        
+
         self.cache = None
 
     def raftCcdKeys(self):
@@ -18,7 +21,6 @@ class RaftCcdData(object):
             for ccd in sorted(self.data[raft].keys()):
                 keyList.append([raft, ccd])
         return keyList
-        
 
     def listKeysAndValues(self):
         kvList = []
@@ -26,7 +28,6 @@ class RaftCcdData(object):
             for ccd in sorted(self.data[raft].keys()):
                 kvList.append([raft, ccd, self.data[raft][ccd]])
         return kvList
-
 
     def reset(self, value=0.0):
         for key, detector in self.detector.items():
@@ -44,6 +45,7 @@ class RaftCcdData(object):
 
     def set(self, raft, ccd, value):
         self.data[raft][ccd] = value
+
     def get(self, raft, ccd, default=None):
         if self.data.has_key(raft) and self.data[raft].has_key(ccd):
             return self.data[raft][ccd]
@@ -67,8 +69,7 @@ class RaftCcdData(object):
         else:
             value = default
         return value
-    
-        
+
 
 class RaftCcdVector(RaftCcdData):
 
@@ -85,7 +86,7 @@ class RaftCcdVector(RaftCcdData):
 
                 # otherwise reduce the list to a number: eg. mean, std, median
                 else:
-                    finite = numpy.where( numpy.isfinite(self.data[raft][ccd]) )
+                    finite = numpy.where(numpy.isfinite(self.data[raft][ccd]))
                     dtmp = self.data[raft][ccd][finite]
                     if nHighest is not None:
                         dtmp.sort()
@@ -103,17 +104,16 @@ class RaftCcdVector(RaftCcdData):
                 kvList.append([raft, ccd, value])
         return kvList
 
-
     def listKeysAndValues(self, methodName=None, nHighest=None, nLowest=None, limits=None):
 
         methods = {
-            "median" : afwMath.MEDIAN,
-            "meanclip" : afwMath.MEANCLIP,
-            "stdevclip" : afwMath.STDEVCLIP,
-            "mean" : afwMath.MEAN,
-            "stdev" : afwMath.STDEV,
-            }
-        
+            "median": afwMath.MEDIAN,
+            "meanclip": afwMath.MEANCLIP,
+            "stdevclip": afwMath.STDEVCLIP,
+            "mean": afwMath.MEAN,
+            "stdev": afwMath.STDEV,
+        }
+
         kvList = []
         for raft in sorted(self.data.keys()):
             for ccd in sorted(self.data[raft].keys()):
@@ -124,20 +124,19 @@ class RaftCcdVector(RaftCcdData):
                 if (nLowest is not None) and (nHighest is None):
                     dtmp.sort()
                     dtmp = dtmp[0:nLowest]
-                    
+
                 if limits is not None:
                     lo, hi = limits
-                    w = numpy.where( (dtmp > lo) & (dtmp < hi) )
+                    w = numpy.where((dtmp > lo) & (dtmp < hi))
                     dtmp = dtmp[w]
-                    
+
                 stat = afwMath.makeStatistics(dtmp, afwMath.NPOINT | methods[methodName])
                 value = stat.getValue(methods[methodName])
                 n = stat.getValue(afwMath.NPOINT)
                 kvList.append([raft, ccd, value, n])
-                
+
         return kvList
 
-        
     def reset(self, initValue=numpy.array([])):
         RaftCcdData.reset(self, initValue)
 

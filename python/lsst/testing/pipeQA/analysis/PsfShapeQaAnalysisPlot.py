@@ -8,13 +8,14 @@ import matplotlib.figure as figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigCanvas
 from matplotlib import colors
 import matplotlib.font_manager as fm
-from  matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle
 import matplotlib.cm as cm
 
 
 import QaPlotUtils as qaPlotUtil
+
 
 def plot(data):
 
@@ -30,52 +31,49 @@ def plot(data):
     vlim = data['vlim']
     fwhm = data['fwhm']
 
-
     if not summary:
         xbLo, xbHi, ybLo, ybHi = data['bbox']
         x -= xbLo
         y -= ybLo
 
-    #print x, y
-    #print limits
-    #print data['bbox']
-    
+    # print x, y
+    # print limits
+    # print data['bbox']
+
     norm = colors.Normalize(vmin=vlim[0], vmax=vlim[1])
     sm = cm.ScalarMappable(norm, cmap=cm.jet)
-    
+
     figsize = (5.0, 4.0)
     xlo, xhi, ylo, yhi = limits
 
     if len(x) == 0:
-        x     = numpy.array([0.0])
-        y     = numpy.array([0.0])
-        dx    = numpy.array([0.0])
-        dy    = numpy.array([0.0])
+        x = numpy.array([0.0])
+        y = numpy.array([0.0])
+        dx = numpy.array([0.0])
+        dy = numpy.array([0.0])
         color = numpy.array((0.0, 0.0, 0.0))
 
     #xmax, ymax = x.max(), y.max()
-    xlim = [xlo, xhi] #[0, 1024*int(xmax/1024.0 + 0.5)]
-    ylim = [ylo, yhi] #[0, 1024*int(ymax/1024.0 + 0.5)]
+    xlim = [xlo, xhi]  # [0, 1024*int(xmax/1024.0 + 0.5)]
+    ylim = [ylo, yhi]  # [0, 1024*int(ymax/1024.0 + 0.5)]
 
     fig = figure.Figure(figsize=figsize)
     canvas = FigCanvas(fig)
-    
+
     fig.subplots_adjust(left=0.15, bottom=0.15)
     ax = fig.add_subplot(111)
-
-
 
     if summary:
         vmin, vmax = sm.get_clim()
         color = fwhm
         q = ax.quiver(x, y, vLen*dx, vLen*dy, color=sm.to_rgba(color),
                       scale=2.0*vLen, angles='xy', pivot='middle',
-                      headlength=1.0, headwidth=1.0, width=0.002) 
+                      headlength=1.0, headwidth=1.0, width=0.002)
         ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
-                     fontproperties={'size':"small"}, labelpos='E', color='k')
+                     fontproperties={'size': "small"}, labelpos='E', color='k')
         q.set_array(color)
         try:
-            cb = fig.colorbar(q) #, ax)
+            cb = fig.colorbar(q)  # , ax)
             cb.ax.set_xlabel("FWHM$_{\mathrm{xc,yc}}$", size="small")
             cb.ax.xaxis.set_label_position('top')
             for tick in cb.ax.get_yticklabels():
@@ -87,10 +85,10 @@ def plot(data):
         q = ax.quiver(x, y, vLen*dx, vLen*dy, color=color, scale=2.0*vLen, angles='xy', pivot='middle',
                       headlength=1.0, headwidth=1.0, width=0.002)
         ax.quiverkey(q, 0.9, -0.12, 0.1*vLen, "e=0.1", coordinates='axes',
-                     fontproperties={'size':"small"}, labelpos='E', color='k')
+                     fontproperties={'size': "small"}, labelpos='E', color='k')
         ax.set_title("PSF Shape (FWHM$_{\mathrm{xc,yc}}$=%.2f)"%(fwhm[0]))
 
-    ax.set_xlabel("x [pixels]") #, position=(0.4, 0.0))
+    ax.set_xlabel("x [pixels]")  # , position=(0.4, 0.0))
 
     ax.set_ylabel("y [pixels]")
     ax.set_xlim(xlim)

@@ -1,4 +1,7 @@
-import sys, os, re
+import sys
+import os
+import re
+
 
 def makeFigure(data, dataId, dynaFig):
     moduleName = "lsst.testing.pipeQA.dynamic."+dynaFig

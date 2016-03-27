@@ -1,5 +1,7 @@
 import os
-import glob, re, shelve
+import glob
+import re
+import shelve
 import numpy
 
 from matplotlib.font_manager import FontProperties
@@ -13,7 +15,7 @@ def unshelveGlob(filename, testSet=None):
 
     if testSet:
         filename = os.path.join(testSet.wwwDir, filename)
-    
+
     data = {}
     n = 0
 
@@ -22,7 +24,7 @@ def unshelveGlob(filename, testSet=None):
         if re.search("-all", f):
             continue
         shelf = shelve.open(f+".shelve")
-        for k,v in shelf.items():
+        for k, v in shelf.items():
             if not data.has_key(k):
                 data[k] = v
             else:
@@ -32,16 +34,15 @@ def unshelveGlob(filename, testSet=None):
         n += 1
     isSummary = fsub != filename
     return data, isSummary
-    
 
 
 def binDistrib(x, y, dy, binSizeX = 0.5, minPts = 2):
-    bx  = []
-    bs  = []
-    by  = []
+    bx = []
+    bs = []
+    by = []
     bdy = []
 
-    bins  = num.arange(min(x) + binSizeX, max(x), binSizeX)
+    bins = num.arange(min(x) + binSizeX, max(x), binSizeX)
     for i in range(len(bins) - 1):
         idx = num.where((x >= bins[i]) & (x < bins[i+1]))
         if len(idx[0]) < minPts:
@@ -66,14 +67,14 @@ def binDistrib(x, y, dy, binSizeX = 0.5, minPts = 2):
 
 
 def plotSparseContour(sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
-    idx   = num.isfinite(x)
-    x     = x[idx]
-    y     = y[idx]
+    idx = num.isfinite(x)
+    x = x[idx]
+    y = y[idx]
 
-    xmin  = x.min()
-    xmax  = x.max()
-    ymin  = y.min()
-    ymax  = y.max()
+    xmin = x.min()
+    xmax = x.max()
+    ymin = y.min()
+    ymax = y.max()
     xbins = num.arange(xmin, xmax, binSizeX)
     ybins = num.arange(ymin, ymax, binSizeY)
 
@@ -83,11 +84,11 @@ def plotSparseContour(sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
         yidx = (y[i] - ymin) // binSizeY
         cdata[yidx][xidx] += 1
 
-    #if cdata.max() < minCont:
+    # if cdata.max() < minCont:
     #    minCont = 1
 
-    cs    = num.arange(minCont, cdata.max(), (cdata.max() - minCont) // nCont).astype(num.int)
-    c     = sp.contour(cdata, cs, origin='lower', linewidths=1, extent=(xmin,xmax,ymin,ymax))
+    cs = num.arange(minCont, cdata.max(), (cdata.max() - minCont) // nCont).astype(num.int)
+    c = sp.contour(cdata, cs, origin='lower', linewidths=1, extent=(xmin, xmax, ymin, ymax))
     outer = c.collections[0]._paths
 
     xp = []
@@ -100,30 +101,19 @@ def plotSparseContour(sp, x, y, binSizeX, binSizeY, minCont = 500, nCont = 7):
     sp.plot(xp, yp, 'r.', ms = 1)
 
 
-
-
-
-
-
-
 def qaSetp(ticklabels, **kwargs):
     for ticklabel in ticklabels:
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             methodName = "set_" + str(k)
             if hasattr(ticklabel, methodName):
                 method = getattr(ticklabel, methodName)
                 method(v)
 
 
-
-
-
-
-
-#get precentile levels for contour plot
-#uses a 'fill the bath tub method'
+# get precentile levels for contour plot
+# uses a 'fill the bath tub method'
 ##################################
-def getLevels(hist_data,percentile_list=[0.5]):
+def getLevels(hist_data, percentile_list=[0.5]):
     """
     returns levels from histogramed data for the pecentiles listed
     the method simply 'fills up' the contours until only the desired
@@ -134,13 +124,13 @@ def getLevels(hist_data,percentile_list=[0.5]):
     percentile list--list of desired percentiles, needs to be in
     """
 
-    #sort the list in ascending order
+    # sort the list in ascending order
     percentile_list = sorted(percentile_list)
-    
-    #levels
+
+    # levels
     levels = numpy.zeros(len(percentile_list))
 
-    #Normed histdata
+    # Normed histdata
     norm = numpy.sum(numpy.asarray(hist_data).flatten())
     nHist = sorted(numpy.asarray(hist_data/norm).flatten())
     cSum = numpy.cumsum(nHist)
@@ -154,78 +144,77 @@ def getLevels(hist_data,percentile_list=[0.5]):
     if isinstance(levels, numpy.float64):
         levels = numpy.array([levels])
 
-    #renormalize to the hist data level
+    # renormalize to the hist data level
     levels = norm*levels
     return levels
 
 
-#make a contour plot
-def make_densityContour(axes,x,y,xlims=None,ylims=None,bins=(50,50),
-                        log=False, color='g',levels=3,normed=True,
-                        percentiles=False,lw=1.0,ls='solid'):
-    if xlims==None:
-        xlims=(x.min(),x.max())
-    if ylims==None:
-        ylims=(y.min(),y.max())
-    x_p = x[(x>=xlims[0]) & (x<=xlims[1]) & (y>=ylims[0]) & (y<=ylims[1])]
-    y_p = y[(x>=xlims[0]) & (x<=xlims[1]) & (y>=ylims[0]) & (y<=ylims[1])]
+# make a contour plot
+def make_densityContour(axes, x, y, xlims=None, ylims=None, bins=(50, 50),
+                        log=False, color='g', levels=3, normed=True,
+                        percentiles=False, lw=1.0, ls='solid'):
+    if xlims == None:
+        xlims = (x.min(), x.max())
+    if ylims == None:
+        ylims = (y.min(), y.max())
+    x_p = x[(x >= xlims[0]) & (x <= xlims[1]) & (y >= ylims[0]) & (y <= ylims[1])]
+    y_p = y[(x >= xlims[0]) & (x <= xlims[1]) & (y >= ylims[0]) & (y <= ylims[1])]
 
-    if len(bins)==2:
-        bins = (numpy.linspace(xlims[0],xlims[1],num=bins[0]),
-                numpy.linspace(ylims[0],ylims[1],num=bins[1]))
+    if len(bins) == 2:
+        bins = (numpy.linspace(xlims[0], xlims[1], num=bins[0]),
+                numpy.linspace(ylims[0], ylims[1], num=bins[1]))
 
-    hist_xy,xedges,yedges = numpy.histogram2d(x_p,y_p,bins=bins,normed=normed)
+    hist_xy, xedges, yedges = numpy.histogram2d(x_p, y_p, bins=bins, normed=normed)
 
-    #if percentiles is set, get the levels from the percentiles
+    # if percentiles is set, get the levels from the percentiles
     if percentiles:
-        if isinstance(levels,list):
-            levels = getLevels(hist_xy,levels)
+        if isinstance(levels, list):
+            levels = getLevels(hist_xy, levels)
         else:
             levels = getLevels(hist_xy)
 
     if log:
-        new = axes.contour( numpy.log10(numpy.flipud(numpy.rot90(hist_xy)) + 0.1), numpy.log10(levels + 0.1),
-                            extent=[xedges[0], xedges[-1], 
-                                    yedges[0], yedges[-1]],
-                            colors=color,linestyles=ls,linewidths=lw)
-        
+        new = axes.contour(numpy.log10(numpy.flipud(numpy.rot90(hist_xy)) + 0.1), numpy.log10(levels + 0.1),
+                           extent=[xedges[0], xedges[-1],
+                                   yedges[0], yedges[-1]],
+                           colors=color, linestyles=ls, linewidths=lw)
+
     else:
-        new = axes.contour( xedges[:-1], yedges[:-1], numpy.rot90(hist_xy), levels,
-                            extent=[xedges[0], 
-                                    xedges[-1], yedges[0], yedges[-1]],
-                            colors=color,linestyles=ls,linewidths=lw)
-        
+        new = axes.contour(xedges[:-1], yedges[:-1], numpy.rot90(hist_xy), levels,
+                           extent=[xedges[0],
+                                   xedges[-1], yedges[0], yedges[-1]],
+                           colors=color, linestyles=ls, linewidths=lw)
+
     return new
 
 
+# make a density plot and return the patches to make a colorbar
+def make_densityplot(axes, x, y, xlims=None,
+                     ylims=None, bins=(50, 50), log=False):
+    if xlims == None:
+        xlims = (x.min(), x.max())
+    if ylims == None:
+        ylims = (y.min(), y.max())
+    x_p = x[(x >= xlims[0]) & (x <= xlims[1]) &
+            (y >= ylims[0]) & (y <= ylims[1])]
+    y_p = y[(x >= xlims[0]) & (x <= xlims[1]) &
+            (y >= ylims[0]) & (y <= ylims[1])]
 
-#make a density plot and return the patches to make a colorbar
-def make_densityplot(axes,x,y,xlims=None,
-                     ylims=None,bins=(50,50),log=False):
-    if xlims==None:
-        xlims=(x.min(),x.max())
-    if ylims==None:
-        ylims=(y.min(),y.max())
-    x_p = x[(x>=xlims[0])&(x<=xlims[1])&
-            (y>=ylims[0])&(y<=ylims[1])]
-    y_p = y[(x>=xlims[0])&(x<=xlims[1])&
-            (y>=ylims[0])&(y<=ylims[1])]
+    if len(bins) == 2:
+        bins = (numpy.linspace(xlims[0], xlims[1], num=bins[0]),
+                numpy.linspace(ylims[0], ylims[1], num=bins[1]))
 
-    if len(bins)==2:
-        bins = (numpy.linspace(xlims[0],xlims[1],num=bins[0]),
-                numpy.linspace(ylims[0],ylims[1],num=bins[1]))
-
-    hist_xy,xedges,yedges = numpy.histogram2d(x_p,y_p,bins=bins)
+    hist_xy, xedges, yedges = numpy.histogram2d(x_p, y_p, bins=bins)
 
     if log:
-        return axes.imshow( numpy.log10(numpy.rot90(hist_xy)+1.),
-                            extent=[xedges[0], xedges[-1], 
-                                    yedges[0], yedges[-1]],
-                            aspect='auto',
-                            interpolation='nearest',cmap=cm.gray_r)
+        return axes.imshow(numpy.log10(numpy.rot90(hist_xy)+1.),
+                           extent=[xedges[0], xedges[-1],
+                                   yedges[0], yedges[-1]],
+                           aspect='auto',
+                           interpolation='nearest', cmap=cm.gray_r)
     else:
-        return axes.imshow( numpy.rot90(hist_xy),
-                            extent=[xedges[0], xedges[-1], 
-                                    yedges[0], yedges[-1]],
-                            aspect='auto',interpolation='nearest',
-                            cmap=cm.gray_r)
+        return axes.imshow(numpy.rot90(hist_xy),
+                           extent=[xedges[0], xedges[-1],
+                                   yedges[0], yedges[-1]],
+                           aspect='auto', interpolation='nearest',
+                           cmap=cm.gray_r)
